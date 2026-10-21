@@ -1,5 +1,6 @@
 using CreateAColony.Colonies;
 using Vintagestory.API.Common;
+using Vintagestory.API.Config;
 using Vintagestory.API.Common.Entities;
 using Vintagestory.API.Datastructures;
 using Vintagestory.API.MathTools;
@@ -83,7 +84,7 @@ public class EntityBehaviorColonyCitizen : EntityBehavior
 
         var record = FindRecord();
         if (record == null) return;
-        player.SendMessage(0, $"{record.Name}: {record.JobCode ?? "unemployed"}", EnumChatType.Notification);
+        player.SendMessage(0, $"{record.Name}: {Lang.Get("createacolony:job-" + (record.JobCode ?? "none"))}", EnumChatType.Notification);
         handled = EnumHandling.PreventDefault;
     }
 
