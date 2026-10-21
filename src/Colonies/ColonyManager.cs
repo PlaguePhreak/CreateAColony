@@ -70,6 +70,7 @@ public partial class ColonyManager : ModSystem
         api.Event.OnEntitySpawn += OnCreatureReady;
         api.Event.OnEntityLoaded += OnCreatureReady;
         api.Event.RegisterGameTickListener(OnFarWorkTick, FarWorkTickMs);
+        StartDoors();
     }
 
     const int ColonyTickMs = 10_000;

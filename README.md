@@ -197,6 +197,12 @@ Forester's and Farmer's Huts have a **Work area** tab in their window (officers 
   come from the hut storage; the cook asks couriers for raw food the warehouse has, and for firewood.
 - A fire pit holding something the cook does not know how to cook is left alone.
 
+### Doors and gates
+
+Settlers walk through doors and fence gates that open by hand. They open one as they reach it and close
+it behind them once nobody is standing in it. Doors that need a key or a lever stay shut to them. This
+patches the game's pathfinder (with Harmony) only while it plans a path for a settler.
+
 ### Hut storage
 
 Every Builder's, Forester's and Farmer's Hut has its own 25-slot storage: sneak and right-click the

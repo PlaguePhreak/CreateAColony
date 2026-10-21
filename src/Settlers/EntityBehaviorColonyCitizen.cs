@@ -17,6 +17,7 @@ public class EntityBehaviorColonyCitizen : EntityBehavior
 {
     const float SyncIntervalSeconds = 5f;
     const float StuckCheckSeconds = 1f;
+    const float DoorCheckSeconds = 0.2f;
 
     ColonyManager? manager;
     /// <summary>
@@ -27,6 +28,7 @@ public class EntityBehaviorColonyCitizen : EntityBehavior
     static readonly System.Collections.Generic.Dictionary<string, long> lastBagChangeMs = new();
     float sinceSync;
     float sinceStuckCheck;
+    float sinceDoorCheck;
     int stuckChecks;
 
     public EntityBehaviorColonyCitizen(Entity entity) : base(entity) { }
@@ -45,6 +47,12 @@ public class EntityBehaviorColonyCitizen : EntityBehavior
     public override void OnGameTick(float deltaTime)
     {
         if (manager == null || !entity.Alive) return;
+        sinceDoorCheck += deltaTime;
+        if (sinceDoorCheck >= DoorCheckSeconds)
+        {
+            sinceDoorCheck = 0;
+            manager.OpenDoorsAhead(entity);
+        }
         sinceStuckCheck += deltaTime;
         if (sinceStuckCheck >= StuckCheckSeconds)
         {
