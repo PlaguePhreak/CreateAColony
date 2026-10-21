@@ -31,6 +31,9 @@ public class ColonyNetwork : ModSystem
     // Who has which hut window open: player uid -> (colony, hut position).
     readonly Dictionary<string, (string ColonyId, BlockPos HutPos)> hutViewers = new();
     GuiDialogHut? hutDialog;
+    // Who has which settler window open: player uid -> (colony, citizen id).
+    readonly Dictionary<string, (string ColonyId, int CitizenId)> citizenViewers = new();
+    GuiDialogCitizen? citizenDialog;
 
     public override void Start(ICoreAPI api)
     {
@@ -40,7 +43,8 @@ public class ColonyNetwork : ModSystem
             .RegisterMessageType<ColonySnapshot>()
             .RegisterMessageType<ColonyActionPacket>()
             .RegisterMessageType<HutOpenRequest>()
-            .RegisterMessageType<HutSnapshot>();
+            .RegisterMessageType<HutSnapshot>()
+            .RegisterMessageType<CitizenSnapshot>();
     }
 
     // ---- Server ---------------------------------------------------------------------------
@@ -60,11 +64,14 @@ public class ColonyNetwork : ModSystem
             {
                 if (Manager.GetById(colonyId) is { } c && c.Buildings.Any(b => b.HasWorkOrder)) RefreshViewers(c, periodic: true);
             }
+            // Settlers change what they do all the time, so their windows always refresh.
+            foreach (var (uid, view) in citizenViewers.ToList()) SendCitizenWindow(uid, view.ColonyId, view.CitizenId, openWindow: false);
         }, 3000);
         api.Event.PlayerDisconnect += player =>
         {
             foreach (var viewers in viewersByColony.Values) viewers.Remove(player.PlayerUID);
             hutViewers.Remove(player.PlayerUID);
+            citizenViewers.Remove(player.PlayerUID);
         };
     }
 
@@ -92,6 +99,7 @@ public class ColonyNetwork : ModSystem
         {
             if (viewersByColony.TryGetValue(colony.ColonyId, out var v)) v.Remove(player.PlayerUID);
             hutViewers.Remove(player.PlayerUID);
+            citizenViewers.Remove(player.PlayerUID);
             return;
         }
 
@@ -286,6 +294,55 @@ public class ColonyNetwork : ModSystem
         serverChannel!.SendPacket(BuildHutSnapshot(colony, building, player.PlayerUID, openWindow: true), player);
     }
 
+    /// <summary>Opens (or refreshes) the settler window for a player. Called when a player right-clicks a settler.</summary>
+    public void OpenCitizenWindow(IServerPlayer player, Colony colony, CitizenRecord citizen)
+    {
+        citizenViewers[player.PlayerUID] = (colony.ColonyId, citizen.CitizenId);
+        SendCitizenWindow(player.PlayerUID, colony.ColonyId, citizen.CitizenId, openWindow: true);
+    }
+
+    void SendCitizenWindow(string uid, string colonyId, int citizenId, bool openWindow)
+    {
+        var colony = Manager.GetById(colonyId);
+        var citizen = colony?.Citizens.Find(c => c.CitizenId == citizenId);
+        if (colony == null || citizen == null || sapi!.World.PlayerByUid(uid) is not IServerPlayer player
+            || player.ConnectionState != EnumClientState.Playing)
+        {
+            citizenViewers.Remove(uid);
+            return;
+        }
+
+        var config = Manager.Config;
+        var entity = sapi.World.GetEntityById(citizen.EntityId) as EntityAgent;
+        string activity;
+        if (!citizen.Alive) activity = Lang.Get("createacolony:activity-dead");
+        else if (citizen.IsDowned) activity = Lang.Get("createacolony:activity-downed");
+        else
+        {
+            var task = entity?.GetBehavior<EntityBehaviorTaskAI>()?.TaskManager.ActiveTasksBySlot.OfType<Settlers.SettlerTaskBase>().FirstOrDefault();
+            activity = task?.Describe(colony, citizen) ?? Lang.Get("createacolony:activity-idle");
+        }
+
+        var snapshot = new CitizenSnapshot
+        {
+            ColonyId = colony.ColonyId,
+            CitizenId = citizen.CitizenId,
+            Name = citizen.Name,
+            Job = citizen.JobCode ?? "",
+            State = !citizen.Alive ? "dead" : citizen.IsDowned ? "downed"
+                : citizen.Saturation >= 0 && citizen.Saturation < config.SaturationMax * config.EatBelowFraction ? "hungry" : "ok",
+            FoodPercent = citizen.Saturation < 0 ? 100 : (int)(100 * citizen.Saturation / config.SaturationMax),
+            HasBed = citizen.HomeBedPos != null,
+            Activity = activity,
+            Pack = Manager.PackItems(citizen).Select(s => s.ToBytes()).ToList(),
+            Slots = Manager.PackSlots(citizen),
+            Bags = Manager.PackBags(citizen).Select(s => s.ToBytes()).ToList(),
+            Hand = entity?.RightHandItemSlot?.Itemstack?.ToBytes(),
+            OpenWindow = openWindow
+        };
+        serverChannel!.SendPacket(snapshot, player);
+    }
+
     HutSnapshot BuildHutSnapshot(Colony colony, Building building, string viewerUid, bool openWindow)
     {
         var snapshot = new HutSnapshot
@@ -329,7 +386,8 @@ public class ColonyNetwork : ModSystem
             var sample = Manager.ToolSample(need.Type);
             if (sample == null) continue;
             bool has = ColonyManager.ToolFits(hand, need.Type, need.Tier)
-                || Manager.CountItems(storage, s => ColonyManager.ToolFits(s, need.Type, need.Tier)) > 0;
+                || Manager.CountItems(storage, s => ColonyManager.ToolFits(s, need.Type, need.Tier)) > 0
+                || Manager.PackCount(builder, s => ColonyManager.ToolFits(s, need.Type, need.Tier)) > 0;
             snapshot.Resources.Add(new ResourceView { Stack = sample.ToBytes(), Needed = 1, Have = has ? 1 : 0, IsTool = true });
         }
         foreach (var (code, (sample, count)) in Manager.MaterialsNeeded(colony, current, blueprint).OrderByDescending(kv => kv.Value.Count))
@@ -351,7 +409,8 @@ public class ColonyNetwork : ModSystem
         capi = api;
         clientChannel = api.Network.GetChannel(ChannelName)
             .SetMessageHandler<ColonySnapshot>(OnSnapshot)
-            .SetMessageHandler<HutSnapshot>(OnHutSnapshot);
+            .SetMessageHandler<HutSnapshot>(OnHutSnapshot)
+            .SetMessageHandler<CitizenSnapshot>(OnCitizenSnapshot);
     }
 
     /// <summary>Called by the Town Hall block when a player right-clicks it.</summary>
@@ -364,6 +423,23 @@ public class ColonyNetwork : ModSystem
 
     /// <summary>Called by hut blocks (Builder's Hut, Warehouse) when a player right-clicks them.</summary>
     public void RequestOpenHut(BlockPos pos) => clientChannel?.SendPacket(new HutOpenRequest { Pos = pos.Copy() });
+
+    void OnCitizenSnapshot(CitizenSnapshot snapshot)
+    {
+        if (citizenDialog != null && citizenDialog.IsOpened() && citizenDialog.CitizenId == snapshot.CitizenId && citizenDialog.ColonyId == snapshot.ColonyId)
+        {
+            citizenDialog.Update(snapshot);
+            return;
+        }
+        if (!snapshot.OpenWindow) return;
+        if (citizenDialog != null && citizenDialog.IsOpened())
+        {
+            citizenDialog.Replaced = true;
+            citizenDialog.TryClose();
+        }
+        citizenDialog = new GuiDialogCitizen(capi!, this, snapshot);
+        citizenDialog.TryOpen();
+    }
 
     void OnHutSnapshot(HutSnapshot snapshot)
     {

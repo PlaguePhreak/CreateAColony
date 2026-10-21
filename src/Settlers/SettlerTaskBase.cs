@@ -1,5 +1,6 @@
 using CreateAColony.Colonies;
 using Vintagestory.API.Common;
+using Vintagestory.API.Config;
 using Vintagestory.API.Datastructures;
 using Vintagestory.API.MathTools;
 using Vintagestory.GameContent;
@@ -14,6 +15,9 @@ public abstract class SettlerTaskBase : AiTaskBase
 {
     const int MaxPathAttempts = 3;
     const long RetryDelayMs = 4000;
+    /// <summary>A walking settler that has not moved this far in NoProgressMs plans a new path.</summary>
+    const double ProgressDistance = 0.5;
+    const long NoProgressMs = 4000;
 
     protected readonly float moveSpeed;
     protected readonly ColonyManager? manager;
@@ -24,6 +28,8 @@ public abstract class SettlerTaskBase : AiTaskBase
     bool failed;
     int attempts;
     long retryAtMs;
+    Vec3d lastProgressPos = new();
+    long lastProgressMs;
 
     protected SettlerTaskBase(EntityAgent entity, JsonObject taskConfig, JsonObject aiConfig) : base(entity, taskConfig, aiConfig)
     {
@@ -56,14 +62,33 @@ public abstract class SettlerTaskBase : AiTaskBase
     /// <summary>Retries a stuck path after a short pause. Call every ContinueExecute while walking.</summary>
     protected void KeepWalking()
     {
-        if (goal == null || arrived || attempts >= MaxPathAttempts) return;
-        if (failed && entity.World.ElapsedMilliseconds >= retryAtMs) StartPath();
+        if (goal == null || arrived) return;
+        long now = entity.World.ElapsedMilliseconds;
+        if (failed)
+        {
+            if (attempts < MaxPathAttempts && now >= retryAtMs) StartPath();
+            return;
+        }
+        // A block placed in the way after the path was planned leaves the settler walking into it: plan again.
+        if (entity.Pos.SquareDistanceTo(lastProgressPos) > ProgressDistance * ProgressDistance)
+        {
+            lastProgressPos = entity.Pos.XYZ;
+            lastProgressMs = now;
+        }
+        else if (now - lastProgressMs > NoProgressMs)
+        {
+            pathTraverser.Stop();
+            if (attempts < MaxPathAttempts) StartPath();
+            else failed = true;
+        }
     }
 
     void StartPath()
     {
         attempts++;
         failed = false;
+        lastProgressPos = entity.Pos.XYZ;
+        lastProgressMs = entity.World.ElapsedMilliseconds;
         pathTraverser.NavigateTo_Async(goal!, moveSpeed, goalRange, OnArrived, OnPathFailed, OnPathFailed, 2000, 1);
     }
 
@@ -72,7 +97,7 @@ public abstract class SettlerTaskBase : AiTaskBase
     void OnPathFailed()
     {
         failed = true;
-        retryAtMs = entity.World.ElapsedMilliseconds + RetryDelayMs * attempts;
+        retryAtMs = entity.World.ElapsedMilliseconds + RetryDelayMs * (attempts - 1);
     }
 
     public override bool CanContinueExecute() => pathTraverser.Ready;
@@ -97,6 +122,9 @@ public abstract class SettlerTaskBase : AiTaskBase
     }
 
     protected void StopAnimation(string code) => entity.AnimManager.StopAnimation(code);
+
+    /// <summary>What the settler is doing right now, in words, for the settler window.</summary>
+    public virtual string Describe(Colony colony, CitizenRecord citizen) => Lang.Get("createacolony:activity-busy");
 
     /// <summary>
     /// Plays an animation by its shape code, such as a player tool animation copied in by

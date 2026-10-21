@@ -1,3 +1,4 @@
+using CreateAColony.Colonies;
 using Vintagestory.API.Common;
 using Vintagestory.API.Datastructures;
 using Vintagestory.API.MathTools;
@@ -70,4 +71,6 @@ public class AiTaskSettlerSleep : SettlerTaskBase
         lyingDown = false;
         base.FinishExecute(cancelled);
     }
+
+    public override string Describe(Colony colony, CitizenRecord citizen) => Vintagestory.API.Config.Lang.Get("createacolony:activity-sleeping");
 }

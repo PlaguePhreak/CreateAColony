@@ -210,4 +210,27 @@ public class AiTaskSettlerCourier : SettlerTaskBase
         }
         base.FinishExecute(cancelled);
     }
+
+    public override string Describe(Colony colony, CitizenRecord citizen)
+    {
+        var request = colony.Requests.Find(r => r.RequestId == requestId);
+        string what = request != null ? request.ItemCode : "";
+        if (request != null && ColonyManager.ParseToolCode(request.ItemCode) is { } tool)
+        {
+            what = Vintagestory.API.Config.Lang.Get("createacolony:tool-" + tool.Type.ToString().ToLowerInvariant());
+        }
+        else if (request != null)
+        {
+            var sample = manager!.PackItems(citizen).FirstOrDefault(ColonyManager.Matcher(request.ItemCode));
+            if (sample != null) what = sample.GetName();
+        }
+        string key = (request != null, step) switch
+        {
+            (true, Step.Pickup) => "activity-courier-fetch",
+            (true, Step.Deliver) => "activity-courier-deliver",
+            (false, Step.Pickup) => "activity-courier-collect",
+            _ => "activity-courier-store"
+        };
+        return Vintagestory.API.Config.Lang.Get("createacolony:" + key, request?.Remaining ?? 0, what);
+    }
 }
