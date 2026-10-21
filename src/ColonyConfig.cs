@@ -85,6 +85,8 @@ public class ColonyConfig
     public float GuardFistDamage = 1.5f;
     /// <summary>Seconds between a guard's blows.</summary>
     public float GuardSecondsPerHit = 1.2f;
-    /// <summary>Creatures guards fight, as entity codes; * matches anything.</summary>
+    /// <summary>The creatures in GuardTargets hunt settlers as they hunt players.</summary>
+    public bool HostilesAttackSettlers = true;
+    /// <summary>Creatures guards fight, and that hunt settlers, as entity codes; * matches anything.</summary>
     public string[] GuardTargets = { "drifter-*", "locust-*", "bell-*", "bowtorn-*", "shiver-*", "wolf-*", "hyena-*", "bear-*" };
 }

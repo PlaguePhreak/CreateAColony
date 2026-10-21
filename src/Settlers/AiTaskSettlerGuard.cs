@@ -126,7 +126,7 @@ public class AiTaskSettlerGuard : SettlerTaskBase
     /// <summary>Walks somewhere, planning a new path only when the goal has moved since the last one.</summary>
     void Walk(Vec3d to, float range)
     {
-        if (walkingTo != null && walkingTo.SquareDistanceTo(to) < 4) return;
+        if (walkingTo != null && walkingTo.SquareDistanceTo(to) < 9) return;
         walkingTo = to.Clone();
         WalkTo(to, range);
     }

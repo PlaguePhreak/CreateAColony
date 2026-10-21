@@ -24,8 +24,14 @@ public abstract class SettlerTaskBase : AiTaskBase
 
     /// <summary>Further than this, a settler walks in stretches: the pathfinder only plans so far ahead.</summary>
     const double LegLength = 28;
-    /// <summary>Turns, in degrees, tried for a stretch that cannot be walked straight on: around water or a cliff.</summary>
-    static readonly double[] LegTurns = { 0, 35, -35, 70, -70, 110, -110 };
+    /// <summary>
+    /// Stretches tried in turn when one cannot be walked: (length, turn in degrees from straight at the goal).
+    /// Shorter and turned ones get around water, cliffs and out of holes.
+    /// </summary>
+    static readonly (double Length, double Turn)[] Legs =
+    {
+        (28, 0), (28, 40), (28, -40), (16, 0), (16, 60), (16, -60), (28, 90), (28, -90), (10, 120), (10, -120), (10, 180)
+    };
 
     Vec3d? finalGoal;
     float finalRange;
@@ -34,7 +40,7 @@ public abstract class SettlerTaskBase : AiTaskBase
     float goalRange;
     bool onLeg;
     bool legDone;
-    int legTurn;
+    int legTry;
     bool arrived;
     bool failed;
     int attempts;
@@ -63,7 +69,7 @@ public abstract class SettlerTaskBase : AiTaskBase
         finalRange = range;
         refreshGoal = refresh;
         arrived = false;
-        legTurn = 0;
+        legTry = 0;
         // StopWalking ends the walk animation, so every new leg starts it again; otherwise settlers glide.
         if (animMeta != null) entity.AnimManager.StartAnimation(animMeta);
         StartLeg();
@@ -77,31 +83,46 @@ public abstract class SettlerTaskBase : AiTaskBase
         legDone = false;
         var here = entity.Pos.XYZ;
         double dx = finalGoal!.X - here.X, dz = finalGoal.Z - here.Z;
-        double dist = System.Math.Sqrt(dx * dx + dz * dz);
-        onLeg = dist > LegLength + 4;
+        onLeg = System.Math.Sqrt(dx * dx + dz * dz) > LegLength + 4;
         if (!onLeg)
         {
             if (refreshGoal != null) finalGoal = refreshGoal();
             goal = finalGoal;
             goalRange = finalRange;
+            StartPath();
+            return;
         }
-        else
+
+        // The first stretch, from this one on, that ends somewhere the settler can stand.
+        for (; legTry < Legs.Length; legTry++)
         {
-            double angle = System.Math.Atan2(dz, dx) + LegTurns[legTurn] * GameMath.DEG2RAD;
-            int x = (int)System.Math.Floor(here.X + System.Math.Cos(angle) * LegLength);
-            int z = (int)System.Math.Floor(here.Z + System.Math.Sin(angle) * LegLength);
-            var ba = entity.World.BlockAccessor;
-            int y = ba.GetTerrainMapheightAt(new BlockPos(x, 0, z)) + 1;
-            goal = new Vec3d(x + 0.5, y, z + 0.5);
-            goalRange = 3;
+            var (length, turn) = Legs[legTry];
+            double angle = System.Math.Atan2(dz, dx) + turn * GameMath.DEG2RAD;
+            if (StandingSpot(here.X + System.Math.Cos(angle) * length, here.Z + System.Math.Sin(angle) * length) is not { } spot) continue;
+            goal = spot;
+            goalRange = 2;
+            StartPath();
+            return;
         }
-        StartPath();
+        failed = true;
+        attempts = MaxPathAttempts;
+    }
+
+    /// <summary>A free spot with floor under it on the surface near a point, or null where the land is not loaded or there is none.</summary>
+    Vec3d? StandingSpot(double x, double z)
+    {
+        if (manager == null) return null;
+        var ba = entity.World.BlockAccessor;
+        var column = new BlockPos((int)System.Math.Floor(x), 0, (int)System.Math.Floor(z));
+        if (ba.GetChunkAtBlockPos(column.X, 1, column.Z) == null) return null;
+        column.Y = ba.GetTerrainMapheightAt(column) + 1;
+        return manager.FreeSpotNear(entity, column, 2);
     }
 
     protected bool Arrived => arrived || (finalGoal != null && entity.Pos.SquareDistanceTo(finalGoal) <= (finalRange + 0.6f) * (finalRange + 0.6f));
 
     /// <summary>True once the target could not be reached after several attempts.</summary>
-    protected bool PathFailed => failed && attempts >= MaxPathAttempts && (!onLeg || legTurn >= LegTurns.Length - 1);
+    protected bool PathFailed => failed && attempts >= MaxPathAttempts && (!onLeg || legTry >= Legs.Length);
 
     /// <summary>Retries a stuck path after a short pause. Call every ContinueExecute while walking.</summary>
     protected void KeepWalking()
@@ -109,22 +130,25 @@ public abstract class SettlerTaskBase : AiTaskBase
         if (goal == null || arrived) return;
         if (legDone)
         {
-            legTurn = 0;
+            legTry = 0;
             StartLeg();
             return;
         }
         long now = entity.World.ElapsedMilliseconds;
         if (failed)
         {
-            if (attempts < MaxPathAttempts)
+            if (onLeg)
             {
-                if (now >= retryAtMs) StartPath();
+                // This stretch cannot be walked: try a shorter one or one turned to the side, right away.
+                if (legTry < Legs.Length)
+                {
+                    legTry++;
+                    StartLeg();
+                }
             }
-            else if (onLeg && legTurn < LegTurns.Length - 1)
+            else if (attempts < MaxPathAttempts && now >= retryAtMs)
             {
-                // This stretch cannot be walked: try one turned a little to the side.
-                legTurn++;
-                StartLeg();
+                StartPath();
             }
             return;
         }
@@ -148,7 +172,9 @@ public abstract class SettlerTaskBase : AiTaskBase
         failed = false;
         lastProgressPos = entity.Pos.XYZ;
         lastProgressMs = entity.World.ElapsedMilliseconds;
-        pathTraverser.NavigateTo_Async(goal!, moveSpeed, goalRange, OnArrived, OnPathFailed, OnPathFailed, 2000, 1);
+        // A search still running would make the traverser ignore this one without a word.
+        pathTraverser.Stop();
+        if (!pathTraverser.NavigateTo_Async(goal!, moveSpeed, goalRange, OnArrived, OnPathFailed, OnPathFailed, 2000, 1)) OnPathFailed();
     }
 
     void OnArrived()
@@ -159,6 +185,9 @@ public abstract class SettlerTaskBase : AiTaskBase
 
     void OnPathFailed()
     {
+        // With no path the traverser still starts walking straight at the goal, into whatever is in
+        // the way; stop that, it is how settlers ended up pressed into walls.
+        pathTraverser.Stop();
         failed = true;
         retryAtMs = entity.World.ElapsedMilliseconds + RetryDelayMs * (attempts - 1);
     }

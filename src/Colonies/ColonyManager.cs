@@ -67,6 +67,8 @@ public partial class ColonyManager : ModSystem
         api.Event.GameWorldSave += OnGameWorldSave;
         api.Event.RegisterGameTickListener(OnColonyTick, ColonyTickMs, 1000);
         api.Event.RegisterGameTickListener(OnScanTick, ScanTickMs);
+        api.Event.OnEntitySpawn += OnCreatureReady;
+        api.Event.OnEntityLoaded += OnCreatureReady;
         api.Event.RegisterGameTickListener(OnFarWorkTick, FarWorkTickMs);
     }
 
