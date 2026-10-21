@@ -119,6 +119,20 @@ public class CreateAColonyModSystem : ModSystem
                 .WithArgs(parsers.Word("file"), parsers.Word("buildingtype"), parsers.IntRange("level", 1, BlueprintLibrary.MaxLevels))
                 .HandleWith(OnImportMc)
             .EndSubCommand()
+            .BeginSubCommand("findblock")
+                .WithDescription("List installed block codes matching a pattern, e.g. /colony findblock *door*oak*")
+                .RequiresPrivilege(Privilege.controlserver)
+                .WithArgs(parsers.Word("pattern"))
+                .HandleWith(args =>
+                {
+                    string pattern = (string)args[0];
+                    if (!pattern.Contains(':')) pattern = "game:" + pattern;
+                    var codes = sapi!.World.SearchBlocks(new AssetLocation(pattern)).Select(b => b.Code.ToString()).OrderBy(c => c).ToList();
+                    string list = codes.Count == 0 ? "-" : string.Join("\n", codes.Take(30)) + (codes.Count > 30 ? $"\n... {codes.Count - 30} more" : "");
+                    sapi.Logger.Notification("[createacolony] findblock {0}: {1}", pattern, string.Join(", ", codes));
+                    return TextCommandResult.Success(list);
+                })
+            .EndSubCommand()
             .BeginSubCommand("cancelrequest")
                 .WithDescription("Cancel a delivery request by its number")
                 .WithArgs(parsers.Int("number"))

@@ -198,7 +198,16 @@ public class MineColoniesImporter
             {
                 if (template == Skip) return Skip;
                 string code = Regex.Replace(template, @"\{(\w+)\}", v => vars.GetValueOrDefault(v.Groups[1].Value, v.Value));
-                if (sapi.World.GetBlock(new AssetLocation(code)) != null) return code;
+                if (code.Contains('*'))
+                {
+                    // A wildcard picks the first installed block that fits, for names we can't be sure of.
+                    var found = sapi.World.SearchBlocks(new AssetLocation(code)).Select(b => b.Code.ToString()).OrderBy(c => c.Length).ThenBy(c => c).FirstOrDefault();
+                    if (found != null) return found;
+                }
+                else if (sapi.World.GetBlock(new AssetLocation(code)) != null)
+                {
+                    return code;
+                }
             }
             return null; // the rule matched but none of its blocks are installed
         }

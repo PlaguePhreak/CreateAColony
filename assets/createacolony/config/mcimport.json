@@ -52,7 +52,9 @@
 			"Match": "^minecraft:(?<wood>oak|spruce|birch|jungle|acacia|dark_oak|mangrove|cherry|bamboo|crimson|warped)_planks$",
 			"Blocks": [
 				"game:planks-{vswood}-hor",
-				"game:planks-oak-hor"
+				"game:planks-{vswood}*",
+				"game:planks-oak*",
+				"game:*planks*{vswood}*"
 			]
 		},
 		{
@@ -66,7 +68,8 @@
 			"Match": "^minecraft:(?<wood>oak|spruce|birch|jungle|acacia|dark_oak|mangrove|cherry|bamboo|crimson|warped)_stairs$",
 			"Blocks": [
 				"game:plankstairs-{vswood}-{stairhalf}-{facing}-free",
-				"game:plankstairs-oak-{stairhalf}-{facing}-free"
+				"game:plankstairs-oak-{stairhalf}-{facing}-free",
+				"game:*stairs*{vswood}*{stairhalf}*{facing}*"
 			]
 		},
 		{
@@ -76,7 +79,8 @@
 			},
 			"Blocks": [
 				"game:planks-{vswood}-hor",
-				"game:planks-oak-hor"
+				"game:planks-{vswood}*",
+				"game:planks-oak*"
 			]
 		},
 		{
@@ -90,14 +94,43 @@
 			"Match": "^minecraft:(?<wood>oak|spruce|birch|jungle|acacia|dark_oak|mangrove|cherry|bamboo|crimson|warped)_fence$",
 			"Blocks": [
 				"game:woodenfence-{vswood}-empty-free",
-				"game:woodenfence-oak-empty-free"
+				"game:woodenfence-oak-empty-free",
+				"game:woodenfence-{vswood}*",
+				"game:*fence*{vswood}*"
 			]
 		},
 		{
 			"Match": "^minecraft:(?<wood>oak|spruce|birch|jungle|acacia|dark_oak|mangrove|cherry|bamboo|crimson|warped)_fence_gate$",
 			"Blocks": [
 				"game:woodenfencegate-{vswood}-{facing}-closed-left-free",
-				"game:woodenfencegate-oak-{facing}-closed-left-free"
+				"game:woodenfencegate-oak-{facing}-closed-left-free",
+				"game:woodenfencegate-{vswood}*",
+				"game:*fencegate*{vswood}*"
+			]
+		},
+		{
+			"Match": "^minecraft:(?<wood>oak|spruce|birch|jungle|acacia|dark_oak|mangrove|cherry|bamboo|crimson|warped)_door$",
+			"When": {
+				"half": "upper"
+			},
+			"Blocks": [
+				"game:air"
+			]
+		},
+		{
+			"Match": "^minecraft:(?<wood>oak|spruce|birch|jungle|acacia|dark_oak|mangrove|cherry|bamboo|crimson|warped)_door$",
+			"Blocks": [
+				"game:door-solid-{vswood}*",
+				"game:door*solid*{vswood}*",
+				"game:door*{vswood}*",
+				"game:door*oak*"
+			]
+		},
+		{
+			"Match": "^minecraft:(?<wood>oak|spruce|birch|jungle|acacia|dark_oak|mangrove|cherry|bamboo|crimson|warped)_trapdoor$",
+			"Blocks": [
+				"game:trapdoor*{vswood}*",
+				"game:trapdoor*"
 			]
 		},
 		{
@@ -110,7 +143,9 @@
 		{
 			"Match": "^minecraft:ladder$",
 			"Blocks": [
-				"game:ladder-wood-{facing}"
+				"game:ladder-wood-{facing}",
+				"game:ladder*{facing}*",
+				"game:ladder*"
 			]
 		},
 		{
@@ -192,45 +227,54 @@
 			"Match": "^minecraft:dirt_path$",
 			"Blocks": [
 				"game:packeddirt",
+				"game:packeddirt*",
 				"game:soil-medium-none"
 			]
 		},
 		{
 			"Match": "^minecraft:gravel$",
 			"Blocks": [
-				"game:gravel-granite"
+				"game:gravel-granite",
+				"game:gravel-*"
 			]
 		},
 		{
 			"Match": "^minecraft:sand$",
 			"Blocks": [
-				"game:sand-granite"
+				"game:sand-granite",
+				"game:sand-*"
 			]
 		},
 		{
 			"Match": "^minecraft:(\\w+_)?glass$",
 			"Blocks": [
 				"game:glass-plain",
-				"game:glass-quartz"
+				"game:glass-quartz",
+				"game:glass-*"
 			]
 		},
 		{
 			"Match": "^minecraft:torch$",
 			"Blocks": [
-				"game:torch-basic-lit-up"
+				"game:torch-basic-lit-up",
+				"game:torch*up*",
+				"game:torch*"
 			]
 		},
 		{
 			"Match": "^minecraft:wall_torch$",
 			"Blocks": [
 				"game:torch-basic-lit-{facing}",
-				"game:torch-basic-lit-up"
+				"game:torch*lit*{facing}*",
+				"game:torch-basic-lit-up",
+				"game:torch*"
 			]
 		},
 		{
 			"Match": "^minecraft:hay_block$",
 			"Blocks": [
-				"game:hay-normal-ud"
+				"game:hay-normal-ud",
+				"game:hay*"
 			]
 		},
 		{
@@ -243,6 +287,27 @@
 		{
 			"Match": "^minecraft:(short_grass|grass|tall_grass|fern|large_fern|dandelion|poppy|\\w+_tulip|\\w+_flower|snow)$",
 			"Blocks": [
+				"game:air"
+			]
+		},
+		{
+			"Match": "^minecraft:(crafting_table|smithing_table|fletching_table|cartography_table|loom|stonecutter|grindstone|composter|lectern|cauldron|anvil|bell|\\w*_bed|\\w*_banner|\\w*_carpet|flower_pot|potted_\\w+|redstone\\w*|lever|\\w+_button|\\w+_pressure_plate)$",
+			"Blocks": [
+				"game:air"
+			]
+		},
+		{
+			"Match": "^minecraft:(furnace|blast_furnace|smoker|campfire)$",
+			"Blocks": [
+				"game:firepit*",
+				"game:air"
+			]
+		},
+		{
+			"Match": "^minecraft:(lantern|soul_lantern)$",
+			"Blocks": [
+				"game:lantern*up*",
+				"game:lantern*",
 				"game:air"
 			]
 		}

@@ -4,7 +4,7 @@
   "name": "Create a Colony",
   "description": "Found a colony, recruit settlers, and let them build, farm, cut wood and haul.",
   "authors": ["Aaron"],
-  "version": "0.5.2",
+  "version": "0.5.3",
   "side": "universal",
   "requiredOnClient": true,
   "requiredOnServer": true,
