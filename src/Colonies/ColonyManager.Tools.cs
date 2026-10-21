@@ -42,11 +42,11 @@ public partial class ColonyManager
     }
 
     /// <summary>The tool needed to clear whatever stands at pos for this step, or null if hands will do.</summary>
-    public ToolNeed? ToolNeededAt(BuildStep step, BlockPos pos)
+    public ToolNeed? ToolNeededAt(Colony colony, BuildStep step, BlockPos pos)
     {
         if (!Config.BuildersNeedTools) return null;
         var block = sapi.World.BlockAccessor.GetBlock(pos);
-        if (block.Id == 0 || block.Id == step.BlockId || block.IsLiquid()) return null;
+        if (block.Id == 0 || block.IsLiquid() || KeepsBlock(colony, block, step.BlockId)) return null;
         return ToolFor(block) is { } type ? new ToolNeed(type, block.RequiredMiningTier) : null;
     }
 
@@ -58,7 +58,7 @@ public partial class ColonyManager
         {
             var pos = StepPos(order, step);
             if (IsStepDone(colony, step, pos)) continue;
-            if (ToolNeededAt(step, pos) is { } need) needs.Add(need);
+            if (ToolNeededAt(colony, step, pos) is { } need) needs.Add(need);
         }
         // Keep only the highest tier per tool type.
         return needs.GroupBy(n => n.Type).Select(g => g.OrderByDescending(n => n.Tier).First()).ToHashSet();

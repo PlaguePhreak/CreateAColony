@@ -120,6 +120,8 @@ public class Colony
     [ProtoMember(17, IsRequired = true)] public int NextRequestId = 1;
     [ProtoMember(18)] public List<Building> Buildings = new();
     [ProtoMember(19, IsRequired = true)] public int NextBuildingId = 1;
+    /// <summary>Builders may use any wood or stone type in place of the one a blueprint asks for.</summary>
+    [ProtoMember(20, IsRequired = true)] public bool AnyWoodOrStone = true;
 
     public string OwnerUid => Members.Find(m => m.Role == ColonyRole.Owner)?.PlayerUid ?? "";
 

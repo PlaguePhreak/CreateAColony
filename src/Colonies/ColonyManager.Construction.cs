@@ -22,7 +22,6 @@ public partial class ColonyManager
     BlueprintLibrary? blueprints;
     public BlueprintLibrary Blueprints => blueprints ??= new BlueprintLibrary(sapi);
 
-    readonly Dictionary<int, ItemStack?> materialCache = new();
 
     /// <summary>What each work order is waiting on, for the Town Hall window. Not saved: builders refresh it.</summary>
     public readonly Dictionary<int, string> BuildStatus = new();
@@ -164,6 +163,15 @@ public partial class ColonyManager
 
     public static string RequestTag(Building building) => "building:" + building.BuildingId;
 
+    /// <summary>Turns "any wood or stone" on or off. Open material requests are dropped so builders ask again in the new terms.</summary>
+    public void SetAnyWoodOrStone(Colony colony, bool on)
+    {
+        if (colony.AnyWoodOrStone == on) return;
+        colony.AnyWoodOrStone = on;
+        foreach (var b in colony.Buildings.Where(b => b.HasWorkOrder)) CancelBuildRequests(colony, b);
+        MarkDirty(colony);
+    }
+
     void CancelBuildRequests(Colony colony, Building building)
     {
         string tag = RequestTag(building);
@@ -183,7 +191,7 @@ public partial class ColonyManager
         if (!ClaimArea(colony.TownHallPos, colony.ClaimRadius).ContainsOrTouches(pos)) return true;
         var ba = sapi.World.BlockAccessor;
         var current = ba.GetBlock(pos);
-        if (current.Id == step.BlockId) return true;
+        if (current.Id == step.BlockId || Fulfils(colony, current, step.BlockId)) return true;
         if (GetBuilding(colony, pos) != null) return true;
         if (ba.GetBlockEntity(pos) is BlockEntityContainer) return true;
         // Water and lava are left alone when clearing; builders do not drain lakes.
@@ -213,43 +221,20 @@ public partial class ColonyManager
         return false;
     }
 
-    /// <summary>The item a builder spends to place this block, or null if it costs nothing.</summary>
-    public ItemStack? MaterialFor(int blockId, BlockPos pos)
-    {
-        if (blockId == 0) return null;
-        if (!materialCache.TryGetValue(blockId, out var stack))
-        {
-            var block = sapi.World.GetBlock(blockId);
-            try
-            {
-                stack = block.OnPickBlock(sapi.World, pos);
-            }
-            catch (Exception)
-            {
-                stack = null;
-            }
-            stack ??= new ItemStack(block);
-            stack.StackSize = 1;
-            materialCache[blockId] = stack;
-        }
-        return stack;
-    }
-
-    public static bool SameMaterial(ItemStack a, ItemStack b) => a.Collectible.Code.Equals(b.Collectible.Code);
-
-    /// <summary>Materials still needed for the rest of the work order, by item code.</summary>
+    /// <summary>Materials still needed for the rest of the work order, by item code (a pattern when any wood or stone will do).</summary>
     public Dictionary<string, (ItemStack Sample, int Count)> MaterialsNeeded(Colony colony, Building building, Blueprint blueprint)
     {
         var needs = new Dictionary<string, (ItemStack, int)>();
+        if (!Config.BuildersNeedMaterials) return needs;
         foreach (var step in blueprint.Steps)
         {
             if (step.BlockId == 0) continue;
             var pos = StepPos(building, step);
             if (IsStepDone(colony, step, pos)) continue;
-            var material = MaterialFor(step.BlockId, pos);
-            if (material == null) continue;
-            string code = material.Collectible.Code.ToString();
-            needs[code] = needs.TryGetValue(code, out var n) ? (n.Item1, n.Item2 + 1) : (material, 1);
+            foreach (var cost in RemainingCost(colony, step, pos))
+            {
+                needs[cost.Code] = needs.TryGetValue(cost.Code, out var n) ? (n.Item1, n.Item2 + cost.Count) : (cost.Sample, cost.Count);
+            }
         }
         return needs;
     }
@@ -284,13 +269,13 @@ public partial class ColonyManager
     {
         foreach (var hut in colony.Buildings.Where(b => b.Type == BuildingTypes.Builder))
         {
-            var needed = new HashSet<string>();
+            var needed = new List<System.Func<ItemStack, bool>>();
             var builder = colony.Citizens.Find(c => c.Alive && c.JobCode == Jobs.Builder && c.WorkplacePos != null && c.WorkplacePos.Equals(hut.HutPos));
             var order = builder == null ? null : colony.Buildings.Find(b => b.HasWorkOrder && b.BuilderCitizenId == builder.CitizenId);
             var blueprint = order == null ? null : Blueprints.Get(order.Type, order.TargetLevel, order.Rotation);
-            if (blueprint != null) needed.UnionWith(MaterialsNeeded(colony, order!, blueprint).Keys);
+            if (blueprint != null) needed.AddRange(MaterialsNeeded(colony, order!, blueprint).Keys.Select(Matcher));
 
-            bool IsJunk(ItemStack s) => !needed.Contains(s.Collectible.Code.ToString()) && !IsBuilderTool(s);
+            bool IsJunk(ItemStack s) => !needed.Any(m => m(s)) && !IsBuilderTool(s);
             var chest = HutStorage(colony, hut).FirstOrDefault(c => c.Inventory.Any(s => !s.Empty && IsJunk(s.Itemstack)));
             if (chest != null) return (chest, IsJunk);
         }

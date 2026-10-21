@@ -136,5 +136,11 @@
 	"tool-shovel": "shovel",
 	"tool-axe": "axe",
 	"tool-pickaxe": "pickaxe",
-	"townhall-builder-hint": "Order other buildings by right-clicking their hut block. The Builder's Hut shows all work orders and the items its builder needs."
+	"townhall-builder-hint": "Order other buildings by right-clicking their hut block. The Builder's Hut shows all work orders and the items its builder needs.",
+	"any-type": "Use any wood or stone type",
+	"any-type-on": "Builders may use any wood or stone type.",
+	"any-type-off": "Builders use exactly the wood and stone the blueprint asks for.",
+	"any-type-hint": "When on, pine logs can stand in for oak logs, andesite for granite, and so on. The block is built in the type the builder brings.",
+	"items-any-wood": "{0} (any wood)",
+	"items-any-rock": "{0} (any stone)"
 }
