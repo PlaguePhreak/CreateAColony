@@ -78,6 +78,7 @@ public partial class ColonyManager
         {
             // The defaults become the hut's own list, so changing one food keeps the others.
             hut.KitchenKeep = KitchenKinds().ToDictionary(k => k.Key, k => KitchenKeep(hut, k));
+            foreach (var recipe in MealRecipes()) hut.KitchenKeep[MealKey(recipe)] = MealKeep(hut, recipe);
             hut.KitchenChosen = true;
         }
         hut.KitchenKeep[key] = keep;
@@ -170,10 +171,15 @@ public partial class ColonyManager
     }
 
     /// <summary>
-    /// At a Cook's Hut everything that is not food or firewood goes to the warehouse. Cooked food stays,
-    /// so hungry settlers eat at the hut.
+    /// At a Cook's Hut everything that is not food, firewood or a cooking pot goes to the warehouse. Cooked
+    /// food and pot meals stay, so hungry settlers eat at the hut.
     /// </summary>
-    System.Func<ItemStack, bool> CookHutJunk() => s => !IsFirewood(s) && s.Collectible.NutritionProps == null && !IsGrillable(s);
+    System.Func<ItemStack, bool> CookHutJunk() => s => !IsFirewood(s) && s.Collectible.NutritionProps == null && !IsGrillable(s)
+        && s.Block is not (IBlockMealContainer or BlockCookingContainer) && !IsMealIngredient(s);
+
+    /// <summary>True for anything a meal recipe can use (grain, vegetables, eggs and so on).</summary>
+    public bool IsMealIngredient(ItemStack s) =>
+        !IsLiquid(s) && MealRecipes().Any(r => r.Ingredients!.Any(i => i.GetMatchingStack(s) != null));
 
     /// <summary>Asks couriers to bring something to the Cook's Hut, once at a time.</summary>
     public void EnsureCookRequest(Colony colony, Building hut, string code, int quantity)

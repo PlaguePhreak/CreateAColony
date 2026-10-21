@@ -249,7 +249,7 @@ public class GuiDialogHut : GuiDialog
             composer.AddRichtext(new RichTextComponentBase[]
             {
                 new ItemstackTextComponent(capi, stack, 38, 10),
-                new RichTextComponent(capi, stack.GetName() + "\n", CairoFont.WhiteSmallText()) { VerticalAlign = EnumVerticalAlign.Top },
+                new RichTextComponent(capi, (row.Name ?? stack.GetName()) + "\n", CairoFont.WhiteSmallText()) { VerticalAlign = EnumVerticalAlign.Top },
                 new RichTextComponent(capi, Lang.Get("createacolony:" + prefix + "-have", row.Have, row.Clay), countFont)
             }, ElementBounds.Fixed(0, y, 330, PotteryRowHeight));
 

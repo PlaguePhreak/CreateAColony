@@ -196,6 +196,13 @@ Forester's and Farmer's Huts have a **Work area** tab in their window (officers 
   fire pit) and how much to keep (`KitchenDefaultKeep`, 8, until an officer changes it). Raw food and firewood
   come from the hut storage; the cook asks couriers for raw food the warehouse has, and for firewood.
 - A fire pit holding something the cook does not know how to cook is left alone.
+- **Pot meals (0.17.0):** with an empty cooking pot in the hut storage or warehouse, the cook also cooks the
+  game's meal recipes (stews, porridge, scrambled eggs and those food mods add) the way a player does: pot in
+  the fire pit, its slots filled with ingredients that make the recipe, fire lit. It makes as many servings as
+  the ingredients and the pot allow (up to 6), picking different ingredients where it can. The cooked pot goes
+  into the hut storage and settlers eat from it a serving at a time; the emptied pot is used again. The
+  Kitchen tab lists every meal with servings ready and to keep (`KitchenDefaultMealKeep`, 6). Meals come
+  before grilling. Recipes that need water or another liquid are left to players.
 
 ### Doors and gates
 

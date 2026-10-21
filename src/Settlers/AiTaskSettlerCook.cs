@@ -17,10 +17,11 @@ namespace CreateAColony.Settlers;
 /// </summary>
 public class AiTaskSettlerCook : AiTaskSettlerWorker
 {
-    enum Work { Load, Fuel, Empty }
+    enum Work { Load, LoadMeal, Fuel, Empty }
 
     Work work;
     ColonyManager.KitchenKind? kind;
+    ColonyManager.MealPlan? meal;
 
     public AiTaskSettlerCook(EntityAgent entity, JsonObject taskConfig, JsonObject aiConfig) : base(entity, taskConfig, aiConfig) { }
 
@@ -32,8 +33,9 @@ public class AiTaskSettlerCook : AiTaskSettlerWorker
     protected override ItemMatch Stock => manager!.IsGrillable;
     protected override float WorkSeconds => manager!.Config.CookSecondsPerStep;
 
-    /// <summary>It carries firewood from the hut to the fire pit.</summary>
-    protected override bool AlsoKeeps(ItemStack stack) => ColonyManager.IsFirewood(stack);
+    /// <summary>It carries firewood, a cooking pot and the ingredients of the meal it is about to cook.</summary>
+    protected override bool AlsoKeeps(ItemStack stack) =>
+        ColonyManager.IsFirewood(stack) || ColonyManager.IsCleanPot(stack) || meal?.Uses(stack) == true;
 
     protected override string WorkAnimation(ItemSlot? hand) => "interactstatic";
 
@@ -52,8 +54,13 @@ public class AiTaskSettlerCook : AiTaskSettlerWorker
 
         if (!pit.inputSlot.Empty)
         {
-            // Something a player put there is theirs: leave the fire pit alone.
-            if (!m.IsGrillable(pit.inputSlot.Itemstack))
+            // Something a player put there is theirs: leave the fire pit alone. A pot that makes a meal the cook lights the fire under.
+            if (pit.inputSlot.Itemstack.Block is BlockCookingContainer && !m.PotWillCook(pit))
+            {
+                SetStatus("firepit-busy");
+                return false;
+            }
+            if (pit.inputSlot.Itemstack.Block is not BlockCookingContainer && !m.IsGrillable(pit.inputSlot.Itemstack))
             {
                 SetStatus("firepit-busy");
                 return false;
@@ -66,6 +73,11 @@ public class AiTaskSettlerCook : AiTaskSettlerWorker
             if (!pit.fuelSlot.Empty || m.PackCount(citizen, ColonyManager.IsFirewood) > 0) return Go(Work.Fuel, pit, "firepit-lighting");
             return FetchFirewood(colony, hut, storage);
         }
+
+        // Pot meals first: they feed more for the same food.
+        meal = m.NextMeal(colony, hut, citizen);
+        if (meal != null && PlanMeal(colony, citizen, hut, storage, pit, meal) is { } planned) return planned;
+        meal = null;
 
         var pack = m.PackItems(citizen);
         var wantedFood = m.WantedFood(colony, hut, citizen);
@@ -94,6 +106,51 @@ public class AiTaskSettlerCook : AiTaskSettlerWorker
 
         SetStatus(wantedFood.Count > 0 ? "needs-raw-food" : "kitchen-stocked");
         return false;
+    }
+
+    /// <summary>
+    /// Gets a cooking pot and the meal's ingredients together and puts them on the fire. Null when the
+    /// meal cannot be made right now (no pot anywhere), so the cook grills instead.
+    /// </summary>
+    bool? PlanMeal(Colony colony, CitizenRecord citizen, Building hut, List<BlockEntityContainer> storage, BlockEntityFirepit pit, ColonyManager.MealPlan plan)
+    {
+        var m = manager!;
+        if (m.PackCount(citizen, ColonyManager.IsCleanPot) == 0)
+        {
+            var potChest = storage.FirstOrDefault(c => c.Inventory.Any(s => !s.Empty && ColonyManager.IsCleanPot(s.Itemstack)));
+            if (potChest != null && !m.PackFull(citizen))
+            {
+                SetStatus("fetching-pot");
+                return FetchSupplies(potChest.Pos, ColonyManager.IsCleanPot, 1);
+            }
+            var warehousePot = m.WarehouseContainers(colony).SelectMany(c => c.Inventory).FirstOrDefault(s => !s.Empty && ColonyManager.IsCleanPot(s.Itemstack));
+            if (warehousePot == null) return null;
+            m.EnsureCookRequest(colony, hut, warehousePot.Itemstack!.Collectible.Code.ToString(), 1);
+            SetStatus("waiting-pot");
+            return false;
+        }
+
+        foreach (var (sample, count) in plan.Slots)
+        {
+            var code = sample.Collectible.Code;
+            ItemMatch same = s => s.Collectible.Code.Equals(code);
+            // Two slots of the same item need it twice over.
+            int need = plan.Slots.Where(x => x.Sample.Collectible.Code.Equals(code)).Sum(x => x.Count);
+            int have = m.PackCount(citizen, same);
+            if (have >= need) continue;
+            var chest = storage.FirstOrDefault(c => c.Inventory.Any(s => !s.Empty && same(s.Itemstack)));
+            if (chest != null && !m.PackFull(citizen))
+            {
+                SetStatus("fetching-food");
+                return FetchSupplies(chest.Pos, same, need - have);
+            }
+            m.EnsureCookRequest(colony, hut, code.ToString(), need - have);
+            SetStatus("waiting-food");
+            return false;
+        }
+
+        if (pit.IsBurning || !pit.fuelSlot.Empty || m.PackCount(citizen, ColonyManager.IsFirewood) > 0) return Go(Work.LoadMeal, pit, "cooking-meal");
+        return FetchFirewood(colony, hut, storage);
     }
 
     bool FetchFirewood(Colony colony, Building hut, List<BlockEntityContainer> storage)
@@ -126,6 +183,9 @@ public class AiTaskSettlerCook : AiTaskSettlerWorker
             case Work.Load:
                 if (kind != null) m.LoadFirepit(colony, citizen, pit, kind);
                 break;
+            case Work.LoadMeal:
+                if (meal != null) m.LoadMeal(colony, citizen, pit, meal);
+                break;
             case Work.Fuel:
                 m.FuelFirepit(colony, citizen, pit);
                 break;
@@ -135,5 +195,7 @@ public class AiTaskSettlerCook : AiTaskSettlerWorker
         }
     }
 
-    protected override string DescribeWork() => Lang.Get("createacolony:activity-cook-" + work.ToString().ToLowerInvariant());
+    protected override string DescribeWork() => work == Work.LoadMeal && meal != null
+        ? Lang.Get("createacolony:activity-cook-loadmeal", manager!.MealName(meal.Recipe))
+        : Lang.Get("createacolony:activity-cook-" + work.ToString().ToLowerInvariant());
 }

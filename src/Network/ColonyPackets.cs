@@ -146,6 +146,8 @@ public class PotteryView
     [ProtoMember(3)] public int Keep;
     [ProtoMember(4)] public int Have;
     [ProtoMember(5)] public int Clay;
+    /// <summary>The name to show, where the stack's own name would not say it (a pot meal shows a cooking pot).</summary>
+    [ProtoMember(6)] public string? Name;
 }
 
 [ProtoContract]
