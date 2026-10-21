@@ -53,3 +53,12 @@ creative world with its hut block where the hut should stand, select it with Wor
 `builder`, `townhall` or `warehouse` and `<N>` is 1 to 5. `/colony reloadblueprints` picks up
 changes without a restart. Blueprints in ModConfig override the ones shipped in
 `assets/createacolony/config/blueprints/`.
+
+### Importing MineColonies blueprints
+
+Put a MineColonies `.blueprint` file in `VintagestoryData/ModConfig/createacolony/import/` and run
+`/colony importmc <file> <type> <level>`, e.g. `/colony importmc builder1 builder 1`. Each
+Minecraft block is matched through `assets/createacolony/config/mcimport.json` (copy it to
+`ModConfig/createacolony/mcimport.json` to edit); every candidate is checked against the installed
+game, and blocks with no match are left empty and listed in chat. Check the license of a style pack
+before shipping converted blueprints.
