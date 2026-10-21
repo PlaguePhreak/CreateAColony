@@ -54,6 +54,13 @@ creative world with its hut block where the hut should stand, select it with Wor
 changes without a restart. Blueprints in ModConfig override the ones shipped in
 `assets/createacolony/config/blueprints/`.
 
+Doors in a blueprint are hung the way they were in the export, top half included. The first door
+also marks the building's front: when you place the hut, the building is turned so that side faces
+you. Soil in a blueprint counts as built on any soil (grassy or bare, rich or poor), and filling a
+hole in the ground costs any soil. The Builder's Hut level 1 (since 0.18.0) is a 13 x 8 x 11 cottage
+with a thatched VS Roofing roof; the old 5 x 4 x 5 sample is kept as
+`blueprints/builder/level1-old-placeholder.json` (rename it to `level1.json` in ModConfig to use it).
+
 ### VS Roofing roofs
 
 With the [VS Roofing](https://mods.vintagestory.at/vsroofing) mod installed, a blueprint can have a

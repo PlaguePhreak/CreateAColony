@@ -68,6 +68,17 @@ public partial class ColonyManager
         return facing.HorizontalAngleIndex * 90 % 360;
     }
 
+    /// <summary>
+    /// Blueprint rotation for a building type: one with a door is turned so the door's side faces the player
+    /// placing it. Turning a blueprint by 90 moves each side one step clockwise (east to south).
+    /// </summary>
+    public int RotationFor(IPlayer player, string type)
+    {
+        if (Blueprints.Get(type, 1, 0)?.Front is not { } front) return RotationFor(player);
+        int towards = BlockFacing.HorizontalFromYaw(player.Entity.Pos.Yaw).HorizontalAngleIndex;
+        return GameMath.Mod(front - towards, 4) * 90;
+    }
+
     /// <summary>A hut's storage: the hut block's own inventory first, then any chests next to it.</summary>
     public IEnumerable<BlockEntityGenericTypedContainer> HutStorage(Colony colony, Building building)
     {
@@ -192,6 +203,8 @@ public partial class ColonyManager
         if (current.Id == step.BlockId || Fulfils(colony, current, step.BlockId)) return true;
         if (GetBuilding(colony, pos) != null) return true;
         if (ba.GetBlockEntity(pos) is BlockEntityContainer) return true;
+        // The top half of a door belongs to the door below it; clearing it would break the door.
+        if (step.BlockId == 0 && current is BlockMultiblock) return true;
         // Water and lava are left alone when clearing; builders do not drain lakes.
         if (step.BlockId == 0 && current.IsLiquid()) return true;
         return false;

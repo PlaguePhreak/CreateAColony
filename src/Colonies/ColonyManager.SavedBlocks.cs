@@ -1,12 +1,15 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Reflection;
 using System.Runtime.CompilerServices;
+using HarmonyLib;
 using ProtoBuf;
 using Vintagestory.API.Common;
 using Vintagestory.API.Datastructures;
 using Vintagestory.API.MathTools;
 using Vintagestory.API.Util;
+using Vintagestory.GameContent;
 
 namespace CreateAColony.Colonies;
 
@@ -54,6 +57,7 @@ public partial class ColonyManager
             be.FromTreeAttributes(tree, sapi.World);
             be.OnLoadCollectibleMappings(sapi.World, saved.Source.BlockCodes, saved.Source.ItemCodes, sapi.World.Rand.Next(), false);
             be.OnPlacementBySchematic(sapi, ba, pos, null, 0, null, false);
+            SetUpDoor(block, ba.GetBlockEntity(pos) ?? be, pos);
             (ba.GetBlockEntity(pos) ?? be).MarkDirty(true);
         }
         catch (Exception e)
@@ -61,6 +65,20 @@ public partial class ColonyManager
             sapi.Logger.Warning("[createacolony] Could not copy the saved details of {0} at {1}: {2}", block.Code, pos, e.Message);
         }
     }
+
+    /// <summary>
+    /// A door turned the way the blueprint has it: its hit boxes follow the turn, it pairs with a door beside it,
+    /// and its top half goes in, as when a player hangs it.
+    /// </summary>
+    void SetUpDoor(Block block, BlockEntity be, BlockPos pos)
+    {
+        if (be.GetBehavior<BEBehaviorDoor>() is not { } door) return;
+        setupDoor ??= AccessTools.Method(typeof(BEBehaviorDoor), "SetupRotationsAndColSelBoxes");
+        setupDoor?.Invoke(door, new object[] { true });
+        block.GetBehavior<BlockBehaviorDoor>()?.placeMultiblockParts(sapi.World, pos);
+    }
+
+    static MethodInfo? setupDoor;
 
     /// <summary>What a block with saved details costs, or null when the block's own item will do.</summary>
     List<MaterialCost>? SavedCost(BuildStep step, Block target)

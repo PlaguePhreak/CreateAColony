@@ -51,6 +51,8 @@ public partial class ColonyManager
             if (joined.Id == current.Id) return true;
             target = joined;
         }
+        // Ground in a blueprint is any soil: grass comes and goes, and how fertile it is depends on the spot.
+        if (IsSoil(target) && IsSoil(current)) return true;
         // A VS Roofing roof block turns bare or filled by itself as its materials load; either one is the roof.
         if (target.Code.Domain == RoofingDomain && VariantOf(current, "type") is { } roofState
             && target.CodeWithVariant("type", roofState).Equals(current.Code)) return true;
@@ -70,6 +72,9 @@ public partial class ColonyManager
     /// <summary>True when a builder leaves this block standing for the step.</summary>
     public bool KeepsBlock(Colony colony, Block current, int targetId) =>
         current.Id == targetId || Fulfils(colony, current, targetId) || InProgress(current, targetId);
+
+    /// <summary>Plain soil blocks (soil-medium-normal and the like), not farmland, packed dirt or rammed earth.</summary>
+    static bool IsSoil(Block block) => block.Code?.Domain == "game" && block.Code.Path.StartsWith("soil-");
 
     // ---- What to place and what it costs --------------------------------------------------
 
@@ -152,6 +157,15 @@ public partial class ColonyManager
         if (!Config.BuildersNeedMaterials || block.Id == 0) return null;
         var key = (block.Id, colony.AnyWoodOrStone);
         if (pickCostCache.TryGetValue(key, out var cached)) return cached;
+
+        // Soil with grass on it cannot be picked up as such; any soil will do to fill a hole in the ground.
+        if (IsSoil(block))
+        {
+            var bare = sapi.World.GetBlock(new AssetLocation("game:soil-medium-none")) ?? block;
+            var soil = new MaterialCost("game:soil-*", new ItemStack(bare), 1);
+            pickCostCache[key] = soil;
+            return soil;
+        }
 
         ItemStack? stack;
         try

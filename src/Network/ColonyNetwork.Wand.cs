@@ -45,7 +45,7 @@ public partial class ColonyNetwork
                 return;
             case ColonyAction.WandChoose:
                 if (!WandTypes.Contains(packet.Text) || !wandSpots.TryGetValue(uid, out var at)) return;
-                plan = new Planned(packet.Text, at, plan?.Rotation ?? ColonyManager.RotationFor(player));
+                plan = new Planned(packet.Text, at, plan?.Rotation ?? Manager.RotationFor(player, packet.Text));
                 planned[uid] = plan;
                 SendPlanned(player, plan, true);
                 return;

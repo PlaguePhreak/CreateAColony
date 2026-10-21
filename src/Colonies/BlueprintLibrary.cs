@@ -8,6 +8,7 @@ using Vintagestory.API.Datastructures;
 using Vintagestory.API.MathTools;
 using Vintagestory.API.Server;
 using Vintagestory.API.Util;
+using Vintagestory.GameContent;
 
 namespace CreateAColony.Colonies;
 
@@ -36,6 +37,11 @@ public class Blueprint
     public required string Type;
     public required int Level;
     public required List<BuildStep> Steps;
+    /// <summary>
+    /// The side the building's entrance is on (0 east, 1 north, 2 west, 3 south, as BlockFacing's
+    /// HorizontalAngleIndex), or null when the blueprint has no door. Worked out from the first door.
+    /// </summary>
+    public int? Front;
 }
 
 /// <summary>
@@ -137,6 +143,8 @@ public class BlueprintLibrary
             if (blocks.TryGetValue(at, out var withData) && KeepsDetails(withData)) saved[at] = new SavedBlockEntity { Data = data, Source = schematic };
         }
 
+        int? front = rotation == 0 ? EntranceSide(schematic, blocks) : null;
+
         // Where the hut block sits inside the blueprint.
         string hutCode = HutBlockCode(type);
         var anchor = blocks.FirstOrDefault(kv => kv.Value.Code.ToString() == hutCode).Key;
@@ -157,6 +165,12 @@ public class BlueprintLibrary
             if (blocks.TryGetValue((dx, dy, dz), out var block))
             {
                 if (IsMeta(block)) continue;
+                // The top half of a door (or another part of a big block) comes with the door itself; until then the spot is cleared.
+                if (block is BlockMultiblock)
+                {
+                    clear.Add(new BuildStep(dx - ax, dy - ay, dz - az, 0));
+                    continue;
+                }
                 var step = new BuildStep(dx - ax, dy - ay, dz - az, block.Id, saved.GetValueOrDefault((dx, dy, dz)));
                 if (block.Id == 0) clear.Add(step);
                 else if (IsSolid(block)) solid.Add(step);
@@ -171,13 +185,35 @@ public class BlueprintLibrary
 
         // Clear from the top down so nothing is left floating, then walls bottom-up, then torches, doors and the like.
         clear.Reverse();
-        return new Blueprint { Type = type, Level = level, Steps = clear.Concat(solid).Concat(decor).ToList() };
+        return new Blueprint { Type = type, Level = level, Steps = clear.Concat(solid).Concat(decor).ToList(), Front = front };
     }
+
+    /// <summary>
+    /// The side of the blueprint its first door is on. A door's saved turn says which way it faces, which
+    /// gives the wall it sits in (east or west, north or south); the nearer edge of the blueprint on that line
+    /// is the outside, whichever way round the door was hung.
+    /// </summary>
+    static int? EntranceSide(BlockSchematic schematic, Dictionary<(int, int, int), Block> blocks)
+    {
+        foreach (var (index, data) in schematic.BlockEntities)
+        {
+            var at = ((int)(index & BlockSchematic.PosBitMask), (int)((index >> 20) & BlockSchematic.PosBitMask), (int)((index >> 10) & BlockSchematic.PosBitMask));
+            if (!blocks.TryGetValue(at, out var block) || !IsDoor(block)) continue;
+            var facing = BlockFacing.HorizontalFromYaw(schematic.DecodeBlockEntityData(data).GetFloat("rotateYRad"));
+            var (x, _, z) = at;
+            if (facing.Axis == EnumAxis.X) return x <= schematic.SizeX - 1 - x ? BlockFacing.WEST.HorizontalAngleIndex : BlockFacing.EAST.HorizontalAngleIndex;
+            return z <= schematic.SizeZ - 1 - z ? BlockFacing.NORTH.HorizontalAngleIndex : BlockFacing.SOUTH.HorizontalAngleIndex;
+        }
+        return null;
+    }
+
+    public static bool IsDoor(Block block) => block.HasBehavior<BlockBehaviorDoor>();
 
     static bool IsSolid(Block block) => block.SideSolid.Any;
 
+    /// <summary>Doors always keep theirs (which way they face); other blocks when the config lists them.</summary>
     bool KeepsDetails(Block block) =>
-        block.EntityClass != null && config.BlueprintBlockDetails.Any(p => WildcardUtil.Match(new AssetLocation(p), block.Code));
+        block.EntityClass != null && (IsDoor(block) || config.BlueprintBlockDetails.Any(p => WildcardUtil.Match(new AssetLocation(p), block.Code)));
 
     public static string HutBlockCode(string type) => type switch
     {
