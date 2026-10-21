@@ -89,4 +89,27 @@ public class ColonyConfig
     public bool HostilesAttackSettlers = true;
     /// <summary>Creatures guards fight, and that hunt settlers, as entity codes; * matches anything.</summary>
     public string[] GuardTargets = { "drifter-*", "locust-*", "bell-*", "bowtorn-*", "shiver-*", "wolf-*", "hyena-*", "bear-*" };
+
+    // Potter
+    /// <summary>Seconds a potter takes to shape one layer of clay on the clay forming block.</summary>
+    public float PotterSecondsPerLayer = 2.5f;
+    /// <summary>Seconds a potter takes to dig the kiln pit, load it, add one layer of fuel or light it.</summary>
+    public float PotterSecondsPerKilnStep = 3f;
+    /// <summary>Clay a potter keeps on hand; more goes back to the hut storage.</summary>
+    public int PotterClayReserve = 24;
+    /// <summary>Clay a potter asks couriers to bring from the warehouse at a time.</summary>
+    public int PotterClayRequest = 16;
+    /// <summary>How far from the Potter's Hut, in blocks, the potter digs its kiln pit and shapes clay.</summary>
+    public int PotterSpotRadius = 8;
+    /// <summary>The "Keep in stock" amounts the Pottery tab offers.</summary>
+    public int[] PotteryKeepChoices = { 0, 1, 2, 4, 8, 16, 32 };
+    /// <summary>
+    /// What a new Potter's Hut keeps in stock until an officer changes it: a crucible and ingot molds,
+    /// what it takes to smelt copper. Keys are item codes, * matches anything.
+    /// </summary>
+    public System.Collections.Generic.Dictionary<string, int> PotteryDefaultKeep = new()
+    {
+        ["*crucible*"] = 1,
+        ["*ingotmold*"] = 2
+    };
 }

@@ -51,6 +51,7 @@
 					{ "code": "settlerbuilder", "animation": "walk", "priority": 1.2, "movespeed": 0.02 },
 					{ "code": "settlerforester", "animation": "walk", "priority": 1.2, "movespeed": 0.02 },
 					{ "code": "settlerfarmer", "animation": "walk", "priority": 1.2, "movespeed": 0.02 },
+					{ "code": "settlerpotter", "animation": "walk", "priority": 1.2, "movespeed": 0.02 },
 					{ "code": "settlerguard", "animation": "walk", "priority": 1.2, "movespeed": 0.024 },
 					{ "code": "wander", "priority": 1.0, "movespeed": 0.012, "animation": "walk", "maxDistanceToSpawn": 12, "wanderRangeMin": 3, "wanderRangeMax": 10 },
 					{ "code": "lookaround", "priority": 0.5 }

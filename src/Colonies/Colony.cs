@@ -103,6 +103,14 @@ public class Building
     [ProtoMember(13)] public int XOffset;
     /// <summary>Blocks the blueprint is shifted south (or north, below zero) from the hut.</summary>
     [ProtoMember(14)] public int ZOffset;
+    /// <summary>A Potter's Hut: how many of each kind of pottery to keep in stock, by kind (see ColonyManager.PotteryKind).</summary>
+    [ProtoMember(15)] public Dictionary<string, int> PotteryKeep = new();
+    /// <summary>An officer has set PotteryKeep; until then the config defaults apply.</summary>
+    [ProtoMember(16)] public bool PotteryChosen;
+    /// <summary>The pit a potter dug for its pit kiln.</summary>
+    [ProtoMember(17)] public BlockPos? KilnPos;
+    /// <summary>Where a potter shapes clay.</summary>
+    [ProtoMember(18)] public BlockPos? FormPos;
 
     public bool HasWorkOrder => TargetLevel > Level;
 }

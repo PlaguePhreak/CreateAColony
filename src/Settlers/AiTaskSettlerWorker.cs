@@ -64,6 +64,9 @@ public abstract class AiTaskSettlerWorker : SettlerTaskBase
     /// <summary>Where to walk for the current target; the ground beside it unless a job says otherwise.</summary>
     protected virtual Vec3d WalkGoal() => target.ToVec3d().Add(0.5, 0, 0.5);
 
+    /// <summary>False for a job that works by hand and has no tool to fetch (the potter).</summary>
+    protected virtual bool NeedsTool => true;
+
     /// <summary>True when the current work is done with the tool in hand, false when it is done bare-handed.</summary>
     protected virtual bool WorkNeedsTool => true;
 
@@ -98,7 +101,7 @@ public abstract class AiTaskSettlerWorker : SettlerTaskBase
         // Hands full: take the harvest home first.
         if (manager.PackFull(citizen) && HasSurplus(citizen)) return Go(Step.Deposit, storage[0].Pos);
 
-        if (!HasTool(citizen))
+        if (NeedsTool && !HasTool(citizen))
         {
             var toolChest = storage.FirstOrDefault(c => c.Inventory.Any(s => ColonyManager.ToolFits(s.Itemstack, Tool, 0)));
             if (toolChest != null) return Go(Step.FetchTool, toolChest.Pos);
@@ -152,6 +155,8 @@ public abstract class AiTaskSettlerWorker : SettlerTaskBase
         return false;
     }
 
+    bool IsMyTool(ItemStack s) => NeedsTool && s.Collectible.Tool == Tool;
+
     bool HasTool(CitizenRecord citizen) =>
         ColonyManager.ToolFits(Hand?.Itemstack, Tool, 0) || manager!.PackCount(citizen, s => ColonyManager.ToolFits(s, Tool, 0)) > 0;
 
@@ -159,7 +164,7 @@ public abstract class AiTaskSettlerWorker : SettlerTaskBase
     bool HasSurplus(CitizenRecord citizen)
     {
         var items = manager!.PackItems(citizen);
-        return items.Any(s => s.Collectible.Tool != Tool && !Stock(s) && !AlsoKeeps(s))
+        return items.Any(s => !IsMyTool(s) && !Stock(s) && !AlsoKeeps(s))
             || items.Where(Stock).Sum(s => s.StackSize) > manager.SeedReserve(Job);
     }
 
@@ -266,7 +271,7 @@ public abstract class AiTaskSettlerWorker : SettlerTaskBase
     bool Deposit(Colony colony, CitizenRecord citizen, Building hut)
     {
         var storage = manager!.HutStorage(colony, hut).Cast<BlockEntityContainer>().ToList();
-        manager.UnloadPack(colony, citizen, storage, s => s.Collectible.Tool != Tool && !Stock(s) && !AlsoKeeps(s));
+        manager.UnloadPack(colony, citizen, storage, s => !IsMyTool(s) && !Stock(s) && !AlsoKeeps(s));
 
         int extra = manager.PackCount(citizen, Stock) - manager.SeedReserve(Job);
         if (extra > 0 && manager.TakeFromPack(colony, citizen, Stock, extra) is { } seeds)
@@ -286,7 +291,7 @@ public abstract class AiTaskSettlerWorker : SettlerTaskBase
     {
         var hand = Hand;
         if (hand == null) return;
-        if (!WorkNeedsTool)
+        if (!WorkNeedsTool || !NeedsTool)
         {
             PutAwayHand(colony, citizen);
             return;

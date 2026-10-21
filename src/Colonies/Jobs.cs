@@ -8,12 +8,13 @@ public static class Jobs
     public const string Forester = "forester";
     public const string Farmer = "farmer";
     public const string Guard = "guard";
+    public const string Potter = "potter";
 
     /// <summary>All assignable jobs; an empty code means unemployed.</summary>
-    public static readonly string[] All = { "", Builder, Courier, Forester, Farmer, Guard };
+    public static readonly string[] All = { "", Builder, Courier, Forester, Farmer, Guard, Potter };
 
     public static bool IsValid(string code) => System.Array.IndexOf(All, code) >= 0;
 
     /// <summary>Jobs that keep their own tools, weapons and supplies in their inventory, so couriers leave it alone.</summary>
-    public static bool CarriesOwnLoad(string? code) => code is Builder or Forester or Farmer or Guard;
+    public static bool CarriesOwnLoad(string? code) => code is Builder or Forester or Farmer or Guard or Potter;
 }

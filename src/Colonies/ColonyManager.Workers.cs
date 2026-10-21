@@ -29,13 +29,18 @@ public partial class ColonyManager
     };
 
     /// <summary>Huts a settler works from, whose chests are never warehouse storage.</summary>
-    public static bool IsWorkerHut(string type) => type == BuildingTypes.Builder || GatherHuts.ContainsKey(type);
+    public static bool IsWorkerHut(string type) => type is BuildingTypes.Builder or BuildingTypes.Potter || GatherHuts.ContainsKey(type);
 
     /// <summary>What each forester's or farmer's hut is waiting on, for the hut window. Not saved: workers refresh it.</summary>
     public readonly Dictionary<int, string> WorkStatus = new();
 
     /// <summary>How many seeds a job keeps on hand.</summary>
-    public int SeedReserve(string job) => job == Jobs.Farmer ? Config.FarmerSeedReserve : Config.ForesterSeedReserve;
+    public int SeedReserve(string job) => job switch
+    {
+        Jobs.Farmer => Config.FarmerSeedReserve,
+        Jobs.Potter => Config.PotterClayReserve,
+        _ => Config.ForesterSeedReserve
+    };
 
     /// <summary>The hut of this type a worker works from, assigning a free one if needed.</summary>
     public Building? EnsureWorkplace(Colony colony, CitizenRecord worker, string hutType)
@@ -64,6 +69,7 @@ public partial class ColonyManager
     /// </summary>
     System.Func<ItemStack, bool> WorkerHutJunk(Colony colony, Building hut)
     {
+        if (hut.Type == BuildingTypes.Potter) return PotterHutJunk();
         var kind = GatherHuts[hut.Type];
         var worker = WorkerAt(colony, hut, kind.Job);
         bool keepSeeds = worker != null && PackCount(worker, kind.Stock) < SeedReserve(kind.Job);
@@ -129,16 +135,17 @@ public partial class ColonyManager
     /// <summary>Lines for a Forester's or Farmer's Hut window: who works here, what they are up to, and how the job works.</summary>
     public string WorkerHutInfo(Colony colony, Building hut)
     {
-        if (!GatherHuts.TryGetValue(hut.Type, out var kind)) return "";
+        string job = hut.Type == BuildingTypes.Potter ? Jobs.Potter : GatherHuts.TryGetValue(hut.Type, out var kind) ? kind.Job : "";
+        if (job.Length == 0) return "";
         var lines = new List<string>();
-        var worker = WorkerAt(colony, hut, kind.Job);
+        var worker = WorkerAt(colony, hut, job);
         if (worker == null)
         {
-            lines.Add(Lang.Get("createacolony:hut-no-worker", Lang.Get("createacolony:job-" + kind.Job)));
+            lines.Add(Lang.Get("createacolony:hut-no-worker", Lang.Get("createacolony:job-" + job)));
         }
         else
         {
-            lines.Add(Lang.Get("createacolony:hut-worker-name", Lang.Get("createacolony:job-" + kind.Job), worker.Name));
+            lines.Add(Lang.Get("createacolony:hut-worker-name", Lang.Get("createacolony:job-" + job), worker.Name));
             string status = WorkStatus.TryGetValue(hut.BuildingId, out var s) ? s : "starting";
             lines.Add(Lang.Get("createacolony:hut-worker-status", Lang.Get("createacolony:workstatus-" + status)));
         }
@@ -147,6 +154,7 @@ public partial class ColonyManager
             int mine = worker == null ? 0 : colony.Fields.Count(f => f.FarmerCitizenId == worker.CitizenId);
             lines.Add(Lang.Get("createacolony:hut-fields", mine, colony.Fields.Count));
         }
+        if (hut.Type == BuildingTypes.Potter) lines.Add(KilnInfo(colony, hut));
         lines.Add("");
         lines.Add(Lang.Get("createacolony:hint-" + hut.Type, GatherRadius(hut)));
         return string.Join("<br>", lines);

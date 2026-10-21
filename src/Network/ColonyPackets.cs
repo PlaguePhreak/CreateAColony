@@ -115,6 +115,22 @@ public class HutSnapshot
     /// <summary>The guard escorting this hut's worker, empty if none.</summary>
     [ProtoMember(19)] public string GuardName = "";
     [ProtoMember(20)] public int GuardCount;
+    /// <summary>A Potter's Hut, whose window has a Pottery tab.</summary>
+    [ProtoMember(21)] public bool IsPotterHut;
+    [ProtoMember(22)] public List<PotteryView> Pottery = new();
+    [ProtoMember(23)] public List<int> KeepChoices = new();
+}
+
+/// <summary>One line of a Potter's Hut's Pottery tab: a kind of pottery, how many to keep and how many there are.</summary>
+[ProtoContract]
+public class PotteryView
+{
+    [ProtoMember(1)] public string Key = "";
+    /// <summary>A fired piece, serialized, for its icon and name.</summary>
+    [ProtoMember(2)] public byte[] Stack = System.Array.Empty<byte>();
+    [ProtoMember(3)] public int Keep;
+    [ProtoMember(4)] public int Have;
+    [ProtoMember(5)] public int Clay;
 }
 
 [ProtoContract]
@@ -190,7 +206,9 @@ public enum ColonyAction
     /// <summary>Text is the building type picked from the list; its outline appears at the spot.</summary>
     WandChoose = 23,
     /// <summary>Back to the building list for the planned spot.</summary>
-    WandChange = 24
+    WandChange = 24,
+    /// <summary>Text "kind|amount": how many of a kind of pottery the Potter's Hut with BuildingId keeps in stock.</summary>
+    SetPotteryKeep = 25
 }
 
 /// <summary>The Builder's Wand building list: each building type with how many of its blocks the player carries.</summary>

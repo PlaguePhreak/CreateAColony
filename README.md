@@ -50,7 +50,7 @@ Buildings grow from blueprints, which are ordinary WorldEdit exports. Build the 
 creative world with its hut block where the hut should stand, select it with WorldEdit, and run
 `/we export <name>`. Copy the file from `VintagestoryData/WorldEdit/` to
 `VintagestoryData/ModConfig/createacolony/blueprints/<type>/level<N>.json`, where `<type>` is
-`builder`, `townhall`, `warehouse`, `forester` or `farmer` and `<N>` is 1 to 5. `/colony reloadblueprints` picks up
+`builder`, `townhall`, `warehouse`, `forester`, `farmer` or `potter` and `<N>` is 1 to 5. `/colony reloadblueprints` picks up
 changes without a restart. Blueprints in ModConfig override the ones shipped in
 `assets/createacolony/config/blueprints/`.
 
@@ -84,6 +84,28 @@ Town Hall. Each works from the free hut of its kind nearest the start of the lis
 - Both carry what they gather to the hut's storage, where couriers pick it up for the warehouse. They
   keep their tool and a stock of seeds (`ForesterSeedReserve`, `FarmerSeedReserve`); seeds over that
   go to the warehouse too. Missing tools and seeds are requested from the warehouse.
+
+### The potter: from the stone age to the copper age
+
+Place a **Potter's Hut** (planks, sticks and clay) and give a settler the **Potter** job. The potter
+works with the game's own pottery, by hand:
+
+- It shapes clay on the game's **clay forming block** next to the hut, one layer at a time, following
+  the same clay forming recipes a player picks from, using whatever clay fits the recipe (blue, fire or
+  red). Each piece takes as much clay as the handbook says.
+- It digs a one-block **pit kiln** in soil, gravel or sand near the hut (solid, non-flammable ground
+  around it and open sky above, as the game requires), lays up to a full load of raw pieces in it, adds
+  the game's pit kiln fuel layer by layer (dry grass, sticks and firewood, read from the game's own pit
+  kiln), lights it, and takes the fired pottery out when the game has fired it. Rain that puts the
+  kiln out just means it gets lit again.
+- The hut window's **Pottery** tab lists every piece the game's clay forming recipes make that fires
+  in a pit kiln, with how many the colony has (warehouse, hut, potter and kiln) and how many to keep in
+  stock. A new hut keeps 1 crucible and 2 ingot molds (`PotteryDefaultKeep`), what it takes to smelt
+  copper; officers change it.
+- Put clay and kiln fuel in the hut's storage or the warehouse; the potter asks couriers for what it
+  is missing. Fired pottery and dug soil go to the hut storage and on to the warehouse.
+- Config: `PotterSecondsPerLayer`, `PotterSecondsPerKilnStep`, `PotterClayReserve`,
+  `PotterClayRequest`, `PotterSpotRadius`, `PotteryKeepChoices`, `PotteryDefaultKeep`.
 
 ### Placing buildings with the Builder's Wand
 

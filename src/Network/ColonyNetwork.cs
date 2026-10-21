@@ -135,6 +135,7 @@ public partial class ColonyNetwork : ModSystem
             ColonyAction.Build or ColonyAction.CancelBuild or ColonyAction.Rotate => BuildAction(colony, role, packet),
             ColonyAction.SetAnyWoodOrStone => SetAnyWoodOrStone(colony, role, packet.Text == "1"),
             ColonyAction.SetWorkRadius or ColonyAction.SetEscort or ColonyAction.SetCollectBerries => WorkAreaAction(colony, role, packet),
+            ColonyAction.SetPotteryKeep => PotteryAction(colony, role, packet),
             _ => null
         };
 
@@ -217,6 +218,20 @@ public partial class ColonyNetwork : ModSystem
                 building.NoBerries = packet.Text != "1";
                 break;
         }
+        return null;
+    }
+
+    /// <summary>How many of a kind of pottery a Potter's Hut keeps in stock.</summary>
+    string? PotteryAction(Colony colony, ColonyRole role, ColonyActionPacket packet)
+    {
+        if (role < ColonyRole.Officer) return "createacolony:denied-officer";
+        var building = colony.Buildings.Find(b => b.BuildingId == packet.BuildingId);
+        if (building == null || building.Type != BuildingTypes.Potter) return "createacolony:bad-building";
+        int bar = packet.Text.LastIndexOf('|');
+        if (bar <= 0 || !int.TryParse(packet.Text[(bar + 1)..], out int keep) || keep < 0 || keep > 999) return "createacolony:bad-building";
+        string key = packet.Text[..bar];
+        if (!Manager.PotteryKinds().Any(k => k.Key == key)) return "createacolony:bad-building";
+        Manager.SetPotteryKeep(colony, building, key, keep);
         return null;
     }
 
@@ -437,7 +452,24 @@ public partial class ColonyNetwork : ModSystem
             snapshot.Info = Lang.Get("createacolony:warehouse-summary", containers.Count, Manager.CountItems(containers, _ => true),
                 containers.Sum(c => c.Inventory.Count(s => s.Empty)), containers.Sum(c => c.Inventory.Count));
         }
-        if (building.Type is BuildingTypes.Forester or BuildingTypes.Farmer) snapshot.Info = Manager.WorkerHutInfo(colony, building);
+        if (building.Type is BuildingTypes.Forester or BuildingTypes.Farmer or BuildingTypes.Potter) snapshot.Info = Manager.WorkerHutInfo(colony, building);
+        if (building.Type == BuildingTypes.Potter)
+        {
+            snapshot.IsPotterHut = true;
+            snapshot.KeepChoices = Manager.Config.PotteryKeepChoices.ToList();
+            var potter = Manager.WorkerAt(colony, building, Jobs.Potter);
+            foreach (var kind in Manager.PotteryKinds())
+            {
+                snapshot.Pottery.Add(new PotteryView
+                {
+                    Key = kind.Key,
+                    Stack = kind.Sample.ToBytes(),
+                    Keep = Manager.PotteryKeep(building, kind),
+                    Have = Manager.PotteryStock(colony, building, kind, potter),
+                    Clay = kind.Recipes.Min(ColonyManager.ClayCost)
+                });
+            }
+        }
         if (!snapshot.IsBuilderHut) return snapshot;
 
         foreach (var order in colony.Buildings.Where(b => b.HasWorkOrder).OrderBy(b => b.BuildingId))
