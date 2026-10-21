@@ -37,6 +37,26 @@ public class BuildingView
     [ProtoMember(9)] public int Rotation;
 }
 
+/// <summary>Everything the settler window shows: who they are, what they do, and what they carry.</summary>
+[ProtoContract]
+public class CitizenSnapshot
+{
+    [ProtoMember(1)] public string ColonyId = "";
+    [ProtoMember(2)] public int CitizenId;
+    [ProtoMember(3)] public string Name = "";
+    [ProtoMember(4)] public string Job = "";
+    [ProtoMember(5)] public string State = "";
+    [ProtoMember(6)] public int FoodPercent;
+    [ProtoMember(7)] public bool HasBed;
+    /// <summary>What they are doing right now, already in words.</summary>
+    [ProtoMember(8)] public string Activity = "";
+    [ProtoMember(9)] public List<byte[]> Pack = new();
+    [ProtoMember(10)] public int Slots;
+    [ProtoMember(11)] public List<byte[]> Bags = new();
+    [ProtoMember(12)] public byte[]? Hand;
+    [ProtoMember(13)] public bool OpenWindow;
+}
+
 /// <summary>Client asks to open the window of the hut block at Pos.</summary>
 [ProtoContract]
 public class HutOpenRequest

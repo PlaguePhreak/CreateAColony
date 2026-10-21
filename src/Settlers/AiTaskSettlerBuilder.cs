@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using System.Linq;
 using CreateAColony.Colonies;
 using Vintagestory.API.Common;
+using Vintagestory.API.Config;
 using Vintagestory.API.Datastructures;
 using Vintagestory.API.MathTools;
 using Vintagestory.GameContent;
@@ -23,7 +24,7 @@ public class AiTaskSettlerBuilder : SettlerTaskBase
     /// <summary>If no path gets closer, a builder still works on blocks this close, so it never gets stuck on its own walls.</summary>
     const float StretchRange = 8f;
 
-    enum Step { Fetch, Stash, FetchTool, Work }
+    enum Step { Fetch, Stash, FetchTool, Work, StepAside }
 
     Step step;
     BlockPos target = new BlockPos(0);
@@ -35,6 +36,8 @@ public class AiTaskSettlerBuilder : SettlerTaskBase
     ItemSlot? Hand => entity.RightHandItemSlot;
     bool walking;
     float workTime;
+    /// <summary>Set by Work when the builder stands where its next block goes.</summary>
+    BlockPos? stepAsideTo;
     /// <summary>The animation playing while working on the current block.</summary>
     string? workAnim;
     long nextSearchMs;
@@ -80,7 +83,7 @@ public class AiTaskSettlerBuilder : SettlerTaskBase
         }
 
         // The right tool first: a builder digs with a shovel and fells with an axe, like a player.
-        if (manager.ToolNeededAt(colony, buildStep, pos) is { } toolNeed && !ColonyManager.ToolFits(Hand?.Itemstack, toolNeed.Type, toolNeed.Tier))
+        if (manager.ToolNeededAt(colony, buildStep, pos) is { } toolNeed && !HasTool(citizen, toolNeed))
         {
             neededTool = toolNeed;
             var toolChest = manager.HutStorage(colony, hut)
@@ -137,9 +140,11 @@ public class AiTaskSettlerBuilder : SettlerTaskBase
     void BeginStep()
     {
         workTime = 0;
+        if (step != Step.Work && Colony is { } colony && Citizen is { } citizen) PutAwayHand(colony, citizen);
         var center = target.ToVec3d().Add(0.5, 0.5, 0.5);
         walking = !(step == Step.Work && entity.Pos.XYZ.DistanceTo(center) <= WorkRange);
-        if (walking) WalkTo(target.ToVec3d().Add(0.5, 0, 0.5), step == Step.Work ? WorkRange - 1 : 1.5f);
+        float range = step switch { Step.Work => WorkRange - 1, Step.StepAside => 0.3f, _ => 1.5f };
+        if (walking) WalkTo(target.ToVec3d().Add(0.5, 0, 0.5), range);
     }
 
     public override bool ContinueExecute(float dt)
@@ -175,18 +180,31 @@ public class AiTaskSettlerBuilder : SettlerTaskBase
                 Fetch(colony, citizen);
                 break;
             case Step.FetchTool:
-                FetchTool();
+                FetchTool(colony, citizen);
                 break;
             case Step.Stash:
                 Stash(colony, citizen);
                 if (!manager!.PackEmpty(citizen)) return false;
                 break;
+            case Step.StepAside:
+                break;
             case Step.Work:
-                workAnim ??= PlayShapeAnimation(WorkAnimationCode(colony), "build");
+                if (workAnim == null)
+                {
+                    PrepareHand(colony, citizen);
+                    workAnim = PlayShapeAnimation(WorkAnimationCode(colony), "build");
+                }
                 workTime += dt;
                 if (workTime < manager!.Config.BuilderSecondsPerBlock) return true;
                 Work(colony, citizen);
                 StopWorkAnimation();
+                if (stepAsideTo != null)
+                {
+                    Go(Step.StepAside, stepAsideTo);
+                    stepAsideTo = null;
+                    BeginStep();
+                    return true;
+                }
                 break;
         }
 
@@ -212,14 +230,14 @@ public class AiTaskSettlerBuilder : SettlerTaskBase
         var storage = manager.HutStorage(colony, hut).Cast<BlockEntityContainer>().ToList();
         var needs = manager.MaterialsNeeded(colony, order, blueprint);
         var matchers = needs.Keys.Select(ColonyManager.Matcher).ToList();
-        manager.UnloadPack(colony, citizen, storage, s => !matchers.Any(m => m(s)));
+        manager.UnloadPack(colony, citizen, storage, s => !matchers.Any(m => m(s)) && !ColonyManager.IsBuilderTool(s));
 
         var current = ColonyManager.Matcher(cost.Value.Code);
         int currentNeed = needs.TryGetValue(cost.Value.Code, out var n) ? n.Count : cost.Value.Count;
         if (Load(colony, citizen, storage, current, currentNeed) == 0 && manager.PackCount(citizen, current) == 0)
         {
             // Full of other materials: make room for the one needed right now.
-            manager.UnloadPack(colony, citizen, storage, s => !current(s));
+            manager.UnloadPack(colony, citizen, storage, s => !current(s) && !ColonyManager.IsBuilderTool(s));
             Load(colony, citizen, storage, current, currentNeed);
         }
         foreach (var (code, (_, count)) in needs)
@@ -254,24 +272,61 @@ public class AiTaskSettlerBuilder : SettlerTaskBase
         return moved;
     }
 
-    /// <summary>Swaps whatever tool is in hand for one that fits the job, from the hut chest.</summary>
-    void FetchTool()
+    bool HasTool(CitizenRecord citizen, ColonyManager.ToolNeed need) =>
+        ColonyManager.ToolFits(Hand?.Itemstack, need.Type, need.Tier)
+        || manager!.PackCount(citizen, s => ColonyManager.ToolFits(s, need.Type, need.Tier)) > 0;
+
+    /// <summary>Takes a tool that fits the job from the hut chest into the inventory.</summary>
+    void FetchTool(Colony colony, CitizenRecord citizen)
+    {
+        if (entity.World.BlockAccessor.GetBlockEntity(target) is not BlockEntityContainer chest) return;
+        var tool = manager!.TakeItems(new[] { chest }, s => ColonyManager.ToolFits(s, neededTool.Type, neededTool.Tier), 1);
+        if (tool == null) return;
+        manager.AddToPack(colony, citizen, tool);
+        if (tool.StackSize > 0) manager.PutItems(chest, tool); // inventory full: the tool waits in the chest
+    }
+
+    /// <summary>Holds the right tool while clearing a block, and puts tools away otherwise, like a player switching hotbar slots.</summary>
+    void PrepareHand(Colony colony, CitizenRecord citizen)
     {
         var hand = Hand;
-        if (hand == null || entity.World.BlockAccessor.GetBlockEntity(target) is not BlockEntityContainer chest) return;
-        var slot = chest.Inventory.FirstOrDefault(s => ColonyManager.ToolFits(s.Itemstack, neededTool.Type, neededTool.Tier));
-        if (slot == null) return;
-
-        if (!hand.Empty)
+        if (hand == null) return;
+        var current = entity.World.BlockAccessor.GetBlock(target);
+        bool clearing = current.Id != 0 && !manager!.KeepsBlock(colony, current, buildStep.BlockId);
+        var need = clearing ? manager!.ToolNeededAt(colony, buildStep, target) : null;
+        if (need == null)
         {
-            var old = hand.TakeOutWhole();
-            manager!.PutItems(chest, old);
-            if (old.StackSize > 0) entity.World.SpawnItemEntity(old, entity.Pos.XYZ);
+            PutAwayHand(colony, citizen);
+            return;
         }
-        hand.Itemstack = slot.TakeOut(1);
-        slot.MarkDirty();
-        hand.MarkDirty();
-        chest.MarkDirty(true);
+        if (ColonyManager.ToolFits(hand.Itemstack, need.Value.Type, need.Value.Tier)) return;
+        var tool = manager!.TakeFromPack(colony, citizen, s => ColonyManager.ToolFits(s, need.Value.Type, need.Value.Tier), 1);
+        if (tool == null) return;
+        PutAwayHand(colony, citizen);
+        hand.Itemstack = tool;
+        SyncHand();
+    }
+
+    /// <summary>
+    /// Pushes the hand slot to players' screens. The settler's inventory reaches clients through its
+    /// watched attributes, which are only rewritten when stored, so an emptied hand would otherwise
+    /// keep showing the old tool.
+    /// </summary>
+    void SyncHand()
+    {
+        Hand?.MarkDirty();
+        entity.GetBehavior<EntityBehaviorContainer>()?.storeInv();
+    }
+
+    void PutAwayHand(Colony colony, CitizenRecord citizen)
+    {
+        var hand = Hand;
+        if (hand == null || hand.Empty) return;
+        var stack = hand.Itemstack;
+        manager!.AddToPack(colony, citizen, stack);
+        // Inventory full: keep holding it rather than dropping a tool on the ground.
+        hand.Itemstack = stack.StackSize > 0 ? stack : null;
+        SyncHand();
     }
 
     void Stash(Colony colony, CitizenRecord citizen)
@@ -297,7 +352,11 @@ public class AiTaskSettlerBuilder : SettlerTaskBase
             if (toolNeed != null && !ColonyManager.ToolFits(hand?.Itemstack, toolNeed.Value.Type, toolNeed.Value.Tier)) return;
             manager.BreakForBuild(colony, hut, target);
             // Every block cleared wears the tool down; a broken tool sends the builder back for another.
-            if (toolNeed != null && hand?.Itemstack != null) hand.Itemstack.Collectible.DamageItem(entity.World, entity, hand);
+            if (toolNeed != null && hand?.Itemstack != null)
+            {
+                hand.Itemstack.Collectible.DamageItem(entity.World, entity, hand);
+                SyncHand(); // a tool that just broke must vanish from the model too
+            }
         }
         if (buildStep.BlockId == 0) return;
 
@@ -309,6 +368,22 @@ public class AiTaskSettlerBuilder : SettlerTaskBase
             if (used == null) return;
         }
         place = manager.SwapToMaterial(colony, place, used);
+        if (manager.EntityInTheWay(place, target) is { } inTheWay)
+        {
+            if (used != null) manager.AddToPack(colony, citizen, used);
+            if (inTheWay.EntityId == entity.EntityId && manager.FreeSpotNear(entity, entity.Pos.AsBlockPos, 3, target) is { } spot)
+            {
+                // Standing where the block goes: step out of the way first.
+                stepAsideTo = spot.AsBlockPos;
+            }
+            else
+            {
+                // Someone else is standing there: build elsewhere and come back to this block later.
+                order.Cursor++;
+                manager.MarkDirty(colony);
+            }
+            return;
+        }
         manager.PlaceForBuild(place.Id, target);
         manager.FinishPlacement(place, target);
     }
@@ -332,6 +407,24 @@ public class AiTaskSettlerBuilder : SettlerTaskBase
     public override void FinishExecute(bool cancelled)
     {
         StopWorkAnimation();
+        var colony = Colony;
+        var citizen = Citizen;
+        if (colony != null && citizen != null) PutAwayHand(colony, citizen);
         base.FinishExecute(cancelled);
+    }
+
+    public override string Describe(Colony colony, CitizenRecord citizen)
+    {
+        var order = colony.Buildings.Find(b => b.BuildingId == orderId);
+        string building = order == null ? "" : Lang.Get("createacolony:building-" + order.Type) + " " + order.TargetLevel;
+        string key = step switch
+        {
+            Step.Fetch => "activity-builder-fetch",
+            Step.FetchTool => "activity-builder-tool",
+            Step.Stash => "activity-builder-stash",
+            Step.StepAside => "activity-builder-aside",
+            _ => "activity-builder-work"
+        };
+        return Lang.Get("createacolony:" + key, building);
     }
 }

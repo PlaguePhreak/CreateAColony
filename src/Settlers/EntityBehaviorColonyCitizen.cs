@@ -16,9 +16,18 @@ namespace CreateAColony.Settlers;
 public class EntityBehaviorColonyCitizen : EntityBehavior
 {
     const float SyncIntervalSeconds = 5f;
+    const float StuckCheckSeconds = 1f;
 
     ColonyManager? manager;
+    /// <summary>
+    /// Holding right-click repeats the interaction. After a bag changes hands, further clicks from that
+    /// player are ignored briefly, so the same click does not also open the window or give a second bag.
+    /// </summary>
+    const long BagCooldownMs = 700;
+    static readonly System.Collections.Generic.Dictionary<string, long> lastBagChangeMs = new();
     float sinceSync;
+    float sinceStuckCheck;
+    int stuckChecks;
 
     public EntityBehaviorColonyCitizen(Entity entity) : base(entity) { }
 
@@ -36,6 +45,12 @@ public class EntityBehaviorColonyCitizen : EntityBehavior
     public override void OnGameTick(float deltaTime)
     {
         if (manager == null || !entity.Alive) return;
+        sinceStuckCheck += deltaTime;
+        if (sinceStuckCheck >= StuckCheckSeconds)
+        {
+            sinceStuckCheck = 0;
+            FreeIfInsideBlock();
+        }
         sinceSync += deltaTime;
         if (sinceSync < SyncIntervalSeconds) return;
         sinceSync = 0;
@@ -94,6 +109,8 @@ public class EntityBehaviorColonyCitizen : EntityBehavior
         var colony = record == null ? null : manager.GetById(((EntitySettler)entity).ColonyId!);
         if (record == null || colony == null) return;
         handled = EnumHandling.PreventDefault;
+        long now = entity.World.ElapsedMilliseconds;
+        if (lastBagChangeMs.TryGetValue(player.PlayerUID, out long last) && now - last < BagCooldownMs) return;
 
         // Members hand a settler a bag by right-clicking with it, and take one back with sneak and an empty hand.
         bool member = colony.RoleOf(player.PlayerUID) >= ColonyRole.Member;
@@ -103,6 +120,7 @@ public class EntityBehaviorColonyCitizen : EntityBehavior
             {
                 itemslot.TakeOut(1);
                 itemslot.MarkDirty();
+                lastBagChangeMs[player.PlayerUID] = now;
                 player.SendMessage(0, Lang.Get("createacolony:bag-given", record.Name, manager.PackSlots(record)), EnumChatType.Notification);
             }
             else
@@ -113,17 +131,28 @@ public class EntityBehaviorColonyCitizen : EntityBehavior
         }
         if (member && itemslot?.Empty != false && byEntity.Controls.Sneak && manager.RemoveBag(colony, record) is { } removed)
         {
+            lastBagChangeMs[player.PlayerUID] = now;
             if (!player.InventoryManager.TryGiveItemstack(removed.Bag, true)) entity.World.SpawnItemEntity(removed.Bag, entity.Pos.XYZ);
             foreach (var stack in removed.Overflow) entity.World.SpawnItemEntity(stack, entity.Pos.XYZ.Add(0, 0.5, 0));
             player.SendMessage(0, Lang.Get("createacolony:bag-taken", record.Name, manager.PackSlots(record)), EnumChatType.Notification);
             return;
         }
 
-        var items = manager.PackItems(record);
-        string line = $"{record.Name}: {Lang.Get("createacolony:job-" + (record.JobCode ?? "none"))}";
-        line += ", " + Lang.Get("createacolony:pack-slots", items.Count, manager.PackSlots(record));
-        if (items.Count > 0) line += ": " + string.Join(", ", items.Select(s => $"{s.StackSize}x {s.GetName()}"));
-        player.SendMessage(0, line, EnumChatType.Notification);
+        entity.Api.ModLoader.GetModSystem<Network.ColonyNetwork>().OpenCitizenWindow(player, colony, record);
+    }
+
+    /// <summary>A settler inside a block (someone built over it) for two checks in a row is moved to the nearest free spot.</summary>
+    void FreeIfInsideBlock()
+    {
+        if (!entity.World.CollisionTester.IsColliding(entity.World.BlockAccessor, entity.CollisionBox, entity.Pos.XYZ, false))
+        {
+            stuckChecks = 0;
+            return;
+        }
+        if (++stuckChecks < 2) return;
+        stuckChecks = 0;
+        var spot = manager!.FreeSpotNear(entity, entity.Pos.AsBlockPos, 4);
+        if (spot != null) entity.TeleportToDouble(spot.X, spot.Y, spot.Z);
     }
 
     CitizenRecord? FindRecord()
