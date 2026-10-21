@@ -321,6 +321,12 @@ public partial class ColonyManager
     {
         var ba = sapi.World.BlockAccessor;
         var block = sapi.World.GetBlock(blockId);
+        // A fence joins the neighbours it has here, as when a player places one.
+        if (block is BlockFence fence && sapi.World.GetBlock(fence.CodeWithVariant("type", fence.GetOrientations(sapi.World, pos))) is { } joined)
+        {
+            block = joined;
+            blockId = joined.Id;
+        }
         ba.SetBlock(blockId, pos);
         ba.TriggerNeighbourBlockUpdate(pos);
         if (block.Sounds?.Place != null) sapi.World.PlaySoundAt(block.Sounds.Place, pos, 0);

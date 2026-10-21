@@ -22,6 +22,8 @@ public partial class ColonyManager
     /// <summary>A fire pit's stage once it is finished (cold, lit or burnt out); 1 to 4 are under construction.</summary>
     const int FirepitReady = 5;
     const int FirepitFirewood = 4;
+    /// <summary>The variant of a fence that says which of its sides join a neighbour.</summary>
+    const string FenceJoins = "type";
 
     readonly Dictionary<(int BlockId, bool AnyType), MaterialCost?> pickCostCache = new();
 
@@ -32,7 +34,8 @@ public partial class ColonyManager
 
     /// <summary>
     /// True when the block standing there will do for the blueprint's block: a finished fire pit (cold,
-    /// lit or burnt out all count), or the same block in another wood or stone when the colony allows it.
+    /// lit or burnt out all count), a fence however it is joined to its neighbours, or the same block in
+    /// another wood or stone when the colony allows it.
     /// </summary>
     public bool Fulfils(Colony colony, Block current, int targetId)
     {
@@ -40,6 +43,14 @@ public partial class ColonyManager
         var target = sapi.World.GetBlock(targetId);
         if (target == null) return false;
         if (current is BlockFirepit have && target is BlockFirepit want) return have.Stage >= Math.Min(want.Stage, FirepitReady);
+        // A fence's code says which sides it joins ("type": n, ew, nesw, empty...), and the game changes it
+        // as neighbours are built. The blueprint's joins are from wherever it was saved, so they never count.
+        if (current is BlockFence && target is BlockFence && VariantOf(current, FenceJoins) is { } joins
+            && sapi.World.GetBlock(target.CodeWithVariant(FenceJoins, joins)) is { } joined)
+        {
+            if (joined.Id == current.Id) return true;
+            target = joined;
+        }
         if (!colony.AnyWoodOrStone) return false;
         foreach (string v in SwappableVariants)
         {
