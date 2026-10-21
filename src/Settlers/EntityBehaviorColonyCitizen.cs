@@ -56,7 +56,12 @@ public class EntityBehaviorColonyCitizen : EntityBehavior
         sinceSync = 0;
 
         var record = FindRecord();
-        if (record == null) return;
+        if (record == null)
+        {
+            // A visitor who left or was turned away while this entity was unloaded.
+            if (entity is EntitySettler { ColonyId: { } colonyId } && manager.GetById(colonyId) != null) entity.Die(EnumDespawnReason.Removed);
+            return;
+        }
 
         if (record.EntityId != entity.EntityId)
         {
@@ -86,7 +91,12 @@ public class EntityBehaviorColonyCitizen : EntityBehavior
                 foreach (var stack in manager.EmptyPackAndBags(colony, record)) entity.World.SpawnItemEntity(stack, entity.Pos.XYZ.Add(0, 0.5, 0));
             }
 
-            if (manager.Config.Permadeath)
+            if (record.Visitor)
+            {
+                // A wanderer who dies before joining was never one of ours: no grave in the settler list.
+                if (colony != null) manager.ForgetCitizen(colony, record);
+            }
+            else if (colony != null && manager.Permadeath(colony))
             {
                 record.Alive = false;
             }

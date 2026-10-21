@@ -47,6 +47,10 @@ public class CitizenRecord
     [ProtoMember(14)] public List<byte[]> Pack = new();
     /// <summary>Bags the settler wears; each adds its slots to the inventory.</summary>
     [ProtoMember(15)] public List<byte[]> Bags = new();
+    /// <summary>A wanderer asking to join: it has no job until an officer welcomes it, and leaves if nobody does.</summary>
+    [ProtoMember(16)] public bool Visitor;
+    /// <summary>When a visitor nobody welcomed gives up and leaves.</summary>
+    [ProtoMember(17)] public double VisitorUntilTotalDays;
 
     public bool IsDowned => DownedUntilTotalDays > 0;
 }
@@ -111,8 +115,21 @@ public class Building
     [ProtoMember(17)] public BlockPos? KilnPos;
     /// <summary>Where a potter shapes clay.</summary>
     [ProtoMember(18)] public BlockPos? FormPos;
+    /// <summary>A Tavern: the settlers who can be hired there today.</summary>
+    [ProtoMember(19)] public List<RecruitOffer> Recruits = new();
+    /// <summary>The in-game day the Tavern's recruits arrived; a new day brings new ones.</summary>
+    [ProtoMember(20, IsRequired = true)] public int RecruitDay = -1;
 
     public bool HasWorkOrder => TargetLevel > Level;
+}
+
+/// <summary>Someone at the Tavern who joins the colony for a price in rusty gears.</summary>
+[ProtoContract]
+public class RecruitOffer
+{
+    [ProtoMember(1)] public string Name = "";
+    [ProtoMember(2)] public string Sex = "male";
+    [ProtoMember(3)] public int Cost;
 }
 
 /// <summary>
@@ -162,6 +179,10 @@ public class Colony
     [ProtoMember(20, IsRequired = true)] public bool AnyWoodOrStone = true;
     /// <summary>Fields marked out with Field markers, for farmers.</summary>
     [ProtoMember(21)] public List<FieldRecord> Fields = new();
+    /// <summary>The owner's Permadeath switch; null until changed, so the server config decides.</summary>
+    [ProtoMember(22)] public bool? Permadeath;
+    /// <summary>When the next wanderer may come asking to join; 0 until first worked out.</summary>
+    [ProtoMember(23)] public double NextWandererTotalDays;
 
     public string OwnerUid => Members.Find(m => m.Role == ColonyRole.Owner)?.PlayerUid ?? "";
 

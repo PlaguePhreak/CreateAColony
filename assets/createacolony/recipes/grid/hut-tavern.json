@@ -1,0 +1,11 @@
+{
+	"ingredientPattern": "SGS,PPP",
+	"ingredients": {
+		"P": { "type": "item", "code": "game:plank-*" },
+		"S": { "type": "item", "code": "game:stick" },
+		"G": { "type": "item", "code": "game:gear-rusty" }
+	},
+	"width": 3,
+	"height": 2,
+	"output": { "type": "block", "code": "createacolony:hut-tavern" }
+}

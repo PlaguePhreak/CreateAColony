@@ -6,7 +6,8 @@ public class ColonyConfig
     public const string FileName = "createacolony.json";
 
     /// <summary>The mod is designed around permadeath. When false, a killed settler is
-    /// knocked out instead and returns to the Town Hall after DownedRecoveryDays.</summary>
+    /// knocked out instead and returns to the Town Hall after DownedRecoveryDays.
+    /// This is the default for new colonies; each colony's owner can switch it in the Town Hall window.</summary>
     public bool Permadeath = true;
     public double DownedRecoveryDays = 1.0;
 
@@ -112,4 +113,22 @@ public class ColonyConfig
         ["*crucible*"] = 1,
         ["*ingotmold*"] = 2
     };
+
+    // Recruiting
+    /// <summary>How many settlers a built Tavern offers for hire each day.</summary>
+    public int TavernRecruits = 3;
+    /// <summary>What hiring a settler at the Tavern costs, rolled between min and max for each one.</summary>
+    public int RecruitCostMin = 4;
+    public int RecruitCostMax = 12;
+    /// <summary>The item recruits are paid in.</summary>
+    public string RecruitCurrency = "game:gear-rusty";
+    /// <summary>Wanderers now and then walk up to the Town Hall and ask to join the colony.</summary>
+    public bool Wanderers = true;
+    /// <summary>About how many in-game days pass between wanderers, without and with a built Tavern.</summary>
+    public double WandererEveryDays = 4;
+    public double WandererEveryDaysWithTavern = 2;
+    /// <summary>How long a wanderer waits to be welcomed before it moves on, in in-game days.</summary>
+    public double WandererWaitDays = 2;
+    /// <summary>Wanderers only come while the colony has a bed nobody sleeps in.</summary>
+    public bool WanderersNeedFreeBed = true;
 }

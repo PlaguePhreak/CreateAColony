@@ -107,6 +107,22 @@ works with the game's own pottery, by hand:
 - Config: `PotterSecondsPerLayer`, `PotterSecondsPerKilnStep`, `PotterClayReserve`,
   `PotterClayRequest`, `PotterSpotRadius`, `PotteryKeepChoices`, `PotteryDefaultKeep`.
 
+### New settlers: the Tavern and wanderers
+
+- A **Tavern** (planks, sticks and a rusty gear) is placed with the Builder's Wand like any hut. Once
+  level 1 is built, a few people looking for work stop by each in-game day (`TavernRecruits`). Its
+  **Recruits** tab lists them with what they ask in rusty gears (`RecruitCostMin`/`Max`,
+  `RecruitCurrency`); **Hire** takes the gears from your inventory, then from the Tavern's storage, and
+  the new settler steps out of the Tavern. Hiring is free in creative mode.
+- **Wanderers** now and then turn up near the colony border and walk to the Town Hall
+  (`WandererEveryDays`, sooner with a built Tavern: `WandererEveryDaysWithTavern`), one at a time and
+  only while there is a free bed (`WanderersNeedFreeBed`). Members get a chat message. An officer
+  welcomes them or turns them away on the Town Hall's Settlers tab; one nobody answers moves on after
+  `WandererWaitDays`. `/colony wanderer` brings one now (admin, for testing).
+- **Permadeath** is a switch on the Town Hall's Overview tab for the colony owner; the config
+  `Permadeath` is only the default for new colonies.
+- Settlers get names from `config/settlernames.json`.
+
 ### Placing buildings with the Builder's Wand
 
 As in MineColonies, the Town Hall, huts and the Warehouse are not placed by hand (that just says to

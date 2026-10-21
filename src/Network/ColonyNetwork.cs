@@ -136,6 +136,9 @@ public partial class ColonyNetwork : ModSystem
             ColonyAction.SetAnyWoodOrStone => SetAnyWoodOrStone(colony, role, packet.Text == "1"),
             ColonyAction.SetWorkRadius or ColonyAction.SetEscort or ColonyAction.SetCollectBerries => WorkAreaAction(colony, role, packet),
             ColonyAction.SetPotteryKeep => PotteryAction(colony, role, packet),
+            ColonyAction.WelcomeVisitor or ColonyAction.TurnAwayVisitor => VisitorAction(colony, role, packet),
+            ColonyAction.SetPermadeath => SetPermadeath(colony, role, packet.Text == "1"),
+            ColonyAction.HireRecruit => HireAction(player, colony, role, packet),
             _ => null
         };
 
@@ -157,6 +160,32 @@ public partial class ColonyNetwork : ModSystem
         return null;
     }
 
+    string? VisitorAction(Colony colony, ColonyRole role, ColonyActionPacket packet)
+    {
+        if (role < ColonyRole.Officer) return "createacolony:denied-officer";
+        var visitor = colony.Citizens.Find(c => c.CitizenId == packet.CitizenId);
+        if (visitor == null || !visitor.Alive || !visitor.Visitor) return "createacolony:bad-citizen";
+        if (packet.Action == ColonyAction.WelcomeVisitor) Manager.Welcome(colony, visitor);
+        else Manager.TurnAway(colony, visitor);
+        return null;
+    }
+
+    static string? SetPermadeath(Colony colony, ColonyRole role, bool on)
+    {
+        if (role < ColonyRole.Owner) return "createacolony:denied-owner";
+        colony.Permadeath = on;
+        return null;
+    }
+
+    /// <summary>Any member may hire at the Tavern; they pay for it.</summary>
+    string? HireAction(IServerPlayer player, Colony colony, ColonyRole role, ColonyActionPacket packet)
+    {
+        if (role < ColonyRole.Member) return "createacolony:denied-member";
+        var tavern = colony.Buildings.Find(b => b.BuildingId == packet.BuildingId);
+        if (tavern == null || tavern.Type != BuildingTypes.Tavern) return "createacolony:bad-building";
+        return Manager.Hire(player, colony, tavern, packet.Text);
+    }
+
     static string? Rename(Colony colony, ColonyRole role, string name)
     {
         if (role < ColonyRole.Officer) return "createacolony:denied-officer";
@@ -172,6 +201,7 @@ public partial class ColonyNetwork : ModSystem
         if (!Jobs.IsValid(job)) return "createacolony:bad-job";
         var citizen = colony.Citizens.Find(c => c.CitizenId == citizenId);
         if (citizen == null || !citizen.Alive) return "createacolony:bad-citizen";
+        if (citizen.Visitor) return "createacolony:visitor-no-job";
         if (citizen.JobCode != (job.Length == 0 ? null : job)) citizen.WorkplacePos = null;
         citizen.JobCode = job.Length == 0 ? null : job;
         return null;
@@ -307,13 +337,18 @@ public partial class ColonyNetwork : ModSystem
             HasWarehouse = colony.WarehousePos != null,
             WarehouseChests = Manager.WarehouseContainers(colony).Count(),
             OpenRequests = colony.Requests.Count,
-            DropOffs = colony.DropOffs.Count
+            DropOffs = colony.DropOffs.Count,
+            Permadeath = Manager.Permadeath(colony),
+            FreeBeds = Manager.FreeBeds(colony),
+            WandererDays = config.Wanderers ? Manager.WandererEveryDays(colony) : 0,
+            WanderersNeedFreeBed = config.WanderersNeedFreeBed
         };
 
         foreach (var c in colony.Citizens)
         {
             string state = !c.Alive ? "dead"
                 : c.IsDowned ? "downed"
+                : c.Visitor ? "visitor"
                 : c.Saturation >= 0 && c.Saturation < config.SaturationMax * config.EatBelowFraction ? "hungry"
                 : "ok";
             snapshot.Citizens.Add(new CitizenView
@@ -323,7 +358,9 @@ public partial class ColonyNetwork : ModSystem
                 Job = c.JobCode ?? "",
                 State = state,
                 FoodPercent = c.Saturation < 0 ? 100 : (int)(100 * c.Saturation / config.SaturationMax),
-                HasBed = c.HomeBedPos != null
+                HasBed = c.HomeBedPos != null,
+                Visitor = c.Visitor,
+                VisitorHoursLeft = c.Visitor ? (int)System.Math.Ceiling(System.Math.Max(0, c.VisitorUntilTotalDays - sapi!.World.Calendar.TotalDays) * sapi.World.Calendar.HoursPerDay) : 0
             });
         }
 
@@ -394,7 +431,8 @@ public partial class ColonyNetwork : ModSystem
         else
         {
             var task = entity?.GetBehavior<EntityBehaviorTaskAI>()?.TaskManager.ActiveTasksBySlot.OfType<Settlers.SettlerTaskBase>().FirstOrDefault();
-            activity = task?.Describe(colony, citizen) ?? Lang.Get("createacolony:activity-idle");
+            activity = task?.Describe(colony, citizen)
+                ?? Lang.Get(citizen.Visitor ? "createacolony:activity-visitor-waiting" : "createacolony:activity-idle");
         }
 
         var health = entity?.WatchedAttributes.GetTreeAttribute("health");
@@ -404,7 +442,7 @@ public partial class ColonyNetwork : ModSystem
             CitizenId = citizen.CitizenId,
             Name = citizen.Name,
             Job = citizen.JobCode ?? "",
-            State = !citizen.Alive ? "dead" : citizen.IsDowned ? "downed"
+            State = !citizen.Alive ? "dead" : citizen.IsDowned ? "downed" : citizen.Visitor ? "visitor"
                 : citizen.Saturation >= 0 && citizen.Saturation < config.SaturationMax * config.EatBelowFraction ? "hungry" : "ok",
             FoodPercent = citizen.Saturation < 0 ? 100 : (int)(100 * citizen.Saturation / config.SaturationMax),
             HasBed = citizen.HomeBedPos != null,
@@ -431,7 +469,7 @@ public partial class ColonyNetwork : ModSystem
             ViewerRole = (int)colony.RoleOf(viewerUid),
             IsBuilderHut = building.Type == BuildingTypes.Builder,
             AnyWoodOrStone = colony.AnyWoodOrStone,
-            HasStorage = ColonyManager.IsWorkerHut(building.Type),
+            HasStorage = ColonyManager.HasOwnStorage(building.Type),
             OpenWindow = openWindow
         };
 
@@ -453,6 +491,20 @@ public partial class ColonyNetwork : ModSystem
                 containers.Sum(c => c.Inventory.Count(s => s.Empty)), containers.Sum(c => c.Inventory.Count));
         }
         if (building.Type is BuildingTypes.Forester or BuildingTypes.Farmer or BuildingTypes.Potter) snapshot.Info = Manager.WorkerHutInfo(colony, building);
+        if (building.Type == BuildingTypes.Tavern)
+        {
+            snapshot.IsTavern = true;
+            snapshot.Info = Manager.TavernInfo(colony, building);
+            snapshot.Recruits = Manager.TavernRecruits(colony, building).ToList();
+            if (sapi!.World.PlayerByUid(viewerUid) is { } viewer)
+            {
+                snapshot.Gears = Manager.GearsFor(viewer, colony, building);
+                snapshot.Creative = viewer.WorldData.CurrentGameMode == EnumGameMode.Creative;
+            }
+            var code = new AssetLocation(Manager.Config.RecruitCurrency);
+            var currency = sapi.World.GetItem(code) is { } item ? new ItemStack(item) : sapi.World.GetBlock(code) is { } block ? new ItemStack(block) : null;
+            snapshot.Currency = currency?.ToBytes();
+        }
         if (building.Type == BuildingTypes.Potter)
         {
             snapshot.IsPotterHut = true;

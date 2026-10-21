@@ -1,0 +1,23 @@
+{
+	"code": "hut-tavern",
+	"class": "BlockColonyHut",
+	"entityClass": "ColonyHut",
+	"attributes": {
+		"buildingType": "tavern",
+		// The Tavern's own storage: rusty gears left here pay for recruits too.
+		"defaultType": "hut",
+		"inventoryClassName": "colonyhut",
+		"quantitySlots": { "hut": 25 },
+		"quantityColumns": { "hut": 5 },
+		"dialogTitleLangCode": { "hut": "createacolony:hut-storage" }
+	},
+	"creativeinventory": { "general": ["*"] },
+	"blockmaterial": "Wood",
+	// The seed of the Tavern. Placeholder cube look. To use a model instead, do as hut-farmer.json does:
+	// set "drawtype" to "json", add a "shape" pointing at the model in shapes/block/, list the model's
+	// textures under "textures", and copy the sideopaque, sidesolid, emitSideAo and lightAbsorption lines.
+	"drawtype": "cube",
+	"textures": { "all": { "base": "game:block/wood/debarked/aged" }, "up": { "base": "game:block/wood/table/aged/top" }, "down": { "base": "game:block/wood/planks/aged1" } },
+	"resistance": 2,
+	"sounds": { "place": "game:block/planks", "break": "game:block/planks", "hit": "game:block/planks" }
+}

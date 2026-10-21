@@ -26,6 +26,8 @@ public class GuiDialogHut : GuiDialog
     const int PotteryTab = 4;
     const int PotteryRowsPerPage = 7;
     const double PotteryRowHeight = 44;
+    const int RecruitsTab = 5;
+    const double RecruitRowHeight = 44;
 
     readonly ColonyNetwork network;
     HutSnapshot snapshot;
@@ -60,7 +62,8 @@ public class GuiDialogHut : GuiDialog
         var bgBounds = ElementBounds.Fill.WithFixedPadding(GuiStyle.ElementToDialogPadding);
         bgBounds.BothSizing = ElementSizing.FitToChildren;
 
-        if (!snapshot.IsBuilderHut && !(snapshot.IsGatherHut && currentTab == WorkAreaTab) && !(snapshot.IsPotterHut && currentTab == PotteryTab)) currentTab = 0;
+        if (!snapshot.IsBuilderHut && !(snapshot.IsGatherHut && currentTab == WorkAreaTab) && !(snapshot.IsPotterHut && currentTab == PotteryTab)
+            && !(snapshot.IsTavern && currentTab == RecruitsTab)) currentTab = 0;
 
         var composer = capi.Gui.CreateCompo("createacolony-hut", dialogBounds)
             .AddShadedDialogBG(bgBounds)
@@ -95,6 +98,16 @@ public class GuiDialogHut : GuiDialog
             composer.AddVerticalTabs(tabs, ElementBounds.Fixed(-160, 35, 160, 80), (id, tab) => { currentTab = tab.DataInt; page = 0; Compose(); }, "tabs");
         }
 
+        else if (snapshot.IsTavern)
+        {
+            var tabs = new[]
+            {
+                new GuiTab { Name = Lang.Get("createacolony:tab-building"), DataInt = 0, Active = currentTab == 0 },
+                new GuiTab { Name = Lang.Get("createacolony:tab-recruits"), DataInt = RecruitsTab, Active = currentTab == RecruitsTab },
+            };
+            composer.AddVerticalTabs(tabs, ElementBounds.Fixed(-160, 35, 160, 80), (id, tab) => { currentTab = tab.DataInt; Compose(); }, "tabs");
+        }
+
         composer.BeginChildElements(bgBounds);
         switch (currentTab)
         {
@@ -103,6 +116,7 @@ public class GuiDialogHut : GuiDialog
             case 2: ComposeItems(composer); break;
             case WorkAreaTab: ComposeWorkArea(composer); break;
             case PotteryTab: ComposePottery(composer); break;
+            case RecruitsTab: ComposeRecruits(composer); break;
         }
         SingleComposer = composer.EndChildElements().Compose();
         SingleComposer.GetSwitch("anytype")?.SetValue(snapshot.AnyWoodOrStone);
@@ -125,7 +139,8 @@ public class GuiDialogHut : GuiDialog
         if (snapshot.Info.Length > 0)
         {
             // A worker's hut shows who works there, what they are doing and how the job works.
-            double height = b.Type is BuildingTypes.Forester or BuildingTypes.Farmer or BuildingTypes.Potter ? 150 : 50;
+            double height = b.Type is BuildingTypes.Forester or BuildingTypes.Farmer or BuildingTypes.Potter ? 150
+                : b.Type == BuildingTypes.Tavern ? 80 : 50;
             composer.AddRichtext(snapshot.Info, CairoFont.WhiteDetailText(), ElementBounds.Fixed(0, y, Width, height));
             y += height + 5;
         }
@@ -243,6 +258,64 @@ public class GuiDialogHut : GuiDialog
             y += PotteryRowHeight;
         }
         AddPager(composer, pages, y + 6);
+    }
+
+    /// <summary>
+    /// The Recruits tab of a Tavern: today's people looking for work, what each asks in rusty gears,
+    /// and a Hire button. The viewer pays, from what they carry and then from the Tavern's storage.
+    /// </summary>
+    void ComposeRecruits(GuiComposer composer)
+    {
+        if (snapshot.Building.Level < 1)
+        {
+            composer.AddStaticText(Lang.Get("createacolony:tavern-closed"), CairoFont.WhiteSmallText(), ElementBounds.Fixed(0, 30, Width, 50));
+            return;
+        }
+
+        ItemStack? currency = null;
+        if (snapshot.Currency != null)
+        {
+            currency = new ItemStack(snapshot.Currency);
+            if (!currency.ResolveBlockOrItem(capi.World)) currency = null;
+        }
+        string have = snapshot.Creative ? Lang.Get("createacolony:recruits-creative") : Lang.Get("createacolony:recruits-have", snapshot.Gears);
+        var header = new List<RichTextComponentBase>();
+        if (currency != null) header.Add(new ItemstackTextComponent(capi, currency, 32, 5));
+        header.Add(new RichTextComponent(capi, have, CairoFont.WhiteSmallText()) { VerticalAlign = EnumVerticalAlign.Middle });
+        composer.AddRichtext(header.ToArray(), ElementBounds.Fixed(0, 30, Width, 36));
+        composer.AddStaticText(Lang.Get("createacolony:recruits-hint"), CairoFont.WhiteDetailText(), ElementBounds.Fixed(0, 70, Width, 40));
+
+        if (snapshot.Recruits.Count == 0)
+        {
+            composer.AddStaticText(Lang.Get("createacolony:recruits-none"), CairoFont.WhiteSmallText(), ElementBounds.Fixed(0, 115, Width, 25));
+            return;
+        }
+
+        bool canHire = ViewerRole >= ColonyRole.Member;
+        double y = 115;
+        foreach (var r in snapshot.Recruits)
+        {
+            bool afford = snapshot.Creative || snapshot.Gears >= r.Cost;
+            var costFont = CairoFont.WhiteDetailText().WithColor(afford ? new[] { 0.55, 0.85, 0.45, 1.0 } : new[] { 1.0, 0.65, 0.3, 1.0 });
+            composer.AddRichtext(new RichTextComponentBase[]
+            {
+                new RichTextComponent(capi, r.Name + "\n", CairoFont.WhiteSmallText()),
+                new RichTextComponent(capi, Lang.Get("createacolony:recruit-line", Lang.Get("createacolony:sex-" + r.Sex), r.Cost), costFont)
+            }, ElementBounds.Fixed(0, y, 400, RecruitRowHeight));
+            if (canHire)
+            {
+                string name = r.Name;
+                composer.AddSmallButton(Lang.Get("createacolony:recruit-hire"), () => Hire(name), ElementBounds.Fixed(420, y + 6, 120, 28));
+            }
+            y += RecruitRowHeight;
+        }
+    }
+
+    bool Hire(string name)
+    {
+        network.SendAction(new ColonyActionPacket
+            { ColonyId = snapshot.ColonyId, Action = ColonyAction.HireRecruit, BuildingId = snapshot.Building.BuildingId, Text = name });
+        return true;
     }
 
     bool SetKeep(string key, int keep)

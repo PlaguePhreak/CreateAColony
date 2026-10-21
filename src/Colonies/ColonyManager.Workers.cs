@@ -31,6 +31,9 @@ public partial class ColonyManager
     /// <summary>Huts a settler works from, whose chests are never warehouse storage.</summary>
     public static bool IsWorkerHut(string type) => type is BuildingTypes.Builder or BuildingTypes.Potter || GatherHuts.ContainsKey(type);
 
+    /// <summary>Huts with their own storage (and a Storage button): the worker huts and the Tavern, where gears can be left for hiring.</summary>
+    public static bool HasOwnStorage(string type) => IsWorkerHut(type) || type == BuildingTypes.Tavern;
+
     /// <summary>What each forester's or farmer's hut is waiting on, for the hut window. Not saved: workers refresh it.</summary>
     public readonly Dictionary<int, string> WorkStatus = new();
 

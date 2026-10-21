@@ -174,6 +174,7 @@ public partial class ColonyManager : ModSystem
         {
             if (sapi.World.BlockAccessor.GetChunkAtBlockPos(colony.TownHallPos) == null) continue;
             EnsureCoreBuildings(colony);
+            TickWanderers(colony, now);
 
             foreach (var citizen in colony.Citizens.ToList())
             {
@@ -199,6 +200,12 @@ public partial class ColonyManager : ModSystem
 
                 if (citizen.LastSeenTotalDays > 0 && now - citizen.LastSeenTotalDays > Config.RespawnMissingAfterDays)
                 {
+                    // A lost visitor has simply moved on.
+                    if (citizen.Visitor)
+                    {
+                        ForgetCitizen(colony, citizen);
+                        continue;
+                    }
                     Mod.Logger.Notification("Settler {0} of {1} was missing, respawning at the Town Hall", citizen.Name, colony.Name);
                     SpawnEntityFor(colony, citizen);
                 }
@@ -305,10 +312,13 @@ public partial class ColonyManager : ModSystem
         for (int i = 0; i < count; i++) SpawnSettler(colony, null);
     }
 
-    /// <summary>Creates a citizen record and its entity beside the Town Hall. Returns null if the entity type is missing.</summary>
-    public CitizenRecord? SpawnSettler(Colony colony, string? name)
+    /// <summary>
+    /// Creates a citizen record and its entity, beside the Town Hall or at the given spot. A visitor is
+    /// a wanderer asking to join. Returns null if the entity type is missing.
+    /// </summary>
+    public CitizenRecord? SpawnSettler(Colony colony, string? name, string? sex = null, Vec3d? at = null, bool visitor = false)
     {
-        string sex = sapi.World.Rand.Next(2) == 0 ? "male" : "female";
+        sex ??= RandomSex();
         if (sapi.World.GetEntityType(SettlerCode(sex)) == null)
         {
             Mod.Logger.Error("Entity type {0} not found", SettlerCode(sex));
@@ -318,17 +328,19 @@ public partial class ColonyManager : ModSystem
         var record = new CitizenRecord
         {
             CitizenId = colony.NextCitizenId++,
-            Name = name ?? Lang.Get("createacolony:settler-default-name", colony.NextCitizenId - 1),
+            Name = name ?? RandomName(colony, sex),
             Sex = sex,
-            Saturation = Config.SaturationMax
+            Saturation = Config.SaturationMax,
+            Visitor = visitor,
+            VisitorUntilTotalDays = visitor ? sapi.World.Calendar.TotalDays + Config.WandererWaitDays : 0
         };
         colony.Citizens.Add(record);
-        SpawnEntityFor(colony, record);
+        SpawnEntityFor(colony, record, at);
         return record;
     }
 
-    /// <summary>Spawns (or respawns) the entity for an existing citizen record next to the Town Hall.</summary>
-    public void SpawnEntityFor(Colony colony, CitizenRecord record)
+    /// <summary>Spawns (or respawns) the entity for an existing citizen record, next to the Town Hall unless a spot is given.</summary>
+    public void SpawnEntityFor(Colony colony, CitizenRecord record, Vec3d? at = null)
     {
         var type = sapi.World.GetEntityType(SettlerCode(record.Sex));
         if (type == null) return;
@@ -337,16 +349,20 @@ public partial class ColonyManager : ModSystem
         entity.ColonyId = colony.ColonyId;
         entity.CitizenId = record.CitizenId;
 
-        // Spread settlers around the Town Hall so they do not spawn inside each other.
-        double angle = sapi.World.Rand.NextDouble() * GameMath.TWOPI;
-        var spawn = colony.TownHallPos.ToVec3d().Add(0.5 + Math.Cos(angle) * 2, 1, 0.5 + Math.Sin(angle) * 2);
-        entity.Pos.SetPos(spawn);
+        entity.Pos.SetPos(at ?? Beside(colony.TownHallPos));
         sapi.World.SpawnEntity(entity);
         entity.GetBehavior<EntityBehaviorNameTag>()?.SetName(record.Name);
 
         record.EntityId = entity.EntityId;
         record.LastSeenTotalDays = sapi.World.Calendar.TotalDays;
         SaveColony(colony);
+    }
+
+    /// <summary>A random spot two blocks from a building's block, so settlers do not spawn inside each other.</summary>
+    public Vec3d Beside(BlockPos pos)
+    {
+        double angle = sapi.World.Rand.NextDouble() * GameMath.TWOPI;
+        return pos.ToVec3d().Add(0.5 + Math.Cos(angle) * 2, 1, 0.5 + Math.Sin(angle) * 2);
     }
 
     static AssetLocation SettlerCode(string sex) => new AssetLocation(CreateAColonyModSystem.ModId, "settler-" + sex);

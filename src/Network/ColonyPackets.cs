@@ -20,6 +20,9 @@ public class CitizenView
     [ProtoMember(4)] public string State = "";
     [ProtoMember(5)] public int FoodPercent;
     [ProtoMember(6)] public bool HasBed;
+    /// <summary>A wanderer asking to join, and how many in-game hours it still waits.</summary>
+    [ProtoMember(7)] public bool Visitor;
+    [ProtoMember(8)] public int VisitorHoursLeft;
 }
 
 [ProtoContract]
@@ -119,6 +122,15 @@ public class HutSnapshot
     [ProtoMember(21)] public bool IsPotterHut;
     [ProtoMember(22)] public List<PotteryView> Pottery = new();
     [ProtoMember(23)] public List<int> KeepChoices = new();
+    /// <summary>A Tavern, whose window has a Recruits tab.</summary>
+    [ProtoMember(24)] public bool IsTavern;
+    [ProtoMember(25)] public List<CreateAColony.Colonies.RecruitOffer> Recruits = new();
+    /// <summary>Rusty gears the viewer carries plus those in the Tavern's storage.</summary>
+    [ProtoMember(26)] public int Gears;
+    /// <summary>One of the currency item, serialized, for its icon.</summary>
+    [ProtoMember(27)] public byte[]? Currency;
+    /// <summary>The viewer is in creative mode, where hiring is free.</summary>
+    [ProtoMember(28)] public bool Creative;
 }
 
 /// <summary>One line of a Potter's Hut's Pottery tab: a kind of pottery, how many to keep and how many there are.</summary>
@@ -163,6 +175,12 @@ public class ColonySnapshot
     [ProtoMember(14)] public List<BuildingView> Buildings = new();
     /// <summary>A timed refresh for construction progress; the window only redraws it on the Buildings tab.</summary>
     [ProtoMember(15)] public bool Periodic;
+    /// <summary>Killed settlers are gone for good (else only knocked out); the owner switches it.</summary>
+    [ProtoMember(16)] public bool Permadeath;
+    [ProtoMember(17)] public int FreeBeds;
+    /// <summary>About how many days pass between wanderers; 0 when wanderers are off.</summary>
+    [ProtoMember(18)] public double WandererDays;
+    [ProtoMember(19)] public bool WanderersNeedFreeBed;
 }
 
 public enum ColonyAction
@@ -208,7 +226,15 @@ public enum ColonyAction
     /// <summary>Back to the building list for the planned spot.</summary>
     WandChange = 24,
     /// <summary>Text "kind|amount": how many of a kind of pottery the Potter's Hut with BuildingId keeps in stock.</summary>
-    SetPotteryKeep = 25
+    SetPotteryKeep = 25,
+    /// <summary>Lets the visitor with CitizenId join the colony.</summary>
+    WelcomeVisitor = 26,
+    /// <summary>Sends the visitor with CitizenId away.</summary>
+    TurnAwayVisitor = 27,
+    /// <summary>Text "1" turns permadeath on for the colony, "0" off. Owner only.</summary>
+    SetPermadeath = 28,
+    /// <summary>Hires the recruit named Text at the Tavern with BuildingId.</summary>
+    HireRecruit = 29
 }
 
 /// <summary>The Builder's Wand building list: each building type with how many of its blocks the player carries.</summary>

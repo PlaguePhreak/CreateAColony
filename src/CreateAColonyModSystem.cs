@@ -64,6 +64,7 @@ public class CreateAColonyModSystem : ModSystem
         AiTaskRegistry.Register<AiTaskSettlerFarmer>("settlerfarmer");
         AiTaskRegistry.Register<AiTaskSettlerGuard>("settlerguard");
         AiTaskRegistry.Register<AiTaskSettlerPotter>("settlerpotter");
+        AiTaskRegistry.Register<AiTaskSettlerVisitor>("settlervisitor");
     }
 
     public override void StartServerSide(ICoreServerAPI api)
@@ -88,6 +89,11 @@ public class CreateAColonyModSystem : ModSystem
                 .RequiresPrivilege(Privilege.controlserver)
                 .WithArgs(parsers.OptionalWord("name"))
                 .HandleWith(OnRecruit)
+            .EndSubCommand()
+            .BeginSubCommand("wanderer")
+                .WithDescription("Have a wanderer come to your colony now and ask to join (for testing)")
+                .RequiresPrivilege(Privilege.controlserver)
+                .HandleWith(OnWanderer)
             .EndSubCommand()
             .BeginSubCommand("invite")
                 .WithDescription("Invite an online player to join your colony")
@@ -152,7 +158,7 @@ public class CreateAColonyModSystem : ModSystem
         var manager = sapi!.ModLoader.GetModSystem<ColonyManager>();
         var colony = manager.GetAt(args.Caller.Entity.Pos.AsBlockPos);
         if (colony == null) return TextCommandResult.Success(Lang.Get("createacolony:not-in-colony"));
-        return TextCommandResult.Success(Lang.Get("createacolony:summary", colony.Name, colony.Level, colony.Citizens.Count(c => c.Alive), colony.Members.Count));
+        return TextCommandResult.Success(Lang.Get("createacolony:summary", colony.Name, colony.Level, colony.Citizens.Count(c => c.Alive && !c.Visitor), colony.Members.Count));
     }
 
     TextCommandResult OnCitizens(TextCommandCallingArgs args)
@@ -166,6 +172,7 @@ public class CreateAColonyModSystem : ModSystem
         {
             string state = !c.Alive ? Lang.Get("createacolony:state-dead")
                 : c.IsDowned ? Lang.Get("createacolony:state-downed")
+                : c.Visitor ? Lang.Get("createacolony:state-visitor")
                 : c.Saturation >= 0 && c.Saturation < manager.Config.SaturationMax * manager.Config.EatBelowFraction ? Lang.Get("createacolony:state-hungry")
                 : Lang.Get("createacolony:state-ok");
             int food = c.Saturation < 0 ? 100 : (int)(100 * c.Saturation / manager.Config.SaturationMax);
@@ -186,6 +193,16 @@ public class CreateAColonyModSystem : ModSystem
         if (record == null) return TextCommandResult.Error("Settler entity type not found, see server log");
 
         return TextCommandResult.Success(Lang.Get("createacolony:recruited", record.Name));
+    }
+
+    TextCommandResult OnWanderer(TextCommandCallingArgs args)
+    {
+        var player = (IServerPlayer)args.Caller.Player;
+        var manager = sapi!.ModLoader.GetModSystem<ColonyManager>();
+        var colony = manager.GetOwnedBy(player.PlayerUID);
+        if (colony == null) return TextCommandResult.Error(Lang.Get("createacolony:no-colony"));
+        var record = manager.SpawnWanderer(colony);
+        return record == null ? TextCommandResult.Error(Lang.Get("createacolony:wanderer-no-spot")) : TextCommandResult.Success();
     }
 
     TextCommandResult OnInvite(TextCommandCallingArgs args)

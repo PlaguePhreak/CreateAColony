@@ -35,7 +35,9 @@ public class BlockColonyHut : Block, IWandPlaceable
         manager.AddBuilding(colony, BuildingType, pos, rotation);
         if (world.BlockAccessor.GetBlockEntity(pos) is BlockEntityColonyHut hut) hut.SetRotation(rotation);
         string name = Lang.GetL(player.LanguageCode, "createacolony:building-" + BuildingType);
-        string message = BuildingType == BuildingTypes.Potter
+        string message = BuildingType == BuildingTypes.Tavern
+            ? Lang.GetL(player.LanguageCode, "createacolony:hut-placed-tavern", name)
+            : BuildingType == BuildingTypes.Potter
             ? Lang.GetL(player.LanguageCode, "createacolony:hut-placed-potter", name)
             : BuildingType is BuildingTypes.Forester or BuildingTypes.Farmer
             ? Lang.GetL(player.LanguageCode, "createacolony:hut-placed-worker", name, Lang.GetL(player.LanguageCode, "createacolony:job-" + BuildingType))

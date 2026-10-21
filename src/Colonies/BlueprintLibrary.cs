@@ -161,4 +161,5 @@ public static class BuildingTypes
     public const string Forester = "forester";
     public const string Farmer = "farmer";
     public const string Potter = "potter";
+    public const string Tavern = "tavern";
 }
