@@ -246,6 +246,16 @@
 			]
 		},
 		{
+			"Match": "^minecraft:(\\w+_)?glass_pane$",
+			"Blocks": [
+				"game:glasspane-leaded-oak-{paneaxis}",
+				"game:glasspane*leaded*oak*{paneaxis}*",
+				"game:glasspane*oak*{paneaxis}*",
+				"game:glasspane*{paneaxis}*",
+				"game:glasspane*"
+			]
+		},
+		{
 			"Match": "^minecraft:(\\w+_)?glass$",
 			"Blocks": [
 				"game:glass-plain",

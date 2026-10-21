@@ -226,6 +226,8 @@ public class MineColoniesImporter
         vars["stairhalf"] = props.GetValueOrDefault("half") == "top" ? "down" : "up";
         vars["slabhalf"] = props.GetValueOrDefault("type") == "top" ? "up" : "down";
         vars["facing"] = props.GetValueOrDefault("facing", "north");
+        // Panes and bars connect sideways in Minecraft; in Vintage Story they run north-south or east-west.
+        vars["paneaxis"] = props.GetValueOrDefault("east") == "true" || props.GetValueOrDefault("west") == "true" ? "ew" : "ns";
         return vars;
     }
 
