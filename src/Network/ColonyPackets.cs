@@ -184,7 +184,21 @@ public enum ColonyAction
     /// <summary>Text "forward", "back", "left" or "right" moves the building one block that way, as the player faces.</summary>
     PlacementNudge = 20,
     /// <summary>Opens the placement window again for the outline still showing (the wand used in the air).</summary>
-    ReopenPlacement = 21
+    ReopenPlacement = 21,
+    /// <summary>The wand used on the ground with nothing planned: Text "x,y,z" is the spot; opens the building list.</summary>
+    WandStart = 22,
+    /// <summary>Text is the building type picked from the list; its outline appears at the spot.</summary>
+    WandChoose = 23,
+    /// <summary>Back to the building list for the planned spot.</summary>
+    WandChange = 24
+}
+
+/// <summary>The Builder's Wand building list: each building type with how many of its blocks the player carries.</summary>
+[ProtoContract]
+public class WandChooserSnapshot
+{
+    [ProtoMember(1)] public List<string> Types = new();
+    [ProtoMember(2)] public List<int> Have = new();
 }
 
 /// <summary>What the placement window shows for one building while its outline is on screen.</summary>
@@ -207,6 +221,10 @@ public class PlacementSnapshot
     [ProtoMember(11)] public bool OpenWindow;
     [ProtoMember(12)] public int XOffset;
     [ProtoMember(13)] public int ZOffset;
+    /// <summary>A building planned with the wand and not placed yet (BuildingId is 0).</summary>
+    [ProtoMember(14)] public bool Planned;
+    /// <summary>How many of the building's blocks the player carries.</summary>
+    [ProtoMember(15)] public int Have;
 }
 
 /// <summary>A change requested from the Town Hall window. The server checks permissions before applying it.</summary>

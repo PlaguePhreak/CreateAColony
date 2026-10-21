@@ -9,9 +9,10 @@ using Vintagestory.API.Server;
 namespace CreateAColony.Items;
 
 /// <summary>
-/// The Builder's Wand: right-click a hut, the Town Hall or the Warehouse with it to see the outline
-/// of the building's highest level and open the placement window, where the building can be turned
-/// and raised or lowered until it is built.
+/// The Builder's Wand. Right-click the ground to pick a building and see its outline there, then turn
+/// and nudge it and press Accept to put its block down from your inventory. Right-click an existing
+/// hut, the Town Hall or the Warehouse to see its outline and move it until it is built. With an
+/// outline showing, right-clicking anywhere brings its window back.
 /// </summary>
 public class ItemBuildersWand : Item
 {
@@ -48,10 +49,12 @@ public class ItemBuildersWand : Item
             TryUse(api.World, player, blockSel.Position);
             return;
         }
+        if (api is not ICoreClientAPI capi) return;
+        var network = capi.ModLoader.GetModSystem<ColonyNetwork>();
         // In the air or at any other block: back to the window of the outline still showing.
-        if (api is ICoreClientAPI capi && !capi.ModLoader.GetModSystem<ColonyNetwork>().ReopenPlacement())
-        {
-            capi.TriggerIngameError(this, "createacolony-wand", Lang.Get("createacolony:wand-not-building"));
-        }
+        if (network.ReopenPlacement()) return;
+        // Nothing planned yet: plan a building on the spot next to the block clicked.
+        if (blockSel != null) network.StartWandPlan(blockSel.Position.AddCopy(blockSel.Face));
+        else capi.TriggerIngameError(this, "createacolony-wand", Lang.Get("createacolony:wand-aim-ground"));
     }
 }

@@ -223,7 +223,7 @@ public partial class ColonyManager : ModSystem
 
     public Colony? GetOwnedBy(string playerUid) => colonies.Values.FirstOrDefault(c => c.OwnerUid == playerUid);
 
-    public FoundColonyResult TryFoundColony(IServerPlayer founder, BlockPos townHallPos, string name, out Colony? colony)
+    public FoundColonyResult TryFoundColony(IServerPlayer founder, BlockPos townHallPos, string name, out Colony? colony, int? rotation = null)
     {
         colony = null;
         if (GetOwnedBy(founder.PlayerUID) != null) return FoundColonyResult.AlreadyOwnsColony;
@@ -248,7 +248,7 @@ public partial class ColonyManager : ModSystem
         sapi.World.Claims.Add(claim);
 
         colonies[colony.ColonyId] = colony;
-        AddBuilding(colony, BuildingTypes.TownHall, townHallPos, RotationFor(founder));
+        AddBuilding(colony, BuildingTypes.TownHall, townHallPos, rotation ?? RotationFor(founder));
         SaveColony(colony);
         return FoundColonyResult.Ok;
     }

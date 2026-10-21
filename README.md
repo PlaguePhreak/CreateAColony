@@ -10,7 +10,7 @@ land claim, recruit settlers that persist with the save. Compiles cleanly agains
    game's `Mods` folder.
 
 ## Try it
-- Craft a **Town Hall** (5 planks of any wood in a U shape: top row full, middle row left and right) or take it from the creative inventory, then place it: founds the colony, claims a 49x49 area, and 3 to 4 settlers arrive.
+- Craft a **Town Hall** (5 planks of any wood in a U shape: top row full, middle row left and right) or take it from the creative inventory, and a **Builder's Wand** (flint on a stick). Right-click the ground with the wand, pick Town Hall and press Accept: this founds the colony, claims a 49x49 area, and 3 to 4 settlers arrive.
 - `/colony info` inside the claim shows the colony.
 - `/colony invite <player>`, then that player types `/colony join`. `/colony leave` leaves the colony you stand in.
 - `/colony recruit [name]` (needs controlserver) spawns one more settler, for testing.
@@ -85,16 +85,21 @@ Town Hall. Each works from the free hut of its kind nearest the start of the lis
   keep their tool and a stock of seeds (`ForesterSeedReserve`, `FarmerSeedReserve`); seeds over that
   go to the warehouse too. Missing tools and seeds are requested from the warehouse.
 
-### Placement preview and the Builder's Wand
+### Placing buildings with the Builder's Wand
 
-Placing a hut shows the outline of its building's highest level where it would stand: blue where
-the spot is free, red where something is in the way that the builder will clear. A window beside it
-turns the building, nudges it forward, back, left or right (as you look, up to 16 blocks) and up or
-down (up to 8), orders it built (**Build here**) or gives the hut back (**Not here**). Esc closes the
-window but leaves the outline up so you can walk around it; right-clicking with the **Builder's
-Wand** (flint on a stick), on a block or in the air, brings the window back. The wand also opens the
-outline and window when you right-click a hut, the Town Hall or the Warehouse. Buildings can be
-turned and moved until their first level is ordered.
+As in MineColonies, the Town Hall, huts and the Warehouse are not placed by hand (that just says to
+use the wand). Craft a **Builder's Wand** (flint on a stick), keep the building's block in your
+inventory, and right-click the ground with the wand. Pick the building from the list and the outline
+of its highest level appears there: blue where free, red where something is in the way that the
+builder will clear, yellow where the building's block goes. The window beside it turns the building
+and nudges it forward, back, left, right, up or down (as you look). Esc closes the window but leaves
+the outline up so you can walk around it; right-clicking with the wand, on a block or in the air,
+brings the window back. **Accept** takes one of the building's blocks from your inventory and puts it
+down; without one it tells you that you need one. **Change building** goes back to the list.
+
+Right-clicking an existing hut, the Town Hall or the Warehouse with the wand shows its outline and
+lets you turn and move the building (up to 8 blocks up or down, 16 to the sides) until its first
+level is ordered; **Build here** orders it and **Not here** gives a hut back.
 
 ### Work area and guards
 

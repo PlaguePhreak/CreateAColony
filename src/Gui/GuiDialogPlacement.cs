@@ -55,7 +55,10 @@ public class GuiDialogPlacement : GuiDialog
             : Lang.Get("createacolony:placement-shown", snapshot.ShownLevel, snapshot.Blocked, snapshot.Blocks);
         composer.AddStaticText(shown, CairoFont.WhiteDetailText(), ElementBounds.Fixed(0, y, Width, 60));
         y += 64;
-        composer.AddStaticText(Lang.Get("createacolony:placement-state", snapshot.Rotation, Signed(snapshot.YOffset), Signed(snapshot.XOffset), Signed(snapshot.ZOffset)),
+        string state = snapshot.Planned
+            ? Lang.Get("createacolony:placement-state-planned", snapshot.Rotation)
+            : Lang.Get("createacolony:placement-state", snapshot.Rotation, Signed(snapshot.YOffset), Signed(snapshot.XOffset), Signed(snapshot.ZOffset));
+        composer.AddStaticText(state,
             CairoFont.WhiteSmallText(), ElementBounds.Fixed(0, y, Width, 25));
         y += 32;
 
@@ -76,18 +79,33 @@ public class GuiDialogPlacement : GuiDialog
             y += 44;
         }
 
-        if (snapshot.CanOrder)
+        if (snapshot.Planned)
         {
-            composer.AddSmallButton(Lang.Get("createacolony:placement-confirm"), () => Finish(ColonyAction.PlacementConfirm), ElementBounds.Fixed(0, y, 150, 28));
+            composer.AddStaticText(snapshot.Have > 0 ? Lang.Get("createacolony:wand-have", snapshot.Have, name) : Lang.Get("createacolony:wand-need-block", name),
+                CairoFont.WhiteDetailText(), ElementBounds.Fixed(0, y, Width, 40));
+            y += 40;
+            composer
+                .AddSmallButton(Lang.Get("createacolony:placement-accept"), () => Finish(ColonyAction.PlacementConfirm), ElementBounds.Fixed(0, y, 150, 28))
+                .AddSmallButton(Lang.Get("createacolony:placement-discard"), () => Finish(ColonyAction.PlacementCancel), ElementBounds.Fixed(160, y, 150, 28));
+            y += 34;
+            composer.AddSmallButton(Lang.Get("createacolony:placement-change"), () => Finish(ColonyAction.WandChange), ElementBounds.Fixed(0, y, 150, 28));
+            y += 36;
         }
-        if (snapshot.CanAdjust && snapshot.Type is not ("townhall" or "warehouse"))
+        else
         {
-            composer.AddSmallButton(Lang.Get("createacolony:placement-cancel"), () => Finish(ColonyAction.PlacementCancel), ElementBounds.Fixed(160, y, 150, 28));
+            if (snapshot.CanOrder)
+            {
+                composer.AddSmallButton(Lang.Get("createacolony:placement-confirm"), () => Finish(ColonyAction.PlacementConfirm), ElementBounds.Fixed(0, y, 150, 28));
+            }
+            if (snapshot.CanAdjust && snapshot.Type is not ("townhall" or "warehouse"))
+            {
+                composer.AddSmallButton(Lang.Get("createacolony:placement-cancel"), () => Finish(ColonyAction.PlacementCancel), ElementBounds.Fixed(160, y, 150, 28));
+            }
+            y += 34;
+            composer.AddSmallButton(Lang.Get("createacolony:placement-hide"), () => Finish(ColonyAction.PlacementClose), ElementBounds.Fixed(0, y, 150, 28));
+            y += 36;
         }
-        y += 34;
-        composer.AddSmallButton(Lang.Get("createacolony:placement-hide"), () => Finish(ColonyAction.PlacementClose), ElementBounds.Fixed(0, y, 150, 28));
-        y += 36;
-        composer.AddStaticText(Lang.Get("createacolony:placement-hint"), CairoFont.WhiteDetailText(), ElementBounds.Fixed(0, y, Width, 80));
+        composer.AddStaticText(Lang.Get(snapshot.Planned ? "createacolony:placement-hint-planned" : "createacolony:placement-hint"), CairoFont.WhiteDetailText(), ElementBounds.Fixed(0, y, Width, 80));
 
         SingleComposer = composer.EndChildElements().Compose();
     }
@@ -110,7 +128,7 @@ public class GuiDialogPlacement : GuiDialog
     bool Finish(ColonyAction action)
     {
         Send(action, "");
-        network.OutlineCleared();
+        if (action != ColonyAction.WandChange) network.OutlineCleared();
         TryClose();
         return true;
     }

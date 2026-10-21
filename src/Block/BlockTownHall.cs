@@ -9,45 +9,38 @@ using Vintagestory.API.Server;
 namespace CreateAColony.Blocks;
 
 /// <summary>
-/// Placing a Town Hall founds a colony and creates its land claim. Placement is refused
-/// (and the item kept) if the player already owns a colony or the area overlaps another claim.
+/// Placing a Town Hall (with the Builder's Wand) founds a colony and creates its land claim. Placement
+/// is refused, and the item kept, if the player already owns a colony or the area overlaps another claim.
 /// </summary>
-public class BlockTownHall : Block
+public class BlockTownHall : Block, IWandPlaceable
 {
+    /// <summary>The Town Hall is put down with the Builder's Wand, which shows the building first.</summary>
     public override bool DoPlaceBlock(IWorldAccessor world, IPlayer byPlayer, BlockSelection blockSel, ItemStack byItemStack)
     {
-        if (world.Side == EnumAppSide.Server && byPlayer is IServerPlayer player)
+        WandOnly.Tell(world, byPlayer);
+        return false;
+    }
+
+    public string? PlaceByWand(IServerPlayer player, BlockPos pos, int rotation)
+    {
+        var world = player.Entity.World;
+        if (!world.BlockAccessor.GetBlock(pos).IsReplacableBy(this)) return "createacolony:wand-spot-taken";
+        var manager = world.Api.ModLoader.GetModSystem<ColonyManager>();
+        string name = Lang.GetL(player.LanguageCode, "createacolony:default-colony-name", player.PlayerName);
+        var result = manager.TryFoundColony(player, pos, name, out var colony, rotation);
+        if (result != FoundColonyResult.Ok) return "createacolony:found-error-" + result.ToString().ToLowerInvariant();
+
+        world.BlockAccessor.SetBlock(BlockId, pos);
+        if (world.BlockAccessor.GetBlockEntity(pos) is BlockEntityTownHall be)
         {
-            var manager = world.Api.ModLoader.GetModSystem<ColonyManager>();
-            string name = Lang.Get("createacolony:default-colony-name", player.PlayerName);
-            var result = manager.TryFoundColony(player, blockSel.Position, name, out var colony);
-            if (result != FoundColonyResult.Ok)
-            {
-                player.SendIngameError("createacolony-" + result.ToString().ToLowerInvariant(),
-                    Lang.Get("createacolony:found-error-" + result.ToString().ToLowerInvariant()));
-                return false;
-            }
-
-            if (!base.DoPlaceBlock(world, byPlayer, blockSel, byItemStack))
-            {
-                manager.Disband(colony!);
-                return false;
-            }
-
-            if (world.BlockAccessor.GetBlockEntity(blockSel.Position) is BlockEntityTownHall be)
-            {
-                be.ColonyId = colony!.ColonyId;
-                be.Rotation = manager.GetBuilding(colony, blockSel.Position)?.Rotation ?? ColonyManager.RotationFor(player);
-                be.MarkDirty(true);
-            }
-            player.SendMessage(0, Lang.Get("createacolony:founded", colony!.Name), EnumChatType.Notification);
-
-            manager.SpawnStartingSettlers(colony);
-            player.SendMessage(0, Lang.Get("createacolony:settlers-arrived", colony.Citizens.Count, colony.Name), EnumChatType.Notification);
-            return true;
+            be.ColonyId = colony!.ColonyId;
+            be.Rotation = rotation;
+            be.MarkDirty(true);
         }
-
-        return base.DoPlaceBlock(world, byPlayer, blockSel, byItemStack);
+        player.SendMessage(0, Lang.GetL(player.LanguageCode, "createacolony:founded", colony!.Name), EnumChatType.Notification);
+        manager.SpawnStartingSettlers(colony);
+        player.SendMessage(0, Lang.GetL(player.LanguageCode, "createacolony:settlers-arrived", colony.Citizens.Count, colony.Name), EnumChatType.Notification);
+        return null;
     }
 
     public override bool OnBlockInteractStart(IWorldAccessor world, IPlayer byPlayer, BlockSelection blockSel)
