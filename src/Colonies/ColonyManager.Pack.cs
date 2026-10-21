@@ -50,6 +50,9 @@ public partial class ColonyManager
 
     public bool PackEmpty(CitizenRecord citizen) => citizen.Pack.Count == 0 && citizen.CarriedStack == null;
 
+    /// <summary>True when every slot holds something, so the next new kind of item has nowhere to go.</summary>
+    public bool PackFull(CitizenRecord citizen) => PackItems(citizen).Count >= PackSlots(citizen);
+
     public int PackCount(CitizenRecord citizen, ItemMatch match) => PackItems(citizen).Where(match).Sum(s => s.StackSize);
 
     /// <summary>Stores the inventory back after stacks were changed in place; empty stacks are dropped.</summary>

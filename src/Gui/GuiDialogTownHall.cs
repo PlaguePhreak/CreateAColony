@@ -127,6 +127,11 @@ public class GuiDialogTownHall : GuiDialog
                 string label = Lang.Get(b.Level == 0 ? "createacolony:build-start" : "createacolony:build-upgrade", b.Level + 1);
                 composer.AddSmallButton(label, () => Send(ColonyAction.Build, id), ElementBounds.Fixed(410, y, 120, 28));
             }
+            if (b.Level == 0 && b.TargetLevel == 0)
+            {
+                // Like a hut, the Town Hall can be turned until its first level is built.
+                composer.AddSmallButton(Lang.Get("createacolony:build-rotate", b.Rotation), () => Send(ColonyAction.Rotate, id), ElementBounds.Fixed(0, y + 32, 230, 28));
+            }
         }
         if (b.TargetLevel > 0)
         {

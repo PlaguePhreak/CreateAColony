@@ -22,8 +22,25 @@ public abstract class SettlerTaskBase : AiTaskBase
     protected readonly float moveSpeed;
     protected readonly ColonyManager? manager;
 
+    /// <summary>Further than this, a settler walks in stretches: the pathfinder only plans so far ahead.</summary>
+    const double LegLength = 28;
+    /// <summary>
+    /// Stretches tried in turn when one cannot be walked: (length, turn in degrees from straight at the goal).
+    /// Shorter and turned ones get around water, cliffs and out of holes.
+    /// </summary>
+    static readonly (double Length, double Turn)[] Legs =
+    {
+        (28, 0), (28, 40), (28, -40), (16, 0), (16, 60), (16, -60), (28, 90), (28, -90), (10, 120), (10, -120), (10, 180)
+    };
+
+    Vec3d? finalGoal;
+    float finalRange;
+    System.Func<Vec3d>? refreshGoal;
     Vec3d? goal;
     float goalRange;
+    bool onLeg;
+    bool legDone;
+    int legTry;
     bool arrived;
     bool failed;
     int attempts;
@@ -41,32 +58,98 @@ public abstract class SettlerTaskBase : AiTaskBase
 
     protected CitizenRecord? Citizen => entity is EntitySettler s ? manager?.FindCitizen(s.ColonyId, s.CitizenId) : null;
 
-    /// <summary>Starts walking to a position. Check Arrived / PathFailed from ContinueExecute and call KeepWalking.</summary>
-    protected void WalkTo(Vec3d target, float range)
+    /// <summary>
+    /// Starts walking to a position. Check Arrived / PathFailed from ContinueExecute and call KeepWalking.
+    /// A far goal is walked in stretches; refresh, if given, works the goal out again for the last
+    /// stretch, once the land there is loaded.
+    /// </summary>
+    protected void WalkTo(Vec3d target, float range, System.Func<Vec3d>? refresh = null)
     {
-        goal = target;
-        goalRange = range;
+        finalGoal = target;
+        finalRange = range;
+        refreshGoal = refresh;
         arrived = false;
-        failed = false;
-        attempts = 0;
+        legTry = 0;
         // StopWalking ends the walk animation, so every new leg starts it again; otherwise settlers glide.
         if (animMeta != null) entity.AnimManager.StartAnimation(animMeta);
-        StartPath();
+        StartLeg();
     }
 
-    protected bool Arrived => arrived || (goal != null && entity.Pos.SquareDistanceTo(goal) <= (goalRange + 0.6f) * (goalRange + 0.6f));
+    /// <summary>Plans the next stretch: straight to the goal when it is near, else a point on the way there.</summary>
+    void StartLeg()
+    {
+        attempts = 0;
+        failed = false;
+        legDone = false;
+        var here = entity.Pos.XYZ;
+        double dx = finalGoal!.X - here.X, dz = finalGoal.Z - here.Z;
+        onLeg = System.Math.Sqrt(dx * dx + dz * dz) > LegLength + 4;
+        if (!onLeg)
+        {
+            if (refreshGoal != null) finalGoal = refreshGoal();
+            goal = finalGoal;
+            goalRange = finalRange;
+            StartPath();
+            return;
+        }
+
+        // The first stretch, from this one on, that ends somewhere the settler can stand.
+        for (; legTry < Legs.Length; legTry++)
+        {
+            var (length, turn) = Legs[legTry];
+            double angle = System.Math.Atan2(dz, dx) + turn * GameMath.DEG2RAD;
+            if (StandingSpot(here.X + System.Math.Cos(angle) * length, here.Z + System.Math.Sin(angle) * length) is not { } spot) continue;
+            goal = spot;
+            goalRange = 2;
+            StartPath();
+            return;
+        }
+        failed = true;
+        attempts = MaxPathAttempts;
+    }
+
+    /// <summary>A free spot with floor under it on the surface near a point, or null where the land is not loaded or there is none.</summary>
+    Vec3d? StandingSpot(double x, double z)
+    {
+        if (manager == null) return null;
+        var ba = entity.World.BlockAccessor;
+        var column = new BlockPos((int)System.Math.Floor(x), 0, (int)System.Math.Floor(z));
+        if (ba.GetChunkAtBlockPos(column.X, 1, column.Z) == null) return null;
+        column.Y = ba.GetTerrainMapheightAt(column) + 1;
+        return manager.FreeSpotNear(entity, column, 2);
+    }
+
+    protected bool Arrived => arrived || (finalGoal != null && entity.Pos.SquareDistanceTo(finalGoal) <= (finalRange + 0.6f) * (finalRange + 0.6f));
 
     /// <summary>True once the target could not be reached after several attempts.</summary>
-    protected bool PathFailed => failed && attempts >= MaxPathAttempts;
+    protected bool PathFailed => failed && attempts >= MaxPathAttempts && (!onLeg || legTry >= Legs.Length);
 
     /// <summary>Retries a stuck path after a short pause. Call every ContinueExecute while walking.</summary>
     protected void KeepWalking()
     {
         if (goal == null || arrived) return;
+        if (legDone)
+        {
+            legTry = 0;
+            StartLeg();
+            return;
+        }
         long now = entity.World.ElapsedMilliseconds;
         if (failed)
         {
-            if (attempts < MaxPathAttempts && now >= retryAtMs) StartPath();
+            if (onLeg)
+            {
+                // This stretch cannot be walked: try a shorter one or one turned to the side, right away.
+                if (legTry < Legs.Length)
+                {
+                    legTry++;
+                    StartLeg();
+                }
+            }
+            else if (attempts < MaxPathAttempts && now >= retryAtMs)
+            {
+                StartPath();
+            }
             return;
         }
         // A block placed in the way after the path was planned leaves the settler walking into it: plan again.
@@ -89,13 +172,22 @@ public abstract class SettlerTaskBase : AiTaskBase
         failed = false;
         lastProgressPos = entity.Pos.XYZ;
         lastProgressMs = entity.World.ElapsedMilliseconds;
-        pathTraverser.NavigateTo_Async(goal!, moveSpeed, goalRange, OnArrived, OnPathFailed, OnPathFailed, 2000, 1);
+        // A search still running would make the traverser ignore this one without a word.
+        pathTraverser.Stop();
+        if (!pathTraverser.NavigateTo_Async(goal!, moveSpeed, goalRange, OnArrived, OnPathFailed, OnPathFailed, 2000, 1)) OnPathFailed();
     }
 
-    void OnArrived() => arrived = true;
+    void OnArrived()
+    {
+        if (onLeg) legDone = true;
+        else arrived = true;
+    }
 
     void OnPathFailed()
     {
+        // With no path the traverser still starts walking straight at the goal, into whatever is in
+        // the way; stop that, it is how settlers ended up pressed into walls.
+        pathTraverser.Stop();
         failed = true;
         retryAtMs = entity.World.ElapsedMilliseconds + RetryDelayMs * (attempts - 1);
     }
@@ -106,6 +198,7 @@ public abstract class SettlerTaskBase : AiTaskBase
     {
         pathTraverser.Stop();
         goal = null;
+        finalGoal = null;
         base.FinishExecute(cancelled);
     }
 
@@ -122,6 +215,31 @@ public abstract class SettlerTaskBase : AiTaskBase
     }
 
     protected void StopAnimation(string code) => entity.AnimManager.StopAnimation(code);
+
+    /// <summary>The settler's right hand; what is in it shows in the game and is the tool it works with.</summary>
+    protected ItemSlot? Hand => entity.RightHandItemSlot;
+
+    /// <summary>
+    /// Pushes the hand slot to players' screens. The settler's inventory reaches clients through its
+    /// watched attributes, which are only rewritten when stored, so an emptied hand would otherwise
+    /// keep showing the old tool.
+    /// </summary>
+    protected void SyncHand()
+    {
+        Hand?.MarkDirty();
+        entity.GetBehavior<EntityBehaviorContainer>()?.storeInv();
+    }
+
+    protected void PutAwayHand(Colony colony, CitizenRecord citizen)
+    {
+        var hand = Hand;
+        if (hand == null || hand.Empty) return;
+        var stack = hand.Itemstack;
+        manager!.AddToPack(colony, citizen, stack);
+        // Inventory full: keep holding it rather than dropping a tool on the ground.
+        hand.Itemstack = stack.StackSize > 0 ? stack : null;
+        SyncHand();
+    }
 
     /// <summary>What the settler is doing right now, in words, for the settler window.</summary>
     public virtual string Describe(Colony colony, CitizenRecord citizen) => Lang.Get("createacolony:activity-busy");

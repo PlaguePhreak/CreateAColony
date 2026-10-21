@@ -43,12 +43,16 @@
 			{
 				"code": "taskai",
 				"aitasks": [
-					// Highest priority wins. Job work (settlerwork) slots in between eat and wander in a later milestone.
+					// Highest priority wins. Job work sits between eating and wandering; each job task only runs for its own job.
 					{ "code": "settlershelter", "animation": "walk", "priority": 3.0, "movespeed": 0.025 },
 					{ "code": "settlersleep", "animation": "walk", "priority": 2.0, "movespeed": 0.018 },
 					{ "code": "settlereat", "animation": "walk", "priority": 1.5, "movespeed": 0.02 },
 					{ "code": "settlercourier", "animation": "walk", "priority": 1.2, "movespeed": 0.022 },
 					{ "code": "settlerbuilder", "animation": "walk", "priority": 1.2, "movespeed": 0.02 },
+					{ "code": "settlerforester", "animation": "walk", "priority": 1.2, "movespeed": 0.02 },
+					{ "code": "settlerfarmer", "animation": "walk", "priority": 1.2, "movespeed": 0.02 },
+					{ "code": "settlerpotter", "animation": "walk", "priority": 1.2, "movespeed": 0.02 },
+					{ "code": "settlerguard", "animation": "walk", "priority": 1.2, "movespeed": 0.024 },
 					{ "code": "wander", "priority": 1.0, "movespeed": 0.012, "animation": "walk", "maxDistanceToSpawn": 12, "wanderRangeMin": 3, "wanderRangeMax": 10 },
 					{ "code": "lookaround", "priority": 0.5 }
 				]

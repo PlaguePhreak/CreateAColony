@@ -22,6 +22,10 @@ public class GuiDialogHut : GuiDialog
     const double ItemRowHeight = 46;
     const int OrdersPerPage = 5;
     const double OrderRowHeight = 62;
+    const int WorkAreaTab = 3;
+    const int PotteryTab = 4;
+    const int PotteryRowsPerPage = 7;
+    const double PotteryRowHeight = 44;
 
     readonly ColonyNetwork network;
     HutSnapshot snapshot;
@@ -56,7 +60,7 @@ public class GuiDialogHut : GuiDialog
         var bgBounds = ElementBounds.Fill.WithFixedPadding(GuiStyle.ElementToDialogPadding);
         bgBounds.BothSizing = ElementSizing.FitToChildren;
 
-        if (!snapshot.IsBuilderHut) currentTab = 0;
+        if (!snapshot.IsBuilderHut && !(snapshot.IsGatherHut && currentTab == WorkAreaTab) && !(snapshot.IsPotterHut && currentTab == PotteryTab)) currentTab = 0;
 
         var composer = capi.Gui.CreateCompo("createacolony-hut", dialogBounds)
             .AddShadedDialogBG(bgBounds)
@@ -72,6 +76,24 @@ public class GuiDialogHut : GuiDialog
             };
             composer.AddVerticalTabs(tabs, ElementBounds.Fixed(-160, 35, 160, 120), (id, tab) => { currentTab = id; page = 0; Compose(); }, "tabs");
         }
+        else if (snapshot.IsGatherHut)
+        {
+            var tabs = new[]
+            {
+                new GuiTab { Name = Lang.Get("createacolony:tab-building"), DataInt = 0, Active = currentTab == 0 },
+                new GuiTab { Name = Lang.Get("createacolony:tab-workarea"), DataInt = WorkAreaTab, Active = currentTab == WorkAreaTab },
+            };
+            composer.AddVerticalTabs(tabs, ElementBounds.Fixed(-160, 35, 160, 80), (id, tab) => { currentTab = tab.DataInt; Compose(); }, "tabs");
+        }
+        else if (snapshot.IsPotterHut)
+        {
+            var tabs = new[]
+            {
+                new GuiTab { Name = Lang.Get("createacolony:tab-building"), DataInt = 0, Active = currentTab == 0 },
+                new GuiTab { Name = Lang.Get("createacolony:tab-pottery"), DataInt = PotteryTab, Active = currentTab == PotteryTab },
+            };
+            composer.AddVerticalTabs(tabs, ElementBounds.Fixed(-160, 35, 160, 80), (id, tab) => { currentTab = tab.DataInt; page = 0; Compose(); }, "tabs");
+        }
 
         composer.BeginChildElements(bgBounds);
         switch (currentTab)
@@ -79,9 +101,13 @@ public class GuiDialogHut : GuiDialog
             case 0: ComposeBuilding(composer); break;
             case 1: ComposeOrders(composer); break;
             case 2: ComposeItems(composer); break;
+            case WorkAreaTab: ComposeWorkArea(composer); break;
+            case PotteryTab: ComposePottery(composer); break;
         }
         SingleComposer = composer.EndChildElements().Compose();
         SingleComposer.GetSwitch("anytype")?.SetValue(snapshot.AnyWoodOrStone);
+        SingleComposer.GetSwitch("escort")?.SetValue(snapshot.Escort);
+        SingleComposer.GetSwitch("berries")?.SetValue(snapshot.CollectBerries);
     }
 
     void ComposeBuilding(GuiComposer composer)
@@ -98,11 +124,19 @@ public class GuiDialogHut : GuiDialog
         }
         if (snapshot.Info.Length > 0)
         {
-            composer.AddRichtext(snapshot.Info, CairoFont.WhiteDetailText(), ElementBounds.Fixed(0, y, Width, 50));
-            y += 55;
+            // A worker's hut shows who works there, what they are doing and how the job works.
+            double height = b.Type is BuildingTypes.Forester or BuildingTypes.Farmer or BuildingTypes.Potter ? 150 : 50;
+            composer.AddRichtext(snapshot.Info, CairoFont.WhiteDetailText(), ElementBounds.Fixed(0, y, Width, height));
+            y += height + 5;
         }
 
-        y = AddOrderButtons(composer, b, y) + 10;
+        y = AddOrderButtons(composer, b, y);
+        if (snapshot.HasStorage && ViewerRole >= ColonyRole.Member)
+        {
+            composer.AddSmallButton(Lang.Get("createacolony:hut-open-storage"), OpenStorage, ElementBounds.Fixed(0, y, 160, 28));
+            y += 34;
+        }
+        y += 10;
         if (snapshot.IsBuilderHut)
         {
             string builder = snapshot.BuilderName.Length > 0
@@ -113,6 +147,136 @@ public class GuiDialogHut : GuiDialog
             y = AddAnyTypeSwitch(composer, y);
             composer.AddStaticText(Lang.Get("createacolony:build-hint"), CairoFont.WhiteDetailText(), ElementBounds.Fixed(0, y, Width, 40));
         }
+    }
+
+    /// <summary>
+    /// The Work area tab of a Forester's or Farmer's Hut: how far out its worker goes, whether a guard
+    /// goes along, and for a farmer whether it collects berries and fruit. Officers change them.
+    /// </summary>
+    void ComposeWorkArea(GuiComposer composer)
+    {
+        bool officer = ViewerRole >= ColonyRole.Officer;
+        bool farmer = snapshot.Building.Type == BuildingTypes.Farmer;
+        string job = Lang.Get("createacolony:job-" + (farmer ? Jobs.Farmer : Jobs.Forester));
+        double y = 30;
+
+        composer.AddStaticText(Lang.Get("createacolony:workarea-range", job), CairoFont.WhiteSmallText(), ElementBounds.Fixed(0, y, Width, 25));
+        y += 30;
+        string range = Lang.Get("createacolony:workarea-blocks", snapshot.WorkRadius);
+        if (officer)
+        {
+            var choices = snapshot.RadiusChoices;
+            int at = Math.Max(0, choices.IndexOf(snapshot.WorkRadius));
+            composer
+                .AddSmallButton("<", () => SetRadius(choices[Math.Max(0, at - 1)]), ElementBounds.Fixed(0, y, 40, 28))
+                .AddStaticText(range, CairoFont.WhiteSmallText().WithOrientation(EnumTextOrientation.Center), ElementBounds.Fixed(45, y + 4, 130, 25))
+                .AddSmallButton(">", () => SetRadius(choices[Math.Min(choices.Count - 1, at + 1)]), ElementBounds.Fixed(180, y, 40, 28));
+        }
+        else
+        {
+            composer.AddStaticText(range, CairoFont.WhiteSmallText(), ElementBounds.Fixed(0, y + 4, Width, 25));
+        }
+        y += 36;
+        composer.AddStaticText(Lang.Get(farmer ? "createacolony:workarea-range-hint-farmer" : "createacolony:workarea-range-hint-forester"),
+            CairoFont.WhiteDetailText(), ElementBounds.Fixed(0, y, Width, 60));
+        y += 66;
+
+        y = AddSetting(composer, "escort", ColonyAction.SetEscort, snapshot.Escort, Lang.Get("createacolony:workarea-escort"), y);
+        string guard = !snapshot.Escort ? Lang.Get("createacolony:workarea-escort-hint")
+            : snapshot.GuardName.Length > 0 ? Lang.Get("createacolony:workarea-escort-by", snapshot.GuardName)
+            : Lang.Get("createacolony:workarea-escort-none", snapshot.GuardCount);
+        composer.AddStaticText(guard, CairoFont.WhiteDetailText(), ElementBounds.Fixed(40, y, Width - 40, 45));
+        y += 50;
+
+        if (farmer)
+        {
+            y = AddSetting(composer, "berries", ColonyAction.SetCollectBerries, snapshot.CollectBerries, Lang.Get("createacolony:workarea-berries"), y);
+            composer.AddStaticText(Lang.Get("createacolony:workarea-berries-hint"), CairoFont.WhiteDetailText(), ElementBounds.Fixed(40, y, Width - 40, 45));
+        }
+    }
+
+    /// <summary>
+    /// The Pottery tab of a Potter's Hut: every kind of pottery the game's clay forming recipes make, with
+    /// how many the colony has and how many the potter keeps in stock. Kinds kept in stock come first.
+    /// </summary>
+    void ComposePottery(GuiComposer composer)
+    {
+        bool officer = ViewerRole >= ColonyRole.Officer;
+        composer.AddStaticText(Lang.Get("createacolony:pottery-hint"), CairoFont.WhiteDetailText(), ElementBounds.Fixed(0, 30, Width, 40));
+        var rows = snapshot.Pottery.OrderByDescending(p => p.Keep > 0).ThenBy(p => p.Key).ToList();
+        if (rows.Count == 0)
+        {
+            composer.AddStaticText(Lang.Get("createacolony:pottery-none"), CairoFont.WhiteSmallText(), ElementBounds.Fixed(0, 75, Width, 25));
+            return;
+        }
+        int pages = (rows.Count + PotteryRowsPerPage - 1) / PotteryRowsPerPage;
+        page = Math.Clamp(page, 0, pages - 1);
+        double y = 75;
+        foreach (var row in rows.Skip(page * PotteryRowsPerPage).Take(PotteryRowsPerPage))
+        {
+            var stack = new ItemStack(row.Stack);
+            if (!stack.ResolveBlockOrItem(capi.World)) continue;
+            var countFont = CairoFont.WhiteDetailText().WithColor(row.Keep == 0 ? new[] { 0.7, 0.7, 0.7, 1.0 }
+                : row.Have >= row.Keep ? new[] { 0.55, 0.85, 0.45, 1.0 } : new[] { 1.0, 0.65, 0.3, 1.0 });
+            composer.AddRichtext(new RichTextComponentBase[]
+            {
+                new ItemstackTextComponent(capi, stack, 38, 10),
+                new RichTextComponent(capi, stack.GetName() + "\n", CairoFont.WhiteSmallText()) { VerticalAlign = EnumVerticalAlign.Top },
+                new RichTextComponent(capi, Lang.Get("createacolony:pottery-have", row.Have, row.Clay), countFont)
+            }, ElementBounds.Fixed(0, y, 330, PotteryRowHeight));
+
+            string keep = Lang.Get("createacolony:pottery-keep", row.Keep);
+            if (officer)
+            {
+                var choices = snapshot.KeepChoices.Union(new[] { row.Keep }).OrderBy(c => c).ToList();
+                int at = choices.IndexOf(row.Keep);
+                string key = row.Key;
+                composer
+                    .AddSmallButton("<", () => SetKeep(key, choices[Math.Max(0, at - 1)]), ElementBounds.Fixed(340, y + 6, 36, 28))
+                    .AddStaticText(keep, CairoFont.WhiteSmallText().WithOrientation(EnumTextOrientation.Center), ElementBounds.Fixed(380, y + 10, 120, 25))
+                    .AddSmallButton(">", () => SetKeep(key, choices[Math.Min(choices.Count - 1, at + 1)]), ElementBounds.Fixed(504, y + 6, 36, 28));
+            }
+            else
+            {
+                composer.AddStaticText(keep, CairoFont.WhiteSmallText(), ElementBounds.Fixed(380, y + 10, 160, 25));
+            }
+            y += PotteryRowHeight;
+        }
+        AddPager(composer, pages, y + 6);
+    }
+
+    bool SetKeep(string key, int keep)
+    {
+        network.SendAction(new ColonyActionPacket
+            { ColonyId = snapshot.ColonyId, Action = ColonyAction.SetPotteryKeep, BuildingId = snapshot.Building.BuildingId, Text = key + "|" + keep });
+        return true;
+    }
+
+    /// <summary>An on/off setting: a switch for officers, a line of text for everyone else. Returns the y below it.</summary>
+    double AddSetting(GuiComposer composer, string key, ColonyAction action, bool on, string label, double y)
+    {
+        if (ViewerRole >= ColonyRole.Officer)
+        {
+            int id = snapshot.Building.BuildingId;
+            composer
+                .AddSwitch(value => network.SendAction(new ColonyActionPacket
+                    { ColonyId = snapshot.ColonyId, Action = action, BuildingId = id, Text = value ? "1" : "0" }),
+                    ElementBounds.Fixed(0, y, 30, 30), key)
+                .AddStaticText(label, CairoFont.WhiteSmallText(), ElementBounds.Fixed(40, y + 5, Width - 40, 25));
+        }
+        else
+        {
+            composer.AddStaticText(label + ": " + Lang.Get(on ? "createacolony:on" : "createacolony:off"), CairoFont.WhiteSmallText(), ElementBounds.Fixed(0, y + 5, Width, 25));
+        }
+        return y + 34;
+    }
+
+    bool SetRadius(int radius)
+    {
+        if (radius == snapshot.WorkRadius) return true;
+        network.SendAction(new ColonyActionPacket
+            { ColonyId = snapshot.ColonyId, Action = ColonyAction.SetWorkRadius, BuildingId = snapshot.Building.BuildingId, Text = radius.ToString() });
+        return true;
     }
 
     /// <summary>The "any wood or stone" setting: a switch for officers, a line of text for everyone else.</summary>
@@ -254,6 +418,15 @@ public class GuiDialogHut : GuiDialog
 
     static string StatusText(BuildingView b) =>
         Lang.Get("createacolony:build-status", b.TargetLevel, b.ProgressPercent, Lang.Get("createacolony:buildstatus-" + b.Status));
+
+    /// <summary>The server opens the storage window; this one closes so they do not overlap.</summary>
+    bool OpenStorage()
+    {
+        int id = snapshot.Building.BuildingId;
+        TryClose();
+        network.SendAction(new ColonyActionPacket { ColonyId = snapshot.ColonyId, Action = ColonyAction.OpenStorage, BuildingId = id });
+        return true;
+    }
 
     bool Send(ColonyAction action, int buildingId)
     {

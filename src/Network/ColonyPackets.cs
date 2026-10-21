@@ -55,6 +55,12 @@ public class CitizenSnapshot
     [ProtoMember(11)] public List<byte[]> Bags = new();
     [ProtoMember(12)] public byte[]? Hand;
     [ProtoMember(13)] public bool OpenWindow;
+    /// <summary>The settler's entity, so the window can draw its model; 0 when it is not loaded.</summary>
+    [ProtoMember(14)] public long EntityId;
+    [ProtoMember(15)] public float Health;
+    [ProtoMember(16)] public float MaxHealth;
+    /// <summary>Walking speed as a fraction of normal (1 = 100%).</summary>
+    [ProtoMember(17)] public float WalkSpeed = 1;
 }
 
 /// <summary>Client asks to open the window of the hut block at Pos.</summary>
@@ -98,6 +104,33 @@ public class HutSnapshot
     [ProtoMember(10)] public bool OpenWindow;
     [ProtoMember(11)] public bool Periodic;
     [ProtoMember(12)] public bool AnyWoodOrStone;
+    /// <summary>The hut has its own storage, so the window offers a Storage button.</summary>
+    [ProtoMember(13)] public bool HasStorage;
+    /// <summary>A Forester's or Farmer's Hut, whose window has a Work area tab.</summary>
+    [ProtoMember(14)] public bool IsGatherHut;
+    [ProtoMember(15)] public int WorkRadius;
+    [ProtoMember(16)] public List<int> RadiusChoices = new();
+    [ProtoMember(17)] public bool Escort;
+    [ProtoMember(18)] public bool CollectBerries;
+    /// <summary>The guard escorting this hut's worker, empty if none.</summary>
+    [ProtoMember(19)] public string GuardName = "";
+    [ProtoMember(20)] public int GuardCount;
+    /// <summary>A Potter's Hut, whose window has a Pottery tab.</summary>
+    [ProtoMember(21)] public bool IsPotterHut;
+    [ProtoMember(22)] public List<PotteryView> Pottery = new();
+    [ProtoMember(23)] public List<int> KeepChoices = new();
+}
+
+/// <summary>One line of a Potter's Hut's Pottery tab: a kind of pottery, how many to keep and how many there are.</summary>
+[ProtoContract]
+public class PotteryView
+{
+    [ProtoMember(1)] public string Key = "";
+    /// <summary>A fired piece, serialized, for its icon and name.</summary>
+    [ProtoMember(2)] public byte[] Stack = System.Array.Empty<byte>();
+    [ProtoMember(3)] public int Keep;
+    [ProtoMember(4)] public int Have;
+    [ProtoMember(5)] public int Clay;
 }
 
 [ProtoContract]
@@ -143,7 +176,73 @@ public enum ColonyAction
     CancelBuild = 7,
     Rotate = 8,
     /// <summary>Text "1" lets builders use any wood or stone type, "0" holds them to the blueprint's.</summary>
-    SetAnyWoodOrStone = 9
+    SetAnyWoodOrStone = 9,
+    /// <summary>Opens the storage of the hut with BuildingId.</summary>
+    OpenStorage = 10,
+    /// <summary>Text is how far, in blocks, the worker of the hut with BuildingId goes out.</summary>
+    SetWorkRadius = 11,
+    /// <summary>Text "1" sends a guard along with the worker of the hut with BuildingId.</summary>
+    SetEscort = 12,
+    /// <summary>Text "1" has the farmer of the hut with BuildingId pick berry bushes and fruit trees.</summary>
+    SetCollectBerries = 13,
+    /// <summary>Shows the outline and placement window of the building with BuildingId (the Builder's Wand).</summary>
+    OpenPlacement = 14,
+    /// <summary>Text "1" turns the building a quarter right, "-1" left, before it is built.</summary>
+    PlacementTurn = 15,
+    /// <summary>Text "1" raises the building one block, "-1" lowers it, before it is built.</summary>
+    PlacementHeight = 16,
+    /// <summary>Keeps the building where it is and orders level 1.</summary>
+    PlacementConfirm = 17,
+    /// <summary>Takes the hut back: the block goes back into the player's inventory.</summary>
+    PlacementCancel = 18,
+    /// <summary>Hides the outline.</summary>
+    PlacementClose = 19,
+    /// <summary>Text "forward", "back", "left" or "right" moves the building one block that way, as the player faces.</summary>
+    PlacementNudge = 20,
+    /// <summary>Opens the placement window again for the outline still showing (the wand used in the air).</summary>
+    ReopenPlacement = 21,
+    /// <summary>The wand used on the ground with nothing planned: Text "x,y,z" is the spot; opens the building list.</summary>
+    WandStart = 22,
+    /// <summary>Text is the building type picked from the list; its outline appears at the spot.</summary>
+    WandChoose = 23,
+    /// <summary>Back to the building list for the planned spot.</summary>
+    WandChange = 24,
+    /// <summary>Text "kind|amount": how many of a kind of pottery the Potter's Hut with BuildingId keeps in stock.</summary>
+    SetPotteryKeep = 25
+}
+
+/// <summary>The Builder's Wand building list: each building type with how many of its blocks the player carries.</summary>
+[ProtoContract]
+public class WandChooserSnapshot
+{
+    [ProtoMember(1)] public List<string> Types = new();
+    [ProtoMember(2)] public List<int> Have = new();
+}
+
+/// <summary>What the placement window shows for one building while its outline is on screen.</summary>
+[ProtoContract]
+public class PlacementSnapshot
+{
+    [ProtoMember(1)] public string ColonyId = "";
+    [ProtoMember(2)] public int BuildingId;
+    [ProtoMember(3)] public string Type = "";
+    [ProtoMember(4)] public int Rotation;
+    [ProtoMember(5)] public int YOffset;
+    /// <summary>The level whose outline is shown, the highest there is; 0 when the type has no blueprints.</summary>
+    [ProtoMember(6)] public int ShownLevel;
+    [ProtoMember(7)] public int Blocks;
+    /// <summary>Outline blocks where something already stands that the builder will clear.</summary>
+    [ProtoMember(8)] public int Blocked;
+    /// <summary>Not built yet, so it can still be turned, moved up or down, or taken back.</summary>
+    [ProtoMember(9)] public bool CanAdjust;
+    [ProtoMember(10)] public bool CanOrder;
+    [ProtoMember(11)] public bool OpenWindow;
+    [ProtoMember(12)] public int XOffset;
+    [ProtoMember(13)] public int ZOffset;
+    /// <summary>A building planned with the wand and not placed yet (BuildingId is 0).</summary>
+    [ProtoMember(14)] public bool Planned;
+    /// <summary>How many of the building's blocks the player carries.</summary>
+    [ProtoMember(15)] public int Have;
 }
 
 /// <summary>A change requested from the Town Hall window. The server checks permissions before applying it.</summary>

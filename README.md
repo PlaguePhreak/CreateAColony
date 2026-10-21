@@ -10,7 +10,7 @@ land claim, recruit settlers that persist with the save. Compiles cleanly agains
    game's `Mods` folder.
 
 ## Try it
-- Craft a **Town Hall** (5 planks of any wood in a U shape: top row full, middle row left and right) or take it from the creative inventory, then place it: founds the colony, claims a 49x49 area, and 3 to 4 settlers arrive.
+- Craft a **Town Hall** (5 planks of any wood in a U shape: top row full, middle row left and right) or take it from the creative inventory, and a **Builder's Wand** (flint on a stick). Right-click the ground with the wand, pick Town Hall and press Accept: this founds the colony, claims a 49x49 area, and 3 to 4 settlers arrive.
 - `/colony info` inside the claim shows the colony.
 - `/colony invite <player>`, then that player types `/colony join`. `/colony leave` leaves the colony you stand in.
 - `/colony recruit [name]` (needs controlserver) spawns one more settler, for testing.
@@ -50,7 +50,7 @@ Buildings grow from blueprints, which are ordinary WorldEdit exports. Build the 
 creative world with its hut block where the hut should stand, select it with WorldEdit, and run
 `/we export <name>`. Copy the file from `VintagestoryData/WorldEdit/` to
 `VintagestoryData/ModConfig/createacolony/blueprints/<type>/level<N>.json`, where `<type>` is
-`builder`, `townhall` or `warehouse` and `<N>` is 1 to 5. `/colony reloadblueprints` picks up
+`builder`, `townhall`, `warehouse`, `forester`, `farmer` or `potter` and `<N>` is 1 to 5. `/colony reloadblueprints` picks up
 changes without a restart. Blueprints in ModConfig override the ones shipped in
 `assets/createacolony/config/blueprints/`.
 
@@ -60,8 +60,99 @@ Right-click a hut block to open its window and order a level; the Town Hall's ow
 Town Hall's Overview tab. The Builder's Hut window lists every work order and, under Items needed,
 what its builder still needs with have/need counts. Builders clear soil and sand with a shovel, wood
 with an axe and stone or ore with a pickaxe, of at least the block's mining tier, and wear the tool
-down as they work. Put tools in the hut chest or the warehouse; couriers bring missing ones. Set
+down as they work. Put tools in the hut's storage or the warehouse; couriers bring missing ones. Set
 `BuildersNeedTools` to false in `ModConfig/createacolony.json` to turn this off.
+
+### Foresters and farmers
+
+Place a **Forester's Hut** (planks, sticks and firewood) or a **Farmer's Hut** (planks, sticks and
+seeds) in the colony and give a settler the Forester or Farmer job in the
+Town Hall. Each works from the free hut of its kind nearest the start of the list.
+
+- The forester needs an axe. It fells wild trees within `ForesterRadius` blocks of its hut (never
+  placed logs), nearest first, with the game's own axe logic, and plants a tree seed or sapling of
+  the same wood on the stump.
+- The farmer needs a hoe. A **Field marker** (dry grass on two sticks) marks out the square of
+  `FieldRadius` blocks around it. The farmer harvests ripe crops and sows them again, sows bare
+  farmland, and tills soil, up to `FieldsPerFarmer` fields each. Right-click a marker with seeds to
+  choose its crop; sneak and right-click it with an empty hand to allow any.
+- The farmer also pulls weeds on its fields, waters dry crops with a watering can (refilled at the
+  nearest water) when its moisture drops below `FarmerWaterBelow`, spreads fertilizer from the hut on
+  farmland whose nutrient drops below `FarmerFertilizeBelow`, and picks the crop whose nutrient the
+  soil has the most of (crop rotation). It picks ripe berry bushes and fruit trees within
+  `FarmerOrchardRadius` blocks of its hut.
+- Both carry what they gather to the hut's storage, where couriers pick it up for the warehouse. They
+  keep their tool and a stock of seeds (`ForesterSeedReserve`, `FarmerSeedReserve`); seeds over that
+  go to the warehouse too. Missing tools and seeds are requested from the warehouse.
+
+### The potter: from the stone age to the copper age
+
+Place a **Potter's Hut** (planks, sticks and clay) and give a settler the **Potter** job. The potter
+works with the game's own pottery, by hand:
+
+- It shapes clay on the game's **clay forming block** next to the hut, one layer at a time, following
+  the same clay forming recipes a player picks from, using whatever clay fits the recipe (blue, fire or
+  red). Each piece takes as much clay as the handbook says.
+- It digs a one-block **pit kiln** in soil, gravel or sand near the hut (solid, non-flammable ground
+  around it and open sky above, as the game requires), lays up to a full load of raw pieces in it, adds
+  the game's pit kiln fuel layer by layer (dry grass, sticks and firewood, read from the game's own pit
+  kiln), lights it, and takes the fired pottery out when the game has fired it. Rain that puts the
+  kiln out just means it gets lit again.
+- The hut window's **Pottery** tab lists every piece the game's clay forming recipes make that fires
+  in a pit kiln, with how many the colony has (warehouse, hut, potter and kiln) and how many to keep in
+  stock. A new hut keeps 1 crucible and 2 ingot molds (`PotteryDefaultKeep`), what it takes to smelt
+  copper; officers change it.
+- Put clay and kiln fuel in the hut's storage or the warehouse; the potter asks couriers for what it
+  is missing. Fired pottery and dug soil go to the hut storage and on to the warehouse.
+- Config: `PotterSecondsPerLayer`, `PotterSecondsPerKilnStep`, `PotterClayReserve`,
+  `PotterClayRequest`, `PotterSpotRadius`, `PotteryKeepChoices`, `PotteryDefaultKeep`.
+
+### Placing buildings with the Builder's Wand
+
+As in MineColonies, the Town Hall, huts and the Warehouse are not placed by hand (that just says to
+use the wand). Craft a **Builder's Wand** (flint on a stick), keep the building's block in your
+inventory, and right-click the ground with the wand. Pick the building from the list and the outline
+of its highest level appears there: blue where free, red where something is in the way that the
+builder will clear, yellow where the building's block goes. The window beside it turns the building
+and nudges it forward, back, left, right, up or down (as you look). Esc closes the window but leaves
+the outline up so you can walk around it; right-clicking with the wand, on a block or in the air,
+brings the window back. **Accept** takes one of the building's blocks from your inventory and puts it
+down; without one it tells you that you need one. **Change building** goes back to the list.
+
+Right-clicking an existing hut, the Town Hall or the Warehouse with the wand shows its outline and
+lets you turn and move the building (up to 8 blocks up or down, 16 to the sides) until its first
+level is ordered; **Build here** orders it and **Not here** gives a hut back.
+
+### Work area and guards
+
+Forester's and Farmer's Huts have a **Work area** tab in their window (officers change it):
+
+- **How far out** the worker goes: 16 to 500 blocks (`GatherRadiusChoices`). The area is searched a
+  chunk column at a time, nearest first, in a few milliseconds per tick; land no player is near is
+  loaded from the save to be looked at, and land never explored is skipped. Long walks go in
+  stretches of about 28 blocks, each ending on a free spot with floor under it, trying shorter and
+  turned stretches around water, cliffs and out of holes. A forester, farmer or guard
+  further than `FarWorkPlayerDistance` blocks from every player stays active and keeps the 3 by 3
+  chunk columns around it loaded until it comes back or a player comes near.
+- **Escort by guard**: a settler with the new **Guard** job follows the worker and fights monsters
+  (`GuardTargets`, by default drifters, locusts, bells, bowtorns, shivers, wolves, hyenas and
+  bears) within `GuardThreatRadius` blocks of it. Guards fight with the hardest-hitting weapon they
+  carry and fetch one from the warehouse if they have none; spare guards keep watch at the Town Hall.
+  The same creatures hunt settlers the way they hunt players (`HostilesAttackSettlers`).
+- **Collect berries and fruit** (Farmer's Hut): picks ripe berry bushes and fruit trees within the
+  range. Berries further than 32 blocks out wait until the fields have nothing to do.
+
+### Hut storage
+
+Every Builder's, Forester's and Farmer's Hut has its own 25-slot storage: sneak and right-click the
+hut block, or press Storage in its window. Chests within two blocks of the hut add more room.
+
+### The settler window
+
+Right-click a settler to see it laid out like the player's character window: a Character panel with
+the settler's model (drag to turn it) between clothing slots and armor slots that stay empty until
+settlers can wear things, a Stats panel (health, satiety, walk speed, status, bed, job and what it is
+doing), and an Inventory panel with its bags, held item and pack.
 
 ### Importing MineColonies blueprints
 

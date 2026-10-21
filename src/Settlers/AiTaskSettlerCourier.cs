@@ -34,8 +34,8 @@ public class AiTaskSettlerCourier : SettlerTaskBase
         var citizen = Citizen;
         var colony = Colony;
         // A settler whose courier job was taken away still puts its last load back first.
-        // Builders carry their own materials, so their loads are left to the builder task.
-        if (citizen == null || colony == null || citizen.JobCode == Jobs.Builder) return false;
+        // Builders, foresters and farmers carry their own tools and supplies, so their loads are left to them.
+        if (citizen == null || colony == null || Jobs.CarriesOwnLoad(citizen.JobCode)) return false;
         if (citizen.JobCode != Jobs.Courier && manager.PackEmpty(citizen)) return false;
 
         nextSearchMs = entity.World.ElapsedMilliseconds + IdleRetryMs;

@@ -66,6 +66,10 @@ public partial class ColonyManager : ModSystem
         api.Event.SaveGameLoaded += OnSaveGameLoaded;
         api.Event.GameWorldSave += OnGameWorldSave;
         api.Event.RegisterGameTickListener(OnColonyTick, ColonyTickMs, 1000);
+        api.Event.RegisterGameTickListener(OnScanTick, ScanTickMs);
+        api.Event.OnEntitySpawn += OnCreatureReady;
+        api.Event.OnEntityLoaded += OnCreatureReady;
+        api.Event.RegisterGameTickListener(OnFarWorkTick, FarWorkTickMs);
     }
 
     const int ColonyTickMs = 10_000;
@@ -136,9 +140,12 @@ public partial class ColonyManager : ModSystem
     }
 
     /// <summary>All loaded block entities of a type inside the colony's claim area.</summary>
-    IEnumerable<T> FindBlockEntities<T>(Colony colony) where T : BlockEntity
+    IEnumerable<T> FindBlockEntities<T>(Colony colony) where T : BlockEntity =>
+        FindBlockEntities<T>(ClaimArea(colony.TownHallPos, colony.ClaimRadius));
+
+    /// <summary>All loaded block entities of a type inside an area.</summary>
+    IEnumerable<T> FindBlockEntities<T>(Cuboidi area) where T : BlockEntity
     {
-        var area = ClaimArea(colony.TownHallPos, colony.ClaimRadius);
         int size = GlobalConstants.ChunkSize;
         for (int cx = area.X1 / size; cx <= area.X2 / size; cx++)
         for (int cy = Math.Max(0, area.Y1) / size; cy <= area.Y2 / size; cy++)
@@ -216,7 +223,7 @@ public partial class ColonyManager : ModSystem
 
     public Colony? GetOwnedBy(string playerUid) => colonies.Values.FirstOrDefault(c => c.OwnerUid == playerUid);
 
-    public FoundColonyResult TryFoundColony(IServerPlayer founder, BlockPos townHallPos, string name, out Colony? colony)
+    public FoundColonyResult TryFoundColony(IServerPlayer founder, BlockPos townHallPos, string name, out Colony? colony, int? rotation = null)
     {
         colony = null;
         if (GetOwnedBy(founder.PlayerUID) != null) return FoundColonyResult.AlreadyOwnsColony;
@@ -241,7 +248,7 @@ public partial class ColonyManager : ModSystem
         sapi.World.Claims.Add(claim);
 
         colonies[colony.ColonyId] = colony;
-        AddBuilding(colony, BuildingTypes.TownHall, townHallPos, RotationFor(founder));
+        AddBuilding(colony, BuildingTypes.TownHall, townHallPos, rotation ?? RotationFor(founder));
         SaveColony(colony);
         return FoundColonyResult.Ok;
     }

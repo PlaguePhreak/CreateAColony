@@ -32,8 +32,6 @@ public class AiTaskSettlerBuilder : SettlerTaskBase
     int orderId;
     ColonyManager.ToolNeed neededTool;
 
-    /// <summary>The settler's right hand; what is in it shows in the game and is the tool it works with.</summary>
-    ItemSlot? Hand => entity.RightHandItemSlot;
     bool walking;
     float workTime;
     /// <summary>Set by Work when the builder stands where its next block goes.</summary>
@@ -304,28 +302,6 @@ public class AiTaskSettlerBuilder : SettlerTaskBase
         if (tool == null) return;
         PutAwayHand(colony, citizen);
         hand.Itemstack = tool;
-        SyncHand();
-    }
-
-    /// <summary>
-    /// Pushes the hand slot to players' screens. The settler's inventory reaches clients through its
-    /// watched attributes, which are only rewritten when stored, so an emptied hand would otherwise
-    /// keep showing the old tool.
-    /// </summary>
-    void SyncHand()
-    {
-        Hand?.MarkDirty();
-        entity.GetBehavior<EntityBehaviorContainer>()?.storeInv();
-    }
-
-    void PutAwayHand(Colony colony, CitizenRecord citizen)
-    {
-        var hand = Hand;
-        if (hand == null || hand.Empty) return;
-        var stack = hand.Itemstack;
-        manager!.AddToPack(colony, citizen, stack);
-        // Inventory full: keep holding it rather than dropping a tool on the ground.
-        hand.Itemstack = stack.StackSize > 0 ? stack : null;
         SyncHand();
     }
 

@@ -1,0 +1,10 @@
+{
+	"ingredientPattern": "G,S,S",
+	"ingredients": {
+		"G": { "type": "item", "code": "game:drygrass" },
+		"S": { "type": "item", "code": "game:stick" }
+	},
+	"width": 1,
+	"height": 3,
+	"output": { "type": "block", "code": "createacolony:fieldmarker" }
+}

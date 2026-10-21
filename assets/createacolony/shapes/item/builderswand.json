@@ -1,0 +1,36 @@
+{
+	"textureWidth": 16,
+	"textureHeight": 16,
+	"textures": {
+		"handle": "createacolony:block/townhall/oak",
+		"tip": "createacolony:block/townhall/building"
+	},
+	"elements": [
+		{
+			"name": "Handle",
+			"from": [ 7.5, 0.0, 7.5 ],
+			"to": [ 8.5, 12.0, 8.5 ],
+			"faces": {
+				"north": { "texture": "#handle", "uv": [ 0.0, 0.0, 1.0, 12.0 ] },
+				"east": { "texture": "#handle", "uv": [ 1.0, 0.0, 2.0, 12.0 ] },
+				"south": { "texture": "#handle", "uv": [ 2.0, 0.0, 3.0, 12.0 ] },
+				"west": { "texture": "#handle", "uv": [ 3.0, 0.0, 4.0, 12.0 ] },
+				"up": { "texture": "#handle", "uv": [ 0.0, 0.0, 1.0, 1.0 ] },
+				"down": { "texture": "#handle", "uv": [ 0.0, 0.0, 1.0, 1.0 ] }
+			}
+		},
+		{
+			"name": "Tip",
+			"from": [ 6.5, 12.0, 6.5 ],
+			"to": [ 9.5, 15.0, 9.5 ],
+			"faces": {
+				"north": { "texture": "#tip", "uv": [ 5.0, 5.0, 11.0, 11.0 ] },
+				"east": { "texture": "#tip", "uv": [ 5.0, 5.0, 11.0, 11.0 ] },
+				"south": { "texture": "#tip", "uv": [ 5.0, 5.0, 11.0, 11.0 ] },
+				"west": { "texture": "#tip", "uv": [ 5.0, 5.0, 11.0, 11.0 ] },
+				"up": { "texture": "#tip", "uv": [ 5.0, 5.0, 11.0, 11.0 ] },
+				"down": { "texture": "#tip", "uv": [ 5.0, 5.0, 11.0, 11.0 ] }
+			}
+		}
+	]
+}

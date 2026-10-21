@@ -16,7 +16,7 @@ namespace CreateAColony.Network;
 /// The one network channel between the Town Hall window and the server. The client only ever asks;
 /// the server checks the player's colony role, applies the change, and sends back a fresh snapshot.
 /// </summary>
-public class ColonyNetwork : ModSystem
+public partial class ColonyNetwork : ModSystem
 {
     const string ChannelName = "createacolony";
     const int MaxNameLength = 40;
@@ -44,7 +44,9 @@ public class ColonyNetwork : ModSystem
             .RegisterMessageType<ColonyActionPacket>()
             .RegisterMessageType<HutOpenRequest>()
             .RegisterMessageType<HutSnapshot>()
-            .RegisterMessageType<CitizenSnapshot>();
+            .RegisterMessageType<CitizenSnapshot>()
+            .RegisterMessageType<PlacementSnapshot>()
+            .RegisterMessageType<WandChooserSnapshot>();
     }
 
     // ---- Server ---------------------------------------------------------------------------
@@ -71,6 +73,9 @@ public class ColonyNetwork : ModSystem
         {
             foreach (var viewers in viewersByColony.Values) viewers.Remove(player.PlayerUID);
             hutViewers.Remove(player.PlayerUID);
+            placementViewers.Remove(player.PlayerUID);
+            planned.Remove(player.PlayerUID);
+            wandSpots.Remove(player.PlayerUID);
             citizenViewers.Remove(player.PlayerUID);
         };
     }
@@ -91,9 +96,27 @@ public class ColonyNetwork : ModSystem
 
     void OnAction(IServerPlayer player, ColonyActionPacket packet)
     {
+        // A building planned with the wand has no colony or building yet.
+        if (packet.BuildingId == 0 && packet.Action is >= ColonyAction.OpenPlacement and <= ColonyAction.WandChange)
+        {
+            PlannedAction(player, packet);
+            return;
+        }
         var colony = Manager.GetById(packet.ColonyId);
         if (colony == null) return;
         var role = colony.RoleOf(player.PlayerUID);
+
+        if (packet.Action == ColonyAction.OpenStorage)
+        {
+            OpenStorage(player, colony, role, packet.BuildingId);
+            return;
+        }
+
+        if (packet.Action is >= ColonyAction.OpenPlacement and <= ColonyAction.ReopenPlacement)
+        {
+            PlacementAction(player, colony, role, packet);
+            return;
+        }
 
         if (packet.Action == ColonyAction.CloseWindow)
         {
@@ -111,6 +134,8 @@ public class ColonyNetwork : ModSystem
             ColonyAction.RemoveMember => SetRole(colony, role, packet.PlayerUid, ColonyRole.Visitor),
             ColonyAction.Build or ColonyAction.CancelBuild or ColonyAction.Rotate => BuildAction(colony, role, packet),
             ColonyAction.SetAnyWoodOrStone => SetAnyWoodOrStone(colony, role, packet.Text == "1"),
+            ColonyAction.SetWorkRadius or ColonyAction.SetEscort or ColonyAction.SetCollectBerries => WorkAreaAction(colony, role, packet),
+            ColonyAction.SetPotteryKeep => PotteryAction(colony, role, packet),
             _ => null
         };
 
@@ -169,7 +194,56 @@ public class ColonyNetwork : ModSystem
                 // Turning is only allowed before anything is built, or the old walls would be torn down.
                 if (building.Level > 0 || building.HasWorkOrder) return "createacolony:rotate-built";
                 building.Rotation = (building.Rotation + 90) % 360;
+                if (sapi!.World.BlockAccessor.GetBlockEntity(building.HutPos) is BlockEntityTownHall townHall) townHall.SetRotation(building.Rotation);
                 return null;
+        }
+    }
+
+    /// <summary>The Work area settings of a Forester's or Farmer's Hut.</summary>
+    string? WorkAreaAction(Colony colony, ColonyRole role, ColonyActionPacket packet)
+    {
+        if (role < ColonyRole.Officer) return "createacolony:denied-officer";
+        var building = colony.Buildings.Find(b => b.BuildingId == packet.BuildingId);
+        if (building == null || !ColonyManager.IsGatherHut(building.Type)) return "createacolony:bad-building";
+        switch (packet.Action)
+        {
+            case ColonyAction.SetWorkRadius:
+                if (!int.TryParse(packet.Text, out int radius) || !Manager.Config.GatherRadiusChoices.Contains(radius)) return "createacolony:bad-radius";
+                building.WorkRadius = radius;
+                break;
+            case ColonyAction.SetEscort:
+                building.Escort = packet.Text == "1";
+                break;
+            default:
+                building.NoBerries = packet.Text != "1";
+                break;
+        }
+        return null;
+    }
+
+    /// <summary>How many of a kind of pottery a Potter's Hut keeps in stock.</summary>
+    string? PotteryAction(Colony colony, ColonyRole role, ColonyActionPacket packet)
+    {
+        if (role < ColonyRole.Officer) return "createacolony:denied-officer";
+        var building = colony.Buildings.Find(b => b.BuildingId == packet.BuildingId);
+        if (building == null || building.Type != BuildingTypes.Potter) return "createacolony:bad-building";
+        int bar = packet.Text.LastIndexOf('|');
+        if (bar <= 0 || !int.TryParse(packet.Text[(bar + 1)..], out int keep) || keep < 0 || keep > 999) return "createacolony:bad-building";
+        string key = packet.Text[..bar];
+        if (!Manager.PotteryKinds().Any(k => k.Key == key)) return "createacolony:bad-building";
+        Manager.SetPotteryKeep(colony, building, key, keep);
+        return null;
+    }
+
+    /// <summary>Opens a hut's own storage for a member, as sneak + right-click on the hut does.</summary>
+    void OpenStorage(IServerPlayer player, Colony colony, ColonyRole role, int buildingId)
+    {
+        var building = colony.Buildings.Find(b => b.BuildingId == buildingId);
+        if (role < ColonyRole.Member || building == null) return;
+        Manager.HutStorage(colony, building).FirstOrDefault(); // creates the storage of an older hut
+        if (sapi!.World.BlockAccessor.GetBlockEntity(building.HutPos) is BlockEntityColonyHut storage)
+        {
+            storage.OnPlayerRightClick(player, new BlockSelection { Position = building.HutPos.Copy(), Face = BlockFacing.UP, HitPosition = new Vec3d(0.5, 0.5, 0.5) });
         }
     }
 
@@ -323,6 +397,7 @@ public class ColonyNetwork : ModSystem
             activity = task?.Describe(colony, citizen) ?? Lang.Get("createacolony:activity-idle");
         }
 
+        var health = entity?.WatchedAttributes.GetTreeAttribute("health");
         var snapshot = new CitizenSnapshot
         {
             ColonyId = colony.ColonyId,
@@ -338,7 +413,11 @@ public class ColonyNetwork : ModSystem
             Slots = Manager.PackSlots(citizen),
             Bags = Manager.PackBags(citizen).Select(s => s.ToBytes()).ToList(),
             Hand = entity?.RightHandItemSlot?.Itemstack?.ToBytes(),
-            OpenWindow = openWindow
+            OpenWindow = openWindow,
+            EntityId = entity?.EntityId ?? 0,
+            Health = health?.GetFloat("currenthealth") ?? 0,
+            MaxHealth = health?.GetFloat("maxhealth") ?? 0,
+            WalkSpeed = entity?.Stats.GetBlended("walkspeed") ?? 1
         };
         serverChannel!.SendPacket(snapshot, player);
     }
@@ -352,14 +431,44 @@ public class ColonyNetwork : ModSystem
             ViewerRole = (int)colony.RoleOf(viewerUid),
             IsBuilderHut = building.Type == BuildingTypes.Builder,
             AnyWoodOrStone = colony.AnyWoodOrStone,
+            HasStorage = ColonyManager.IsWorkerHut(building.Type),
             OpenWindow = openWindow
         };
+
+        if (ColonyManager.IsGatherHut(building.Type))
+        {
+            snapshot.IsGatherHut = true;
+            snapshot.WorkRadius = Manager.GatherRadius(building);
+            snapshot.RadiusChoices = Manager.Config.GatherRadiusChoices.Union(new[] { snapshot.WorkRadius }).OrderBy(r => r).ToList();
+            snapshot.Escort = building.Escort;
+            snapshot.CollectBerries = !building.NoBerries;
+            snapshot.GuardName = Manager.GuardOf(colony, building)?.Name ?? "";
+            snapshot.GuardCount = Manager.GuardCount(colony);
+        }
 
         if (building.Type == BuildingTypes.Warehouse)
         {
             var containers = Manager.WarehouseContainers(colony).ToList();
             snapshot.Info = Lang.Get("createacolony:warehouse-summary", containers.Count, Manager.CountItems(containers, _ => true),
                 containers.Sum(c => c.Inventory.Count(s => s.Empty)), containers.Sum(c => c.Inventory.Count));
+        }
+        if (building.Type is BuildingTypes.Forester or BuildingTypes.Farmer or BuildingTypes.Potter) snapshot.Info = Manager.WorkerHutInfo(colony, building);
+        if (building.Type == BuildingTypes.Potter)
+        {
+            snapshot.IsPotterHut = true;
+            snapshot.KeepChoices = Manager.Config.PotteryKeepChoices.ToList();
+            var potter = Manager.WorkerAt(colony, building, Jobs.Potter);
+            foreach (var kind in Manager.PotteryKinds())
+            {
+                snapshot.Pottery.Add(new PotteryView
+                {
+                    Key = kind.Key,
+                    Stack = kind.Sample.ToBytes(),
+                    Keep = Manager.PotteryKeep(building, kind),
+                    Have = Manager.PotteryStock(colony, building, kind, potter),
+                    Clay = kind.Recipes.Min(ColonyManager.ClayCost)
+                });
+            }
         }
         if (!snapshot.IsBuilderHut) return snapshot;
 
@@ -410,7 +519,9 @@ public class ColonyNetwork : ModSystem
         clientChannel = api.Network.GetChannel(ChannelName)
             .SetMessageHandler<ColonySnapshot>(OnSnapshot)
             .SetMessageHandler<HutSnapshot>(OnHutSnapshot)
-            .SetMessageHandler<CitizenSnapshot>(OnCitizenSnapshot);
+            .SetMessageHandler<CitizenSnapshot>(OnCitizenSnapshot)
+            .SetMessageHandler<PlacementSnapshot>(OnPlacementSnapshot)
+            .SetMessageHandler<WandChooserSnapshot>(OnWandChooserSnapshot);
     }
 
     /// <summary>Called by the Town Hall block when a player right-clicks it.</summary>

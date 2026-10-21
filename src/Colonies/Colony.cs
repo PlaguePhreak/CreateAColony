@@ -91,8 +91,42 @@ public class Building
     /// <summary>Index of the next build step to check, so a builder does not rescan finished work.</summary>
     [ProtoMember(7)] public int Cursor;
     [ProtoMember(8)] public int BuilderCitizenId;
+    /// <summary>How far, in blocks, the worker of a Forester's or Farmer's Hut goes out; 0 uses the config default.</summary>
+    [ProtoMember(9)] public int WorkRadius;
+    /// <summary>A guard goes along with this hut's worker.</summary>
+    [ProtoMember(10)] public bool Escort;
+    /// <summary>A Farmer's Hut's farmer leaves berry bushes and fruit trees alone.</summary>
+    [ProtoMember(11)] public bool NoBerries;
+    /// <summary>Blocks the blueprint is raised (or lowered, below zero) from the hut, set with the Builder's Wand.</summary>
+    [ProtoMember(12)] public int YOffset;
+    /// <summary>Blocks the blueprint is shifted east (or west, below zero) from the hut.</summary>
+    [ProtoMember(13)] public int XOffset;
+    /// <summary>Blocks the blueprint is shifted south (or north, below zero) from the hut.</summary>
+    [ProtoMember(14)] public int ZOffset;
+    /// <summary>A Potter's Hut: how many of each kind of pottery to keep in stock, by kind (see ColonyManager.PotteryKind).</summary>
+    [ProtoMember(15)] public Dictionary<string, int> PotteryKeep = new();
+    /// <summary>An officer has set PotteryKeep; until then the config defaults apply.</summary>
+    [ProtoMember(16)] public bool PotteryChosen;
+    /// <summary>The pit a potter dug for its pit kiln.</summary>
+    [ProtoMember(17)] public BlockPos? KilnPos;
+    /// <summary>Where a potter shapes clay.</summary>
+    [ProtoMember(18)] public BlockPos? FormPos;
 
     public bool HasWorkOrder => TargetLevel > Level;
+}
+
+/// <summary>
+/// A field marked out by a Field marker (a scarecrow): the square of ground around it that farmers
+/// till, sow and harvest.
+/// </summary>
+[ProtoContract]
+public class FieldRecord
+{
+    [ProtoMember(1)] public BlockPos Pos = new BlockPos(0);
+    /// <summary>Seed code to sow here, e.g. "game:seeds-carrot"; empty means any seed the farmer has.</summary>
+    [ProtoMember(2)] public string Seed = "";
+    /// <summary>The farmer looking after this field, 0 if none yet.</summary>
+    [ProtoMember(3)] public int FarmerCitizenId;
 }
 
 [ProtoContract]
@@ -126,6 +160,8 @@ public class Colony
     [ProtoMember(19, IsRequired = true)] public int NextBuildingId = 1;
     /// <summary>Builders may use any wood or stone type in place of the one a blueprint asks for.</summary>
     [ProtoMember(20, IsRequired = true)] public bool AnyWoodOrStone = true;
+    /// <summary>Fields marked out with Field markers, for farmers.</summary>
+    [ProtoMember(21)] public List<FieldRecord> Fields = new();
 
     public string OwnerUid => Members.Find(m => m.Role == ColonyRole.Owner)?.PlayerUid ?? "";
 

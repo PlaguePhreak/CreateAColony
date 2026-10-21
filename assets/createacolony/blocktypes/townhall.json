@@ -4,9 +4,19 @@
 	"entityClass": "TownHall",
 	"creativeinventory": { "general": ["*"] },
 	"blockmaterial": "Wood",
-	"drawtype": "cube",
-	// Placeholder look: a plank cube using a vanilla texture. Swap for a proper model later.
-	"textures": { "all": { "base": "game:block/wood/planks/aged1" } },
+	"drawtype": "json",
+	// Model and textures by Aaron's friend; texture names match the ones in the model file.
+	"shape": { "base": "createacolony:block/townhall" },
+	"textures": {
+		"building2": { "base": "createacolony:block/townhall/building" },
+		"oak": { "base": "createacolony:block/townhall/oak" },
+		"oak-h": { "base": "createacolony:block/townhall/oak-h" },
+		"oaktop": { "base": "createacolony:block/townhall/oaktop" }
+	},
+	"sideopaque": { "all": false },
+	"sidesolid": { "all": false },
+	"emitSideAo": { "all": false },
+	"lightAbsorption": 0,
 	"resistance": 3,
 	"maxStackSize": 1,
 	"sounds": { "place": "game:block/planks", "break": "game:block/planks", "hit": "game:block/planks" }

@@ -8,37 +8,54 @@ using Vintagestory.API.Server;
 namespace CreateAColony.Blocks;
 
 /// <summary>
-/// A hut block: the seed of a building. Place it inside the colony, put a chest next to it, then
+/// A hut block: the seed of a building. Put it down inside the colony with the Builder's Wand, then
 /// right-click it to order level 1, and a builder grows the building around it from its blueprint.
 /// The building type comes from the block's "buildingType" attribute, so new huts are JSON only.
 /// </summary>
-public class BlockColonyHut : Block
+public class BlockColonyHut : Block, IWandPlaceable
 {
     public string BuildingType => Attributes?["buildingType"].AsString() ?? "";
 
+    /// <summary>Huts are put down with the Builder's Wand, which shows the building first.</summary>
     public override bool DoPlaceBlock(IWorldAccessor world, IPlayer byPlayer, BlockSelection blockSel, ItemStack byItemStack)
     {
-        if (world.Side != EnumAppSide.Server || byPlayer is not IServerPlayer player)
-        {
-            return base.DoPlaceBlock(world, byPlayer, blockSel, byItemStack);
-        }
+        WandOnly.Tell(world, byPlayer);
+        return false;
+    }
 
+    public string? PlaceByWand(IServerPlayer player, BlockPos pos, int rotation)
+    {
+        var world = player.Entity.World;
         var manager = world.Api.ModLoader.GetModSystem<ColonyManager>();
-        var colony = manager.GetAt(blockSel.Position);
-        if (colony == null || colony.RoleOf(player.PlayerUID) < ColonyRole.Member)
-        {
-            player.SendIngameError("createacolony-outside", Lang.Get("createacolony:marker-outside"));
-            return false;
-        }
-        if (!base.DoPlaceBlock(world, byPlayer, blockSel, byItemStack)) return false;
+        var colony = manager.GetAt(pos);
+        if (colony == null || colony.RoleOf(player.PlayerUID) < ColonyRole.Member) return "createacolony:marker-outside";
+        if (!world.BlockAccessor.GetBlock(pos).IsReplacableBy(this)) return "createacolony:wand-spot-taken";
 
-        manager.AddBuilding(colony, BuildingType, blockSel.Position, ColonyManager.RotationFor(player));
-        player.SendMessage(0, Lang.Get("createacolony:hut-placed", Lang.Get("createacolony:building-" + BuildingType)), EnumChatType.Notification);
-        return true;
+        world.BlockAccessor.SetBlock(BlockId, pos);
+        manager.AddBuilding(colony, BuildingType, pos, rotation);
+        string name = Lang.GetL(player.LanguageCode, "createacolony:building-" + BuildingType);
+        string message = BuildingType == BuildingTypes.Potter
+            ? Lang.GetL(player.LanguageCode, "createacolony:hut-placed-potter", name)
+            : BuildingType is BuildingTypes.Forester or BuildingTypes.Farmer
+            ? Lang.GetL(player.LanguageCode, "createacolony:hut-placed-worker", name, Lang.GetL(player.LanguageCode, "createacolony:job-" + BuildingType))
+            : Lang.GetL(player.LanguageCode, "createacolony:hut-placed", name);
+        player.SendMessage(0, message, EnumChatType.Notification);
+        return null;
     }
 
     public override bool OnBlockInteractStart(IWorldAccessor world, IPlayer byPlayer, BlockSelection blockSel)
     {
+        // With the Builder's Wand in hand the placement window opens instead.
+        if (Items.ItemBuildersWand.TryUse(world, byPlayer, blockSel.Position)) return true;
+        // Sneaking opens the hut's own storage, like a chest; the server sends the inventory window.
+        if (byPlayer.Entity.Controls.ShiftKey)
+        {
+            if (world.Side == EnumAppSide.Server && world.BlockAccessor.GetBlockEntity(blockSel.Position) is BlockEntityColonyHut storage)
+            {
+                storage.OnPlayerRightClick(byPlayer, blockSel);
+            }
+            return true;
+        }
         // The client asks the server for the hut window; the server decides what to show.
         if (world.Side == EnumAppSide.Client)
         {
