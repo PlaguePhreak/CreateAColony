@@ -1,3 +1,4 @@
+using System.Linq;
 using CreateAColony.Colonies;
 using Vintagestory.API.Common;
 using Vintagestory.API.Config;
@@ -63,12 +64,11 @@ public class EntityBehaviorColonyCitizen : EntityBehavior
         var record = FindRecord();
         if (record != null && manager != null)
         {
-            // A courier's load falls where they died instead of vanishing with them.
-            var carried = manager.GetCarried(record);
-            if (carried != null)
+            // What they carried, bags included, falls where they died instead of vanishing with them.
+            var colony = manager.GetById(((EntitySettler)entity).ColonyId!);
+            if (colony != null)
             {
-                entity.World.SpawnItemEntity(carried, entity.Pos.XYZ.Add(0, 0.5, 0));
-                record.CarriedStack = null;
+                foreach (var stack in manager.EmptyPackAndBags(colony, record)) entity.World.SpawnItemEntity(stack, entity.Pos.XYZ.Add(0, 0.5, 0));
             }
 
             if (manager.Config.Permadeath)
@@ -91,12 +91,39 @@ public class EntityBehaviorColonyCitizen : EntityBehavior
         if (byEntity is not EntityPlayer { Player: IServerPlayer player }) return;
 
         var record = FindRecord();
-        if (record == null) return;
-        string line = $"{record.Name}: {Lang.Get("createacolony:job-" + (record.JobCode ?? "none"))}";
-        var carried = manager.GetCarried(record);
-        if (carried != null) line += ", " + Lang.Get("createacolony:carrying", carried.StackSize, carried.GetName());
-        player.SendMessage(0, line, EnumChatType.Notification);
+        var colony = record == null ? null : manager.GetById(((EntitySettler)entity).ColonyId!);
+        if (record == null || colony == null) return;
         handled = EnumHandling.PreventDefault;
+
+        // Members hand a settler a bag by right-clicking with it, and take one back with sneak and an empty hand.
+        bool member = colony.RoleOf(player.PlayerUID) >= ColonyRole.Member;
+        if (member && itemslot?.Itemstack is { } held && ColonyManager.BagSlots(held) > 0)
+        {
+            if (manager.AddBag(colony, record, held))
+            {
+                itemslot.TakeOut(1);
+                itemslot.MarkDirty();
+                player.SendMessage(0, Lang.Get("createacolony:bag-given", record.Name, manager.PackSlots(record)), EnumChatType.Notification);
+            }
+            else
+            {
+                player.SendMessage(0, Lang.Get("createacolony:bag-full", record.Name, ColonyManager.MaxBags), EnumChatType.Notification);
+            }
+            return;
+        }
+        if (member && itemslot?.Empty != false && byEntity.Controls.Sneak && manager.RemoveBag(colony, record) is { } removed)
+        {
+            if (!player.InventoryManager.TryGiveItemstack(removed.Bag, true)) entity.World.SpawnItemEntity(removed.Bag, entity.Pos.XYZ);
+            foreach (var stack in removed.Overflow) entity.World.SpawnItemEntity(stack, entity.Pos.XYZ.Add(0, 0.5, 0));
+            player.SendMessage(0, Lang.Get("createacolony:bag-taken", record.Name, manager.PackSlots(record)), EnumChatType.Notification);
+            return;
+        }
+
+        var items = manager.PackItems(record);
+        string line = $"{record.Name}: {Lang.Get("createacolony:job-" + (record.JobCode ?? "none"))}";
+        line += ", " + Lang.Get("createacolony:pack-slots", items.Count, manager.PackSlots(record));
+        if (items.Count > 0) line += ": " + string.Join(", ", items.Select(s => $"{s.StackSize}x {s.GetName()}"));
+        player.SendMessage(0, line, EnumChatType.Notification);
     }
 
     CitizenRecord? FindRecord()

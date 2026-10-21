@@ -142,5 +142,9 @@
 	"any-type-off": "Builders use exactly the wood and stone the blueprint asks for.",
 	"any-type-hint": "When on, pine logs can stand in for oak logs, andesite for granite, and so on. The block is built in the type the builder brings.",
 	"items-any-wood": "{0} (any wood)",
-	"items-any-rock": "{0} (any stone)"
+	"items-any-rock": "{0} (any stone)",
+	"pack-slots": "carrying {0} of {1} slots",
+	"bag-given": "{0} now wears the bag and has {1} inventory slots.",
+	"bag-full": "{0} already wears {1} bags.",
+	"bag-taken": "You took a bag back from {0}. They now have {1} inventory slots."
 }

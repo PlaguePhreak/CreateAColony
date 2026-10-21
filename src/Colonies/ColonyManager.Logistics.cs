@@ -131,26 +131,6 @@ public partial class ColonyManager
         return moved;
     }
 
-    // ---- What a courier carries -----------------------------------------------------------
-
-    public ItemStack? GetCarried(CitizenRecord citizen)
-    {
-        if (citizen.CarriedStack == null) return null;
-        var stack = new ItemStack(citizen.CarriedStack);
-        if (!stack.ResolveBlockOrItem(sapi.World) || stack.StackSize <= 0)
-        {
-            citizen.CarriedStack = null;
-            return null;
-        }
-        return stack;
-    }
-
-    public void SetCarried(Colony colony, CitizenRecord citizen, ItemStack? stack)
-    {
-        citizen.CarriedStack = stack == null || stack.StackSize <= 0 ? null : stack.ToBytes();
-        MarkDirty(colony);
-    }
-
     // ---- Requests -------------------------------------------------------------------------
 
     public static ItemMatch Matcher(string code)

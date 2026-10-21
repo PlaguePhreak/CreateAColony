@@ -322,7 +322,6 @@ public class ColonyNetwork : ModSystem
         snapshot.ResourcesFor = Lang.Get("createacolony:building-" + current.Type) + " " + current.TargetLevel;
 
         var storage = Manager.HutStorage(colony, building).Cast<BlockEntityContainer>().ToList();
-        var carried = Manager.GetCarried(builder);
         var hand = (sapi!.World.GetEntityById(builder.EntityId) as EntityAgent)?.RightHandItemSlot?.Itemstack;
 
         foreach (var need in Manager.ToolsNeeded(colony, current, blueprint).OrderBy(n => n.Type))
@@ -336,7 +335,7 @@ public class ColonyNetwork : ModSystem
         foreach (var (code, (sample, count)) in Manager.MaterialsNeeded(colony, current, blueprint).OrderByDescending(kv => kv.Value.Count))
         {
             var match = ColonyManager.Matcher(code);
-            int have = Manager.CountItems(storage, match) + (carried != null && match(carried) ? carried.StackSize : 0);
+            int have = Manager.CountItems(storage, match) + Manager.PackCount(builder, match);
             string anyOf = !code.Contains('*') ? "" : sample.Collectible.Variant?.ContainsKey("wood") == true ? "wood" : "rock";
             snapshot.Resources.Add(new ResourceView { Stack = sample.ToBytes(), Needed = count, Have = have, AnyOf = anyOf });
         }

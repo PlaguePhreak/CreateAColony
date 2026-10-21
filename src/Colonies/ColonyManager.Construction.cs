@@ -249,11 +249,10 @@ public partial class ColonyManager
         if (storage.Count == 0) return false;
 
         string tag = RequestTag(order);
-        var carried = GetCarried(builder);
         foreach (var (code, (sample, count)) in MaterialsNeeded(colony, order, blueprint))
         {
             var match = Matcher(code);
-            int have = CountItems(storage, match) + (carried != null && match(carried) ? carried.StackSize : 0);
+            int have = CountItems(storage, match) + PackCount(builder, match);
             int coming = colony.Requests.Where(r => r.RequestedBy == tag && r.ItemCode == code).Sum(r => r.Remaining);
             int shortfall = count - have - coming;
             if (shortfall > 0) AddRequest(colony, code, shortfall, storage[0].Pos, tag);
