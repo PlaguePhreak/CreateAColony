@@ -42,4 +42,6 @@ public class ColonyConfig
     public bool BuildersNeedMaterials = true;
     /// <summary>Seconds a builder takes per block placed or cleared.</summary>
     public float BuilderSecondsPerBlock = 0.75f;
+    /// <summary>Builders need a shovel, axe or pickaxe of the right tier to clear blocks, and wear it out.</summary>
+    public bool BuildersNeedTools = true;
 }

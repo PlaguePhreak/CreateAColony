@@ -22,12 +22,16 @@ public class AiTaskSettlerBuilder : SettlerTaskBase
     /// <summary>If no path gets closer, a builder still works on blocks this close, so it never gets stuck on its own walls.</summary>
     const float StretchRange = 8f;
 
-    enum Step { Fetch, Stash, Work }
+    enum Step { Fetch, Stash, FetchTool, Work }
 
     Step step;
     BlockPos target = new BlockPos(0);
     BuildStep buildStep;
     int orderId;
+    ColonyManager.ToolNeed neededTool;
+
+    /// <summary>The settler's right hand; what is in it shows in the game and is the tool it works with.</summary>
+    ItemSlot? Hand => entity.RightHandItemSlot;
     bool walking;
     float workTime;
     long nextSearchMs;
@@ -70,6 +74,20 @@ public class AiTaskSettlerBuilder : SettlerTaskBase
         {
             manager.CompleteWorkOrder(colony, order);
             return carried != null && StashAt(colony, hut);
+        }
+
+        // The right tool first: a builder digs with a shovel and fells with an axe, like a player.
+        if (manager.ToolNeededAt(buildStep, pos) is { } toolNeed && !ColonyManager.ToolFits(Hand?.Itemstack, toolNeed.Type, toolNeed.Tier))
+        {
+            neededTool = toolNeed;
+            var toolChest = manager.HutStorage(colony, hut)
+                .FirstOrDefault(c => c.Inventory.Any(s => ColonyManager.ToolFits(s.Itemstack, toolNeed.Type, toolNeed.Tier)));
+            if (toolChest != null) return Go(Step.FetchTool, toolChest.Pos);
+
+            bool canAsk = manager.EnsureToolRequest(colony, order, hut, toolNeed);
+            manager.BuildStatus[order.BuildingId] = canAsk ? "needs-tool-" + toolNeed.Type.ToString().ToLowerInvariant() : "no-hut-chest";
+            nextSearchMs = entity.World.ElapsedMilliseconds + WaitRetryMs;
+            return false;
         }
 
         var material = manager.Config.BuildersNeedMaterials ? manager.MaterialFor(buildStep.BlockId, pos) : null;
@@ -153,6 +171,9 @@ public class AiTaskSettlerBuilder : SettlerTaskBase
             case Step.Fetch:
                 Fetch(colony, citizen);
                 break;
+            case Step.FetchTool:
+                FetchTool();
+                break;
             case Step.Stash:
                 Stash(colony, citizen);
                 if (citizen.CarriedStack != null) return false;
@@ -186,6 +207,26 @@ public class AiTaskSettlerBuilder : SettlerTaskBase
         manager.SetCarried(colony, citizen, load);
     }
 
+    /// <summary>Swaps whatever tool is in hand for one that fits the job, from the hut chest.</summary>
+    void FetchTool()
+    {
+        var hand = Hand;
+        if (hand == null || entity.World.BlockAccessor.GetBlockEntity(target) is not BlockEntityContainer chest) return;
+        var slot = chest.Inventory.FirstOrDefault(s => ColonyManager.ToolFits(s.Itemstack, neededTool.Type, neededTool.Tier));
+        if (slot == null) return;
+
+        if (!hand.Empty)
+        {
+            var old = hand.TakeOutWhole();
+            manager!.PutItems(chest, old);
+            if (old.StackSize > 0) entity.World.SpawnItemEntity(old, entity.Pos.XYZ);
+        }
+        hand.Itemstack = slot.TakeOut(1);
+        slot.MarkDirty();
+        hand.MarkDirty();
+        chest.MarkDirty(true);
+    }
+
     void Stash(Colony colony, CitizenRecord citizen)
     {
         var load = manager!.GetCarried(citizen);
@@ -203,7 +244,15 @@ public class AiTaskSettlerBuilder : SettlerTaskBase
         if (order == null || hut == null || manager.IsStepDone(colony, buildStep, target)) return;
 
         var ba = entity.World.BlockAccessor;
-        if (ba.GetBlock(target).Id != 0) manager.BreakForBuild(colony, hut, target);
+        if (ba.GetBlock(target).Id != 0)
+        {
+            var toolNeed = manager.ToolNeededAt(buildStep, target);
+            var hand = Hand;
+            if (toolNeed != null && !ColonyManager.ToolFits(hand?.Itemstack, toolNeed.Value.Type, toolNeed.Value.Tier)) return;
+            manager.BreakForBuild(colony, hut, target);
+            // Every block cleared wears the tool down; a broken tool sends the builder back for another.
+            if (toolNeed != null && hand?.Itemstack != null) hand.Itemstack.Collectible.DamageItem(entity.World, entity, hand);
+        }
         if (buildStep.BlockId == 0) return;
 
         if (manager.Config.BuildersNeedMaterials && manager.MaterialFor(buildStep.BlockId, target) != null)

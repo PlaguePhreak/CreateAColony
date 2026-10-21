@@ -6,6 +6,8 @@ using CreateAColony.Gui;
 using Vintagestory.API.Client;
 using Vintagestory.API.Common;
 using Vintagestory.API.Config;
+using Vintagestory.API.MathTools;
+using Vintagestory.GameContent;
 using Vintagestory.API.Server;
 
 namespace CreateAColony.Network;
@@ -18,7 +20,6 @@ public class ColonyNetwork : ModSystem
 {
     const string ChannelName = "createacolony";
     const int MaxNameLength = 40;
-    const int MaxMaterialLines = 6;
 
     ICoreServerAPI? sapi;
     IServerNetworkChannel? serverChannel;
@@ -27,6 +28,9 @@ public class ColonyNetwork : ModSystem
 
     // Who has which colony's window open, so changes can refresh everyone watching.
     readonly Dictionary<string, HashSet<string>> viewersByColony = new();
+    // Who has which hut window open: player uid -> (colony, hut position).
+    readonly Dictionary<string, (string ColonyId, BlockPos HutPos)> hutViewers = new();
+    GuiDialogHut? hutDialog;
 
     public override void Start(ICoreAPI api)
     {
@@ -34,7 +38,9 @@ public class ColonyNetwork : ModSystem
         api.Network.RegisterChannel(ChannelName)
             .RegisterMessageType<TownHallOpenRequest>()
             .RegisterMessageType<ColonySnapshot>()
-            .RegisterMessageType<ColonyActionPacket>();
+            .RegisterMessageType<ColonyActionPacket>()
+            .RegisterMessageType<HutOpenRequest>()
+            .RegisterMessageType<HutSnapshot>();
     }
 
     // ---- Server ---------------------------------------------------------------------------
@@ -44,11 +50,13 @@ public class ColonyNetwork : ModSystem
         sapi = api;
         serverChannel = api.Network.GetChannel(ChannelName)
             .SetMessageHandler<TownHallOpenRequest>(OnOpenRequest)
-            .SetMessageHandler<ColonyActionPacket>(OnAction);
+            .SetMessageHandler<ColonyActionPacket>(OnAction)
+            .SetMessageHandler<HutOpenRequest>(OnHutOpenRequest);
         // Construction progress changes without anyone clicking, so open windows refresh on their own.
         api.Event.RegisterGameTickListener(_ =>
         {
-            foreach (string colonyId in viewersByColony.Where(kv => kv.Value.Count > 0).Select(kv => kv.Key).ToList())
+            var watched = viewersByColony.Where(kv => kv.Value.Count > 0).Select(kv => kv.Key).Concat(hutViewers.Values.Select(v => v.ColonyId));
+            foreach (string colonyId in watched.Distinct().ToList())
             {
                 if (Manager.GetById(colonyId) is { } c && c.Buildings.Any(b => b.HasWorkOrder)) RefreshViewers(c, periodic: true);
             }
@@ -56,6 +64,7 @@ public class ColonyNetwork : ModSystem
         api.Event.PlayerDisconnect += player =>
         {
             foreach (var viewers in viewersByColony.Values) viewers.Remove(player.PlayerUID);
+            hutViewers.Remove(player.PlayerUID);
         };
     }
 
@@ -82,6 +91,7 @@ public class ColonyNetwork : ModSystem
         if (packet.Action == ColonyAction.CloseWindow)
         {
             if (viewersByColony.TryGetValue(colony.ColonyId, out var v)) v.Remove(player.PlayerUID);
+            hutViewers.Remove(player.PlayerUID);
             return;
         }
 
@@ -161,6 +171,21 @@ public class ColonyNetwork : ModSystem
     /// <summary>Sends an updated snapshot to everyone who has this colony's window open.</summary>
     public void RefreshViewers(Colony colony, bool periodic = false)
     {
+        foreach (var (uid, hut) in hutViewers.Where(kv => kv.Value.ColonyId == colony.ColonyId).ToList())
+        {
+            var building = Manager.GetBuilding(colony, hut.HutPos);
+            if (building != null && sapi!.World.PlayerByUid(uid) is IServerPlayer hp && hp.ConnectionState == EnumClientState.Playing)
+            {
+                var hutSnapshot = BuildHutSnapshot(colony, building, uid, openWindow: false);
+                hutSnapshot.Periodic = periodic;
+                serverChannel!.SendPacket(hutSnapshot, hp);
+            }
+            else
+            {
+                hutViewers.Remove(uid);
+            }
+        }
+
         if (serverChannel == null || !viewersByColony.TryGetValue(colony.ColonyId, out var viewers)) return;
         foreach (string uid in viewers.ToList())
         {
@@ -212,34 +237,98 @@ public class ColonyNetwork : ModSystem
             });
         }
 
-        foreach (var b in colony.Buildings)
-        {
-            var view = new BuildingView
-            {
-                BuildingId = b.BuildingId,
-                Type = b.Type,
-                Level = b.Level,
-                MaxLevel = Manager.Blueprints.MaxLevel(b.Type),
-                TargetLevel = b.HasWorkOrder ? b.TargetLevel : 0,
-                Rotation = b.Rotation,
-                Status = b.HasWorkOrder ? Manager.BuildStatus.GetValueOrDefault(b.BuildingId, "queued") : ""
-            };
-            var blueprint = b.HasWorkOrder ? Manager.Blueprints.Get(b.Type, b.TargetLevel, b.Rotation) : null;
-            if (blueprint != null)
-            {
-                var (done, total) = Manager.Progress(colony, b, blueprint);
-                view.ProgressPercent = total == 0 ? 100 : 100 * done / total;
-                foreach (var (_, (sample, count)) in Manager.MaterialsNeeded(colony, b, blueprint).OrderByDescending(kv => kv.Value.Count).Take(MaxMaterialLines))
-                {
-                    view.Materials.Add(count + " " + sample.GetName());
-                }
-            }
-            snapshot.Buildings.Add(view);
-        }
+        // The Town Hall's own upgrade sits on the Overview tab; every other building has its own hut window.
+        if (Manager.GetBuilding(colony, colony.TownHallPos) is { } townHall) snapshot.Buildings.Add(BuildingViewFor(colony, townHall));
 
         foreach (var m in colony.Members.OrderByDescending(m => m.Role))
         {
             snapshot.Members.Add(new MemberView { PlayerUid = m.PlayerUid, Name = m.LastKnownName, Role = (int)m.Role });
+        }
+        return snapshot;
+    }
+
+    BuildingView BuildingViewFor(Colony colony, Building b)
+    {
+        var view = new BuildingView
+        {
+            BuildingId = b.BuildingId,
+            Type = b.Type,
+            Level = b.Level,
+            MaxLevel = Manager.Blueprints.MaxLevel(b.Type),
+            TargetLevel = b.HasWorkOrder ? b.TargetLevel : 0,
+            Rotation = b.Rotation,
+            Status = b.HasWorkOrder ? Manager.BuildStatus.GetValueOrDefault(b.BuildingId, "queued") : ""
+        };
+        var blueprint = b.HasWorkOrder ? Manager.Blueprints.Get(b.Type, b.TargetLevel, b.Rotation) : null;
+        if (blueprint != null)
+        {
+            var (done, total) = Manager.Progress(colony, b, blueprint);
+            view.ProgressPercent = total == 0 ? 100 : 100 * done / total;
+        }
+        return view;
+    }
+
+    void OnHutOpenRequest(IServerPlayer player, HutOpenRequest req)
+    {
+        var colony = Manager.GetAt(req.Pos);
+        var building = colony == null ? null : Manager.GetBuilding(colony, req.Pos);
+        if (colony == null || building == null) return;
+
+        hutViewers[player.PlayerUID] = (colony.ColonyId, building.HutPos.Copy());
+        serverChannel!.SendPacket(BuildHutSnapshot(colony, building, player.PlayerUID, openWindow: true), player);
+    }
+
+    HutSnapshot BuildHutSnapshot(Colony colony, Building building, string viewerUid, bool openWindow)
+    {
+        var snapshot = new HutSnapshot
+        {
+            ColonyId = colony.ColonyId,
+            Building = BuildingViewFor(colony, building),
+            ViewerRole = (int)colony.RoleOf(viewerUid),
+            IsBuilderHut = building.Type == BuildingTypes.Builder,
+            OpenWindow = openWindow
+        };
+
+        if (building.Type == BuildingTypes.Warehouse)
+        {
+            var containers = Manager.WarehouseContainers(colony).ToList();
+            snapshot.Info = Lang.Get("createacolony:warehouse-summary", containers.Count, Manager.CountItems(containers, _ => true),
+                containers.Sum(c => c.Inventory.Count(s => s.Empty)), containers.Sum(c => c.Inventory.Count));
+        }
+        if (!snapshot.IsBuilderHut) return snapshot;
+
+        foreach (var order in colony.Buildings.Where(b => b.HasWorkOrder).OrderBy(b => b.BuildingId))
+        {
+            snapshot.Orders.Add(BuildingViewFor(colony, order));
+        }
+
+        var builder = colony.Citizens.Find(c => c.Alive && c.JobCode == Jobs.Builder && c.WorkplacePos != null && c.WorkplacePos.Equals(building.HutPos));
+        if (builder == null) return snapshot;
+        snapshot.BuilderName = builder.Name;
+
+        var current = colony.Buildings.Find(b => b.HasWorkOrder && b.BuilderCitizenId == builder.CitizenId)
+            ?? colony.Buildings.Where(b => b.HasWorkOrder && b.BuilderCitizenId == 0).OrderBy(b => b.BuildingId).FirstOrDefault();
+        var blueprint = current == null ? null : Manager.Blueprints.Get(current.Type, current.TargetLevel, current.Rotation);
+        if (current == null || blueprint == null) return snapshot;
+        snapshot.ResourcesFor = Lang.Get("createacolony:building-" + current.Type) + " " + current.TargetLevel;
+
+        var storage = Manager.HutStorage(colony, building).Cast<BlockEntityContainer>().ToList();
+        var carried = Manager.GetCarried(builder);
+        var hand = (sapi!.World.GetEntityById(builder.EntityId) as EntityAgent)?.RightHandItemSlot?.Itemstack;
+
+        foreach (var need in Manager.ToolsNeeded(colony, current, blueprint).OrderBy(n => n.Type))
+        {
+            var sample = Manager.ToolSample(need.Type);
+            if (sample == null) continue;
+            bool has = ColonyManager.ToolFits(hand, need.Type, need.Tier)
+                || Manager.CountItems(storage, s => ColonyManager.ToolFits(s, need.Type, need.Tier)) > 0;
+            snapshot.Resources.Add(new ResourceView { Stack = sample.ToBytes(), Needed = 1, Have = has ? 1 : 0, IsTool = true });
+        }
+        foreach (var (_, (sample, count)) in Manager.MaterialsNeeded(colony, current, blueprint).OrderByDescending(kv => kv.Value.Count))
+        {
+            int have = Manager.CountItems(storage, s => ColonyManager.SameMaterial(s, sample))
+                + (carried != null && ColonyManager.SameMaterial(carried, sample) ? carried.StackSize : 0);
+            snapshot.Resources.Add(new ResourceView { Stack = sample.ToBytes(), Needed = count, Have = have });
         }
         return snapshot;
     }
@@ -252,16 +341,39 @@ public class ColonyNetwork : ModSystem
     {
         capi = api;
         clientChannel = api.Network.GetChannel(ChannelName)
-            .SetMessageHandler<ColonySnapshot>(OnSnapshot);
+            .SetMessageHandler<ColonySnapshot>(OnSnapshot)
+            .SetMessageHandler<HutSnapshot>(OnHutSnapshot);
     }
 
     /// <summary>Called by the Town Hall block when a player right-clicks it.</summary>
-    public void RequestOpen(Vintagestory.API.MathTools.BlockPos pos)
+    public void RequestOpen(BlockPos pos)
     {
         clientChannel?.SendPacket(new TownHallOpenRequest { Pos = pos.Copy() });
     }
 
     public void SendAction(ColonyActionPacket packet) => clientChannel?.SendPacket(packet);
+
+    /// <summary>Called by hut blocks (Builder's Hut, Warehouse) when a player right-clicks them.</summary>
+    public void RequestOpenHut(BlockPos pos) => clientChannel?.SendPacket(new HutOpenRequest { Pos = pos.Copy() });
+
+    void OnHutSnapshot(HutSnapshot snapshot)
+    {
+        if (hutDialog != null && hutDialog.IsOpened() && hutDialog.BuildingId == snapshot.Building.BuildingId)
+        {
+            hutDialog.Update(snapshot);
+            return;
+        }
+        if (!snapshot.OpenWindow) return;
+
+        if (hutDialog != null && hutDialog.IsOpened())
+        {
+            // The server already moved us to the new hut; closing the old window must not undo that.
+            hutDialog.Replaced = true;
+            hutDialog.TryClose();
+        }
+        hutDialog = new GuiDialogHut(capi!, this, snapshot);
+        hutDialog.TryOpen();
+    }
 
     void OnSnapshot(ColonySnapshot snapshot)
     {

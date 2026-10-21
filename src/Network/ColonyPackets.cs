@@ -34,9 +34,47 @@ public class BuildingView
     [ProtoMember(6)] public int ProgressPercent;
     /// <summary>What the work order waits on, a lang key suffix ("building", "waiting-materials", ...).</summary>
     [ProtoMember(7)] public string Status = "";
-    /// <summary>Remaining materials, already formatted: "12 Oak planks".</summary>
-    [ProtoMember(8)] public List<string> Materials = new();
     [ProtoMember(9)] public int Rotation;
+}
+
+/// <summary>Client asks to open the window of the hut block at Pos.</summary>
+[ProtoContract]
+public class HutOpenRequest
+{
+    [ProtoMember(1)] public BlockPos Pos = new BlockPos(0);
+}
+
+/// <summary>One line of the "Items needed" list: what, how many are needed and how many the builder has.</summary>
+[ProtoContract]
+public class ResourceView
+{
+    /// <summary>The item, serialized, so the window can draw its icon.</summary>
+    [ProtoMember(1)] public byte[] Stack = System.Array.Empty<byte>();
+    [ProtoMember(2)] public int Needed;
+    [ProtoMember(3)] public int Have;
+    [ProtoMember(4)] public bool IsTool;
+}
+
+/// <summary>Everything a hut window shows.</summary>
+[ProtoContract]
+public class HutSnapshot
+{
+    [ProtoMember(1)] public string ColonyId = "";
+    [ProtoMember(2)] public BuildingView Building = new();
+    [ProtoMember(3)] public int ViewerRole;
+    [ProtoMember(4)] public bool IsBuilderHut;
+    /// <summary>The builder working from this hut, empty if none.</summary>
+    [ProtoMember(5)] public string BuilderName = "";
+    /// <summary>All work orders in the colony, oldest first (Builder's Hut only).</summary>
+    [ProtoMember(6)] public List<BuildingView> Orders = new();
+    /// <summary>What this hut's builder still needs for its current work order.</summary>
+    [ProtoMember(7)] public List<ResourceView> Resources = new();
+    /// <summary>Building name the resources are for.</summary>
+    [ProtoMember(8)] public string ResourcesFor = "";
+    /// <summary>Extra lines for the building tab, e.g. the warehouse summary.</summary>
+    [ProtoMember(9)] public string Info = "";
+    [ProtoMember(10)] public bool OpenWindow;
+    [ProtoMember(11)] public bool Periodic;
 }
 
 [ProtoContract]
