@@ -361,6 +361,7 @@ public class ColonyNetwork : ModSystem
             snapshot.Info = Lang.Get("createacolony:warehouse-summary", containers.Count, Manager.CountItems(containers, _ => true),
                 containers.Sum(c => c.Inventory.Count(s => s.Empty)), containers.Sum(c => c.Inventory.Count));
         }
+        if (building.Type is BuildingTypes.Forester or BuildingTypes.Farmer) snapshot.Info = Manager.WorkerHutInfo(colony, building);
         if (!snapshot.IsBuilderHut) return snapshot;
 
         foreach (var order in colony.Buildings.Where(b => b.HasWorkOrder).OrderBy(b => b.BuildingId))

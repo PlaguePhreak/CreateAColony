@@ -1,0 +1,11 @@
+{
+	"code": "fieldmarker",
+	"class": "BlockFieldMarker",
+	"creativeinventory": { "general": ["*"] },
+	"blockmaterial": "Wood",
+	"drawtype": "cube",
+	// Marks out a field for farmers, like MineColonies' scarecrow. Placeholder cube look.
+	"textures": { "all": { "base": "game:block/wood/planks/aged1" }, "up": { "base": "game:block/cloth/linen/blue" } },
+	"resistance": 1,
+	"sounds": { "place": "game:block/planks", "break": "game:block/planks", "hit": "game:block/planks" }
+}

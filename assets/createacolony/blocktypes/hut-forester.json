@@ -1,0 +1,12 @@
+{
+	"code": "hut-forester",
+	"class": "BlockColonyHut",
+	"attributes": { "buildingType": "forester" },
+	"creativeinventory": { "general": ["*"] },
+	"blockmaterial": "Wood",
+	"drawtype": "cube",
+	// The seed of the Forester's Hut. Placeholder cube look.
+	"textures": { "all": { "base": "game:block/wood/debarked/aged" }, "up": { "base": "game:block/wood/table/aged/top" }, "down": { "base": "game:block/wood/planks/aged1" } },
+	"resistance": 2,
+	"sounds": { "place": "game:block/planks", "break": "game:block/planks", "hit": "game:block/planks" }
+}

@@ -1,0 +1,12 @@
+{
+	"code": "hut-farmer",
+	"class": "BlockColonyHut",
+	"attributes": { "buildingType": "farmer" },
+	"creativeinventory": { "general": ["*"] },
+	"blockmaterial": "Wood",
+	"drawtype": "cube",
+	// The seed of the Farmer's Hut. Placeholder cube look.
+	"textures": { "all": { "base": "game:block/wood/table/aged/sides" }, "up": { "base": "game:block/cloth/linen/blue" }, "down": { "base": "game:block/wood/planks/aged1" } },
+	"resistance": 2,
+	"sounds": { "place": "game:block/planks", "break": "game:block/planks", "hit": "game:block/planks" }
+}

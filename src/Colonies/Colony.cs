@@ -95,6 +95,20 @@ public class Building
     public bool HasWorkOrder => TargetLevel > Level;
 }
 
+/// <summary>
+/// A field marked out by a Field marker (a scarecrow): the square of ground around it that farmers
+/// till, sow and harvest.
+/// </summary>
+[ProtoContract]
+public class FieldRecord
+{
+    [ProtoMember(1)] public BlockPos Pos = new BlockPos(0);
+    /// <summary>Seed code to sow here, e.g. "game:seeds-carrot"; empty means any seed the farmer has.</summary>
+    [ProtoMember(2)] public string Seed = "";
+    /// <summary>The farmer looking after this field, 0 if none yet.</summary>
+    [ProtoMember(3)] public int FarmerCitizenId;
+}
+
 [ProtoContract]
 public class Colony
 {
@@ -126,6 +140,8 @@ public class Colony
     [ProtoMember(19, IsRequired = true)] public int NextBuildingId = 1;
     /// <summary>Builders may use any wood or stone type in place of the one a blueprint asks for.</summary>
     [ProtoMember(20, IsRequired = true)] public bool AnyWoodOrStone = true;
+    /// <summary>Fields marked out with Field markers, for farmers.</summary>
+    [ProtoMember(21)] public List<FieldRecord> Fields = new();
 
     public string OwnerUid => Members.Find(m => m.Role == ColonyRole.Owner)?.PlayerUid ?? "";
 

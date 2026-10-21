@@ -33,7 +33,11 @@ public class BlockColonyHut : Block
         if (!base.DoPlaceBlock(world, byPlayer, blockSel, byItemStack)) return false;
 
         manager.AddBuilding(colony, BuildingType, blockSel.Position, ColonyManager.RotationFor(player));
-        player.SendMessage(0, Lang.Get("createacolony:hut-placed", Lang.Get("createacolony:building-" + BuildingType)), EnumChatType.Notification);
+        string name = Lang.Get("createacolony:building-" + BuildingType);
+        string message = BuildingType is BuildingTypes.Forester or BuildingTypes.Farmer
+            ? Lang.Get("createacolony:hut-placed-worker", name, Lang.Get("createacolony:job-" + BuildingType))
+            : Lang.Get("createacolony:hut-placed", name);
+        player.SendMessage(0, message, EnumChatType.Notification);
         return true;
     }
 

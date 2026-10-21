@@ -51,12 +51,15 @@ public class CreateAColonyModSystem : ModSystem
         api.RegisterBlockClass("BlockWarehouse", typeof(BlockWarehouse));
         api.RegisterBlockClass("BlockDropOff", typeof(BlockDropOff));
         api.RegisterBlockClass("BlockColonyHut", typeof(BlockColonyHut));
+        api.RegisterBlockClass("BlockFieldMarker", typeof(BlockFieldMarker));
 
         AiTaskRegistry.Register<AiTaskSettlerShelter>("settlershelter");
         AiTaskRegistry.Register<AiTaskSettlerSleep>("settlersleep");
         AiTaskRegistry.Register<AiTaskSettlerEat>("settlereat");
         AiTaskRegistry.Register<AiTaskSettlerCourier>("settlercourier");
         AiTaskRegistry.Register<AiTaskSettlerBuilder>("settlerbuilder");
+        AiTaskRegistry.Register<AiTaskSettlerForester>("settlerforester");
+        AiTaskRegistry.Register<AiTaskSettlerFarmer>("settlerfarmer");
     }
 
     public override void StartServerSide(ICoreServerAPI api)

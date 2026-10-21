@@ -29,9 +29,9 @@ public partial class ColonyManager
     {
         if (colony.WarehousePos == null) return Enumerable.Empty<BlockEntityGenericTypedContainer>();
         var w = colony.WarehousePos;
-        // Drop-off and Builder's Hut chests are never warehouse storage, or couriers would shuffle items in circles.
+        // Drop-off and worker hut chests are never warehouse storage, or couriers would shuffle items in circles.
         var excluded = new HashSet<BlockPos>(DropOffContainers(colony).Select(c => c.Pos));
-        foreach (var hut in colony.Buildings.Where(b => b.Type == BuildingTypes.Builder))
+        foreach (var hut in colony.Buildings.Where(b => IsWorkerHut(b.Type)))
         {
             excluded.UnionWith(HutStorage(colony, hut).Select(c => c.Pos));
         }

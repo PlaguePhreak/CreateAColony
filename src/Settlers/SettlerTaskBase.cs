@@ -123,6 +123,31 @@ public abstract class SettlerTaskBase : AiTaskBase
 
     protected void StopAnimation(string code) => entity.AnimManager.StopAnimation(code);
 
+    /// <summary>The settler's right hand; what is in it shows in the game and is the tool it works with.</summary>
+    protected ItemSlot? Hand => entity.RightHandItemSlot;
+
+    /// <summary>
+    /// Pushes the hand slot to players' screens. The settler's inventory reaches clients through its
+    /// watched attributes, which are only rewritten when stored, so an emptied hand would otherwise
+    /// keep showing the old tool.
+    /// </summary>
+    protected void SyncHand()
+    {
+        Hand?.MarkDirty();
+        entity.GetBehavior<EntityBehaviorContainer>()?.storeInv();
+    }
+
+    protected void PutAwayHand(Colony colony, CitizenRecord citizen)
+    {
+        var hand = Hand;
+        if (hand == null || hand.Empty) return;
+        var stack = hand.Itemstack;
+        manager!.AddToPack(colony, citizen, stack);
+        // Inventory full: keep holding it rather than dropping a tool on the ground.
+        hand.Itemstack = stack.StackSize > 0 ? stack : null;
+        SyncHand();
+    }
+
     /// <summary>What the settler is doing right now, in words, for the settler window.</summary>
     public virtual string Describe(Colony colony, CitizenRecord citizen) => Lang.Get("createacolony:activity-busy");
 

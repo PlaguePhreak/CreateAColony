@@ -158,4 +158,6 @@ public static class BuildingTypes
     public const string TownHall = "townhall";
     public const string Warehouse = "warehouse";
     public const string Builder = "builder";
+    public const string Forester = "forester";
+    public const string Farmer = "farmer";
 }

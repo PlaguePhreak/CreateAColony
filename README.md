@@ -50,7 +50,7 @@ Buildings grow from blueprints, which are ordinary WorldEdit exports. Build the 
 creative world with its hut block where the hut should stand, select it with WorldEdit, and run
 `/we export <name>`. Copy the file from `VintagestoryData/WorldEdit/` to
 `VintagestoryData/ModConfig/createacolony/blueprints/<type>/level<N>.json`, where `<type>` is
-`builder`, `townhall` or `warehouse` and `<N>` is 1 to 5. `/colony reloadblueprints` picks up
+`builder`, `townhall`, `warehouse`, `forester` or `farmer` and `<N>` is 1 to 5. `/colony reloadblueprints` picks up
 changes without a restart. Blueprints in ModConfig override the ones shipped in
 `assets/createacolony/config/blueprints/`.
 
@@ -62,6 +62,23 @@ what its builder still needs with have/need counts. Builders clear soil and sand
 with an axe and stone or ore with a pickaxe, of at least the block's mining tier, and wear the tool
 down as they work. Put tools in the hut chest or the warehouse; couriers bring missing ones. Set
 `BuildersNeedTools` to false in `ModConfig/createacolony.json` to turn this off.
+
+### Foresters and farmers
+
+Place a **Forester's Hut** (planks, sticks and firewood) or a **Farmer's Hut** (planks, sticks and
+seeds) in the colony, put a chest next to it, and give a settler the Forester or Farmer job in the
+Town Hall. Each works from the free hut of its kind nearest the start of the list.
+
+- The forester needs an axe. It fells wild trees within `ForesterRadius` blocks of its hut (never
+  placed logs), nearest first, with the game's own axe logic, and plants a tree seed or sapling of
+  the same wood on the stump.
+- The farmer needs a hoe. A **Field marker** (dry grass on two sticks) marks out the square of
+  `FieldRadius` blocks around it. The farmer harvests ripe crops and sows them again, sows bare
+  farmland, and tills soil, up to `FieldsPerFarmer` fields each. Right-click a marker with seeds to
+  choose its crop; sneak and right-click it with an empty hand to allow any.
+- Both carry what they gather to the hut chest, where couriers pick it up for the warehouse. They
+  keep their tool and a stock of seeds (`ForesterSeedReserve`, `FarmerSeedReserve`); seeds over that
+  go to the warehouse too. Missing tools and seeds are requested from the warehouse.
 
 ### Importing MineColonies blueprints
 

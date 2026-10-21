@@ -98,8 +98,10 @@ public class GuiDialogHut : GuiDialog
         }
         if (snapshot.Info.Length > 0)
         {
-            composer.AddRichtext(snapshot.Info, CairoFont.WhiteDetailText(), ElementBounds.Fixed(0, y, Width, 50));
-            y += 55;
+            // A worker's hut shows who works there, what they are doing and how the job works.
+            double height = b.Type is BuildingTypes.Forester or BuildingTypes.Farmer ? 150 : 50;
+            composer.AddRichtext(snapshot.Info, CairoFont.WhiteDetailText(), ElementBounds.Fixed(0, y, Width, height));
+            y += height + 5;
         }
 
         y = AddOrderButtons(composer, b, y) + 10;

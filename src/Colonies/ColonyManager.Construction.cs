@@ -125,21 +125,7 @@ public partial class ColonyManager
     }
 
     /// <summary>The builder's hut a builder works from, assigning a free one if needed.</summary>
-    public Building? EnsureBuilderHut(Colony colony, CitizenRecord builder)
-    {
-        if (builder.WorkplacePos != null && GetBuilding(colony, builder.WorkplacePos) is { Type: BuildingTypes.Builder } hut) return hut;
-
-        var taken = new HashSet<BlockPos>(colony.Citizens
-            .Where(c => c.Alive && c != builder && c.JobCode == Jobs.Builder && c.WorkplacePos != null)
-            .Select(c => c.WorkplacePos!));
-        var free = colony.Buildings.Find(b => b.Type == BuildingTypes.Builder && !taken.Contains(b.HutPos));
-        if (free != null || builder.WorkplacePos != null)
-        {
-            builder.WorkplacePos = free?.HutPos.Copy();
-            MarkDirty(colony);
-        }
-        return free;
-    }
+    public Building? EnsureBuilderHut(Colony colony, CitizenRecord builder) => EnsureWorkplace(colony, builder, BuildingTypes.Builder);
 
     public void CompleteWorkOrder(Colony colony, Building building)
     {
@@ -261,24 +247,30 @@ public partial class ColonyManager
     }
 
     /// <summary>
-    /// A chest at a Builder's Hut that holds something its builder does not need (cleared dirt,
-    /// leftovers), and a test for which items are not needed. Couriers take those to the warehouse.
+    /// A chest at a worker's hut that holds something its worker does not need (cleared dirt and
+    /// leftovers at a Builder's Hut, logs and crops at a Forester's or Farmer's Hut), and a test for
+    /// which items are not needed. Couriers take those to the warehouse.
     /// </summary>
     public (BlockEntityContainer Chest, System.Func<ItemStack, bool> IsJunk)? FindHutJunk(Colony colony)
     {
-        foreach (var hut in colony.Buildings.Where(b => b.Type == BuildingTypes.Builder))
+        foreach (var hut in colony.Buildings.Where(b => IsWorkerHut(b.Type)))
         {
-            var needed = new List<System.Func<ItemStack, bool>>();
-            var builder = colony.Citizens.Find(c => c.Alive && c.JobCode == Jobs.Builder && c.WorkplacePos != null && c.WorkplacePos.Equals(hut.HutPos));
-            var order = builder == null ? null : colony.Buildings.Find(b => b.HasWorkOrder && b.BuilderCitizenId == builder.CitizenId);
-            var blueprint = order == null ? null : Blueprints.Get(order.Type, order.TargetLevel, order.Rotation);
-            if (blueprint != null) needed.AddRange(MaterialsNeeded(colony, order!, blueprint).Keys.Select(Matcher));
-
-            bool IsJunk(ItemStack s) => !needed.Any(m => m(s)) && !IsBuilderTool(s);
-            var chest = HutStorage(colony, hut).FirstOrDefault(c => c.Inventory.Any(s => !s.Empty && IsJunk(s.Itemstack)));
-            if (chest != null) return (chest, IsJunk);
+            var isJunk = hut.Type == BuildingTypes.Builder ? BuilderHutJunk(colony, hut) : WorkerHutJunk(colony, hut);
+            var chest = HutStorage(colony, hut).FirstOrDefault(c => c.Inventory.Any(s => !s.Empty && isJunk(s.Itemstack)));
+            if (chest != null) return (chest, isJunk);
         }
         return null;
+    }
+
+    /// <summary>At a Builder's Hut everything but the current work order's materials and the builder's tools.</summary>
+    System.Func<ItemStack, bool> BuilderHutJunk(Colony colony, Building hut)
+    {
+        var needed = new List<System.Func<ItemStack, bool>>();
+        var builder = colony.Citizens.Find(c => c.Alive && c.JobCode == Jobs.Builder && c.WorkplacePos != null && c.WorkplacePos.Equals(hut.HutPos));
+        var order = builder == null ? null : colony.Buildings.Find(b => b.HasWorkOrder && b.BuilderCitizenId == builder.CitizenId);
+        var blueprint = order == null ? null : Blueprints.Get(order.Type, order.TargetLevel, order.Rotation);
+        if (blueprint != null) needed.AddRange(MaterialsNeeded(colony, order!, blueprint).Keys.Select(Matcher));
+        return s => !needed.Any(m => m(s)) && !IsBuilderTool(s);
     }
 
     // ---- Changing the world ---------------------------------------------------------------

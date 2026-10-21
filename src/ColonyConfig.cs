@@ -44,4 +44,22 @@ public class ColonyConfig
     public float BuilderSecondsPerBlock = 0.75f;
     /// <summary>Builders need a shovel, axe or pickaxe of the right tier to clear blocks, and wear it out.</summary>
     public bool BuildersNeedTools = true;
+
+    // Forester
+    /// <summary>How far from the Forester's Hut, in blocks, a forester looks for trees.</summary>
+    public int ForesterRadius = 16;
+    /// <summary>Seconds a forester chops before a tree comes down.</summary>
+    public float ForesterSecondsPerTree = 6f;
+    /// <summary>Tree seeds or saplings a forester keeps on hand for replanting; the rest go to the warehouse.</summary>
+    public int ForesterSeedReserve = 8;
+
+    // Farmer
+    /// <summary>How far a field reaches from its Field marker: 4 makes a 9 by 9 field.</summary>
+    public int FieldRadius = 4;
+    /// <summary>How many fields one farmer looks after.</summary>
+    public int FieldsPerFarmer = 4;
+    /// <summary>Seconds a farmer takes to till, sow or harvest one block.</summary>
+    public float FarmerSecondsPerBlock = 1.5f;
+    /// <summary>Seeds a farmer keeps on hand for sowing; the rest go to the warehouse.</summary>
+    public int FarmerSeedReserve = 32;
 }
