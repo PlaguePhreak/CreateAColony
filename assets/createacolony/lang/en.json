@@ -152,6 +152,7 @@
 	"activity-dead": "Dead",
 	"activity-downed": "Knocked out, recovering",
 	"activity-eating": "Getting something to eat",
+	"activity-eating-food": "Eating {0}",
 	"activity-sleeping": "Sleeping",
 	"activity-sheltering": "Sheltering from the weather",
 	"activity-courier-fetch": "Fetching {0}x {1} from the warehouse",

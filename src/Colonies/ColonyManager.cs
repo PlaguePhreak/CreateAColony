@@ -93,7 +93,7 @@ public partial class ColonyManager : ModSystem
         return hoursUntil >= 0 && hoursUntil <= Config.StormWarningHours;
     }
 
-    // ---- Beds and food --------------------------------------------------------------------
+    // ---- Beds --------------------------------------------------------------------
 
     /// <summary>Returns the citizen's bed, claiming a free bed inside the colony if they have none.</summary>
     public BlockPos? EnsureBed(Colony colony, CitizenRecord citizen)
@@ -112,31 +112,6 @@ public partial class ColonyManager : ModSystem
         citizen.HomeBedPos = free.Pos.Copy();
         SaveColony(colony);
         return citizen.HomeBedPos;
-    }
-
-    /// <summary>Finds the nearest container in the colony that holds food the settler can eat.</summary>
-    public BlockEntityContainer? FindFoodContainer(Colony colony, Entity forEntity)
-    {
-        return FindBlockEntities<BlockEntityContainer>(colony)
-            .Where(be => FindFoodSlot(be, forEntity) != null)
-            .OrderBy(be => be.Pos.DistanceSqTo(forEntity.Pos.X, forEntity.Pos.Y, forEntity.Pos.Z))
-            .FirstOrDefault();
-    }
-
-    /// <summary>The slot with the most filling food in a container, or null.</summary>
-    public ItemSlot? FindFoodSlot(BlockEntityContainer container, Entity forEntity)
-    {
-        ItemSlot? best = null;
-        float bestSatiety = 0;
-        foreach (var slot in container.Inventory)
-        {
-            if (slot.Empty) continue;
-            var props = slot.Itemstack.Collectible.GetNutritionProperties(sapi.World, slot.Itemstack, forEntity);
-            if (props == null || props.Satiety <= bestSatiety) continue;
-            best = slot;
-            bestSatiety = props.Satiety;
-        }
-        return best;
     }
 
     /// <summary>All loaded block entities of a type inside the colony's claim area.</summary>

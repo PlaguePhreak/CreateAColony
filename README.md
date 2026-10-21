@@ -15,8 +15,8 @@ land claim, recruit settlers that persist with the save. Compiles cleanly agains
 - `/colony invite <player>`, then that player types `/colony join`. `/colony leave` leaves the colony you stand in.
 - `/colony recruit [name]` (needs controlserver) spawns one more settler, for testing.
 - Craft a **Supply Camp** (3 firewood over 2 sticks) and place it inside your colony. Right-click once per in-game day for starter materials, 5 deliveries per colony. Edit `assets/createacolony/config/supplycamp.json` to change the bundle.
-- Settlers get hungry and take food from any chest inside the colony claim. Keep a chest of bread, fruit or
-  cooked meals near the Town Hall. With no food they slowly starve.
+- Settlers get hungry and take food from any chest, shelf or crock inside the colony claim. Keep bread, fruit,
+  bowls of stew, pots of meals or pies near the Town Hall. With no food they slowly starve. See "Food and meals".
 - At night (21:00 to 06:00) each settler claims a free bed inside the claim and sleeps there. Without a bed they
   sleep on the floor by the Town Hall.
 - About two in-game hours before a temporal storm, settlers head to their bed and stay put until it passes.
@@ -157,6 +157,19 @@ Forester's and Farmer's Huts have a **Work area** tab in their window (officers 
   The same creatures hunt settlers the way they hunt players (`HostilesAttackSettlers`).
 - **Collect berries and fruit** (Farmer's Hut): picks ripe berry bushes and fruit trees within the
   range. Berries further than 32 blocks out wait until the fields have nothing to do.
+
+### Food and meals
+- A hungry settler eats one plain food item, one serving of a meal (from a bowl, a cooking pot or a crock,
+  in a container or placed in the world) or one slice of a pie. Empty bowls and pots are left behind empty.
+  A pot of food left in a fire pit counts once it is cooked; ovens, querns, troughs, barrels and buckets are
+  never touched.
+- Settlers remember the food groups (fruit, vegetable, protein, grain, dairy) of their last few meals and
+  prefer the food group they have had least of, weighed against how far away it is.
+- Food mods: Expanded Foods and A Culinary Artillery change the game's own meal nutrition, and settlers use
+  that same code, so modded meals count with no hard dependency. Extra nutrients that Expanded Foods items
+  carry (`expandedSats`) count too. Food Shelves blocks are ordinary containers, so settlers find food on them.
+  A Culinary Artillery's mixing bowl, saucepan and cauldron are skipped by name so settlers never eat what is
+  being made in them.
 
 ### Hut storage
 

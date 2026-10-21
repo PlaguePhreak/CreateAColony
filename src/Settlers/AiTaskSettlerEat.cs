@@ -7,9 +7,10 @@ using Vintagestory.GameContent;
 namespace CreateAColony.Settlers;
 
 /// <summary>
-/// When hungry, a settler walks to the nearest container in the colony that holds food, takes one
-/// item, and eats it. Food comes from the same chests the players use, so feeding the colony is part
-/// of the game. With no food anywhere the settler tries again later and eventually starves.
+/// When hungry, a settler walks to a container in the colony that holds food and eats one item, one
+/// serving of a meal or one slice of pie (see ColonyManager.Food.cs). Food comes from the same chests,
+/// shelves and crocks the players use, so feeding the colony is part of the game. Settlers prefer food
+/// groups they have not eaten lately. With no food anywhere they try again later and eventually starve.
 /// </summary>
 public class AiTaskSettlerEat : SettlerTaskBase
 {
@@ -20,6 +21,7 @@ public class AiTaskSettlerEat : SettlerTaskBase
     float eatTime;
     bool eating;
     long nextSearchMs;
+    string? eatingName;
 
     public AiTaskSettlerEat(EntityAgent entity, JsonObject taskConfig, JsonObject aiConfig) : base(entity, taskConfig, aiConfig) { }
 
@@ -30,13 +32,13 @@ public class AiTaskSettlerEat : SettlerTaskBase
         var needs = entity.GetBehavior<EntityBehaviorSettlerNeeds>();
         if (citizen == null || needs == null || !needs.IsHungry(manager.Config, citizen)) return false;
 
-        var container = manager.FindFoodContainer(Colony!, entity);
-        if (container == null)
+        var food = manager.FindFood(Colony!, citizen, entity);
+        if (food == null)
         {
             nextSearchMs = entity.World.ElapsedMilliseconds + NoFoodRetryMs;
             return false;
         }
-        containerPos = container.Pos.Copy();
+        containerPos = food.Container.Pos.Copy();
         return true;
     }
 
@@ -44,6 +46,7 @@ public class AiTaskSettlerEat : SettlerTaskBase
     {
         base.StartExecute();
         eating = false;
+        eatingName = null;
         eatTime = 0;
         WalkTo(containerPos!.ToVec3d().Add(0.5, 0, 0.5), 1.5f);
     }
@@ -73,26 +76,19 @@ public class AiTaskSettlerEat : SettlerTaskBase
     {
         var citizen = Citizen;
         if (citizen == null || entity.World.BlockAccessor.GetBlockEntity(containerPos!) is not BlockEntityContainer container) return false;
-
-        var slot = manager!.FindFoodSlot(container, entity);
-        if (slot?.Itemstack == null) return false;
-
-        var props = slot.Itemstack.Collectible.GetNutritionProperties(entity.World, slot.Itemstack, entity);
-        if (props == null) return false;
-        slot.TakeOut(1);
-        slot.MarkDirty();
-        container.MarkDirty(true);
-
-        citizen.Saturation = System.Math.Min(manager.Config.SaturationMax, citizen.Saturation + props.Satiety);
-        return true;
+        eatingName = manager!.EatFood(Colony!, citizen, entity, container);
+        return eatingName != null;
     }
 
     public override void FinishExecute(bool cancelled)
     {
         StopAnimation("eat");
         eating = false;
+        eatingName = null;
         base.FinishExecute(cancelled);
     }
 
-    public override string Describe(Colony colony, CitizenRecord citizen) => Vintagestory.API.Config.Lang.Get("createacolony:activity-eating");
+    public override string Describe(Colony colony, CitizenRecord citizen) => eatingName != null
+        ? Vintagestory.API.Config.Lang.Get("createacolony:activity-eating-food", eatingName)
+        : Vintagestory.API.Config.Lang.Get("createacolony:activity-eating");
 }

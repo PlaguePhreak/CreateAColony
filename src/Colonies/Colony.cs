@@ -51,6 +51,8 @@ public class CitizenRecord
     [ProtoMember(16)] public bool Visitor;
     /// <summary>When a visitor nobody welcomed gives up and leaves.</summary>
     [ProtoMember(17)] public double VisitorUntilTotalDays;
+    /// <summary>Food groups (EnumFoodCategory) of the settler's last few meals, oldest first.</summary>
+    [ProtoMember(18)] public List<int> RecentFood = new();
 
     public bool IsDowned => DownedUntilTotalDays > 0;
 }
