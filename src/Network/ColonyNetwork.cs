@@ -194,7 +194,7 @@ public partial class ColonyNetwork : ModSystem
                 // Turning is only allowed before anything is built, or the old walls would be torn down.
                 if (building.Level > 0 || building.HasWorkOrder) return "createacolony:rotate-built";
                 building.Rotation = (building.Rotation + 90) % 360;
-                if (sapi!.World.BlockAccessor.GetBlockEntity(building.HutPos) is BlockEntityTownHall townHall) townHall.SetRotation(building.Rotation);
+                TurnModel(building);
                 return null;
         }
     }

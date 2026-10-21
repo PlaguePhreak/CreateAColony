@@ -13,9 +13,19 @@
 	},
 	"creativeinventory": { "general": ["*"] },
 	"blockmaterial": "Wood",
-	"drawtype": "cube",
-	// The seed of the Farmer's Hut. Placeholder cube look.
-	"textures": { "all": { "base": "game:block/wood/table/aged/sides" }, "up": { "base": "game:block/cloth/linen/blue" }, "down": { "base": "game:block/wood/planks/aged1" } },
+	"drawtype": "json",
+	// Model and textures by Aaron's friend; texture names match the ones in the model file.
+	// The model starts 4 pixels up, so it is lowered to stand on the ground.
+	"shape": { "base": "createacolony:block/hut-farmer", "offsetY": -0.25 },
+	"textures": {
+		"oak": { "base": "createacolony:block/farmer/oak" },
+		"oaktop": { "base": "createacolony:block/farmer/oaktop" },
+		"piss": { "base": "createacolony:block/farmer/piss" }
+	},
+	"sideopaque": { "all": false },
+	"sidesolid": { "all": false },
+	"emitSideAo": { "all": false },
+	"lightAbsorption": 0,
 	"resistance": 2,
 	"sounds": { "place": "game:block/planks", "break": "game:block/planks", "hit": "game:block/planks" }
 }

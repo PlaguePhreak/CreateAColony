@@ -86,7 +86,7 @@ public partial class ColonyNetwork
                 else
                 {
                     building.Rotation = (building.Rotation + (packet.Text == "-1" ? 270 : 90)) % 360;
-                    if (sapi!.World.BlockAccessor.GetBlockEntity(building.HutPos) is BlockEntityTownHall townHall) townHall.SetRotation(building.Rotation);
+                    TurnModel(building);
                 }
                 break;
             case ColonyAction.PlacementHeight:
@@ -125,6 +125,14 @@ public partial class ColonyNetwork
         // Build here and Not here close the window; when they fail it comes back.
         SendPlacement(player, colony, building, packet.Action is ColonyAction.PlacementConfirm or ColonyAction.PlacementCancel);
         RefreshViewers(colony);
+    }
+
+    /// <summary>Turns the Town Hall's or a hut's model along with its building.</summary>
+    void TurnModel(Building building)
+    {
+        var be = sapi!.World.BlockAccessor.GetBlockEntity(building.HutPos);
+        if (be is BlockEntityTownHall townHall) townHall.SetRotation(building.Rotation);
+        else if (be is BlockEntityColonyHut hut) hut.SetRotation(building.Rotation);
     }
 
     /// <summary>Moves the building one block forward, back, left or right as the player looks.</summary>
