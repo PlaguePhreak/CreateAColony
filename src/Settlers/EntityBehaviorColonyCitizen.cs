@@ -23,9 +23,11 @@ public class EntityBehaviorColonyCitizen : EntityBehavior
     /// <summary>
     /// Holding right-click repeats the interaction. After a bag changes hands, further clicks from that
     /// player are ignored briefly, so the same click does not also open the window or give a second bag.
+    /// Kept per settler, not shared: the game clock restarts at zero when a world is loaded again, and a
+    /// time left over from the last session would block clicks for as long as that session had run.
     /// </summary>
     const long BagCooldownMs = 700;
-    static readonly System.Collections.Generic.Dictionary<string, long> lastBagChangeMs = new();
+    readonly System.Collections.Generic.Dictionary<string, long> lastBagChangeMs = new();
     float sinceSync;
     float sinceStuckCheck;
     float sinceDoorCheck;
@@ -128,7 +130,7 @@ public class EntityBehaviorColonyCitizen : EntityBehavior
         if (record == null || colony == null) return;
         handled = EnumHandling.PreventDefault;
         long now = entity.World.ElapsedMilliseconds;
-        if (lastBagChangeMs.TryGetValue(player.PlayerUID, out long last) && now - last < BagCooldownMs) return;
+        if (lastBagChangeMs.TryGetValue(player.PlayerUID, out long last) && now >= last && now - last < BagCooldownMs) return;
 
         // Members hand a settler a bag by right-clicking with it, and take one back with sneak and an empty hand.
         bool member = colony.RoleOf(player.PlayerUID) >= ColonyRole.Member;
