@@ -47,10 +47,13 @@ public class CreateAColonyModSystem : ModSystem
         api.RegisterBlockEntityClass("TownHall", typeof(BlockEntityTownHall));
         api.RegisterBlockClass("BlockSupplyCamp", typeof(BlockSupplyCamp));
         api.RegisterEntityBehaviorClass("settlerneeds", typeof(EntityBehaviorSettlerNeeds));
+        api.RegisterBlockClass("BlockWarehouse", typeof(BlockWarehouse));
+        api.RegisterBlockClass("BlockDropOff", typeof(BlockDropOff));
 
         AiTaskRegistry.Register<AiTaskSettlerShelter>("settlershelter");
         AiTaskRegistry.Register<AiTaskSettlerSleep>("settlersleep");
         AiTaskRegistry.Register<AiTaskSettlerEat>("settlereat");
+        AiTaskRegistry.Register<AiTaskSettlerCourier>("settlercourier");
     }
 
     public override void StartServerSide(ICoreServerAPI api)
@@ -88,6 +91,20 @@ public class CreateAColonyModSystem : ModSystem
             .BeginSubCommand("leave")
                 .WithDescription("Leave the colony you are standing in")
                 .HandleWith(OnLeave)
+            .EndSubCommand()
+            .BeginSubCommand("request")
+                .WithDescription("Ask couriers to bring items from the warehouse to the chest you are looking at")
+                .WithArgs(parsers.OptionalWord("item"), parsers.OptionalInt("amount", 1))
+                .HandleWith(OnRequest)
+            .EndSubCommand()
+            .BeginSubCommand("requests")
+                .WithDescription("List the open delivery requests of the colony you are standing in")
+                .HandleWith(OnRequests)
+            .EndSubCommand()
+            .BeginSubCommand("cancelrequest")
+                .WithDescription("Cancel a delivery request by its number")
+                .WithArgs(parsers.Int("number"))
+                .HandleWith(OnCancelRequest)
             .EndSubCommand();
     }
 
@@ -173,5 +190,52 @@ public class CreateAColonyModSystem : ModSystem
 
         manager.SetMemberRole(colony, player.PlayerUID, player.PlayerName, ColonyRole.Visitor);
         return TextCommandResult.Success(Lang.Get("createacolony:left", colony.Name));
+    }
+
+    TextCommandResult OnRequest(TextCommandCallingArgs args)
+    {
+        var player = (IServerPlayer)args.Caller.Player;
+        var manager = sapi!.ModLoader.GetModSystem<ColonyManager>();
+        if (args[0] is not string code || code.Length == 0) return TextCommandResult.Error(Lang.Get("createacolony:request-usage"));
+        int amount = Math.Max(1, (int)args[1]);
+
+        var sel = player.CurrentBlockSelection;
+        var colony = sel == null ? null : manager.GetAt(sel.Position);
+        if (sel == null || colony == null || sapi.World.BlockAccessor.GetBlockEntity(sel.Position) is not BlockEntityContainer)
+        {
+            return TextCommandResult.Error(Lang.Get("createacolony:request-not-container"));
+        }
+        if (!colony.CanManage(player.PlayerUID)) return TextCommandResult.Error(Lang.Get("createacolony:denied-officer"));
+
+        if (!code.Contains(':')) code = "game:" + code;
+        var request = manager.AddRequest(colony, code, amount, sel.Position, player.PlayerName);
+        return TextCommandResult.Success(Lang.Get("createacolony:request-created", request.RequestId, amount, code));
+    }
+
+    TextCommandResult OnRequests(TextCommandCallingArgs args)
+    {
+        var manager = sapi!.ModLoader.GetModSystem<ColonyManager>();
+        var colony = manager.GetAt(args.Caller.Entity.Pos.AsBlockPos);
+        if (colony == null) return TextCommandResult.Success(Lang.Get("createacolony:not-in-colony"));
+        if (colony.Requests.Count == 0) return TextCommandResult.Success(Lang.Get("createacolony:request-none"));
+
+        var lines = colony.Requests.Select(r => Lang.Get("createacolony:request-line", r.RequestId, r.ItemCode, r.Delivered, r.Quantity,
+            r.LeasedByCitizenId != 0 ? Lang.Get("createacolony:request-leased") : ""));
+        return TextCommandResult.Success(string.Join("\n", lines));
+    }
+
+    TextCommandResult OnCancelRequest(TextCommandCallingArgs args)
+    {
+        var player = (IServerPlayer)args.Caller.Player;
+        var manager = sapi!.ModLoader.GetModSystem<ColonyManager>();
+        var colony = manager.GetAt(player.Entity.Pos.AsBlockPos);
+        if (colony == null) return TextCommandResult.Error(Lang.Get("createacolony:not-in-colony"));
+        if (!colony.CanManage(player.PlayerUID)) return TextCommandResult.Error(Lang.Get("createacolony:denied-officer"));
+
+        int id = (int)args[0];
+        var request = colony.Requests.Find(r => r.RequestId == id);
+        if (request == null) return TextCommandResult.Error(Lang.Get("createacolony:request-bad-id"));
+        manager.CancelRequest(colony, request);
+        return TextCommandResult.Success(Lang.Get("createacolony:request-cancelled", id));
     }
 }

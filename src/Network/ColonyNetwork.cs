@@ -154,7 +154,11 @@ public class ColonyNetwork : ModSystem
             ViewerRole = (int)colony.RoleOf(viewerUid),
             BedCount = colony.Citizens.Count(c => c.Alive && c.HomeBedPos != null),
             SupplyDeliveriesLeft = System.Math.Max(0, Manager.SupplyDeliveriesTotal - colony.SupplyDeliveriesTaken),
-            OpenWindow = openWindow
+            OpenWindow = openWindow,
+            HasWarehouse = colony.WarehousePos != null,
+            WarehouseChests = Manager.WarehouseContainers(colony).Count(),
+            OpenRequests = colony.Requests.Count,
+            DropOffs = colony.DropOffs.Count
         };
 
         foreach (var c in colony.Citizens)

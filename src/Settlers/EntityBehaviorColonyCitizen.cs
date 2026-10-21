@@ -63,6 +63,14 @@ public class EntityBehaviorColonyCitizen : EntityBehavior
         var record = FindRecord();
         if (record != null && manager != null)
         {
+            // A courier's load falls where they died instead of vanishing with them.
+            var carried = manager.GetCarried(record);
+            if (carried != null)
+            {
+                entity.World.SpawnItemEntity(carried, entity.Pos.XYZ.Add(0, 0.5, 0));
+                record.CarriedStack = null;
+            }
+
             if (manager.Config.Permadeath)
             {
                 record.Alive = false;
@@ -84,7 +92,10 @@ public class EntityBehaviorColonyCitizen : EntityBehavior
 
         var record = FindRecord();
         if (record == null) return;
-        player.SendMessage(0, $"{record.Name}: {Lang.Get("createacolony:job-" + (record.JobCode ?? "none"))}", EnumChatType.Notification);
+        string line = $"{record.Name}: {Lang.Get("createacolony:job-" + (record.JobCode ?? "none"))}";
+        var carried = manager.GetCarried(record);
+        if (carried != null) line += ", " + Lang.Get("createacolony:carrying", carried.StackSize, carried.GetName());
+        player.SendMessage(0, line, EnumChatType.Notification);
         handled = EnumHandling.PreventDefault;
     }
 

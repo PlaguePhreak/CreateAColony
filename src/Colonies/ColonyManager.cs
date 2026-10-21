@@ -25,7 +25,7 @@ public enum FoundColonyResult
 /// Server-only owner of every colony. All mutations go through here so state stays authoritative
 /// in multiplayer and is saved in one place.
 /// </summary>
-public class ColonyManager : ModSystem
+public partial class ColonyManager : ModSystem
 {
     const string IndexKey = "createacolony:index";
     const string ColonyKeyPrefix = "createacolony:colony:";

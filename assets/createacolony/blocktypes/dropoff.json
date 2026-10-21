@@ -1,0 +1,11 @@
+{
+	"code": "dropoff",
+	"class": "BlockDropOff",
+	"creativeinventory": { "general": ["*"] },
+	"blockmaterial": "Wood",
+	"drawtype": "cube",
+	// Placed next to a chest; couriers empty that chest into the warehouse. Placeholder cube look.
+	"textures": { "all": { "base": "game:block/cloth/linen/blue" }, "up": { "base": "game:block/wood/planks/aged1" }, "down": { "base": "game:block/wood/planks/aged1" } },
+	"resistance": 2,
+	"sounds": { "place": "game:block/planks", "break": "game:block/planks", "hit": "game:block/planks" }
+}

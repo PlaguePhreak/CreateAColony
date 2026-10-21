@@ -1,0 +1,11 @@
+{
+	"code": "warehouse",
+	"class": "BlockWarehouse",
+	"creativeinventory": { "general": ["*"] },
+	"blockmaterial": "Wood",
+	"drawtype": "cube",
+	// Marks the warehouse; chests within 5 blocks become its storage. Placeholder cube look.
+	"textures": { "all": { "base": "game:block/wood/debarked/aged" }, "up": { "base": "game:block/wood/table/aged/top" }, "down": { "base": "game:block/wood/table/aged/top" } },
+	"resistance": 2,
+	"sounds": { "place": "game:block/planks", "break": "game:block/planks", "hit": "game:block/planks" }
+}
