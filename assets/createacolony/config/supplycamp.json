@@ -1,0 +1,15 @@
+{
+	// Total daily deliveries per colony. One delivery per in-game day.
+	"deliveries": 5,
+	// Codes that do not exist in the game are skipped with a warning in the server log.
+	"items": [
+		{ "code": "game:firewood", "quantity": 16 },
+		{ "code": "game:stick", "quantity": 16 },
+		{ "code": "game:plank-oak", "quantity": 24 },
+		{ "code": "game:flint", "quantity": 4 },
+		{ "code": "game:drygrass", "quantity": 8 },
+		{ "code": "game:rope", "quantity": 2 },
+		{ "code": "game:clay-blue", "quantity": 16 },
+		{ "code": "game:cattailroot", "quantity": 6 }
+	]
+}

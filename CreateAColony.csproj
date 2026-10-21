@@ -24,4 +24,15 @@
     <Content Include="modinfo.json" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
+  <!-- After a Release build, zip the mod so it can be dropped straight into the game's Mods folder. -->
+  <Target Name="PackageMod" AfterTargets="Build" Condition="'$(Configuration)' == 'Release'">
+    <PropertyGroup>
+      <ModVersion>$([System.Text.RegularExpressions.Regex]::Match($([System.IO.File]::ReadAllText('$(MSBuildProjectDirectory)/modinfo.json')), '"version":\s*"([^"]+)"').Groups[1].Value)</ModVersion>
+    </PropertyGroup>
+    <MakeDir Directories="$(MSBuildProjectDirectory)/Releases" />
+    <Delete Files="$(MSBuildProjectDirectory)/Releases/createacolony_$(ModVersion).zip" />
+    <ZipDirectory SourceDirectory="$(OutputPath)" DestinationFile="$(MSBuildProjectDirectory)/Releases/createacolony_$(ModVersion).zip" />
+    <Message Importance="high" Text="Mod zip: Releases/createacolony_$(ModVersion).zip" />
+  </Target>
+
 </Project>

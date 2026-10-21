@@ -4,12 +4,9 @@
 	"entityClass": "TownHall",
 	"creativeinventory": { "general": ["*"] },
 	"blockmaterial": "Wood",
-	"drawtype": "json",
-	// Placeholder look so the MVP needs no art. TODO: confirm this vanilla shape path in 1.22, or swap for a custom model.
-	"shape": { "base": "game:block/wood/lectern/lectern" },
-	"textures": {},
-	"sidesolid": { "all": false },
-	"sideopaque": { "all": false },
+	"drawtype": "cube",
+	// Placeholder look: a plank cube using a vanilla texture. Swap for a proper model later.
+	"textures": { "all": { "base": "game:block/wood/planks/aged1" } },
 	"resistance": 3,
 	"maxStackSize": 1,
 	"sounds": { "place": "game:block/planks", "break": "game:block/planks", "hit": "game:block/planks" }

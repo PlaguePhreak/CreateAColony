@@ -11,8 +11,8 @@
 	},
 	"client": {
 		"renderer": "Shape",
-		// TODO: confirm the vanilla humanoid shape path in the 1.22 assets folder (assets/game/shapes/entity/humanoid/).
-		"shape": { "base": "game:entity/humanoid/villager-{sex}" },
+		// Humanoid model from VS Village (MIT), see THIRD_PARTY_NOTICES.md. Uses vanilla skin textures.
+		"shape": { "base": "createacolony:entity/humanoid/settler-{sex}" },
 		"behaviors": [
 			{ "code": "villagerinventory" },
 			{ "code": "nametag", "showtagonlywhentargeted": true },

@@ -56,6 +56,11 @@ public class Colony
     [ProtoMember(8)] public List<CitizenRecord> Citizens = new();
     [ProtoMember(9)] public int NextCitizenId = 1;
     [ProtoMember(10)] public double FoundedTotalDays;
+    /// <summary>Position of the colony's single supply camp, or null if none is placed.</summary>
+    [ProtoMember(11)] public BlockPos? SupplyCampPos;
+    /// <summary>Kept on the colony, not the block, so breaking and re-placing the camp cannot reset it.</summary>
+    [ProtoMember(12)] public int SupplyDeliveriesTaken;
+    [ProtoMember(13)] public int LastSupplyDay = -1;
 
     public string OwnerUid => Members.Find(m => m.Role == ColonyRole.Owner)?.PlayerUid ?? "";
 

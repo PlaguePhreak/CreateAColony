@@ -184,8 +184,7 @@ public class ColonyManager : ModSystem
         // Spread settlers around the Town Hall so they do not spawn inside each other.
         double angle = sapi.World.Rand.NextDouble() * GameMath.TWOPI;
         var spawn = colony.TownHallPos.ToVec3d().Add(0.5 + Math.Cos(angle) * 2, 1, 0.5 + Math.Sin(angle) * 2);
-        entity.ServerPos.SetPos(spawn);
-        entity.Pos.SetFrom(entity.ServerPos);
+        entity.Pos.SetPos(spawn);
         sapi.World.SpawnEntity(entity);
         entity.GetBehavior<EntityBehaviorNameTag>()?.SetName(record.Name);
 
@@ -237,6 +236,8 @@ public class ColonyManager : ModSystem
         foreach (var colony in colonies.Values) SaveColony(colony, saveIndex: false);
         SaveIndex();
     }
+
+    public void MarkDirty(Colony colony) => SaveColony(colony);
 
     void SaveColony(Colony colony, bool saveIndex = true)
     {
