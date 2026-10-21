@@ -1,0 +1,250 @@
+{
+	"Woods": {
+		"oak": "oak",
+		"spruce": "pine",
+		"birch": "birch",
+		"jungle": "kapok",
+		"acacia": "acacia",
+		"dark_oak": "walnut",
+		"mangrove": "baldcypress",
+		"cherry": "maple",
+		"bamboo": "oak",
+		"crimson": "purpleheart",
+		"warped": "ebony"
+	},
+	"Rocks": {
+		"stone": "granite",
+		"andesite": "andesite",
+		"diorite": "whitemarble",
+		"granite": "granite",
+		"deepslate": "basalt",
+		"tuff": "slate",
+		"blackstone": "basalt",
+		"calcite": "limestone"
+	},
+	"Rules": [
+		{
+			"Match": "^minecraft:(cave_|void_)?air$",
+			"Blocks": [
+				"game:air"
+			]
+		},
+		{
+			"Match": "^structurize:block(solid|fluid)?substitution$",
+			"Blocks": [
+				"game:meta-filler",
+				"skip"
+			]
+		},
+		{
+			"Match": "^structurize:",
+			"Blocks": [
+				"skip"
+			]
+		},
+		{
+			"Match": "^minecraft:(water|lava|bubble_column)$",
+			"Blocks": [
+				"skip"
+			]
+		},
+		{
+			"Match": "^minecraft:(?<wood>oak|spruce|birch|jungle|acacia|dark_oak|mangrove|cherry|bamboo|crimson|warped)_planks$",
+			"Blocks": [
+				"game:planks-{vswood}-hor",
+				"game:planks-oak-hor"
+			]
+		},
+		{
+			"Match": "^minecraft:(stripped_)?(?<wood>oak|spruce|birch|jungle|acacia|dark_oak|mangrove|cherry|bamboo|crimson|warped)_(log|wood|stem|hyphae)$",
+			"Blocks": [
+				"game:log-placed-{vswood}-{vsaxis}",
+				"game:log-placed-oak-{vsaxis}"
+			]
+		},
+		{
+			"Match": "^minecraft:(?<wood>oak|spruce|birch|jungle|acacia|dark_oak|mangrove|cherry|bamboo|crimson|warped)_stairs$",
+			"Blocks": [
+				"game:plankstairs-{vswood}-{stairhalf}-{facing}-free",
+				"game:plankstairs-oak-{stairhalf}-{facing}-free"
+			]
+		},
+		{
+			"Match": "^minecraft:(?<wood>oak|spruce|birch|jungle|acacia|dark_oak|mangrove|cherry|bamboo|crimson|warped)_slab$",
+			"When": {
+				"type": "double"
+			},
+			"Blocks": [
+				"game:planks-{vswood}-hor",
+				"game:planks-oak-hor"
+			]
+		},
+		{
+			"Match": "^minecraft:(?<wood>oak|spruce|birch|jungle|acacia|dark_oak|mangrove|cherry|bamboo|crimson|warped)_slab$",
+			"Blocks": [
+				"game:plankslab-{vswood}-{slabhalf}-free",
+				"game:plankslab-oak-{slabhalf}-free"
+			]
+		},
+		{
+			"Match": "^minecraft:(?<wood>oak|spruce|birch|jungle|acacia|dark_oak|mangrove|cherry|bamboo|crimson|warped)_fence$",
+			"Blocks": [
+				"game:woodenfence-{vswood}-empty-free",
+				"game:woodenfence-oak-empty-free"
+			]
+		},
+		{
+			"Match": "^minecraft:(?<wood>oak|spruce|birch|jungle|acacia|dark_oak|mangrove|cherry|bamboo|crimson|warped)_fence_gate$",
+			"Blocks": [
+				"game:woodenfencegate-{vswood}-{facing}-closed-left-free",
+				"game:woodenfencegate-oak-{facing}-closed-left-free"
+			]
+		},
+		{
+			"Match": "^minecraft:(?<wood>oak|spruce|birch|jungle|acacia|dark_oak|mangrove|cherry|bamboo|crimson|warped)_leaves$",
+			"Blocks": [
+				"game:leaves-placed-{vswood}",
+				"skip"
+			]
+		},
+		{
+			"Match": "^minecraft:ladder$",
+			"Blocks": [
+				"game:ladder-wood-{facing}"
+			]
+		},
+		{
+			"Match": "^minecraft:(mossy_)?cobblestone$",
+			"Blocks": [
+				"game:cobblestone-granite"
+			]
+		},
+		{
+			"Match": "^minecraft:(mossy_)?cobblestone_stairs$",
+			"Blocks": [
+				"game:cobblestonestairs-granite-{stairhalf}-{facing}-free"
+			]
+		},
+		{
+			"Match": "^minecraft:(mossy_)?cobblestone_slab$",
+			"When": {
+				"type": "double"
+			},
+			"Blocks": [
+				"game:cobblestone-granite"
+			]
+		},
+		{
+			"Match": "^minecraft:(mossy_)?cobblestone_slab$",
+			"Blocks": [
+				"game:cobblestoneslab-granite-{slabhalf}-free"
+			]
+		},
+		{
+			"Match": "^minecraft:(mossy_)?cobblestone_wall$",
+			"Blocks": [
+				"game:cobblestonewall-granite-empty",
+				"game:cobblestone-granite"
+			]
+		},
+		{
+			"Match": "^minecraft:(mossy_|cracked_|chiseled_)?stone_bricks$",
+			"Blocks": [
+				"game:stonebricks-granite",
+				"game:cobblestone-granite"
+			]
+		},
+		{
+			"Match": "^minecraft:polished_(?<rock>andesite|diorite|granite|deepslate|blackstone)$",
+			"Blocks": [
+				"game:polishedrock-{vsrock}",
+				"game:rock-{vsrock}"
+			]
+		},
+		{
+			"Match": "^minecraft:(smooth_)?(?<rock>stone|andesite|diorite|granite|deepslate|tuff|blackstone|calcite)$",
+			"Blocks": [
+				"game:rock-{vsrock}",
+				"game:rock-granite"
+			]
+		},
+		{
+			"Match": "^minecraft:(cut_|smooth_|chiseled_)?sandstone$",
+			"Blocks": [
+				"game:rock-sandstone",
+				"game:sand-sandstone"
+			]
+		},
+		{
+			"Match": "^minecraft:(dirt|coarse_dirt|rooted_dirt|podzol|mud)$",
+			"Blocks": [
+				"game:soil-medium-none"
+			]
+		},
+		{
+			"Match": "^minecraft:grass_block$",
+			"Blocks": [
+				"game:soil-medium-normal",
+				"game:soil-medium-none"
+			]
+		},
+		{
+			"Match": "^minecraft:dirt_path$",
+			"Blocks": [
+				"game:packeddirt",
+				"game:soil-medium-none"
+			]
+		},
+		{
+			"Match": "^minecraft:gravel$",
+			"Blocks": [
+				"game:gravel-granite"
+			]
+		},
+		{
+			"Match": "^minecraft:sand$",
+			"Blocks": [
+				"game:sand-granite"
+			]
+		},
+		{
+			"Match": "^minecraft:(\\w+_)?glass$",
+			"Blocks": [
+				"game:glass-plain",
+				"game:glass-quartz"
+			]
+		},
+		{
+			"Match": "^minecraft:torch$",
+			"Blocks": [
+				"game:torch-basic-lit-up"
+			]
+		},
+		{
+			"Match": "^minecraft:wall_torch$",
+			"Blocks": [
+				"game:torch-basic-lit-{facing}",
+				"game:torch-basic-lit-up"
+			]
+		},
+		{
+			"Match": "^minecraft:hay_block$",
+			"Blocks": [
+				"game:hay-normal-ud"
+			]
+		},
+		{
+			"Match": "^minecraft:(chest|barrel)$|^minecolonies:blockminecoloniesrack$",
+			"Blocks": [
+				"game:chest-{facing}",
+				"game:chest-east"
+			]
+		},
+		{
+			"Match": "^minecraft:(short_grass|grass|tall_grass|fern|large_fern|dandelion|poppy|\\w+_tulip|\\w+_flower|snow)$",
+			"Blocks": [
+				"game:air"
+			]
+		}
+	]
+}

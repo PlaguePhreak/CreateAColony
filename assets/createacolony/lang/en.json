@@ -114,5 +114,10 @@
 	"hut-placed": "{0} placed. Put a chest next to it, then open the Town Hall's Buildings tab to order level 1.",
 	"hut-info": "{0}, level {1}.",
 	"hut-building": "{0}, level {1}, building level {2}.",
-	"blueprints-reloaded": "Blueprints reloaded. Your own blueprints go in {0}"
+	"blueprints-reloaded": "Blueprints reloaded. Your own blueprints go in {0}",
+	"import-missing": "File not found: {0}",
+	"import-failed": "Could not convert that file: {0}",
+	"import-done": "Converted {0} into {1} level {2} ({3} blocks). Open the Town Hall's Buildings tab to build it.",
+	"import-all-matched": "Every block had a Vintage Story match.",
+	"import-unmatched": "No match, left empty: {0}"
 }

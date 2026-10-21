@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using CreateAColony.Blocks;
 using CreateAColony.Colonies;
+using CreateAColony.Import;
 using CreateAColony.Settlers;
 using Vintagestory.API.Common;
 using Vintagestory.API.Config;
@@ -111,6 +112,12 @@ public class CreateAColonyModSystem : ModSystem
                     sapi!.ModLoader.GetModSystem<ColonyManager>().Blueprints.Reload();
                     return TextCommandResult.Success(Lang.Get("createacolony:blueprints-reloaded", BlueprintLibrary.UserFolder));
                 })
+            .EndSubCommand()
+            .BeginSubCommand("importmc")
+                .WithDescription("Convert a MineColonies .blueprint from ModConfig/createacolony/import into a building level")
+                .RequiresPrivilege(Privilege.controlserver)
+                .WithArgs(parsers.Word("file"), parsers.Word("buildingtype"), parsers.IntRange("level", 1, BlueprintLibrary.MaxLevels))
+                .HandleWith(OnImportMc)
             .EndSubCommand()
             .BeginSubCommand("cancelrequest")
                 .WithDescription("Cancel a delivery request by its number")
@@ -233,6 +240,37 @@ public class CreateAColonyModSystem : ModSystem
         var lines = colony.Requests.Select(r => Lang.Get("createacolony:request-line", r.RequestId, r.ItemCode, r.Delivered, r.Quantity,
             r.LeasedByCitizenId != 0 ? Lang.Get("createacolony:request-leased") : ""));
         return TextCommandResult.Success(string.Join("\n", lines));
+    }
+
+    TextCommandResult OnImportMc(TextCommandCallingArgs args)
+    {
+        string file = (string)args[0];
+        string type = ((string)args[1]).ToLowerInvariant();
+        int level = (int)args[2];
+
+        if (!file.EndsWith(".blueprint")) file += ".blueprint";
+        string input = System.IO.Path.Combine(MineColoniesImporter.ImportFolder, file);
+        if (!System.IO.File.Exists(input)) return TextCommandResult.Error(Lang.Get("createacolony:import-missing", input));
+        string output = System.IO.Path.Combine(BlueprintLibrary.UserFolder, type, $"level{level}.json");
+
+        MineColoniesImporter.Result result;
+        try
+        {
+            result = new MineColoniesImporter(sapi!, MineColoniesImporter.LoadConfig(sapi!)).Convert(input, type, output);
+        }
+        catch (Exception e)
+        {
+            sapi!.Logger.Error("[createacolony] Import of {0} failed: {1}", input, e);
+            return TextCommandResult.Error(Lang.Get("createacolony:import-failed", e.Message));
+        }
+
+        var manager = sapi!.ModLoader.GetModSystem<ColonyManager>();
+        manager.Blueprints.Reload();
+        string unmatched = result.Unmatched.Count == 0
+            ? Lang.Get("createacolony:import-all-matched")
+            : Lang.Get("createacolony:import-unmatched", string.Join(", ", result.Unmatched.OrderByDescending(kv => kv.Value).Select(kv => $"{kv.Key} x{kv.Value}")));
+        sapi.Logger.Notification("[createacolony] Imported {0} as {1} level {2}: {3} blocks. {4}", file, type, level, result.Blocks, unmatched);
+        return TextCommandResult.Success(Lang.Get("createacolony:import-done", file, Lang.Get("createacolony:building-" + type), level, result.Blocks) + "\n" + unmatched);
     }
 
     TextCommandResult OnCancelRequest(TextCommandCallingArgs args)
