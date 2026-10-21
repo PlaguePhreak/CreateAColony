@@ -1,0 +1,10 @@
+{
+	"ingredientPattern": "FFF,S_S",
+	"ingredients": {
+		"F": { "type": "item", "code": "game:firewood" },
+		"S": { "type": "item", "code": "game:stick" }
+	},
+	"width": 3,
+	"height": 2,
+	"output": { "type": "block", "code": "createacolony:supplycamp" }
+}

@@ -1,0 +1,12 @@
+{
+	"code": "supplycamp",
+	"class": "BlockSupplyCamp",
+	"creativeinventory": { "general": ["*"] },
+	"blockmaterial": "Wood",
+	"drawtype": "cube",
+	// Placeholder look: a plank cube. TODO: confirm the texture path in 1.22, or swap for a crate-and-tent model.
+	"textures": { "all": { "base": "game:block/wood/planks/oak1" } },
+	"resistance": 2,
+	"maxStackSize": 1,
+	"sounds": { "place": "game:block/planks", "break": "game:block/planks", "hit": "game:block/planks" }
+}

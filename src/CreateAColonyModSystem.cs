@@ -43,6 +43,7 @@ public class CreateAColonyModSystem : ModSystem
         api.RegisterEntityBehaviorClass("colonycitizen", typeof(EntityBehaviorColonyCitizen));
         api.RegisterBlockClass("BlockTownHall", typeof(BlockTownHall));
         api.RegisterBlockEntityClass("TownHall", typeof(BlockEntityTownHall));
+        api.RegisterBlockClass("BlockSupplyCamp", typeof(BlockSupplyCamp));
     }
 
     public override void StartServerSide(ICoreServerAPI api)

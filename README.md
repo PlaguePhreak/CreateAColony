@@ -14,6 +14,7 @@ land claim, recruit settlers that persist with the save. Not yet compiled agains
 - `/colony info` inside the claim shows the colony.
 - `/colony invite <player>`, then that player types `/colony join`. `/colony leave` leaves the colony you stand in.
 - `/colony recruit [name]` (needs controlserver) spawns one more settler, for testing.
+- Craft a **Supply Camp** (3 firewood over 2 sticks) and place it inside your colony. Right-click once per in-game day for starter materials, 5 deliveries per colony. Edit `assets/createacolony/config/supplycamp.json` to change the bundle.
 - Breaking the Town Hall disbands the colony and removes the claim.
 - The mod refuses to start if VS Village is installed.
 

@@ -238,6 +238,8 @@ public class ColonyManager : ModSystem
         SaveIndex();
     }
 
+    public void MarkDirty(Colony colony) => SaveColony(colony);
+
     void SaveColony(Colony colony, bool saveIndex = true)
     {
         sapi.WorldManager.SaveGame.StoreData(ColonyKeyPrefix + colony.ColonyId, SerializerUtil.Serialize(colony));

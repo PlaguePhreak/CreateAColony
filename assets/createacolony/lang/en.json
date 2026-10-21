@@ -20,5 +20,11 @@
 	"left": "You left {0}.",
 	"settlers-arrived": "{0} settlers have arrived at {1}.",
 	"item-creature-settler-male": "Settler",
-	"item-creature-settler-female": "Settler"
+	"item-creature-settler-female": "Settler",
+	"block-supplycamp": "Supply Camp",
+	"supplycamp-outside": "Build the supply camp inside a colony you belong to.",
+	"supplycamp-exists": "This colony already has a supply camp.",
+	"supplycamp-tomorrow": "The camp has nothing more today. Come back tomorrow.",
+	"supplycamp-exhausted": "The supply camp has run dry. Your colony must provide for itself now.",
+	"supplycamp-delivered": "You collect the day's supplies. Deliveries left: {0}."
 }
