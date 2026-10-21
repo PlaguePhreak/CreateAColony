@@ -29,10 +29,15 @@ public partial class ColonyManager
     {
         if (colony.WarehousePos == null) return Enumerable.Empty<BlockEntityGenericTypedContainer>();
         var w = colony.WarehousePos;
-        var dropOffChests = new HashSet<BlockPos>(DropOffContainers(colony).Select(c => c.Pos));
+        // Drop-off and Builder's Hut chests are never warehouse storage, or couriers would shuffle items in circles.
+        var excluded = new HashSet<BlockPos>(DropOffContainers(colony).Select(c => c.Pos));
+        foreach (var hut in colony.Buildings.Where(b => b.Type == BuildingTypes.Builder))
+        {
+            excluded.UnionWith(HutStorage(colony, hut).Select(c => c.Pos));
+        }
         return FindBlockEntities<BlockEntityGenericTypedContainer>(colony)
             .Where(c => Math.Abs(c.Pos.X - w.X) <= WarehouseRadius && Math.Abs(c.Pos.Z - w.Z) <= WarehouseRadius
-                && Math.Abs(c.Pos.Y - w.Y) <= WarehouseHeight && !dropOffChests.Contains(c.Pos))
+                && Math.Abs(c.Pos.Y - w.Y) <= WarehouseHeight && !excluded.Contains(c.Pos))
             .OrderBy(c => c.Pos.DistanceSqTo(w.X, w.Y, w.Z));
     }
 

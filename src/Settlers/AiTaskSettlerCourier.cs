@@ -23,6 +23,7 @@ public class AiTaskSettlerCourier : SettlerTaskBase
     Step step;
     BlockPos? target;
     int requestId;
+    System.Func<ItemStack, bool> pickupFilter = _ => true;
     long nextSearchMs;
 
     public AiTaskSettlerCourier(EntityAgent entity, JsonObject taskConfig, JsonObject aiConfig) : base(entity, taskConfig, aiConfig) { }
@@ -33,7 +34,9 @@ public class AiTaskSettlerCourier : SettlerTaskBase
         var citizen = Citizen;
         var colony = Colony;
         // A settler whose courier job was taken away still puts its last load back first.
-        if (citizen == null || colony == null || (citizen.JobCode != Jobs.Courier && citizen.CarriedStack == null)) return false;
+        // Builders carry their own materials, so their loads are left to the builder task.
+        if (citizen == null || colony == null || citizen.JobCode == Jobs.Builder) return false;
+        if (citizen.JobCode != Jobs.Courier && citizen.CarriedStack == null) return false;
 
         nextSearchMs = entity.World.ElapsedMilliseconds + IdleRetryMs;
         return Plan(colony, citizen);
@@ -71,8 +74,17 @@ public class AiTaskSettlerCourier : SettlerTaskBase
         }
 
         if (colony.WarehousePos == null) return false;
+        pickupFilter = _ => true;
         var dropOff = manager.DropOffContainers(colony).FirstOrDefault(c => c.Inventory.Any(s => !s.Empty));
-        return Go(Step.Pickup, dropOff?.Pos);
+        if (dropOff != null) return Go(Step.Pickup, dropOff.Pos);
+
+        // Clear out builders' chests: rubble from site clearing and materials no longer needed.
+        if (manager.FindHutJunk(colony) is { } junk)
+        {
+            pickupFilter = junk.IsJunk;
+            return Go(Step.Pickup, junk.Chest.Pos);
+        }
+        return false;
     }
 
     bool Go(Step next, BlockPos? pos)
@@ -135,7 +147,7 @@ public class AiTaskSettlerCourier : SettlerTaskBase
         }
         else
         {
-            load = manager!.TakeItems(new[] { container }, _ => true, int.MaxValue);
+            load = manager!.TakeItems(new[] { container }, pickupFilter, int.MaxValue);
             destination = manager.WarehouseContainers(colony).FirstOrDefault()?.Pos;
         }
 

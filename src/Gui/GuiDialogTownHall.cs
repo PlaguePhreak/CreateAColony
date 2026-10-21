@@ -38,8 +38,11 @@ public class GuiDialogTownHall : GuiDialog
 
     public void Update(ColonySnapshot fresh)
     {
+        // Keep a half-typed name unless the name really changed.
+        if (fresh.Name != snapshot.Name) pendingName = fresh.Name;
         snapshot = fresh;
-        pendingName = fresh.Name;
+        // Timed progress refreshes would close an open dropdown on the other tabs.
+        if (fresh.Periodic && currentTab != 3) return;
         Compose();
     }
 
@@ -56,12 +59,13 @@ public class GuiDialogTownHall : GuiDialog
             new GuiTab { Name = Lang.Get("createacolony:tab-overview"), DataInt = 0, Active = currentTab == 0 },
             new GuiTab { Name = Lang.Get("createacolony:tab-settlers"), DataInt = 1, Active = currentTab == 1 },
             new GuiTab { Name = Lang.Get("createacolony:tab-members"), DataInt = 2, Active = currentTab == 2 },
+            new GuiTab { Name = Lang.Get("createacolony:tab-buildings"), DataInt = 3, Active = currentTab == 3 },
         };
 
         var composer = capi.Gui.CreateCompo("createacolony-townhall", dialogBounds)
             .AddShadedDialogBG(bgBounds)
             .AddDialogTitleBar(snapshot.Name, () => TryClose())
-            .AddVerticalTabs(tabs, ElementBounds.Fixed(-160, 35, 160, 120), (id, tab) => { currentTab = id; page = 0; Compose(); }, "tabs")
+            .AddVerticalTabs(tabs, ElementBounds.Fixed(-160, 35, 160, 160), (id, tab) => { currentTab = id; page = 0; Compose(); }, "tabs")
             .BeginChildElements(bgBounds);
 
         switch (currentTab)
@@ -69,6 +73,7 @@ public class GuiDialogTownHall : GuiDialog
             case 0: ComposeOverview(composer); break;
             case 1: ComposeSettlers(composer); break;
             case 2: ComposeMembers(composer); break;
+            case 3: ComposeBuildings(composer); break;
         }
 
         SingleComposer = composer.EndChildElements().Compose();
@@ -182,6 +187,75 @@ public class GuiDialogTownHall : GuiDialog
         }
 
         composer.AddStaticText(Lang.Get("createacolony:invite-hint"), CairoFont.WhiteDetailText(), ElementBounds.Fixed(0, y + 10, Width, 40));
+    }
+
+    const int BuildingsPerPage = 4;
+    const double BuildingRowHeight = 92;
+
+    void ComposeBuildings(GuiComposer composer)
+    {
+        var buildings = snapshot.Buildings;
+        bool canOrder = ViewerRole >= ColonyRole.Officer;
+        int pages = Math.Max(1, (buildings.Count + BuildingsPerPage - 1) / BuildingsPerPage);
+        page = Math.Clamp(page, 0, pages - 1);
+
+        double y = 30;
+        foreach (var b in buildings.Skip(page * BuildingsPerPage).Take(BuildingsPerPage))
+        {
+            string name = Lang.Get("createacolony:building-" + b.Type);
+            string level = b.MaxLevel == 0
+                ? Lang.Get("createacolony:building-no-blueprints", b.Level)
+                : Lang.Get("createacolony:building-level", b.Level, b.MaxLevel);
+            composer
+                .AddStaticText(name, CairoFont.WhiteSmallText(), ElementBounds.Fixed(0, y + 4, 200, 25))
+                .AddStaticText(level, CairoFont.WhiteDetailText(), ElementBounds.Fixed(200, y + 6, 160, 25));
+
+            int id = b.BuildingId;
+            if (canOrder)
+            {
+                if (b.TargetLevel > 0)
+                {
+                    composer.AddSmallButton(Lang.Get("createacolony:build-cancel"), () => Send(ColonyAction.CancelBuild, id), ElementBounds.Fixed(410, y, 120, 28));
+                }
+                else if (b.Level < b.MaxLevel)
+                {
+                    string label = Lang.Get(b.Level == 0 ? "createacolony:build-start" : "createacolony:build-upgrade", b.Level + 1);
+                    composer.AddSmallButton(label, () => Send(ColonyAction.Build, id), ElementBounds.Fixed(410, y, 120, 28));
+                    if (b.Level == 0)
+                    {
+                        composer.AddSmallButton(Lang.Get("createacolony:build-rotate", b.Rotation), () => Send(ColonyAction.Rotate, id), ElementBounds.Fixed(300, y + 32, 230, 26));
+                    }
+                }
+            }
+
+            if (b.TargetLevel > 0)
+            {
+                string status = Lang.Get("createacolony:build-status", b.TargetLevel, b.ProgressPercent, Lang.Get("createacolony:buildstatus-" + b.Status));
+                composer.AddStaticText(status, CairoFont.WhiteDetailText(), ElementBounds.Fixed(0, y + 32, 290, 25));
+                if (b.Materials.Count > 0)
+                {
+                    composer.AddStaticText(Lang.Get("createacolony:build-needs", string.Join(", ", b.Materials)), CairoFont.WhiteDetailText(),
+                        ElementBounds.Fixed(0, y + 54, Width, 36));
+                }
+            }
+            y += BuildingRowHeight;
+        }
+
+        if (pages > 1)
+        {
+            composer
+                .AddSmallButton(Lang.Get("createacolony:prev"), () => { page--; Compose(); return true; }, ElementBounds.Fixed(0, y, 80, 28))
+                .AddStaticText(Lang.Get("createacolony:page", page + 1, pages), CairoFont.WhiteDetailText(), ElementBounds.Fixed(100, y + 6, 120, 25))
+                .AddSmallButton(Lang.Get("createacolony:next"), () => { page++; Compose(); return true; }, ElementBounds.Fixed(230, y, 80, 28));
+            y += 34;
+        }
+        composer.AddStaticText(Lang.Get("createacolony:build-hint"), CairoFont.WhiteDetailText(), ElementBounds.Fixed(0, y + 6, Width, 40));
+    }
+
+    bool Send(ColonyAction action, int buildingId)
+    {
+        network.SendAction(new ColonyActionPacket { ColonyId = ColonyId, Action = action, BuildingId = buildingId });
+        return true;
     }
 
     static string JobName(string code) => Lang.Get("createacolony:job-" + (code.Length == 0 ? "none" : code));

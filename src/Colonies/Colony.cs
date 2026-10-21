@@ -68,6 +68,29 @@ public class DeliveryRequest
     public int Remaining => Quantity - Delivered;
 }
 
+/// <summary>
+/// A hut block and the building grown around it from blueprints. Level 0 means only the hut block
+/// stands; a work order (TargetLevel above Level) asks a builder to build the next blueprint level.
+/// </summary>
+[ProtoContract]
+public class Building
+{
+    [ProtoMember(1)] public int BuildingId;
+    /// <summary>Building type, also the blueprint folder name: "builder", "townhall", "warehouse".</summary>
+    [ProtoMember(2)] public string Type = "";
+    [ProtoMember(3)] public BlockPos HutPos = new BlockPos(0);
+    [ProtoMember(4)] public int Level;
+    /// <summary>Blueprint rotation in degrees (0, 90, 180, 270), from the direction the player faced when placing the hut.</summary>
+    [ProtoMember(5)] public int Rotation;
+    /// <summary>0 = no work order.</summary>
+    [ProtoMember(6)] public int TargetLevel;
+    /// <summary>Index of the next build step to check, so a builder does not rescan finished work.</summary>
+    [ProtoMember(7)] public int Cursor;
+    [ProtoMember(8)] public int BuilderCitizenId;
+
+    public bool HasWorkOrder => TargetLevel > Level;
+}
+
 [ProtoContract]
 public class Colony
 {
@@ -95,6 +118,8 @@ public class Colony
     [ProtoMember(15)] public List<BlockPos> DropOffs = new();
     [ProtoMember(16)] public List<DeliveryRequest> Requests = new();
     [ProtoMember(17, IsRequired = true)] public int NextRequestId = 1;
+    [ProtoMember(18)] public List<Building> Buildings = new();
+    [ProtoMember(19, IsRequired = true)] public int NextBuildingId = 1;
 
     public string OwnerUid => Members.Find(m => m.Role == ColonyRole.Owner)?.PlayerUid ?? "";
 

@@ -18,6 +18,7 @@ public class ColonyNetwork : ModSystem
 {
     const string ChannelName = "createacolony";
     const int MaxNameLength = 40;
+    const int MaxMaterialLines = 6;
 
     ICoreServerAPI? sapi;
     IServerNetworkChannel? serverChannel;
@@ -44,6 +45,14 @@ public class ColonyNetwork : ModSystem
         serverChannel = api.Network.GetChannel(ChannelName)
             .SetMessageHandler<TownHallOpenRequest>(OnOpenRequest)
             .SetMessageHandler<ColonyActionPacket>(OnAction);
+        // Construction progress changes without anyone clicking, so open windows refresh on their own.
+        api.Event.RegisterGameTickListener(_ =>
+        {
+            foreach (string colonyId in viewersByColony.Where(kv => kv.Value.Count > 0).Select(kv => kv.Key).ToList())
+            {
+                if (Manager.GetById(colonyId) is { } c && c.Buildings.Any(b => b.HasWorkOrder)) RefreshViewers(c, periodic: true);
+            }
+        }, 3000);
         api.Event.PlayerDisconnect += player =>
         {
             foreach (var viewers in viewersByColony.Values) viewers.Remove(player.PlayerUID);
@@ -82,6 +91,7 @@ public class ColonyNetwork : ModSystem
             ColonyAction.SetJob => SetJob(colony, role, packet.CitizenId, packet.Text),
             ColonyAction.SetRole => SetRole(colony, role, packet.PlayerUid, (ColonyRole)packet.Role),
             ColonyAction.RemoveMember => SetRole(colony, role, packet.PlayerUid, ColonyRole.Visitor),
+            ColonyAction.Build or ColonyAction.CancelBuild or ColonyAction.Rotate => BuildAction(colony, role, packet),
             _ => null
         };
 
@@ -111,8 +121,30 @@ public class ColonyNetwork : ModSystem
         if (!Jobs.IsValid(job)) return "createacolony:bad-job";
         var citizen = colony.Citizens.Find(c => c.CitizenId == citizenId);
         if (citizen == null || !citizen.Alive) return "createacolony:bad-citizen";
+        if (citizen.JobCode != (job.Length == 0 ? null : job)) citizen.WorkplacePos = null;
         citizen.JobCode = job.Length == 0 ? null : job;
         return null;
+    }
+
+    string? BuildAction(Colony colony, ColonyRole role, ColonyActionPacket packet)
+    {
+        if (role < ColonyRole.Officer) return "createacolony:denied-officer";
+        var building = colony.Buildings.Find(b => b.BuildingId == packet.BuildingId);
+        if (building == null) return "createacolony:bad-building";
+
+        switch (packet.Action)
+        {
+            case ColonyAction.Build:
+                return Manager.StartWorkOrder(colony, building);
+            case ColonyAction.CancelBuild:
+                Manager.CancelWorkOrder(colony, building);
+                return null;
+            default:
+                // Turning is only allowed before anything is built, or the old walls would be torn down.
+                if (building.Level > 0 || building.HasWorkOrder) return "createacolony:rotate-built";
+                building.Rotation = (building.Rotation + 90) % 360;
+                return null;
+        }
     }
 
     string? SetRole(Colony colony, ColonyRole role, string targetUid, ColonyRole newRole)
@@ -127,14 +159,16 @@ public class ColonyNetwork : ModSystem
     }
 
     /// <summary>Sends an updated snapshot to everyone who has this colony's window open.</summary>
-    public void RefreshViewers(Colony colony)
+    public void RefreshViewers(Colony colony, bool periodic = false)
     {
         if (serverChannel == null || !viewersByColony.TryGetValue(colony.ColonyId, out var viewers)) return;
         foreach (string uid in viewers.ToList())
         {
             if (sapi!.World.PlayerByUid(uid) is IServerPlayer p && p.ConnectionState == EnumClientState.Playing)
             {
-                serverChannel.SendPacket(BuildSnapshot(colony, uid, openWindow: false), p);
+                var snapshot = BuildSnapshot(colony, uid, openWindow: false);
+                snapshot.Periodic = periodic;
+                serverChannel.SendPacket(snapshot, p);
             }
             else
             {
@@ -176,6 +210,31 @@ public class ColonyNetwork : ModSystem
                 FoodPercent = c.Saturation < 0 ? 100 : (int)(100 * c.Saturation / config.SaturationMax),
                 HasBed = c.HomeBedPos != null
             });
+        }
+
+        foreach (var b in colony.Buildings)
+        {
+            var view = new BuildingView
+            {
+                BuildingId = b.BuildingId,
+                Type = b.Type,
+                Level = b.Level,
+                MaxLevel = Manager.Blueprints.MaxLevel(b.Type),
+                TargetLevel = b.HasWorkOrder ? b.TargetLevel : 0,
+                Rotation = b.Rotation,
+                Status = b.HasWorkOrder ? Manager.BuildStatus.GetValueOrDefault(b.BuildingId, "queued") : ""
+            };
+            var blueprint = b.HasWorkOrder ? Manager.Blueprints.Get(b.Type, b.TargetLevel, b.Rotation) : null;
+            if (blueprint != null)
+            {
+                var (done, total) = Manager.Progress(colony, b, blueprint);
+                view.ProgressPercent = total == 0 ? 100 : 100 * done / total;
+                foreach (var (_, (sample, count)) in Manager.MaterialsNeeded(colony, b, blueprint).OrderByDescending(kv => kv.Value.Count).Take(MaxMaterialLines))
+                {
+                    view.Materials.Add(count + " " + sample.GetName());
+                }
+            }
+            snapshot.Buildings.Add(view);
         }
 
         foreach (var m in colony.Members.OrderByDescending(m => m.Role))

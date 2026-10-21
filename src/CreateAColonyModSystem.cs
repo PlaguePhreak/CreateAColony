@@ -49,11 +49,13 @@ public class CreateAColonyModSystem : ModSystem
         api.RegisterEntityBehaviorClass("settlerneeds", typeof(EntityBehaviorSettlerNeeds));
         api.RegisterBlockClass("BlockWarehouse", typeof(BlockWarehouse));
         api.RegisterBlockClass("BlockDropOff", typeof(BlockDropOff));
+        api.RegisterBlockClass("BlockColonyHut", typeof(BlockColonyHut));
 
         AiTaskRegistry.Register<AiTaskSettlerShelter>("settlershelter");
         AiTaskRegistry.Register<AiTaskSettlerSleep>("settlersleep");
         AiTaskRegistry.Register<AiTaskSettlerEat>("settlereat");
         AiTaskRegistry.Register<AiTaskSettlerCourier>("settlercourier");
+        AiTaskRegistry.Register<AiTaskSettlerBuilder>("settlerbuilder");
     }
 
     public override void StartServerSide(ICoreServerAPI api)
@@ -100,6 +102,15 @@ public class CreateAColonyModSystem : ModSystem
             .BeginSubCommand("requests")
                 .WithDescription("List the open delivery requests of the colony you are standing in")
                 .HandleWith(OnRequests)
+            .EndSubCommand()
+            .BeginSubCommand("reloadblueprints")
+                .WithDescription("Re-read blueprint files after editing them, without restarting")
+                .RequiresPrivilege(Privilege.controlserver)
+                .HandleWith(_ =>
+                {
+                    sapi!.ModLoader.GetModSystem<ColonyManager>().Blueprints.Reload();
+                    return TextCommandResult.Success(Lang.Get("createacolony:blueprints-reloaded", BlueprintLibrary.UserFolder));
+                })
             .EndSubCommand()
             .BeginSubCommand("cancelrequest")
                 .WithDescription("Cancel a delivery request by its number")

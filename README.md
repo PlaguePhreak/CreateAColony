@@ -43,3 +43,13 @@ land claim, recruit settlers that persist with the save. Compiles cleanly agains
 ## Known TODOs
 - Town Hall and Supply Camp use a plain plank-cube look for now.
 - The Town Hall window, the warehouse and courier, and jobs come in milestones 3 to 6.
+
+## Blueprints
+
+Buildings grow from blueprints, which are ordinary WorldEdit exports. Build the structure in a
+creative world with its hut block where the hut should stand, select it with WorldEdit, and run
+`/we export <name>`. Copy the file from `VintagestoryData/WorldEdit/` to
+`VintagestoryData/ModConfig/createacolony/blueprints/<type>/level<N>.json`, where `<type>` is
+`builder`, `townhall` or `warehouse` and `<N>` is 1 to 5. `/colony reloadblueprints` picks up
+changes without a restart. Blueprints in ModConfig override the ones shipped in
+`assets/createacolony/blueprints/`.
