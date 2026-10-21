@@ -19,6 +19,12 @@ public class EntityBehaviorColonyCitizen : EntityBehavior
     const float StuckCheckSeconds = 1f;
 
     ColonyManager? manager;
+    /// <summary>
+    /// Holding right-click repeats the interaction. After a bag changes hands, further clicks from that
+    /// player are ignored briefly, so the same click does not also open the window or give a second bag.
+    /// </summary>
+    const long BagCooldownMs = 700;
+    static readonly System.Collections.Generic.Dictionary<string, long> lastBagChangeMs = new();
     float sinceSync;
     float sinceStuckCheck;
     int stuckChecks;
@@ -103,6 +109,8 @@ public class EntityBehaviorColonyCitizen : EntityBehavior
         var colony = record == null ? null : manager.GetById(((EntitySettler)entity).ColonyId!);
         if (record == null || colony == null) return;
         handled = EnumHandling.PreventDefault;
+        long now = entity.World.ElapsedMilliseconds;
+        if (lastBagChangeMs.TryGetValue(player.PlayerUID, out long last) && now - last < BagCooldownMs) return;
 
         // Members hand a settler a bag by right-clicking with it, and take one back with sneak and an empty hand.
         bool member = colony.RoleOf(player.PlayerUID) >= ColonyRole.Member;
@@ -112,6 +120,7 @@ public class EntityBehaviorColonyCitizen : EntityBehavior
             {
                 itemslot.TakeOut(1);
                 itemslot.MarkDirty();
+                lastBagChangeMs[player.PlayerUID] = now;
                 player.SendMessage(0, Lang.Get("createacolony:bag-given", record.Name, manager.PackSlots(record)), EnumChatType.Notification);
             }
             else
@@ -122,6 +131,7 @@ public class EntityBehaviorColonyCitizen : EntityBehavior
         }
         if (member && itemslot?.Empty != false && byEntity.Controls.Sneak && manager.RemoveBag(colony, record) is { } removed)
         {
+            lastBagChangeMs[player.PlayerUID] = now;
             if (!player.InventoryManager.TryGiveItemstack(removed.Bag, true)) entity.World.SpawnItemEntity(removed.Bag, entity.Pos.XYZ);
             foreach (var stack in removed.Overflow) entity.World.SpawnItemEntity(stack, entity.Pos.XYZ.Add(0, 0.5, 0));
             player.SendMessage(0, Lang.Get("createacolony:bag-taken", record.Name, manager.PackSlots(record)), EnumChatType.Notification);

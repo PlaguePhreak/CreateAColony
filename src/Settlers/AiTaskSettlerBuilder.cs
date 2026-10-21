@@ -304,7 +304,18 @@ public class AiTaskSettlerBuilder : SettlerTaskBase
         if (tool == null) return;
         PutAwayHand(colony, citizen);
         hand.Itemstack = tool;
-        hand.MarkDirty();
+        SyncHand();
+    }
+
+    /// <summary>
+    /// Pushes the hand slot to players' screens. The settler's inventory reaches clients through its
+    /// watched attributes, which are only rewritten when stored, so an emptied hand would otherwise
+    /// keep showing the old tool.
+    /// </summary>
+    void SyncHand()
+    {
+        Hand?.MarkDirty();
+        entity.GetBehavior<EntityBehaviorContainer>()?.storeInv();
     }
 
     void PutAwayHand(Colony colony, CitizenRecord citizen)
@@ -315,7 +326,7 @@ public class AiTaskSettlerBuilder : SettlerTaskBase
         manager!.AddToPack(colony, citizen, stack);
         // Inventory full: keep holding it rather than dropping a tool on the ground.
         hand.Itemstack = stack.StackSize > 0 ? stack : null;
-        hand.MarkDirty();
+        SyncHand();
     }
 
     void Stash(Colony colony, CitizenRecord citizen)
@@ -341,7 +352,11 @@ public class AiTaskSettlerBuilder : SettlerTaskBase
             if (toolNeed != null && !ColonyManager.ToolFits(hand?.Itemstack, toolNeed.Value.Type, toolNeed.Value.Tier)) return;
             manager.BreakForBuild(colony, hut, target);
             // Every block cleared wears the tool down; a broken tool sends the builder back for another.
-            if (toolNeed != null && hand?.Itemstack != null) hand.Itemstack.Collectible.DamageItem(entity.World, entity, hand);
+            if (toolNeed != null && hand?.Itemstack != null)
+            {
+                hand.Itemstack.Collectible.DamageItem(entity.World, entity, hand);
+                SyncHand(); // a tool that just broke must vanish from the model too
+            }
         }
         if (buildStep.BlockId == 0) return;
 
