@@ -1,0 +1,215 @@
+using System;
+using System.Linq;
+using CreateAColony.Colonies;
+using CreateAColony.Network;
+using Vintagestory.API.Client;
+using Vintagestory.API.Config;
+
+namespace CreateAColony.Gui;
+
+/// <summary>
+/// The Town Hall window: an overview tab, a settlers tab with a job picker per settler, and a
+/// members tab where the owner sets roles. Every change goes to the server, which answers with a
+/// fresh snapshot; the window never changes colony data on its own.
+/// </summary>
+public class GuiDialogTownHall : GuiDialog
+{
+    const int RowsPerPage = 8;
+    const double RowHeight = 34;
+    const double Width = 560;
+
+    readonly ColonyNetwork network;
+    ColonySnapshot snapshot;
+    int currentTab;
+    int page;
+    string pendingName;
+
+    public string ColonyId => snapshot.ColonyId;
+
+    public override string? ToggleKeyCombinationCode => null;
+
+    public GuiDialogTownHall(ICoreClientAPI capi, ColonyNetwork network, ColonySnapshot snapshot) : base(capi)
+    {
+        this.network = network;
+        this.snapshot = snapshot;
+        pendingName = snapshot.Name;
+        Compose();
+    }
+
+    public void Update(ColonySnapshot fresh)
+    {
+        snapshot = fresh;
+        pendingName = fresh.Name;
+        Compose();
+    }
+
+    ColonyRole ViewerRole => (ColonyRole)snapshot.ViewerRole;
+
+    void Compose()
+    {
+        var dialogBounds = ElementStdBounds.AutosizedMainDialog.WithAlignment(EnumDialogArea.CenterMiddle);
+        var bgBounds = ElementBounds.Fill.WithFixedPadding(GuiStyle.ElementToDialogPadding);
+        bgBounds.BothSizing = ElementSizing.FitToChildren;
+
+        var tabs = new[]
+        {
+            new GuiTab { Name = Lang.Get("createacolony:tab-overview"), DataInt = 0, Active = currentTab == 0 },
+            new GuiTab { Name = Lang.Get("createacolony:tab-settlers"), DataInt = 1, Active = currentTab == 1 },
+            new GuiTab { Name = Lang.Get("createacolony:tab-members"), DataInt = 2, Active = currentTab == 2 },
+        };
+
+        var composer = capi.Gui.CreateCompo("createacolony-townhall", dialogBounds)
+            .AddShadedDialogBG(bgBounds)
+            .AddDialogTitleBar(snapshot.Name, () => TryClose())
+            .AddVerticalTabs(tabs, ElementBounds.Fixed(-160, 35, 160, 120), (id, tab) => { currentTab = id; page = 0; Compose(); }, "tabs")
+            .BeginChildElements(bgBounds);
+
+        switch (currentTab)
+        {
+            case 0: ComposeOverview(composer); break;
+            case 1: ComposeSettlers(composer); break;
+            case 2: ComposeMembers(composer); break;
+        }
+
+        SingleComposer = composer.EndChildElements().Compose();
+        SingleComposer.GetTextInput("colonyname")?.SetValue(pendingName);
+    }
+
+    void ComposeOverview(GuiComposer composer)
+    {
+        int alive = snapshot.Citizens.Count(c => c.State != "dead");
+        int hungry = snapshot.Citizens.Count(c => c.State == "hungry");
+        string stats = Lang.Get("createacolony:overview-stats",
+            snapshot.Level, alive, snapshot.BedCount, hungry, snapshot.Members.Count, snapshot.SupplyDeliveriesLeft);
+
+        composer.AddRichtext(stats, CairoFont.WhiteSmallText(), ElementBounds.Fixed(0, 30, Width, 140));
+
+        if (ViewerRole >= ColonyRole.Officer)
+        {
+            composer
+                .AddStaticText(Lang.Get("createacolony:colony-name"), CairoFont.WhiteSmallText(), ElementBounds.Fixed(0, 185, 120, 25))
+                .AddTextInput(ElementBounds.Fixed(120, 180, 280, 30), text => pendingName = text, CairoFont.WhiteSmallText(), "colonyname")
+                .AddSmallButton(Lang.Get("createacolony:rename"), OnRename, ElementBounds.Fixed(410, 180, 120, 30));
+        }
+        else
+        {
+            composer.AddStaticText(Lang.Get("createacolony:visitor-readonly"), CairoFont.WhiteDetailText(), ElementBounds.Fixed(0, 185, Width, 25));
+        }
+    }
+
+    void ComposeSettlers(GuiComposer composer)
+    {
+        var citizens = snapshot.Citizens.OrderBy(c => c.State == "dead").ThenBy(c => c.Name).ToList();
+        if (citizens.Count == 0)
+        {
+            composer.AddStaticText(Lang.Get("createacolony:no-citizens"), CairoFont.WhiteSmallText(), ElementBounds.Fixed(0, 30, Width, 25));
+            return;
+        }
+
+        composer
+            .AddStaticText(Lang.Get("createacolony:col-name"), CairoFont.WhiteDetailText(), ElementBounds.Fixed(0, 30, 160, 20))
+            .AddStaticText(Lang.Get("createacolony:col-status"), CairoFont.WhiteDetailText(), ElementBounds.Fixed(160, 30, 200, 20))
+            .AddStaticText(Lang.Get("createacolony:col-job"), CairoFont.WhiteDetailText(), ElementBounds.Fixed(370, 30, 180, 20));
+
+        string[] jobCodes = Jobs.All;
+        string[] jobNames = jobCodes.Select(JobName).ToArray();
+        bool canAssign = ViewerRole >= ColonyRole.Officer;
+
+        int pages = (citizens.Count + RowsPerPage - 1) / RowsPerPage;
+        page = Math.Clamp(page, 0, pages - 1);
+        double y = 55;
+        foreach (var c in citizens.Skip(page * RowsPerPage).Take(RowsPerPage))
+        {
+            string status = Lang.Get("createacolony:settler-status", Lang.Get("createacolony:state-" + c.State), c.FoodPercent,
+                Lang.Get(c.HasBed ? "createacolony:has-bed" : "createacolony:no-bed"));
+            composer
+                .AddStaticText(c.Name, CairoFont.WhiteSmallText(), ElementBounds.Fixed(0, y + 6, 160, 25))
+                .AddStaticText(status, CairoFont.WhiteDetailText(), ElementBounds.Fixed(160, y + 8, 200, 25));
+
+            if (canAssign && c.State != "dead")
+            {
+                int citizenId = c.CitizenId;
+                int selected = Math.Max(0, Array.IndexOf(jobCodes, c.Job));
+                composer.AddDropDown(jobCodes, jobNames, selected, (code, on) => OnSetJob(citizenId, code),
+                    ElementBounds.Fixed(370, y, 180, 28), "job-" + citizenId);
+            }
+            else
+            {
+                composer.AddStaticText(JobName(c.Job), CairoFont.WhiteSmallText(), ElementBounds.Fixed(370, y + 6, 180, 25));
+            }
+            y += RowHeight;
+        }
+
+        if (pages > 1)
+        {
+            y += 10;
+            composer
+                .AddSmallButton(Lang.Get("createacolony:prev"), () => { page--; Compose(); return true; }, ElementBounds.Fixed(0, y, 80, 28))
+                .AddStaticText(Lang.Get("createacolony:page", page + 1, pages), CairoFont.WhiteDetailText(), ElementBounds.Fixed(100, y + 6, 120, 25))
+                .AddSmallButton(Lang.Get("createacolony:next"), () => { page++; Compose(); return true; }, ElementBounds.Fixed(230, y, 80, 28));
+        }
+    }
+
+    void ComposeMembers(GuiComposer composer)
+    {
+        bool isOwner = ViewerRole == ColonyRole.Owner;
+        string[] roleCodes = { ((int)ColonyRole.Member).ToString(), ((int)ColonyRole.Officer).ToString() };
+        string[] roleNames = { Lang.Get("createacolony:role-member"), Lang.Get("createacolony:role-officer") };
+
+        double y = 30;
+        foreach (var m in snapshot.Members)
+        {
+            var role = (ColonyRole)m.Role;
+            composer.AddStaticText(m.Name, CairoFont.WhiteSmallText(), ElementBounds.Fixed(0, y + 6, 220, 25));
+
+            if (isOwner && role != ColonyRole.Owner)
+            {
+                string uid = m.PlayerUid;
+                int selected = role == ColonyRole.Officer ? 1 : 0;
+                composer
+                    .AddDropDown(roleCodes, roleNames, selected, (code, on) => OnSetRole(uid, int.Parse(code)),
+                        ElementBounds.Fixed(230, y, 160, 28), "role-" + uid)
+                    .AddSmallButton(Lang.Get("createacolony:remove"), () => OnRemove(uid), ElementBounds.Fixed(410, y, 120, 28));
+            }
+            else
+            {
+                composer.AddStaticText(RoleName(role), CairoFont.WhiteSmallText(), ElementBounds.Fixed(230, y + 6, 160, 25));
+            }
+            y += RowHeight;
+        }
+
+        composer.AddStaticText(Lang.Get("createacolony:invite-hint"), CairoFont.WhiteDetailText(), ElementBounds.Fixed(0, y + 10, Width, 40));
+    }
+
+    static string JobName(string code) => Lang.Get("createacolony:job-" + (code.Length == 0 ? "none" : code));
+
+    static string RoleName(ColonyRole role) => Lang.Get("createacolony:role-" + role.ToString().ToLowerInvariant());
+
+    bool OnRename()
+    {
+        network.SendAction(new ColonyActionPacket { ColonyId = ColonyId, Action = ColonyAction.Rename, Text = pendingName });
+        return true;
+    }
+
+    void OnSetJob(int citizenId, string job)
+    {
+        network.SendAction(new ColonyActionPacket { ColonyId = ColonyId, Action = ColonyAction.SetJob, CitizenId = citizenId, Text = job });
+    }
+
+    void OnSetRole(string uid, int role)
+    {
+        network.SendAction(new ColonyActionPacket { ColonyId = ColonyId, Action = ColonyAction.SetRole, PlayerUid = uid, Role = role });
+    }
+
+    bool OnRemove(string uid)
+    {
+        network.SendAction(new ColonyActionPacket { ColonyId = ColonyId, Action = ColonyAction.RemoveMember, PlayerUid = uid });
+        return true;
+    }
+
+    public override void OnGuiClosed()
+    {
+        network.SendAction(new ColonyActionPacket { ColonyId = ColonyId, Action = ColonyAction.CloseWindow });
+        base.OnGuiClosed();
+    }
+}
