@@ -155,6 +155,8 @@ public partial class ColonyManager
 
     public static ItemMatch Matcher(string code)
     {
+        // "tool:shovel:1" asks for any shovel of at least that tier, whatever it is made of.
+        if (ParseToolCode(code) is { } tool) return stack => ToolFits(stack, tool.Type, tool.Tier);
         var pattern = new AssetLocation(code);
         return stack => WildcardUtil.Match(pattern, stack.Collectible.Code);
     }

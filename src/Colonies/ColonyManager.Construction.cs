@@ -290,7 +290,7 @@ public partial class ColonyManager
             var blueprint = order == null ? null : Blueprints.Get(order.Type, order.TargetLevel, order.Rotation);
             if (blueprint != null) needed.UnionWith(MaterialsNeeded(colony, order!, blueprint).Keys);
 
-            bool IsJunk(ItemStack s) => !needed.Contains(s.Collectible.Code.ToString());
+            bool IsJunk(ItemStack s) => !needed.Contains(s.Collectible.Code.ToString()) && !IsBuilderTool(s);
             var chest = HutStorage(colony, hut).FirstOrDefault(c => c.Inventory.Any(s => !s.Empty && IsJunk(s.Itemstack)));
             if (chest != null) return (chest, IsJunk);
         }

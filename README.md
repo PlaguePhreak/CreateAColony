@@ -54,6 +54,15 @@ creative world with its hut block where the hut should stand, select it with Wor
 changes without a restart. Blueprints in ModConfig override the ones shipped in
 `assets/createacolony/config/blueprints/`.
 
+### Ordering buildings and tools
+
+Right-click a hut block to open its window and order a level; the Town Hall's own upgrade is on the
+Town Hall's Overview tab. The Builder's Hut window lists every work order and, under Items needed,
+what its builder still needs with have/need counts. Builders clear soil and sand with a shovel, wood
+with an axe and stone or ore with a pickaxe, of at least the block's mining tier, and wear the tool
+down as they work. Put tools in the hut chest or the warehouse; couriers bring missing ones. Set
+`BuildersNeedTools` to false in `ModConfig/createacolony.json` to turn this off.
+
 ### Importing MineColonies blueprints
 
 Put a MineColonies `.blueprint` file in `VintagestoryData/ModConfig/createacolony/import/` and run

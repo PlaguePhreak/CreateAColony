@@ -1,4 +1,5 @@
 using CreateAColony.Colonies;
+using CreateAColony.Network;
 using Vintagestory.API.Common;
 using Vintagestory.API.Config;
 using Vintagestory.API.MathTools;
@@ -8,7 +9,7 @@ namespace CreateAColony.Blocks;
 
 /// <summary>
 /// A hut block: the seed of a building. Place it inside the colony, put a chest next to it, then
-/// order level 1 from the Town Hall and a builder grows the building around it from its blueprint.
+/// right-click it to order level 1, and a builder grows the building around it from its blueprint.
 /// The building type comes from the block's "buildingType" attribute, so new huts are JSON only.
 /// </summary>
 public class BlockColonyHut : Block
@@ -38,17 +39,11 @@ public class BlockColonyHut : Block
 
     public override bool OnBlockInteractStart(IWorldAccessor world, IPlayer byPlayer, BlockSelection blockSel)
     {
-        if (world.Side != EnumAppSide.Server || byPlayer is not IServerPlayer player) return true;
-
-        var manager = world.Api.ModLoader.GetModSystem<ColonyManager>();
-        var colony = manager.GetAt(blockSel.Position);
-        var building = colony == null ? null : manager.GetBuilding(colony, blockSel.Position);
-        if (building == null) return true;
-
-        string name = Lang.Get("createacolony:building-" + building.Type);
-        player.SendMessage(0, building.HasWorkOrder
-            ? Lang.Get("createacolony:hut-building", name, building.Level, building.TargetLevel)
-            : Lang.Get("createacolony:hut-info", name, building.Level), EnumChatType.Notification);
+        // The client asks the server for the hut window; the server decides what to show.
+        if (world.Side == EnumAppSide.Client)
+        {
+            world.Api.ModLoader.GetModSystem<ColonyNetwork>().RequestOpenHut(blockSel.Position);
+        }
         return true;
     }
 

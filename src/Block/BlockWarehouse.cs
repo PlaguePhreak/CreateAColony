@@ -1,5 +1,6 @@
 using System.Linq;
 using CreateAColony.Colonies;
+using CreateAColony.Network;
 using Vintagestory.API.Common;
 using Vintagestory.API.Config;
 using Vintagestory.API.MathTools;
@@ -42,17 +43,11 @@ public class BlockWarehouse : Block
 
     public override bool OnBlockInteractStart(IWorldAccessor world, IPlayer byPlayer, BlockSelection blockSel)
     {
-        if (world.Side != EnumAppSide.Server || byPlayer is not IServerPlayer player) return true;
-
-        var manager = world.Api.ModLoader.GetModSystem<ColonyManager>();
-        var colony = manager.GetAt(blockSel.Position);
-        if (colony == null) return true;
-
-        var containers = manager.WarehouseContainers(colony).ToList();
-        int items = manager.CountItems(containers, _ => true);
-        int slots = containers.Sum(c => c.Inventory.Count);
-        int freeSlots = containers.Sum(c => c.Inventory.Count(s => s.Empty));
-        player.SendMessage(0, Lang.Get("createacolony:warehouse-summary", containers.Count, items, freeSlots, slots), EnumChatType.Notification);
+        // The client asks the server for the hut window; the server decides what to show.
+        if (world.Side == EnumAppSide.Client)
+        {
+            world.Api.ModLoader.GetModSystem<ColonyNetwork>().RequestOpenHut(blockSel.Position);
+        }
         return true;
     }
 
