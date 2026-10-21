@@ -1,5 +1,6 @@
 using System.Linq;
 using CreateAColony.Colonies;
+using CreateAColony.Network;
 using Vintagestory.API.Common;
 using Vintagestory.API.Config;
 using Vintagestory.API.MathTools;
@@ -50,15 +51,10 @@ public class BlockTownHall : Block
 
     public override bool OnBlockInteractStart(IWorldAccessor world, IPlayer byPlayer, BlockSelection blockSel)
     {
-        // MVP: chat summary. The Town Hall GUI (ColonyClientSystem) opens here once it exists.
-        if (world.Side == EnumAppSide.Server && byPlayer is IServerPlayer player
-            && world.BlockAccessor.GetBlockEntity(blockSel.Position) is BlockEntityTownHall { ColonyId: not null } be)
+        // The client asks the server for the Town Hall window; the server decides what to show.
+        if (world.Side == EnumAppSide.Client)
         {
-            var colony = world.Api.ModLoader.GetModSystem<ColonyManager>().GetById(be.ColonyId);
-            if (colony != null)
-            {
-                player.SendMessage(0, Lang.Get("createacolony:summary", colony.Name, colony.Level, colony.Citizens.Count(c => c.Alive), colony.Members.Count), EnumChatType.Notification);
-            }
+            world.Api.ModLoader.GetModSystem<ColonyNetwork>().RequestOpen(blockSel.Position);
         }
         return true;
     }

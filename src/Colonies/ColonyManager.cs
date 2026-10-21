@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using CreateAColony.Blocks;
 using CreateAColony.Settlers;
 using Vintagestory.API.Common;
 using Vintagestory.API.Common.Entities;
@@ -41,6 +42,11 @@ public class ColonyManager : ModSystem
     public ColonyConfig Config { get; private set; } = new();
 
     public IReadOnlyCollection<Colony> All => colonies.Values;
+
+    int? supplyDeliveriesTotal;
+
+    /// <summary>How many bundles a colony's supply camp hands out in total (from config/supplycamp.json).</summary>
+    public int SupplyDeliveriesTotal => supplyDeliveriesTotal ??= SupplyCampLoot.Load(sapi).Deliveries;
 
     public override bool ShouldLoad(EnumAppSide forSide) => forSide == EnumAppSide.Server;
 
