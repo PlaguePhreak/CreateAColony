@@ -256,7 +256,7 @@
 	"placement-title": "Place {0}",
 	"placement-shown": "The outline shows level {0}, the biggest this building gets. {1} of its {2} blocks are in the way (red) and the builder will clear them.",
 	"placement-no-blueprint": "There is no blueprint for this building yet, so there is nothing to show.",
-	"placement-state": "Facing {0}°, height {1}",
+	"placement-state": "Facing {0}°, up {1}, east {2}, south {3}",
 	"placement-turn-left": "Turn left",
 	"placement-turn-right": "Turn right",
 	"placement-lower": "Lower",
@@ -264,9 +264,14 @@
 	"placement-confirm": "Build here",
 	"placement-cancel": "Not here",
 	"placement-fixed": "Building has started, so it can no longer be turned or moved.",
-	"placement-hint": "Build here orders the next level. Not here gives the hut back. Close the window to decide later; the Builder's Wand opens it again.",
+	"placement-hint": "Forward, back, left and right go the way you are looking. Press Esc to close this window and walk around the outline; right-click with the Builder's Wand (on a block or in the air) to come back. Build here orders it; Not here gives the hut back.",
 	"placement-ordered": "{0} ordered. A builder will start on it.",
 	"placement-built": "Building has started there, so it can no longer be turned, moved or taken back.",
 	"placement-keep": "The Town Hall and the Warehouse cannot be taken back this way.",
-	"placement-storage": "Empty the hut's storage first."
+	"placement-storage": "Empty the hut's storage first.",
+	"placement-forward": "Forward",
+	"placement-back": "Back",
+	"placement-left": "Left",
+	"placement-right": "Right",
+	"placement-hide": "Hide outline"
 }

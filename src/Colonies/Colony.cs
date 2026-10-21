@@ -99,6 +99,10 @@ public class Building
     [ProtoMember(11)] public bool NoBerries;
     /// <summary>Blocks the blueprint is raised (or lowered, below zero) from the hut, set with the Builder's Wand.</summary>
     [ProtoMember(12)] public int YOffset;
+    /// <summary>Blocks the blueprint is shifted east (or west, below zero) from the hut.</summary>
+    [ProtoMember(13)] public int XOffset;
+    /// <summary>Blocks the blueprint is shifted south (or north, below zero) from the hut.</summary>
+    [ProtoMember(14)] public int ZOffset;
 
     public bool HasWorkOrder => TargetLevel > Level;
 }

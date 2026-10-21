@@ -23,6 +23,7 @@ public partial class ColonyNetwork
     const int OutlineSlot = 7410;
     const int MaxOutlineBlocks = 30000;
     const int MaxYOffset = 8;
+    const int MaxNudge = 16;
 
     /// <summary>Who is looking at which building's outline.</summary>
     readonly Dictionary<string, (string ColonyId, int BuildingId)> placementViewers = new();
@@ -45,6 +46,8 @@ public partial class ColonyNetwork
             Type = building.Type,
             Rotation = building.Rotation,
             YOffset = building.YOffset,
+            XOffset = building.XOffset,
+            ZOffset = building.ZOffset,
             ShownLevel = blueprint == null ? 0 : level,
             Blocks = outline.Item4,
             Blocked = outline.Item3,
@@ -68,7 +71,7 @@ public partial class ColonyNetwork
             ClearOutline(player);
             return;
         }
-        if (packet.Action == ColonyAction.OpenPlacement)
+        if (packet.Action is ColonyAction.OpenPlacement or ColonyAction.ReopenPlacement)
         {
             SendPlacement(player, colony, building, true);
             return;
@@ -89,6 +92,10 @@ public partial class ColonyNetwork
             case ColonyAction.PlacementHeight:
                 if (!unbuilt) error = "createacolony:placement-built";
                 else building.YOffset = GameMath.Clamp(building.YOffset + (packet.Text == "-1" ? -1 : 1), -MaxYOffset, MaxYOffset);
+                break;
+            case ColonyAction.PlacementNudge:
+                if (!unbuilt) error = "createacolony:placement-built";
+                else Nudge(player, building, packet.Text);
                 break;
             case ColonyAction.PlacementConfirm:
                 error = role < ColonyRole.Officer ? "createacolony:denied-officer" : Manager.StartWorkOrder(colony, building);
@@ -120,6 +127,25 @@ public partial class ColonyNetwork
         RefreshViewers(colony);
     }
 
+    /// <summary>Moves the building one block forward, back, left or right as the player looks.</summary>
+    static void Nudge(IServerPlayer player, Building building, string way)
+    {
+        var view = player.Entity.Pos.GetViewVector();
+        // The axis the player looks along most, as a whole step.
+        int fx = 0, fz = 0;
+        if (System.Math.Abs(view.X) >= System.Math.Abs(view.Z)) fx = view.X >= 0 ? 1 : -1;
+        else fz = view.Z >= 0 ? 1 : -1;
+        var (dx, dz) = way switch
+        {
+            "forward" => (fx, fz),
+            "back" => (-fx, -fz),
+            "left" => (fz, -fx),
+            _ => (-fz, fx)
+        };
+        building.XOffset = GameMath.Clamp(building.XOffset + dx, -MaxNudge, MaxNudge);
+        building.ZOffset = GameMath.Clamp(building.ZOffset + dz, -MaxNudge, MaxNudge);
+    }
+
     /// <summary>Removes a hut nothing has been built for and gives the block back. Returns an error, or null.</summary>
     string? TakeBack(IServerPlayer player, Colony colony, Building building, bool unbuilt)
     {
@@ -142,9 +168,24 @@ public partial class ColonyNetwork
     // ---- Client ---------------------------------------------------------------------------
 
     GuiDialogPlacement? placementDialog;
+    /// <summary>The building whose outline is showing, so the wand used in the air brings its window back.</summary>
+    (string ColonyId, int BuildingId)? shownOutline;
+
+    /// <summary>The Builder's Wand used away from any building: reopens the window of the outline showing. False if none is.</summary>
+    public bool ReopenPlacement()
+    {
+        if (shownOutline is not { } shown) return false;
+        if (placementDialog != null && placementDialog.IsOpened()) return true;
+        SendAction(new ColonyActionPacket { ColonyId = shown.ColonyId, Action = ColonyAction.ReopenPlacement, BuildingId = shown.BuildingId });
+        return true;
+    }
+
+    /// <summary>Called by the placement window when its outline is cleared (built, taken back or hidden).</summary>
+    public void OutlineCleared() => shownOutline = null;
 
     void OnPlacementSnapshot(PlacementSnapshot snapshot)
     {
+        shownOutline = (snapshot.ColonyId, snapshot.BuildingId);
         if (placementDialog != null && placementDialog.IsOpened() && placementDialog.BuildingId == snapshot.BuildingId)
         {
             placementDialog.Update(snapshot);

@@ -89,9 +89,11 @@ Town Hall. Each works from the free hut of its kind nearest the start of the lis
 
 Placing a hut shows the outline of its building's highest level where it would stand: blue where
 the spot is free, red where something is in the way that the builder will clear. A window beside it
-turns the building left or right, raises or lowers it (up to 8 blocks), orders it built (**Build
-here**) or gives the hut back (**Not here**). The **Builder's Wand** (flint on a stick) opens the
-same outline and window when you right-click a hut, the Town Hall or the Warehouse. Buildings can be
+turns the building, nudges it forward, back, left or right (as you look, up to 16 blocks) and up or
+down (up to 8), orders it built (**Build here**) or gives the hut back (**Not here**). Esc closes the
+window but leaves the outline up so you can walk around it; right-clicking with the **Builder's
+Wand** (flint on a stick), on a block or in the air, brings the window back. The wand also opens the
+outline and window when you right-click a hut, the Town Hall or the Warehouse. Buildings can be
 turned and moved until their first level is ordered.
 
 ### Work area and guards

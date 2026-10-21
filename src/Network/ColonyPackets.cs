@@ -179,8 +179,12 @@ public enum ColonyAction
     PlacementConfirm = 17,
     /// <summary>Takes the hut back: the block goes back into the player's inventory.</summary>
     PlacementCancel = 18,
-    /// <summary>The placement window closed; the outline goes away.</summary>
-    PlacementClose = 19
+    /// <summary>Hides the outline.</summary>
+    PlacementClose = 19,
+    /// <summary>Text "forward", "back", "left" or "right" moves the building one block that way, as the player faces.</summary>
+    PlacementNudge = 20,
+    /// <summary>Opens the placement window again for the outline still showing (the wand used in the air).</summary>
+    ReopenPlacement = 21
 }
 
 /// <summary>What the placement window shows for one building while its outline is on screen.</summary>
@@ -201,6 +205,8 @@ public class PlacementSnapshot
     [ProtoMember(9)] public bool CanAdjust;
     [ProtoMember(10)] public bool CanOrder;
     [ProtoMember(11)] public bool OpenWindow;
+    [ProtoMember(12)] public int XOffset;
+    [ProtoMember(13)] public int ZOffset;
 }
 
 /// <summary>A change requested from the Town Hall window. The server checks permissions before applying it.</summary>

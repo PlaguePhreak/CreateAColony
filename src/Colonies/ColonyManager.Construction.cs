@@ -178,7 +178,7 @@ public partial class ColonyManager
 
     // ---- Steps ----------------------------------------------------------------------------
 
-    public BlockPos StepPos(Building building, BuildStep step) => building.HutPos.AddCopy(step.Dx, step.Dy + building.YOffset, step.Dz);
+    public BlockPos StepPos(Building building, BuildStep step) => building.HutPos.AddCopy(step.Dx + building.XOffset, step.Dy + building.YOffset, step.Dz + building.ZOffset);
 
     /// <summary>
     /// True when the world already matches the step, or the step must not be touched: outside the

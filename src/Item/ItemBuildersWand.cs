@@ -1,5 +1,6 @@
 using CreateAColony.Colonies;
 using CreateAColony.Network;
+using Vintagestory.API.Client;
 using Vintagestory.API.Common;
 using Vintagestory.API.Config;
 using Vintagestory.API.MathTools;
@@ -36,13 +37,21 @@ public class ItemBuildersWand : Item
 
     public override void OnHeldInteractStart(ItemSlot slot, EntityAgent byEntity, BlockSelection blockSel, EntitySelection entitySel, bool firstEvent, ref EnumHandHandling handling)
     {
-        if (firstEvent && blockSel != null && byEntity is EntityPlayer { Player: { } player }
-            && api.World.BlockAccessor.GetBlock(blockSel.Position) is Blocks.BlockColonyHut or Blocks.BlockTownHall or Blocks.BlockWarehouse)
+        if (!firstEvent || byEntity is not EntityPlayer { Player: { } player })
         {
-            TryUse(api.World, player, blockSel.Position);
-            handling = EnumHandHandling.PreventDefault;
+            base.OnHeldInteractStart(slot, byEntity, blockSel, entitySel, firstEvent, ref handling);
             return;
         }
-        base.OnHeldInteractStart(slot, byEntity, blockSel, entitySel, firstEvent, ref handling);
+        handling = EnumHandHandling.PreventDefault;
+        if (blockSel != null && api.World.BlockAccessor.GetBlock(blockSel.Position) is Blocks.BlockColonyHut or Blocks.BlockTownHall or Blocks.BlockWarehouse)
+        {
+            TryUse(api.World, player, blockSel.Position);
+            return;
+        }
+        // In the air or at any other block: back to the window of the outline still showing.
+        if (api is ICoreClientAPI capi && !capi.ModLoader.GetModSystem<ColonyNetwork>().ReopenPlacement())
+        {
+            capi.TriggerIngameError(this, "createacolony-wand", Lang.Get("createacolony:wand-not-building"));
+        }
     }
 }

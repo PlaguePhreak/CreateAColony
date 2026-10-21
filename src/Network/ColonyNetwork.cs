@@ -103,7 +103,7 @@ public partial class ColonyNetwork : ModSystem
             return;
         }
 
-        if (packet.Action is >= ColonyAction.OpenPlacement and <= ColonyAction.PlacementClose)
+        if (packet.Action is >= ColonyAction.OpenPlacement and <= ColonyAction.ReopenPlacement)
         {
             PlacementAction(player, colony, role, packet);
             return;
