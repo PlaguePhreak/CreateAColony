@@ -168,7 +168,39 @@ public enum ColonyAction
     /// <summary>Text "1" sends a guard along with the worker of the hut with BuildingId.</summary>
     SetEscort = 12,
     /// <summary>Text "1" has the farmer of the hut with BuildingId pick berry bushes and fruit trees.</summary>
-    SetCollectBerries = 13
+    SetCollectBerries = 13,
+    /// <summary>Shows the outline and placement window of the building with BuildingId (the Builder's Wand).</summary>
+    OpenPlacement = 14,
+    /// <summary>Text "1" turns the building a quarter right, "-1" left, before it is built.</summary>
+    PlacementTurn = 15,
+    /// <summary>Text "1" raises the building one block, "-1" lowers it, before it is built.</summary>
+    PlacementHeight = 16,
+    /// <summary>Keeps the building where it is and orders level 1.</summary>
+    PlacementConfirm = 17,
+    /// <summary>Takes the hut back: the block goes back into the player's inventory.</summary>
+    PlacementCancel = 18,
+    /// <summary>The placement window closed; the outline goes away.</summary>
+    PlacementClose = 19
+}
+
+/// <summary>What the placement window shows for one building while its outline is on screen.</summary>
+[ProtoContract]
+public class PlacementSnapshot
+{
+    [ProtoMember(1)] public string ColonyId = "";
+    [ProtoMember(2)] public int BuildingId;
+    [ProtoMember(3)] public string Type = "";
+    [ProtoMember(4)] public int Rotation;
+    [ProtoMember(5)] public int YOffset;
+    /// <summary>The level whose outline is shown, the highest there is; 0 when the type has no blueprints.</summary>
+    [ProtoMember(6)] public int ShownLevel;
+    [ProtoMember(7)] public int Blocks;
+    /// <summary>Outline blocks where something already stands that the builder will clear.</summary>
+    [ProtoMember(8)] public int Blocked;
+    /// <summary>Not built yet, so it can still be turned, moved up or down, or taken back.</summary>
+    [ProtoMember(9)] public bool CanAdjust;
+    [ProtoMember(10)] public bool CanOrder;
+    [ProtoMember(11)] public bool OpenWindow;
 }
 
 /// <summary>A change requested from the Town Hall window. The server checks permissions before applying it.</summary>

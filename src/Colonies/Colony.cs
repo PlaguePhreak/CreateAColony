@@ -97,6 +97,8 @@ public class Building
     [ProtoMember(10)] public bool Escort;
     /// <summary>A Farmer's Hut's farmer leaves berry bushes and fruit trees alone.</summary>
     [ProtoMember(11)] public bool NoBerries;
+    /// <summary>Blocks the blueprint is raised (or lowered, below zero) from the hut, set with the Builder's Wand.</summary>
+    [ProtoMember(12)] public int YOffset;
 
     public bool HasWorkOrder => TargetLevel > Level;
 }

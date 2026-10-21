@@ -16,7 +16,7 @@ namespace CreateAColony.Network;
 /// The one network channel between the Town Hall window and the server. The client only ever asks;
 /// the server checks the player's colony role, applies the change, and sends back a fresh snapshot.
 /// </summary>
-public class ColonyNetwork : ModSystem
+public partial class ColonyNetwork : ModSystem
 {
     const string ChannelName = "createacolony";
     const int MaxNameLength = 40;
@@ -44,7 +44,8 @@ public class ColonyNetwork : ModSystem
             .RegisterMessageType<ColonyActionPacket>()
             .RegisterMessageType<HutOpenRequest>()
             .RegisterMessageType<HutSnapshot>()
-            .RegisterMessageType<CitizenSnapshot>();
+            .RegisterMessageType<CitizenSnapshot>()
+            .RegisterMessageType<PlacementSnapshot>();
     }
 
     // ---- Server ---------------------------------------------------------------------------
@@ -71,6 +72,7 @@ public class ColonyNetwork : ModSystem
         {
             foreach (var viewers in viewersByColony.Values) viewers.Remove(player.PlayerUID);
             hutViewers.Remove(player.PlayerUID);
+            placementViewers.Remove(player.PlayerUID);
             citizenViewers.Remove(player.PlayerUID);
         };
     }
@@ -98,6 +100,12 @@ public class ColonyNetwork : ModSystem
         if (packet.Action == ColonyAction.OpenStorage)
         {
             OpenStorage(player, colony, role, packet.BuildingId);
+            return;
+        }
+
+        if (packet.Action is >= ColonyAction.OpenPlacement and <= ColonyAction.PlacementClose)
+        {
+            PlacementAction(player, colony, role, packet);
             return;
         }
 
@@ -470,7 +478,8 @@ public class ColonyNetwork : ModSystem
         clientChannel = api.Network.GetChannel(ChannelName)
             .SetMessageHandler<ColonySnapshot>(OnSnapshot)
             .SetMessageHandler<HutSnapshot>(OnHutSnapshot)
-            .SetMessageHandler<CitizenSnapshot>(OnCitizenSnapshot);
+            .SetMessageHandler<CitizenSnapshot>(OnCitizenSnapshot)
+            .SetMessageHandler<PlacementSnapshot>(OnPlacementSnapshot);
     }
 
     /// <summary>Called by the Town Hall block when a player right-clicks it.</summary>

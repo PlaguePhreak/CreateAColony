@@ -32,17 +32,21 @@ public class BlockColonyHut : Block
         }
         if (!base.DoPlaceBlock(world, byPlayer, blockSel, byItemStack)) return false;
 
-        manager.AddBuilding(colony, BuildingType, blockSel.Position, ColonyManager.RotationFor(player));
+        var building = manager.AddBuilding(colony, BuildingType, blockSel.Position, ColonyManager.RotationFor(player));
         string name = Lang.Get("createacolony:building-" + BuildingType);
         string message = BuildingType is BuildingTypes.Forester or BuildingTypes.Farmer
             ? Lang.Get("createacolony:hut-placed-worker", name, Lang.Get("createacolony:job-" + BuildingType))
             : Lang.Get("createacolony:hut-placed", name);
         player.SendMessage(0, message, EnumChatType.Notification);
+        // Show where the finished building would stand and ask whether to build it here.
+        world.Api.ModLoader.GetModSystem<ColonyNetwork>().OpenPlacement(player, colony, building);
         return true;
     }
 
     public override bool OnBlockInteractStart(IWorldAccessor world, IPlayer byPlayer, BlockSelection blockSel)
     {
+        // With the Builder's Wand in hand the placement window opens instead.
+        if (Items.ItemBuildersWand.TryUse(world, byPlayer, blockSel.Position)) return true;
         // Sneaking opens the hut's own storage, like a chest; the server sends the inventory window.
         if (byPlayer.Entity.Controls.ShiftKey)
         {

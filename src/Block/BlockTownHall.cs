@@ -52,6 +52,8 @@ public class BlockTownHall : Block
 
     public override bool OnBlockInteractStart(IWorldAccessor world, IPlayer byPlayer, BlockSelection blockSel)
     {
+        // With the Builder's Wand in hand the placement window opens instead.
+        if (Items.ItemBuildersWand.TryUse(world, byPlayer, blockSel.Position)) return true;
         // The client asks the server for the Town Hall window; the server decides what to show.
         if (world.Side == EnumAppSide.Client)
         {
