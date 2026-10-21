@@ -37,7 +37,8 @@ public class BlockTownHall : Block
             if (world.BlockAccessor.GetBlockEntity(blockSel.Position) is BlockEntityTownHall be)
             {
                 be.ColonyId = colony!.ColonyId;
-                be.MarkDirty();
+                be.Rotation = manager.GetBuilding(colony, blockSel.Position)?.Rotation ?? ColonyManager.RotationFor(player);
+                be.MarkDirty(true);
             }
             player.SendMessage(0, Lang.Get("createacolony:founded", colony!.Name), EnumChatType.Notification);
 
