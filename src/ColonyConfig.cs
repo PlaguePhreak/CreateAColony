@@ -15,4 +15,25 @@ public class ColonyConfig
     public int StartingSettlersMax = 4;
 
     public int MaxConcurrentPathRequestsPerColony = 4;
+
+    // Needs
+    /// <summary>Full stomach. A settler starts here and eats when below EatBelowFraction of it.</summary>
+    public float SaturationMax = 1200f;
+    /// <summary>Saturation lost per in-game day; 600 means a full settler gets hungry in about a day and a half.</summary>
+    public float HungerPerDay = 600f;
+    public float EatBelowFraction = 0.4f;
+    /// <summary>Health lost per in-game hour while saturation is zero. Settlers have 20 health.</summary>
+    public float StarvationDamagePerHour = 0.5f;
+
+    // Sleep
+    public float SleepStartHour = 21f;
+    public float SleepEndHour = 6f;
+
+    // Storms
+    /// <summary>Settlers head home this many in-game hours before a temporal storm starts.</summary>
+    public float StormWarningHours = 2f;
+
+    // Respawn
+    /// <summary>A settler not seen for this long while the Town Hall area is loaded is treated as lost and respawned.</summary>
+    public double RespawnMissingAfterDays = 0.5;
 }

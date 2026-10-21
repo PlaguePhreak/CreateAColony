@@ -1,3 +1,4 @@
+using System.Linq;
 using CreateAColony.Colonies;
 using Vintagestory.API.Common;
 using Vintagestory.API.Config;
@@ -56,7 +57,7 @@ public class BlockTownHall : Block
             var colony = world.Api.ModLoader.GetModSystem<ColonyManager>().GetById(be.ColonyId);
             if (colony != null)
             {
-                player.SendMessage(0, Lang.Get("createacolony:summary", colony.Name, colony.Level, colony.Citizens.Count, colony.Members.Count), EnumChatType.Notification);
+                player.SendMessage(0, Lang.Get("createacolony:summary", colony.Name, colony.Level, colony.Citizens.Count(c => c.Alive), colony.Members.Count), EnumChatType.Notification);
             }
         }
         return true;

@@ -1,11 +1,13 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using CreateAColony.Blocks;
 using CreateAColony.Colonies;
 using CreateAColony.Settlers;
 using Vintagestory.API.Common;
 using Vintagestory.API.Config;
 using Vintagestory.API.Server;
+using Vintagestory.GameContent;
 
 namespace CreateAColony;
 
@@ -44,6 +46,11 @@ public class CreateAColonyModSystem : ModSystem
         api.RegisterBlockClass("BlockTownHall", typeof(BlockTownHall));
         api.RegisterBlockEntityClass("TownHall", typeof(BlockEntityTownHall));
         api.RegisterBlockClass("BlockSupplyCamp", typeof(BlockSupplyCamp));
+        api.RegisterEntityBehaviorClass("settlerneeds", typeof(EntityBehaviorSettlerNeeds));
+
+        AiTaskRegistry.Register<AiTaskSettlerShelter>("settlershelter");
+        AiTaskRegistry.Register<AiTaskSettlerSleep>("settlersleep");
+        AiTaskRegistry.Register<AiTaskSettlerEat>("settlereat");
     }
 
     public override void StartServerSide(ICoreServerAPI api)
@@ -58,6 +65,10 @@ public class CreateAColonyModSystem : ModSystem
             .BeginSubCommand("info")
                 .WithDescription("Show the colony you are standing in")
                 .HandleWith(OnInfo)
+            .EndSubCommand()
+            .BeginSubCommand("citizens")
+                .WithDescription("List the settlers of the colony you are standing in")
+                .HandleWith(OnCitizens)
             .EndSubCommand()
             .BeginSubCommand("recruit")
                 .WithDescription("Spawn a settler for your colony (MVP test command)")
@@ -85,7 +96,27 @@ public class CreateAColonyModSystem : ModSystem
         var manager = sapi!.ModLoader.GetModSystem<ColonyManager>();
         var colony = manager.GetAt(args.Caller.Entity.Pos.AsBlockPos);
         if (colony == null) return TextCommandResult.Success(Lang.Get("createacolony:not-in-colony"));
-        return TextCommandResult.Success(Lang.Get("createacolony:summary", colony.Name, colony.Level, colony.Citizens.Count, colony.Members.Count));
+        return TextCommandResult.Success(Lang.Get("createacolony:summary", colony.Name, colony.Level, colony.Citizens.Count(c => c.Alive), colony.Members.Count));
+    }
+
+    TextCommandResult OnCitizens(TextCommandCallingArgs args)
+    {
+        var manager = sapi!.ModLoader.GetModSystem<ColonyManager>();
+        var colony = manager.GetAt(args.Caller.Entity.Pos.AsBlockPos);
+        if (colony == null) return TextCommandResult.Success(Lang.Get("createacolony:not-in-colony"));
+
+        var lines = new List<string>();
+        foreach (var c in colony.Citizens)
+        {
+            string state = !c.Alive ? Lang.Get("createacolony:state-dead")
+                : c.IsDowned ? Lang.Get("createacolony:state-downed")
+                : c.Saturation >= 0 && c.Saturation < manager.Config.SaturationMax * manager.Config.EatBelowFraction ? Lang.Get("createacolony:state-hungry")
+                : Lang.Get("createacolony:state-ok");
+            int food = c.Saturation < 0 ? 100 : (int)(100 * c.Saturation / manager.Config.SaturationMax);
+            string bed = c.HomeBedPos != null ? Lang.Get("createacolony:has-bed") : Lang.Get("createacolony:no-bed");
+            lines.Add(Lang.Get("createacolony:citizen-line", c.Name, state, food, bed));
+        }
+        return TextCommandResult.Success(lines.Count == 0 ? Lang.Get("createacolony:no-citizens") : string.Join("\n", lines));
     }
 
     TextCommandResult OnRecruit(TextCommandCallingArgs args)

@@ -21,10 +21,13 @@
 			{ "code": "interpolateposition" }
 		],
 		"animations": [
-			{ "code": "idle", "animation": "idle", "blendMode": "average", "triggeredBy": { "defaultAnim": true } },
+			{ "code": "idle", "animation": "balanced-idle", "blendMode": "average", "triggeredBy": { "defaultAnim": true } },
 			{ "code": "walk", "animation": "balanced-walk", "blendMode": "average" },
-			{ "code": "die", "animation": "die", "animationSpeed": 1.75, "weight": 10, "blendMode": "addAverage" },
-			{ "code": "hurt", "animation": "hurt", "animationSpeed": 2, "blendMode": "addAverage" }
+			{ "code": "sleep", "animation": "balanced-lie", "blendMode": "average", "weight": 10 },
+			{ "code": "shelter", "animation": "balanced-sitfloor", "blendMode": "average", "weight": 10 },
+			{ "code": "eat", "animation": "balanced-holdbelly-idle", "blendMode": "average", "weight": 5 },
+			{ "code": "die", "animation": "balanced-die", "animationSpeed": 1.75, "weight": 10, "blendMode": "addAverage" },
+			{ "code": "hurt", "animation": "balanced-hurt", "animationSpeed": 2, "blendMode": "addAverage" }
 		]
 	},
 	"server": {
@@ -35,10 +38,14 @@
 			{ "code": "controlledphysics", "stepHeight": 1.1 },
 			{ "code": "health", "currenthealth": 20, "maxhealth": 20 },
 			{ "code": "colonycitizen" },
+			{ "code": "settlerneeds" },
 			{
 				"code": "taskai",
 				"aitasks": [
-					// MVP placeholder routine. Job tasks (settlerwork, settlersleep, settlerseekshelter) replace these in milestone 2.
+					// Highest priority wins. Job work (settlerwork) slots in between eat and wander in a later milestone.
+					{ "code": "settlershelter", "animation": "walk", "priority": 3.0, "movespeed": 0.025 },
+					{ "code": "settlersleep", "animation": "walk", "priority": 2.0, "movespeed": 0.018 },
+					{ "code": "settlereat", "animation": "walk", "priority": 1.5, "movespeed": 0.02 },
 					{ "code": "wander", "priority": 1.0, "movespeed": 0.012, "animation": "walk", "maxDistanceToSpawn": 12, "wanderRangeMin": 3, "wanderRangeMax": 10 },
 					{ "code": "lookaround", "priority": 0.5 }
 				]
