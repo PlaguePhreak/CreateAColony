@@ -85,6 +85,23 @@ Town Hall. Each works from the free hut of its kind nearest the start of the lis
   keep their tool and a stock of seeds (`ForesterSeedReserve`, `FarmerSeedReserve`); seeds over that
   go to the warehouse too. Missing tools and seeds are requested from the warehouse.
 
+### Work area and guards
+
+Forester's and Farmer's Huts have a **Work area** tab in their window (officers change it):
+
+- **How far out** the worker goes: 16 to 500 blocks (`GatherRadiusChoices`). The area is searched a
+  chunk column at a time, nearest first, in a few milliseconds per tick; land no player is near is
+  loaded from the save to be looked at, and land never explored is skipped. Long walks go in
+  stretches of about 28 blocks, turning aside around water or cliffs. A forester, farmer or guard
+  further than `FarWorkPlayerDistance` blocks from every player stays active and keeps the 3 by 3
+  chunk columns around it loaded until it comes back or a player comes near.
+- **Escort by guard**: a settler with the new **Guard** job follows the worker and fights monsters
+  (`GuardTargets`, by default drifters, locusts, bells, bowtorns, shivers, wolves, hyenas and
+  bears) within `GuardThreatRadius` blocks of it. Guards fight with the hardest-hitting weapon they
+  carry and fetch one from the warehouse if they have none; spare guards keep watch at the Town Hall.
+- **Collect berries and fruit** (Farmer's Hut): picks ripe berry bushes and fruit trees within the
+  range. Berries further than 32 blocks out wait until the fields have nothing to do.
+
 ### Hut storage
 
 Every Builder's, Forester's and Farmer's Hut has its own 25-slot storage: sneak and right-click the

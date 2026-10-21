@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using Vintagestory.API.Common;
+using Vintagestory.API.Config;
 using Vintagestory.API.MathTools;
 using Vintagestory.GameContent;
 
@@ -14,9 +15,8 @@ namespace CreateAColony.Colonies;
 /// </summary>
 public partial class ColonyManager
 {
-    /// <summary>How far below and above the hut a forester looks for tree trunks.</summary>
-    const int ForestDepthBelow = 8;
-    const int ForestHeightAbove = 12;
+    /// <summary>How far below the treetops a forester's search looks for a trunk's foot.</summary>
+    const int TreeScanDepth = 40;
     /// <summary>Smaller "trees" (a bush, a lone log) are not worth the walk.</summary>
     const int MinTreeLogs = 3;
 
@@ -36,34 +36,66 @@ public partial class ColonyManager
         && block.Attributes?["treeFellingGroupCode"].Exists == true
         && block.Code?.Path.Contains("placed") == false;
 
+    /// <summary>A wild log standing on soil: the foot of a tree, where a forester cuts.</summary>
+    bool IsTrunkBase(BlockPos pos)
+    {
+        var ba = sapi.World.BlockAccessor;
+        if (!IsTreeLog(ba.GetBlock(pos))) return false;
+        var ground = ba.GetBlock(pos.DownCopy());
+        return !IsTreeLog(ground) && (ground.Fertility > 0 || ground.BlockMaterial == EnumBlockMaterial.Soil);
+    }
+
     /// <summary>
-    /// The trunk base of the tree nearest the hut within the forester's reach, skipping the given spots.
-    /// A base is a wild log standing on soil, so a forester always cuts a tree from the bottom.
+    /// Looks down each block column of a chunk column from the treetops for trunk feet. Leaves, plants,
+    /// snow and air are looked through; anything else is the ground and ends the column.
+    /// </summary>
+    void ScanTrees(int chunkX, int chunkZ, AreaScanner scanner)
+    {
+        var ba = sapi.World.BlockAccessor;
+        int size = GlobalConstants.ChunkSize;
+        var pos = new BlockPos(0);
+        for (int x = chunkX * size; x < chunkX * size + size; x++)
+        for (int z = chunkZ * size; z < chunkZ * size + size; z++)
+        {
+            if (!scanner.InRange(x, z)) continue;
+            int top = ba.GetRainMapHeightAt(x, z);
+            for (int y = top; y > top - TreeScanDepth && y > 0; y--)
+            {
+                pos.Set(x, y, z);
+                var block = ba.GetBlock(pos);
+                if (IsTreeLog(block))
+                {
+                    if (IsTrunkBase(pos))
+                    {
+                        scanner.Found[pos.Copy()] = true;
+                        break;
+                    }
+                    continue;
+                }
+                if (block.Id == 0 || block.BlockMaterial is EnumBlockMaterial.Leaves or EnumBlockMaterial.Plant or EnumBlockMaterial.Snow) continue;
+                break;
+            }
+        }
+    }
+
+    /// <summary>
+    /// The trunk foot of the tree nearest the hut within the forester's range, skipping the given spots.
+    /// Trees in land no player is near are kept from the last look and checked once the forester is there.
     /// </summary>
     public BlockPos? FindTree(Colony colony, Building hut, System.Func<BlockPos, bool> skip)
     {
         var ba = sapi.World.BlockAccessor;
-        var center = hut.HutPos;
-        int radius = Math.Max(1, Config.ForesterRadius);
-        var candidates = new List<BlockPos>();
-        var pos = center.Copy();
-        var below = center.Copy();
-        for (int dx = -radius; dx <= radius; dx++)
-        for (int dz = -radius; dz <= radius; dz++)
-        for (int dy = -ForestDepthBelow; dy <= ForestHeightAbove; dy++)
+        var scanner = Scanner(hut, "trees", ScanTrees);
+        foreach (var trunk in scanner.Nearest())
         {
-            pos.Set(center.X + dx, center.Y + dy, center.Z + dz);
-            if (!IsTreeLog(ba.GetBlock(pos))) continue;
-            below.Set(pos.X, pos.Y - 1, pos.Z);
-            var ground = ba.GetBlock(below);
-            if (IsTreeLog(ground) || (ground.Fertility <= 0 && ground.BlockMaterial != EnumBlockMaterial.Soil)) continue;
-            candidates.Add(pos.Copy());
-        }
-
-        foreach (var trunk in candidates.OrderBy(p => p.DistanceSqTo(center.X, center.Y, center.Z)))
-        {
+            bool loaded = ba.GetChunkAtBlockPos(trunk) != null;
+            if (loaded && (!IsTrunkBase(trunk) || TreeBlocks(trunk).Count(p => IsTreeLog(ba.GetBlock(p))) < MinTreeLogs))
+            {
+                scanner.Found.Remove(trunk);
+                continue;
+            }
             if (skip(trunk) || !CanWorkAt(colony, trunk)) continue;
-            if (TreeBlocks(trunk).Count(p => IsTreeLog(ba.GetBlock(p))) >= MinTreeLogs) return trunk;
+            return trunk;
         }
         return null;
     }

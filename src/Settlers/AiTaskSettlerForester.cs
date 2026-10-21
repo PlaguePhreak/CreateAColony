@@ -28,7 +28,7 @@ public class AiTaskSettlerForester : AiTaskSettlerWorker
         var tree = manager!.FindTree(colony, hut, IsUnreachable);
         if (tree == null)
         {
-            SetStatus("no-trees");
+            SetStatus(manager.StillSearching(hut, "trees") ? "searching" : "no-trees");
             return false;
         }
         SetStatus("felling");

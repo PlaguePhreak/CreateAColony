@@ -66,6 +66,8 @@ public partial class ColonyManager : ModSystem
         api.Event.SaveGameLoaded += OnSaveGameLoaded;
         api.Event.GameWorldSave += OnGameWorldSave;
         api.Event.RegisterGameTickListener(OnColonyTick, ColonyTickMs, 1000);
+        api.Event.RegisterGameTickListener(OnScanTick, ScanTickMs);
+        api.Event.RegisterGameTickListener(OnFarWorkTick, FarWorkTickMs);
     }
 
     const int ColonyTickMs = 10_000;

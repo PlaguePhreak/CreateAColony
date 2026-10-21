@@ -22,6 +22,8 @@ public class AiTaskSettlerFarmer : AiTaskSettlerWorker
     /// <summary>Fruit hangs high, so a farmer picks from a little further away.</summary>
     const float FruitReach = 4.5f;
     const int FertilizerStock = 16;
+    /// <summary>Berries within this many blocks of the hut are picked as part of the daily round.</summary>
+    const float NearFruit = 32;
 
     FieldWork work;
     FieldRecord? field;
@@ -107,9 +109,13 @@ public class AiTaskSettlerFarmer : AiTaskSettlerWorker
                 Consider(w, f, ground);
             }
         }
+        // Berries close to the hut come first; far ones wait until the fields have nothing to do.
+        var farFruit = new List<BlockPos>();
         foreach (var fruit in m.RipeFruitNear(colony, hut))
         {
-            if (!IsUnreachable(fruit)) Consider(FieldWork.Pick, null, fruit);
+            if (IsUnreachable(fruit)) continue;
+            if (fruit.DistanceTo(hut.HutPos) <= NearFruit) Consider(FieldWork.Pick, null, fruit);
+            else farFruit.Add(fruit);
         }
 
         // Out of seeds for bare farmland: pick some up at the hut, or ask couriers to bring them.
@@ -124,6 +130,11 @@ public class AiTaskSettlerFarmer : AiTaskSettlerWorker
         if (thirsty && (best == null || best.Value.Work > FieldWork.Water) && m.FindWater(colony, hut) is { } waterPos && !IsUnreachable(waterPos))
         {
             best = (FieldWork.Refill, null, waterPos);
+        }
+
+        if (best == null && farFruit.Count > 0)
+        {
+            best = (FieldWork.Pick, null, farFruit.OrderBy(p => p.DistanceSqTo(here.X, here.Y, here.Z)).First());
         }
 
         if (best == null)

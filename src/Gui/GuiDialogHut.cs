@@ -22,6 +22,7 @@ public class GuiDialogHut : GuiDialog
     const double ItemRowHeight = 46;
     const int OrdersPerPage = 5;
     const double OrderRowHeight = 62;
+    const int WorkAreaTab = 3;
 
     readonly ColonyNetwork network;
     HutSnapshot snapshot;
@@ -56,7 +57,7 @@ public class GuiDialogHut : GuiDialog
         var bgBounds = ElementBounds.Fill.WithFixedPadding(GuiStyle.ElementToDialogPadding);
         bgBounds.BothSizing = ElementSizing.FitToChildren;
 
-        if (!snapshot.IsBuilderHut) currentTab = 0;
+        if (!snapshot.IsBuilderHut && !(snapshot.IsGatherHut && currentTab == WorkAreaTab)) currentTab = 0;
 
         var composer = capi.Gui.CreateCompo("createacolony-hut", dialogBounds)
             .AddShadedDialogBG(bgBounds)
@@ -72,6 +73,15 @@ public class GuiDialogHut : GuiDialog
             };
             composer.AddVerticalTabs(tabs, ElementBounds.Fixed(-160, 35, 160, 120), (id, tab) => { currentTab = id; page = 0; Compose(); }, "tabs");
         }
+        else if (snapshot.IsGatherHut)
+        {
+            var tabs = new[]
+            {
+                new GuiTab { Name = Lang.Get("createacolony:tab-building"), DataInt = 0, Active = currentTab == 0 },
+                new GuiTab { Name = Lang.Get("createacolony:tab-workarea"), DataInt = WorkAreaTab, Active = currentTab == WorkAreaTab },
+            };
+            composer.AddVerticalTabs(tabs, ElementBounds.Fixed(-160, 35, 160, 80), (id, tab) => { currentTab = tab.DataInt; Compose(); }, "tabs");
+        }
 
         composer.BeginChildElements(bgBounds);
         switch (currentTab)
@@ -79,9 +89,12 @@ public class GuiDialogHut : GuiDialog
             case 0: ComposeBuilding(composer); break;
             case 1: ComposeOrders(composer); break;
             case 2: ComposeItems(composer); break;
+            case WorkAreaTab: ComposeWorkArea(composer); break;
         }
         SingleComposer = composer.EndChildElements().Compose();
         SingleComposer.GetSwitch("anytype")?.SetValue(snapshot.AnyWoodOrStone);
+        SingleComposer.GetSwitch("escort")?.SetValue(snapshot.Escort);
+        SingleComposer.GetSwitch("berries")?.SetValue(snapshot.CollectBerries);
     }
 
     void ComposeBuilding(GuiComposer composer)
@@ -121,6 +134,79 @@ public class GuiDialogHut : GuiDialog
             y = AddAnyTypeSwitch(composer, y);
             composer.AddStaticText(Lang.Get("createacolony:build-hint"), CairoFont.WhiteDetailText(), ElementBounds.Fixed(0, y, Width, 40));
         }
+    }
+
+    /// <summary>
+    /// The Work area tab of a Forester's or Farmer's Hut: how far out its worker goes, whether a guard
+    /// goes along, and for a farmer whether it collects berries and fruit. Officers change them.
+    /// </summary>
+    void ComposeWorkArea(GuiComposer composer)
+    {
+        bool officer = ViewerRole >= ColonyRole.Officer;
+        bool farmer = snapshot.Building.Type == BuildingTypes.Farmer;
+        string job = Lang.Get("createacolony:job-" + (farmer ? Jobs.Farmer : Jobs.Forester));
+        double y = 30;
+
+        composer.AddStaticText(Lang.Get("createacolony:workarea-range", job), CairoFont.WhiteSmallText(), ElementBounds.Fixed(0, y, Width, 25));
+        y += 30;
+        string range = Lang.Get("createacolony:workarea-blocks", snapshot.WorkRadius);
+        if (officer)
+        {
+            var choices = snapshot.RadiusChoices;
+            int at = Math.Max(0, choices.IndexOf(snapshot.WorkRadius));
+            composer
+                .AddSmallButton("<", () => SetRadius(choices[Math.Max(0, at - 1)]), ElementBounds.Fixed(0, y, 40, 28))
+                .AddStaticText(range, CairoFont.WhiteSmallText().WithOrientation(EnumTextOrientation.Center), ElementBounds.Fixed(45, y + 4, 130, 25))
+                .AddSmallButton(">", () => SetRadius(choices[Math.Min(choices.Count - 1, at + 1)]), ElementBounds.Fixed(180, y, 40, 28));
+        }
+        else
+        {
+            composer.AddStaticText(range, CairoFont.WhiteSmallText(), ElementBounds.Fixed(0, y + 4, Width, 25));
+        }
+        y += 36;
+        composer.AddStaticText(Lang.Get(farmer ? "createacolony:workarea-range-hint-farmer" : "createacolony:workarea-range-hint-forester"),
+            CairoFont.WhiteDetailText(), ElementBounds.Fixed(0, y, Width, 60));
+        y += 66;
+
+        y = AddSetting(composer, "escort", ColonyAction.SetEscort, snapshot.Escort, Lang.Get("createacolony:workarea-escort"), y);
+        string guard = !snapshot.Escort ? Lang.Get("createacolony:workarea-escort-hint")
+            : snapshot.GuardName.Length > 0 ? Lang.Get("createacolony:workarea-escort-by", snapshot.GuardName)
+            : Lang.Get("createacolony:workarea-escort-none", snapshot.GuardCount);
+        composer.AddStaticText(guard, CairoFont.WhiteDetailText(), ElementBounds.Fixed(40, y, Width - 40, 45));
+        y += 50;
+
+        if (farmer)
+        {
+            y = AddSetting(composer, "berries", ColonyAction.SetCollectBerries, snapshot.CollectBerries, Lang.Get("createacolony:workarea-berries"), y);
+            composer.AddStaticText(Lang.Get("createacolony:workarea-berries-hint"), CairoFont.WhiteDetailText(), ElementBounds.Fixed(40, y, Width - 40, 45));
+        }
+    }
+
+    /// <summary>An on/off setting: a switch for officers, a line of text for everyone else. Returns the y below it.</summary>
+    double AddSetting(GuiComposer composer, string key, ColonyAction action, bool on, string label, double y)
+    {
+        if (ViewerRole >= ColonyRole.Officer)
+        {
+            int id = snapshot.Building.BuildingId;
+            composer
+                .AddSwitch(value => network.SendAction(new ColonyActionPacket
+                    { ColonyId = snapshot.ColonyId, Action = action, BuildingId = id, Text = value ? "1" : "0" }),
+                    ElementBounds.Fixed(0, y, 30, 30), key)
+                .AddStaticText(label, CairoFont.WhiteSmallText(), ElementBounds.Fixed(40, y + 5, Width - 40, 25));
+        }
+        else
+        {
+            composer.AddStaticText(label + ": " + Lang.Get(on ? "createacolony:on" : "createacolony:off"), CairoFont.WhiteSmallText(), ElementBounds.Fixed(0, y + 5, Width, 25));
+        }
+        return y + 34;
+    }
+
+    bool SetRadius(int radius)
+    {
+        if (radius == snapshot.WorkRadius) return true;
+        network.SendAction(new ColonyActionPacket
+            { ColonyId = snapshot.ColonyId, Action = ColonyAction.SetWorkRadius, BuildingId = snapshot.Building.BuildingId, Text = radius.ToString() });
+        return true;
     }
 
     /// <summary>The "any wood or stone" setting: a switch for officers, a line of text for everyone else.</summary>

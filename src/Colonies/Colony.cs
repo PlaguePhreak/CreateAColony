@@ -91,6 +91,12 @@ public class Building
     /// <summary>Index of the next build step to check, so a builder does not rescan finished work.</summary>
     [ProtoMember(7)] public int Cursor;
     [ProtoMember(8)] public int BuilderCitizenId;
+    /// <summary>How far, in blocks, the worker of a Forester's or Farmer's Hut goes out; 0 uses the config default.</summary>
+    [ProtoMember(9)] public int WorkRadius;
+    /// <summary>A guard goes along with this hut's worker.</summary>
+    [ProtoMember(10)] public bool Escort;
+    /// <summary>A Farmer's Hut's farmer leaves berry bushes and fruit trees alone.</summary>
+    [ProtoMember(11)] public bool NoBerries;
 
     public bool HasWorkOrder => TargetLevel > Level;
 }

@@ -175,7 +175,9 @@ public abstract class AiTaskSettlerWorker : SettlerTaskBase
         if (step != Step.Work && Colony is { } colony && Citizen is { } citizen) PutAwayHand(colony, citizen);
         var center = target.ToVec3d().Add(0.5, 0.5, 0.5);
         walking = !(step == Step.Work && entity.Pos.XYZ.DistanceTo(center) <= workRange + 0.5);
-        if (walking) WalkTo(step == Step.Work ? WalkGoal() : target.ToVec3d().Add(0.5, 0, 0.5), step == Step.Work ? workRange : 1.5f);
+        if (!walking) return;
+        if (step == Step.Work) WalkTo(WalkGoal(), workRange, WalkGoal);
+        else WalkTo(target.ToVec3d().Add(0.5, 0, 0.5), 1.5f);
     }
 
     public override bool ContinueExecute(float dt)

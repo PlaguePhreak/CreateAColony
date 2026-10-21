@@ -61,6 +61,7 @@ public class CreateAColonyModSystem : ModSystem
         AiTaskRegistry.Register<AiTaskSettlerBuilder>("settlerbuilder");
         AiTaskRegistry.Register<AiTaskSettlerForester>("settlerforester");
         AiTaskRegistry.Register<AiTaskSettlerFarmer>("settlerfarmer");
+        AiTaskRegistry.Register<AiTaskSettlerGuard>("settlerguard");
     }
 
     public override void StartServerSide(ICoreServerAPI api)

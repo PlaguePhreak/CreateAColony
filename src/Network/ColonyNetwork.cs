@@ -117,6 +117,7 @@ public class ColonyNetwork : ModSystem
             ColonyAction.RemoveMember => SetRole(colony, role, packet.PlayerUid, ColonyRole.Visitor),
             ColonyAction.Build or ColonyAction.CancelBuild or ColonyAction.Rotate => BuildAction(colony, role, packet),
             ColonyAction.SetAnyWoodOrStone => SetAnyWoodOrStone(colony, role, packet.Text == "1"),
+            ColonyAction.SetWorkRadius or ColonyAction.SetEscort or ColonyAction.SetCollectBerries => WorkAreaAction(colony, role, packet),
             _ => null
         };
 
@@ -177,6 +178,28 @@ public class ColonyNetwork : ModSystem
                 building.Rotation = (building.Rotation + 90) % 360;
                 return null;
         }
+    }
+
+    /// <summary>The Work area settings of a Forester's or Farmer's Hut.</summary>
+    string? WorkAreaAction(Colony colony, ColonyRole role, ColonyActionPacket packet)
+    {
+        if (role < ColonyRole.Officer) return "createacolony:denied-officer";
+        var building = colony.Buildings.Find(b => b.BuildingId == packet.BuildingId);
+        if (building == null || !ColonyManager.IsGatherHut(building.Type)) return "createacolony:bad-building";
+        switch (packet.Action)
+        {
+            case ColonyAction.SetWorkRadius:
+                if (!int.TryParse(packet.Text, out int radius) || !Manager.Config.GatherRadiusChoices.Contains(radius)) return "createacolony:bad-radius";
+                building.WorkRadius = radius;
+                break;
+            case ColonyAction.SetEscort:
+                building.Escort = packet.Text == "1";
+                break;
+            default:
+                building.NoBerries = packet.Text != "1";
+                break;
+        }
+        return null;
     }
 
     /// <summary>Opens a hut's own storage for a member, as sneak + right-click on the hut does.</summary>
@@ -378,6 +401,17 @@ public class ColonyNetwork : ModSystem
             HasStorage = ColonyManager.IsWorkerHut(building.Type),
             OpenWindow = openWindow
         };
+
+        if (ColonyManager.IsGatherHut(building.Type))
+        {
+            snapshot.IsGatherHut = true;
+            snapshot.WorkRadius = Manager.GatherRadius(building);
+            snapshot.RadiusChoices = Manager.Config.GatherRadiusChoices.Union(new[] { snapshot.WorkRadius }).OrderBy(r => r).ToList();
+            snapshot.Escort = building.Escort;
+            snapshot.CollectBerries = !building.NoBerries;
+            snapshot.GuardName = Manager.GuardOf(colony, building)?.Name ?? "";
+            snapshot.GuardCount = Manager.GuardCount(colony);
+        }
 
         if (building.Type == BuildingTypes.Warehouse)
         {

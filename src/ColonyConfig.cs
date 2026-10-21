@@ -68,4 +68,23 @@ public class ColonyConfig
     public float FarmerWaterBelow = 0.3f;
     /// <summary>A farmer with fertilizer spreads it before sowing when the crop's nutrient is below this (soil shows 0 to 100).</summary>
     public float FarmerFertilizeBelow = 40f;
+
+    // Work area (Forester's and Farmer's Hut windows)
+    /// <summary>The ranges, in blocks, a hut's Work area tab offers for how far its worker goes out.</summary>
+    public int[] GatherRadiusChoices = { 16, 32, 64, 128, 200, 300, 500 };
+    /// <summary>
+    /// A forester, farmer or guard further than this from every player keeps the land around it loaded
+    /// while it works, so it does not freeze out there.
+    /// </summary>
+    public int FarWorkPlayerDistance = 112;
+
+    // Guard
+    /// <summary>How far around the settler it protects (or the Town Hall) a guard looks for monsters.</summary>
+    public float GuardThreatRadius = 16f;
+    /// <summary>Damage a guard does with bare hands; with a weapon it does the weapon's damage.</summary>
+    public float GuardFistDamage = 1.5f;
+    /// <summary>Seconds between a guard's blows.</summary>
+    public float GuardSecondsPerHit = 1.2f;
+    /// <summary>Creatures guards fight, as entity codes; * matches anything.</summary>
+    public string[] GuardTargets = { "drifter-*", "locust-*", "bell-*", "bowtorn-*", "shiver-*", "wolf-*", "hyena-*", "bear-*" };
 }

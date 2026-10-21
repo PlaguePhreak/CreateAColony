@@ -106,6 +106,15 @@ public class HutSnapshot
     [ProtoMember(12)] public bool AnyWoodOrStone;
     /// <summary>The hut has its own storage, so the window offers a Storage button.</summary>
     [ProtoMember(13)] public bool HasStorage;
+    /// <summary>A Forester's or Farmer's Hut, whose window has a Work area tab.</summary>
+    [ProtoMember(14)] public bool IsGatherHut;
+    [ProtoMember(15)] public int WorkRadius;
+    [ProtoMember(16)] public List<int> RadiusChoices = new();
+    [ProtoMember(17)] public bool Escort;
+    [ProtoMember(18)] public bool CollectBerries;
+    /// <summary>The guard escorting this hut's worker, empty if none.</summary>
+    [ProtoMember(19)] public string GuardName = "";
+    [ProtoMember(20)] public int GuardCount;
 }
 
 [ProtoContract]
@@ -153,7 +162,13 @@ public enum ColonyAction
     /// <summary>Text "1" lets builders use any wood or stone type, "0" holds them to the blueprint's.</summary>
     SetAnyWoodOrStone = 9,
     /// <summary>Opens the storage of the hut with BuildingId.</summary>
-    OpenStorage = 10
+    OpenStorage = 10,
+    /// <summary>Text is how far, in blocks, the worker of the hut with BuildingId goes out.</summary>
+    SetWorkRadius = 11,
+    /// <summary>Text "1" sends a guard along with the worker of the hut with BuildingId.</summary>
+    SetEscort = 12,
+    /// <summary>Text "1" has the farmer of the hut with BuildingId pick berry bushes and fruit trees.</summary>
+    SetCollectBerries = 13
 }
 
 /// <summary>A change requested from the Town Hall window. The server checks permissions before applying it.</summary>

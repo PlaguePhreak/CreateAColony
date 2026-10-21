@@ -148,7 +148,7 @@ public partial class ColonyManager
             lines.Add(Lang.Get("createacolony:hut-fields", mine, colony.Fields.Count));
         }
         lines.Add("");
-        lines.Add(Lang.Get("createacolony:hint-" + hut.Type, Config.ForesterRadius));
+        lines.Add(Lang.Get("createacolony:hint-" + hut.Type, GatherRadius(hut)));
         return string.Join("<br>", lines);
     }
 }

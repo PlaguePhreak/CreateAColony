@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 using Vintagestory.API.Common;
+using Vintagestory.API.Config;
 using Vintagestory.API.MathTools;
 using Vintagestory.GameContent;
 
@@ -111,17 +112,58 @@ public partial class ColonyManager
 
     // ---- Berries and fruit ----------------------------------------------------------------
 
-    /// <summary>Ripe berry bushes and fruit-laden fruit tree branches around the hut.</summary>
+    /// <summary>
+    /// Ripe berry bushes and fruit-laden fruit tree branches within the hut's range, unless the hut is
+    /// set not to collect them. Bushes in land no player is near count as they were when last looked at.
+    /// </summary>
     public IEnumerable<BlockPos> RipeFruitNear(Colony colony, Building hut)
     {
-        int r = Math.Max(1, Config.FarmerOrchardRadius);
-        var h = hut.HutPos;
-        var area = new Cuboidi(h.X - r, h.Y - OrchardDepthBelow, h.Z - r, h.X + r, h.Y + OrchardHeightAbove, h.Z + r);
-        foreach (var be in FindBlockEntities<BlockEntity>(area))
+        if (hut.NoBerries) yield break;
+        var ba = sapi.World.BlockAccessor;
+        var scanner = Scanner(hut, "fruit", ScanFruit);
+        foreach (var pos in scanner.Found.Keys.ToList())
         {
-            if (IsRipeFruit(be) && CanWorkAt(colony, be.Pos)) yield return be.Pos;
+            bool ripe;
+            if (ba.GetChunkAtBlockPos(pos) == null)
+            {
+                ripe = scanner.Found[pos];
+            }
+            else
+            {
+                var be = ba.GetBlockEntity(pos);
+                if (!IsFruitBearer(be))
+                {
+                    scanner.Found.Remove(pos);
+                    continue;
+                }
+                ripe = IsRipeFruit(be);
+                scanner.Found[pos] = ripe;
+            }
+            if (ripe && CanWorkAt(colony, pos)) yield return pos;
         }
     }
+
+    /// <summary>Notes every berry bush and fruit tree branch in a chunk column, and whether it is ripe.</summary>
+    void ScanFruit(int chunkX, int chunkZ, AreaScanner scanner)
+    {
+        var ba = sapi.World.BlockAccessor;
+        for (int cy = 0; cy < ba.MapSizeY / GlobalConstants.ChunkSize; cy++)
+        {
+            var chunk = ba.GetChunk(chunkX, cy, chunkZ);
+            if (chunk?.BlockEntities == null) continue;
+            foreach (var be in chunk.BlockEntities.Values)
+            {
+                if (IsFruitBearer(be) && scanner.InRange(be.Pos.X, be.Pos.Z)) scanner.Found[be.Pos.Copy()] = IsRipeFruit(be);
+            }
+        }
+    }
+
+    static bool IsFruitBearer(BlockEntity? be) => be switch
+    {
+        BlockEntityFruitTreePart part => part.PartType != EnumTreePartType.Stem,
+        null => false,
+        _ => be.GetBehavior<BEBehaviorFruitingBush>() != null
+    };
 
     static bool IsRipeFruit(BlockEntity? be) => be switch
     {
