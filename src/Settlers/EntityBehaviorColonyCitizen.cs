@@ -33,15 +33,28 @@ public class EntityBehaviorColonyCitizen : EntityBehavior
 
     public override void OnGameTick(float deltaTime)
     {
-        if (manager == null) return;
+        if (manager == null || !entity.Alive) return;
         sinceSync += deltaTime;
         if (sinceSync < SyncIntervalSeconds) return;
         sinceSync = 0;
 
         var record = FindRecord();
         if (record == null) return;
-        record.EntityId = entity.EntityId;
+
+        if (record.EntityId != entity.EntityId)
+        {
+            // The colony respawned this settler while we were unloaded. The newer entity wins.
+            var other = entity.World.GetEntityById(record.EntityId);
+            if (other != null && other.Alive)
+            {
+                entity.Die(EnumDespawnReason.Removed);
+                return;
+            }
+            record.EntityId = entity.EntityId;
+        }
+
         record.LastSeenPos = entity.Pos.XYZ.Clone();
+        record.LastSeenTotalDays = entity.World.Calendar.TotalDays;
     }
 
     public override void OnEntityDeath(DamageSource damageSourceForDeath)

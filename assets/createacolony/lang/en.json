@@ -26,5 +26,13 @@
 	"supplycamp-exists": "This colony already has a supply camp.",
 	"supplycamp-tomorrow": "The camp has nothing more today. Come back tomorrow.",
 	"supplycamp-exhausted": "The supply camp has run dry. Your colony must provide for itself now.",
-	"supplycamp-delivered": "You collect the day's supplies. Deliveries left: {0}."
+	"supplycamp-delivered": "You collect the day's supplies. Deliveries left: {0}.",
+	"state-dead": "dead",
+	"state-downed": "knocked out",
+	"state-hungry": "hungry",
+	"state-ok": "fine",
+	"has-bed": "has a bed",
+	"no-bed": "no bed",
+	"citizen-line": "{0}: {1}, food {2}%, {3}",
+	"no-citizens": "This colony has no settlers yet."
 }

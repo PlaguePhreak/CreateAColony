@@ -34,11 +34,15 @@ public class CitizenRecord
     [ProtoMember(5)] public string? JobCode;
     [ProtoMember(6)] public BlockPos? HomeBedPos;
     [ProtoMember(7)] public BlockPos? WorkplacePos;
-    [ProtoMember(8)] public float Saturation = 1200f;
+    // IsRequired: protobuf-net skips zero values, which would reload as the non-zero initializer.
+    [ProtoMember(8, IsRequired = true)] public float Saturation = -1f; // -1 = not set yet, filled to max on first tick
     [ProtoMember(9)] public Vec3d? LastSeenPos;
-    [ProtoMember(10)] public bool Alive = true;
+    [ProtoMember(10, IsRequired = true)] public bool Alive = true;
     /// <summary>Set when Permadeath is off and the settler was knocked out instead of killed.</summary>
     [ProtoMember(11)] public double DownedUntilTotalDays;
+    [ProtoMember(12)] public double LastSeenTotalDays;
+
+    public bool IsDowned => DownedUntilTotalDays > 0;
 }
 
 [ProtoContract]
@@ -46,21 +50,21 @@ public class Colony
 {
     public const int CurrentSchemaVersion = 1;
 
-    [ProtoMember(1)] public int SchemaVersion = CurrentSchemaVersion;
+    [ProtoMember(1, IsRequired = true)] public int SchemaVersion = CurrentSchemaVersion;
     [ProtoMember(2)] public string ColonyId = "";
     [ProtoMember(3)] public string Name = "";
     [ProtoMember(4)] public BlockPos TownHallPos = new BlockPos(0);
-    [ProtoMember(5)] public int Level = 1;
+    [ProtoMember(5, IsRequired = true)] public int Level = 1;
     [ProtoMember(6)] public int ClaimRadius;
     [ProtoMember(7)] public List<ColonyMember> Members = new();
     [ProtoMember(8)] public List<CitizenRecord> Citizens = new();
-    [ProtoMember(9)] public int NextCitizenId = 1;
+    [ProtoMember(9, IsRequired = true)] public int NextCitizenId = 1;
     [ProtoMember(10)] public double FoundedTotalDays;
     /// <summary>Position of the colony's single supply camp, or null if none is placed.</summary>
     [ProtoMember(11)] public BlockPos? SupplyCampPos;
     /// <summary>Kept on the colony, not the block, so breaking and re-placing the camp cannot reset it.</summary>
     [ProtoMember(12)] public int SupplyDeliveriesTaken;
-    [ProtoMember(13)] public int LastSupplyDay = -1;
+    [ProtoMember(13, IsRequired = true)] public int LastSupplyDay = -1;
 
     public string OwnerUid => Members.Find(m => m.Role == ColonyRole.Owner)?.PlayerUid ?? "";
 

@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using CreateAColony.Settlers;
 using Vintagestory.API.Common;
+using Vintagestory.API.Common.Entities;
 using Vintagestory.API.Config;
 using Vintagestory.API.MathTools;
 using Vintagestory.API.Server;
@@ -58,6 +59,137 @@ public class ColonyManager : ModSystem
 
         api.Event.SaveGameLoaded += OnSaveGameLoaded;
         api.Event.GameWorldSave += OnGameWorldSave;
+        api.Event.RegisterGameTickListener(OnColonyTick, ColonyTickMs, 1000);
+    }
+
+    const int ColonyTickMs = 10_000;
+
+    public CitizenRecord? FindCitizen(string? colonyId, int citizenId)
+    {
+        if (colonyId == null) return null;
+        return GetById(colonyId)?.Citizens.Find(c => c.CitizenId == citizenId);
+    }
+
+    // ---- Storms ---------------------------------------------------------------------------
+
+    /// <summary>True while a temporal storm is active or due within StormWarningHours.</summary>
+    public bool IsStormNear()
+    {
+        if (sapi.World.Config.GetString("temporalStorms", "sometimes") == "off") return false;
+        var data = sapi.ModLoader.GetModSystem<SystemTemporalStability>()?.StormData;
+        if (data == null) return false;
+        if (data.nowStormActive) return true;
+        double hoursUntil = (data.nextStormTotalDays - sapi.World.Calendar.TotalDays) * sapi.World.Calendar.HoursPerDay;
+        return hoursUntil >= 0 && hoursUntil <= Config.StormWarningHours;
+    }
+
+    // ---- Beds and food --------------------------------------------------------------------
+
+    /// <summary>Returns the citizen's bed, claiming a free bed inside the colony if they have none.</summary>
+    public BlockPos? EnsureBed(Colony colony, CitizenRecord citizen)
+    {
+        var ba = sapi.World.BlockAccessor;
+        if (citizen.HomeBedPos != null && ba.GetBlockEntity(citizen.HomeBedPos) is BlockEntityBed) return citizen.HomeBedPos;
+
+        citizen.HomeBedPos = null;
+        var taken = new HashSet<BlockPos>(colony.Citizens.Where(c => c.HomeBedPos != null).Select(c => c.HomeBedPos!));
+        BlockEntityBed? free = FindBlockEntities<BlockEntityBed>(colony)
+            .Where(b => !taken.Contains(b.Pos))
+            .OrderBy(b => b.Pos.DistanceSqTo(colony.TownHallPos.X, colony.TownHallPos.Y, colony.TownHallPos.Z))
+            .FirstOrDefault();
+        if (free == null) return null;
+
+        citizen.HomeBedPos = free.Pos.Copy();
+        SaveColony(colony);
+        return citizen.HomeBedPos;
+    }
+
+    /// <summary>Finds the nearest container in the colony that holds food the settler can eat.</summary>
+    public BlockEntityContainer? FindFoodContainer(Colony colony, Entity forEntity)
+    {
+        return FindBlockEntities<BlockEntityContainer>(colony)
+            .Where(be => FindFoodSlot(be, forEntity) != null)
+            .OrderBy(be => be.Pos.DistanceSqTo(forEntity.Pos.X, forEntity.Pos.Y, forEntity.Pos.Z))
+            .FirstOrDefault();
+    }
+
+    /// <summary>The slot with the most filling food in a container, or null.</summary>
+    public ItemSlot? FindFoodSlot(BlockEntityContainer container, Entity forEntity)
+    {
+        ItemSlot? best = null;
+        float bestSatiety = 0;
+        foreach (var slot in container.Inventory)
+        {
+            if (slot.Empty) continue;
+            var props = slot.Itemstack.Collectible.GetNutritionProperties(sapi.World, slot.Itemstack, forEntity);
+            if (props == null || props.Satiety <= bestSatiety) continue;
+            best = slot;
+            bestSatiety = props.Satiety;
+        }
+        return best;
+    }
+
+    /// <summary>All loaded block entities of a type inside the colony's claim area.</summary>
+    IEnumerable<T> FindBlockEntities<T>(Colony colony) where T : BlockEntity
+    {
+        var area = ClaimArea(colony.TownHallPos, colony.ClaimRadius);
+        int size = GlobalConstants.ChunkSize;
+        for (int cx = area.X1 / size; cx <= area.X2 / size; cx++)
+        for (int cy = Math.Max(0, area.Y1) / size; cy <= area.Y2 / size; cy++)
+        for (int cz = area.Z1 / size; cz <= area.Z2 / size; cz++)
+        {
+            var chunk = sapi.World.BlockAccessor.GetChunk(cx, cy, cz);
+            if (chunk?.BlockEntities == null) continue;
+            foreach (var be in chunk.BlockEntities.Values)
+            {
+                if (be is T match && area.ContainsOrTouches(be.Pos)) yield return match;
+            }
+        }
+    }
+
+    // ---- Respawning -----------------------------------------------------------------------
+
+    /// <summary>
+    /// Every few seconds: bring knocked-out settlers back once they have recovered, and respawn
+    /// settlers whose entity has been missing for a while (chunk lost, killed while unloaded).
+    /// Only runs while the Town Hall area is loaded, so unloaded settlers are not duplicated.
+    /// </summary>
+    void OnColonyTick(float dt)
+    {
+        double now = sapi.World.Calendar.TotalDays;
+        foreach (var colony in colonies.Values)
+        {
+            if (sapi.World.BlockAccessor.GetChunkAtBlockPos(colony.TownHallPos) == null) continue;
+
+            foreach (var citizen in colony.Citizens.ToList())
+            {
+                if (!citizen.Alive) continue;
+
+                if (citizen.IsDowned)
+                {
+                    if (now >= citizen.DownedUntilTotalDays)
+                    {
+                        citizen.DownedUntilTotalDays = 0;
+                        citizen.Saturation = Config.SaturationMax * 0.5f;
+                        SpawnEntityFor(colony, citizen);
+                    }
+                    continue;
+                }
+
+                var entity = sapi.World.GetEntityById(citizen.EntityId);
+                if (entity != null && entity.Alive)
+                {
+                    citizen.LastSeenTotalDays = now;
+                    continue;
+                }
+
+                if (citizen.LastSeenTotalDays > 0 && now - citizen.LastSeenTotalDays > Config.RespawnMissingAfterDays)
+                {
+                    Mod.Logger.Notification("Settler {0} of {1} was missing, respawning at the Town Hall", citizen.Name, colony.Name);
+                    SpawnEntityFor(colony, citizen);
+                }
+            }
+        }
     }
 
     public Colony? GetById(string colonyId) => colonies.GetValueOrDefault(colonyId);
@@ -162,10 +294,9 @@ public class ColonyManager : ModSystem
     public CitizenRecord? SpawnSettler(Colony colony, string? name)
     {
         string sex = sapi.World.Rand.Next(2) == 0 ? "male" : "female";
-        var type = sapi.World.GetEntityType(new AssetLocation(CreateAColonyModSystem.ModId, "settler-" + sex));
-        if (type == null)
+        if (sapi.World.GetEntityType(SettlerCode(sex)) == null)
         {
-            Mod.Logger.Error("Entity type createacolony:settler-{0} not found", sex);
+            Mod.Logger.Error("Entity type {0} not found", SettlerCode(sex));
             return null;
         }
 
@@ -173,9 +304,19 @@ public class ColonyManager : ModSystem
         {
             CitizenId = colony.NextCitizenId++,
             Name = name ?? Lang.Get("createacolony:settler-default-name", colony.NextCitizenId - 1),
-            Sex = sex
+            Sex = sex,
+            Saturation = Config.SaturationMax
         };
         colony.Citizens.Add(record);
+        SpawnEntityFor(colony, record);
+        return record;
+    }
+
+    /// <summary>Spawns (or respawns) the entity for an existing citizen record next to the Town Hall.</summary>
+    public void SpawnEntityFor(Colony colony, CitizenRecord record)
+    {
+        var type = sapi.World.GetEntityType(SettlerCode(record.Sex));
+        if (type == null) return;
 
         var entity = (EntitySettler)sapi.World.ClassRegistry.CreateEntity(type);
         entity.ColonyId = colony.ColonyId;
@@ -189,9 +330,11 @@ public class ColonyManager : ModSystem
         entity.GetBehavior<EntityBehaviorNameTag>()?.SetName(record.Name);
 
         record.EntityId = entity.EntityId;
+        record.LastSeenTotalDays = sapi.World.Calendar.TotalDays;
         SaveColony(colony);
-        return record;
     }
+
+    static AssetLocation SettlerCode(string sex) => new AssetLocation(CreateAColonyModSystem.ModId, "settler-" + sex);
 
     static string ClaimDescription(Colony colony) => ClaimDescriptionPrefix + colony.ColonyId;
 
