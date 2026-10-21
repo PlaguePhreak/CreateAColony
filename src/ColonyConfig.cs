@@ -51,6 +51,12 @@ public class ColonyConfig
     /// </summary>
     public string[] BlueprintBlockDetails = { "vsroofing:*" };
 
+    /// <summary>
+    /// Bindings that VS Roofing takes in the other hand for stick, bamboo and firewood frames. When a roof in a
+    /// blueprint was tied with one of these, a builder may use any of them.
+    /// </summary>
+    public string[] RoofBindings = { "game:flaxfibers", "game:cattailtops", "game:papyrustops", "game:wildvine-*" };
+
     // Forester
     /// <summary>How far from the Forester's Hut, in blocks, a forester looks for trees.</summary>
     public int ForesterRadius = 16;

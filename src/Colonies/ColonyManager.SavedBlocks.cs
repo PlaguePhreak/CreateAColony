@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Reflection;
 using System.Runtime.CompilerServices;
 using HarmonyLib;
@@ -124,6 +125,19 @@ public partial class ColonyManager
         {
             if (stack != null) Add(stack.Class, stack.Id, stack.StackSize);
         }
+        // The frame's binding: any of the config's bindings will do when the roof used one of them.
+        void AddBinding(ItemStack? stack)
+        {
+            int before = parts.Count;
+            AddStack(stack);
+            if (parts.Count == before) return;
+            var (code, sample, count) = parts[^1];
+            var bindings = Config.RoofBindings;
+            if (bindings.Any(b => WildcardUtil.Match(new AssetLocation(b), new AssetLocation(code))))
+            {
+                parts[^1] = (string.Join("|", bindings), sample, count);
+            }
+        }
         void AddBytes(byte[]? bytes)
         {
             if (bytes == null || bytes.Length == 0) return;
@@ -133,7 +147,7 @@ public partial class ColonyManager
 
         int frame = tree.GetAsInt("Frame", -1);
         if (frame >= 0) Add(EnumItemClass.Item, frame, 1);
-        AddStack(tree.GetItemstack("Offhand"));
+        AddBinding(tree.GetItemstack("Offhand"));
         var materials = tree.GetBytes("Materials");
         if (materials != null && materials.Length > 0)
         {

@@ -67,7 +67,8 @@ With the [VS Roofing](https://mods.vintagestory.at/vsroofing) mod installed, a b
 VS Roofing roof. Build the roof in game as usual and export it with the rest of the building. A builder
 copies each roof block whole, frame, slope, materials and fill included, the way a WorldEdit paste
 does, and pays for what the block holds: the frame item, the binding held in the other hand for stick,
-bamboo and firewood frames, the roofing materials, and any fill block or sod plant. These show up in
+bamboo and firewood frames (any of the config list `RoofBindings` will do: flax fibers, cattail tops,
+papyrus tops or wild vines), the roofing materials, and any fill block or sod plant. These show up in
 the Items needed list and couriers bring them. The roofing materials must be the exact kind in the
 blueprint (oak planks stay oak planks, even when any wood is allowed). Without VS Roofing the roof
 blocks are skipped, like any block from a mod that is not installed.

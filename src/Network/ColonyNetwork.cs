@@ -598,7 +598,7 @@ public partial class ColonyNetwork : ModSystem
         {
             var match = ColonyManager.Matcher(code);
             int have = Manager.CountItems(storage, match) + Manager.PackCount(builder, match);
-            string anyOf = !code.Contains('*') ? "" : sample.Collectible.Variant?.ContainsKey("wood") == true ? "wood" : "rock";
+            string anyOf = code.Contains('|') ? "binding" : !code.Contains('*') ? "" : sample.Collectible.Variant?.ContainsKey("wood") == true ? "wood" : "rock";
             snapshot.Resources.Add(new ResourceView { Stack = sample.ToBytes(), Needed = count, Have = have, AnyOf = anyOf });
         }
         return snapshot;
