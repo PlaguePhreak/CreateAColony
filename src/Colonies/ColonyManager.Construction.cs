@@ -20,7 +20,7 @@ public partial class ColonyManager
     public const int HutStorageRadius = 2;
 
     BlueprintLibrary? blueprints;
-    public BlueprintLibrary Blueprints => blueprints ??= new BlueprintLibrary(sapi);
+    public BlueprintLibrary Blueprints => blueprints ??= new BlueprintLibrary(sapi, Config);
 
 
     /// <summary>What each work order is waiting on, for the Town Hall window. Not saved: builders refresh it.</summary>

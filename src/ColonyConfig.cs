@@ -45,6 +45,11 @@ public class ColonyConfig
     public float BuilderSecondsPerBlock = 0.75f;
     /// <summary>Builders need a shovel, axe or pickaxe of the right tier to clear blocks, and wear it out.</summary>
     public bool BuildersNeedTools = true;
+    /// <summary>
+    /// Blocks whose saved details builders copy from a blueprint, such as a VS Roofing roof's frame, shape
+    /// and materials. Builders pay for what those details hold. Leave chests out: their contents would come free.
+    /// </summary>
+    public string[] BlueprintBlockDetails = { "vsroofing:*" };
 
     // Forester
     /// <summary>How far from the Forester's Hut, in blocks, a forester looks for trees.</summary>

@@ -54,6 +54,21 @@ creative world with its hut block where the hut should stand, select it with Wor
 changes without a restart. Blueprints in ModConfig override the ones shipped in
 `assets/createacolony/config/blueprints/`.
 
+### VS Roofing roofs
+
+With the [VS Roofing](https://mods.vintagestory.at/vsroofing) mod installed, a blueprint can have a
+VS Roofing roof. Build the roof in game as usual and export it with the rest of the building. A builder
+copies each roof block whole, frame, slope, materials and fill included, the way a WorldEdit paste
+does, and pays for what the block holds: the frame item, the binding held in the other hand for stick,
+bamboo and firewood frames, the roofing materials, and any fill block or sod plant. These show up in
+the Items needed list and couriers bring them. The roofing materials must be the exact kind in the
+blueprint (oak planks stay oak planks, even when any wood is allowed). Without VS Roofing the roof
+blocks are skipped, like any block from a mod that is not installed.
+
+The config list `BlueprintBlockDetails` (default `["vsroofing:*"]`) says which blocks are copied with
+their saved details. Do not add chests or other containers: whatever they held in the export would
+come for free.
+
 ### Ordering buildings and tools
 
 Right-click a hut block to open its window and order a level; the Town Hall's own upgrade is on the

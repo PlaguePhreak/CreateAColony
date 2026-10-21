@@ -4,13 +4,31 @@ using System.IO;
 using System.Linq;
 using Vintagestory.API.Common;
 using Vintagestory.API.Config;
+using Vintagestory.API.Datastructures;
 using Vintagestory.API.MathTools;
 using Vintagestory.API.Server;
+using Vintagestory.API.Util;
 
 namespace CreateAColony.Colonies;
 
-/// <summary>One block a builder has to get right. BlockId 0 means "clear this spot".</summary>
-public readonly record struct BuildStep(int Dx, int Dy, int Dz, int BlockId);
+/// <summary>
+/// One block a builder has to get right. BlockId 0 means "clear this spot". Saved, when set, holds the
+/// block's saved details from the export (a VS Roofing roof's frame, shape and materials).
+/// </summary>
+public readonly record struct BuildStep(int Dx, int Dy, int Dz, int BlockId, SavedBlockEntity? Saved = null);
+
+/// <summary>
+/// A block entity's data as the WorldEdit export stored it, with the export it came from: item and block
+/// numbers inside the data are that world's, and the export's code lists turn them into this world's.
+/// </summary>
+public class SavedBlockEntity
+{
+    public required string Data;
+    public required BlockSchematic Source;
+
+    /// <summary>A fresh copy of the saved data; callers may change it.</summary>
+    public TreeAttribute Tree() => Source.DecodeBlockEntityData(Data);
+}
 
 /// <summary>A blueprint turned into an ordered list of build steps, relative to the hut block.</summary>
 public class Blueprint
@@ -32,9 +50,14 @@ public class BlueprintLibrary
     public const int MaxLevels = 5;
 
     readonly ICoreServerAPI sapi;
+    readonly ColonyConfig config;
     readonly Dictionary<(string, int, int), Blueprint?> cache = new();
 
-    public BlueprintLibrary(ICoreServerAPI sapi) => this.sapi = sapi;
+    public BlueprintLibrary(ICoreServerAPI sapi, ColonyConfig config)
+    {
+        this.sapi = sapi;
+        this.config = config;
+    }
 
     public static string UserFolder => Path.Combine(GamePaths.ModConfig, "createacolony", "blueprints");
 
@@ -106,6 +129,14 @@ public class BlueprintLibrary
                 type, level, string.Join(", ", missing));
         }
 
+        // Saved details for the blocks the config lets builders copy (never chests: their contents would come free).
+        var saved = new Dictionary<(int, int, int), SavedBlockEntity>();
+        foreach (var (index, data) in schematic.BlockEntities)
+        {
+            var at = ((int)(index & BlockSchematic.PosBitMask), (int)((index >> 20) & BlockSchematic.PosBitMask), (int)((index >> 10) & BlockSchematic.PosBitMask));
+            if (blocks.TryGetValue(at, out var withData) && KeepsDetails(withData)) saved[at] = new SavedBlockEntity { Data = data, Source = schematic };
+        }
+
         // Where the hut block sits inside the blueprint.
         string hutCode = HutBlockCode(type);
         var anchor = blocks.FirstOrDefault(kv => kv.Value.Code.ToString() == hutCode).Key;
@@ -126,7 +157,7 @@ public class BlueprintLibrary
             if (blocks.TryGetValue((dx, dy, dz), out var block))
             {
                 if (IsMeta(block)) continue;
-                var step = new BuildStep(dx - ax, dy - ay, dz - az, block.Id);
+                var step = new BuildStep(dx - ax, dy - ay, dz - az, block.Id, saved.GetValueOrDefault((dx, dy, dz)));
                 if (block.Id == 0) clear.Add(step);
                 else if (IsSolid(block)) solid.Add(step);
                 else decor.Add(step);
@@ -144,6 +175,9 @@ public class BlueprintLibrary
     }
 
     static bool IsSolid(Block block) => block.SideSolid.Any;
+
+    bool KeepsDetails(Block block) =>
+        block.EntityClass != null && config.BlueprintBlockDetails.Any(p => WildcardUtil.Match(new AssetLocation(p), block.Code));
 
     public static string HutBlockCode(string type) => type switch
     {

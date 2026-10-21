@@ -96,15 +96,17 @@ public class AiTaskSettlerBuilder : SettlerTaskBase
             return false;
         }
 
-        var cost = manager.NextPlacement(colony, buildStep, pos).Cost;
-        var fits = cost == null ? null : ColonyManager.Matcher(cost.Value.Code);
-        if (fits == null || manager.PackCount(citizen, fits) > 0)
+        // Everything the next block costs must be in hand; a roof block takes its frame and materials together.
+        var costs = manager.NextPlacement(colony, buildStep, pos).Costs;
+        var missing = costs.Where(c => manager.PackCount(citizen, ColonyManager.Matcher(c.Code)) < c.Count).ToList();
+        if (missing.Count == 0)
         {
             manager.BuildStatus[order.BuildingId] = "building";
             return Go(Step.Work, pos);
         }
 
-        var source = manager.HutStorage(colony, hut).FirstOrDefault(c => c.Inventory.Any(s => !s.Empty && fits(s.Itemstack)));
+        var fits = missing.Select(c => ColonyManager.Matcher(c.Code)).ToList();
+        var source = manager.HutStorage(colony, hut).FirstOrDefault(c => c.Inventory.Any(s => !s.Empty && fits.Any(m => m(s.Itemstack))));
         if (source != null)
         {
             manager.BuildStatus[order.BuildingId] = "building";
@@ -242,25 +244,29 @@ public class AiTaskSettlerBuilder : SettlerTaskBase
         var hut = manager!.EnsureBuilderHut(colony, citizen);
         if (order == null || hut == null) return;
         var blueprint = manager.Blueprints.Get(order.Type, order.TargetLevel, order.Rotation);
-        var cost = manager.NextPlacement(colony, buildStep, manager.StepPos(order, buildStep)).Cost;
-        if (blueprint == null || cost == null) return;
+        var costs = manager.NextPlacement(colony, buildStep, manager.StepPos(order, buildStep)).Costs;
+        if (blueprint == null || costs.Count == 0) return;
 
         var storage = manager.HutStorage(colony, hut).Cast<BlockEntityContainer>().ToList();
         var needs = manager.MaterialsNeeded(colony, order, blueprint);
         var matchers = needs.Keys.Select(ColonyManager.Matcher).ToList();
         manager.UnloadPack(colony, citizen, storage, s => !matchers.Any(m => m(s)) && !ColonyManager.IsBuilderTool(s));
 
-        var current = ColonyManager.Matcher(cost.Value.Code);
-        int currentNeed = needs.TryGetValue(cost.Value.Code, out var n) ? n.Count : cost.Value.Count;
-        if (Load(colony, citizen, storage, current, currentNeed) == 0 && manager.PackCount(citizen, current) == 0)
+        var nowMatchers = costs.Select(c => ColonyManager.Matcher(c.Code)).ToList();
+        foreach (var cost in costs)
         {
-            // Full of other materials: make room for the one needed right now.
-            manager.UnloadPack(colony, citizen, storage, s => !current(s) && !ColonyManager.IsBuilderTool(s));
-            Load(colony, citizen, storage, current, currentNeed);
+            var current = ColonyManager.Matcher(cost.Code);
+            int currentNeed = needs.TryGetValue(cost.Code, out var n) ? n.Count : cost.Count;
+            if (Load(colony, citizen, storage, current, currentNeed) == 0 && manager.PackCount(citizen, current) < cost.Count)
+            {
+                // Full of other materials: make room for what the next block needs right now.
+                manager.UnloadPack(colony, citizen, storage, s => !nowMatchers.Any(m => m(s)) && !ColonyManager.IsBuilderTool(s));
+                Load(colony, citizen, storage, current, currentNeed);
+            }
         }
         foreach (var (code, (_, count)) in needs)
         {
-            if (code == cost.Value.Code) continue;
+            if (costs.Any(c => c.Code == code)) continue;
             Load(colony, citizen, storage, ColonyManager.Matcher(code), count);
         }
     }
@@ -356,17 +362,23 @@ public class AiTaskSettlerBuilder : SettlerTaskBase
         }
         if (buildStep.BlockId == 0) return;
 
-        var (place, cost) = manager.NextPlacement(colony, buildStep, target);
-        ItemStack? used = null;
-        if (cost != null)
+        var (place, costs) = manager.NextPlacement(colony, buildStep, target);
+        var paid = new List<ItemStack>();
+        foreach (var cost in costs)
         {
-            used = manager.TakeFromPack(colony, citizen, ColonyManager.Matcher(cost.Value.Code), 1);
-            if (used == null) return;
+            var taken = manager.TakeFromPack(colony, citizen, ColonyManager.Matcher(cost.Code), cost.Count);
+            if (taken != null) paid.Add(taken);
+            if (taken == null || taken.StackSize < cost.Count)
+            {
+                foreach (var stack in paid) manager.AddToPack(colony, citizen, stack);
+                return;
+            }
         }
+        var used = paid.FirstOrDefault();
         place = manager.SwapToMaterial(colony, place, used);
         if (manager.EntityInTheWay(place, target) is { } inTheWay)
         {
-            if (used != null) manager.AddToPack(colony, citizen, used);
+            foreach (var stack in paid) manager.AddToPack(colony, citizen, stack);
             if (inTheWay.EntityId == entity.EntityId && manager.FreeSpotNear(entity, target, 3, target) is { } spot)
             {
                 // Standing where the block goes: step out of the way first.
@@ -382,6 +394,7 @@ public class AiTaskSettlerBuilder : SettlerTaskBase
         }
         manager.PlaceForBuild(place.Id, target);
         manager.FinishPlacement(place, target);
+        if (place.Id == buildStep.BlockId) manager.RestoreSavedDetails(buildStep, target);
     }
 
     /// <summary>What a player would play: the held tool's swing when clearing a block, the place motion when building.</summary>

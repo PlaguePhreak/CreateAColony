@@ -51,6 +51,9 @@ public partial class ColonyManager
             if (joined.Id == current.Id) return true;
             target = joined;
         }
+        // A VS Roofing roof block turns bare or filled by itself as its materials load; either one is the roof.
+        if (target.Code.Domain == RoofingDomain && VariantOf(current, "type") is { } roofState
+            && target.CodeWithVariant("type", roofState).Equals(current.Code)) return true;
         if (!colony.AnyWoodOrStone) return false;
         foreach (string v in SwappableVariants)
         {
@@ -70,8 +73,11 @@ public partial class ColonyManager
 
     // ---- What to place and what it costs --------------------------------------------------
 
-    /// <summary>The next block to place on the way to the step's block, and what placing it costs (null: nothing).</summary>
-    public (Block Place, MaterialCost? Cost) NextPlacement(Colony colony, BuildStep step, BlockPos pos)
+    /// <summary>
+    /// The next block to place on the way to the step's block, and everything placing it costs (empty:
+    /// nothing). Most blocks cost one item; a roof block from VS Roofing costs its frame and materials.
+    /// </summary>
+    public (Block Place, IReadOnlyList<MaterialCost> Costs) NextPlacement(Colony colony, BuildStep step, BlockPos pos)
     {
         var target = sapi.World.GetBlock(step.BlockId);
         if (target is BlockFirepit)
@@ -79,13 +85,17 @@ public partial class ColonyManager
             if (sapi.World.BlockAccessor.GetBlock(pos) is BlockFirepit pit && pit.Stage < FirepitReady)
             {
                 var next = sapi.World.GetBlock(pit.CodeWithParts(pit.NextStageCodePart)) ?? target;
-                return (next, ItemCost("game:firewood", 1));
+                return (next, Costs(ItemCost("game:firewood", 1)));
             }
             var start = sapi.World.GetBlock(new AssetLocation("game:firepit-construct1"));
-            if (start != null) return (start, ItemCost("game:drygrass", 1));
+            if (start != null) return (start, Costs(ItemCost("game:drygrass", 1)));
         }
-        return (target, PickCost(colony, target, pos));
+        if (Config.BuildersNeedMaterials && SavedCost(step, target) is { } saved) return (target, saved);
+        return (target, Costs(PickCost(colony, target, pos)));
     }
+
+    static IReadOnlyList<MaterialCost> Costs(MaterialCost? cost) =>
+        cost is { } one ? new[] { one } : Array.Empty<MaterialCost>();
 
     /// <summary>Everything still to pay for one step, for the "Items needed" list and courier requests.</summary>
     public IEnumerable<MaterialCost> RemainingCost(Colony colony, BuildStep step, BlockPos pos)
@@ -100,7 +110,7 @@ public partial class ColonyManager
             if (wood > 0) yield return firewood with { Count = wood };
             yield break;
         }
-        if (PickCost(colony, target, pos) is { } cost) yield return cost;
+        foreach (var cost in NextPlacement(colony, step, pos).Costs) yield return cost;
     }
 
     /// <summary>The block actually placed: the blueprint's, or the same block in the wood or stone the builder brought.</summary>
