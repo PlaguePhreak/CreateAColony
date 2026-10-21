@@ -61,6 +61,19 @@ hole in the ground costs any soil. The Builder's Hut level 1 (since 0.18.0) is a
 with a thatched VS Roofing roof; the old 5 x 4 x 5 sample is kept as
 `blueprints/builder/level1-old-placeholder.json` (rename it to `level1.json` in ModConfig to use it).
 
+Since 0.19.0 the Forester's Hut and the Tavern also have thatched cottages for level 1, made from the
+Builder's Hut: a 7 x 7 x 9 log cabin for the Forester and an 11 x 7 x 9 wattle-and-daub hall with a fire
+pit hearth for the Tavern. Their old samples are kept as `level1-old-placeholder.json` too.
+
+### Making blueprints with the generator
+
+`tools/blueprints/make_blueprints.py` (Python 3 with Pillow) makes those cottages. It cuts the Builder's
+Hut into slices across its length and repeats the middle slice to make a longer house, so the roof, frame
+and door are copied from blocks that work in game; only walls, windows and furniture change, and only to
+blocks in its `VERIFIED` list. It checks each building (one hut block, doors with their top half and
+direction, roof data on every roof block) before writing it, and draws a picture and a layer plan of
+each in `tools/blueprints/previews/`. New designs go in its `make` function.
+
 ### VS Roofing roofs
 
 With the [VS Roofing](https://mods.vintagestory.at/vsroofing) mod installed, a blueprint can have a
