@@ -52,4 +52,4 @@ creative world with its hut block where the hut should stand, select it with Wor
 `VintagestoryData/ModConfig/createacolony/blueprints/<type>/level<N>.json`, where `<type>` is
 `builder`, `townhall` or `warehouse` and `<N>` is 1 to 5. `/colony reloadblueprints` picks up
 changes without a restart. Blueprints in ModConfig override the ones shipped in
-`assets/createacolony/blueprints/`.
+`assets/createacolony/config/blueprints/`.

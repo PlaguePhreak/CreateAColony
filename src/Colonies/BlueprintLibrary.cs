@@ -68,7 +68,7 @@ public class BlueprintLibrary
     {
         string file = Path.Combine(UserFolder, type, $"level{level}.json");
         if (File.Exists(file)) return File.ReadAllText(file);
-        return sapi.Assets.TryGet(new AssetLocation(CreateAColonyModSystem.ModId, $"blueprints/{type}/level{level}.json"))?.ToText();
+        return sapi.Assets.TryGet(new AssetLocation(CreateAColonyModSystem.ModId, $"config/blueprints/{type}/level{level}.json"))?.ToText();
     }
 
     Blueprint? Load(string type, int level, int rotation)
