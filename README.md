@@ -10,7 +10,7 @@ land claim, recruit settlers that persist with the save. Compiles cleanly agains
    game's `Mods` folder.
 
 ## Try it
-- Place a **Town Hall** (creative inventory): founds the colony, claims a 49x49 area, and 3 to 4 settlers arrive.
+- Craft a **Town Hall** (5 planks of any wood in a U shape: top row full, middle row left and right) or take it from the creative inventory, then place it: founds the colony, claims a 49x49 area, and 3 to 4 settlers arrive.
 - `/colony info` inside the claim shows the colony.
 - `/colony invite <player>`, then that player types `/colony join`. `/colony leave` leaves the colony you stand in.
 - `/colony recruit [name]` (needs controlserver) spawns one more settler, for testing.
