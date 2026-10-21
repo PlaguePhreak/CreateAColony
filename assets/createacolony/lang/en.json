@@ -372,7 +372,7 @@
 	"hut-placed-cook": "{0} placed. Right-click it to order level 1 (it comes with a fire pit), give a settler the Cook job in the Town Hall, and put raw meat, fish or dough and firewood in the hut's storage (sneak + right-click).",
 	"hint-cook": "Put raw food (meat, fish, bread dough and anything else the game cooks in a fire pit) and firewood in the hut's storage; couriers bring them from the warehouse too. The cook cooks it in the fire pit next to the hut, just as you would, and keeps the cooked food in the hut's storage, where hungry settlers come to eat. The Kitchen tab says how much of each food to keep.",
 	"tab-kitchen": "Kitchen",
-	"kitchen-hint": "The cook cooks until the colony has this much of each food ready, counting the warehouse and this hut. Settlers eating it makes the cook cook more.",
+	"kitchen-hint": "The cook cooks until the colony has this much of each food ready (servings, for pot meals), counting the warehouse and this hut. Pot meals need an empty cooking pot in the hut storage or warehouse.",
 	"kitchen-none": "The game has no raw foods that cook in a fire pit.",
 	"kitchen-have": "{0} ready",
 	"kitchen-keep": "Keep {0}",
@@ -393,5 +393,10 @@
 	"workstatus-needs-firewood": "needs firewood (put some in the hut storage or the warehouse)",
 	"activity-cook-load": "Putting food on the fire",
 	"activity-cook-fuel": "Lighting the fire",
-	"activity-cook-empty": "Taking cooked food off the fire"
+	"activity-cook-empty": "Taking cooked food off the fire",
+	"activity-cook-loadmeal": "Cooking {0}",
+	"kitchen-meal": "Pot meal: {0}",
+	"workstatus-cooking-meal": "cooking a pot meal",
+	"workstatus-fetching-pot": "fetching a cooking pot",
+	"workstatus-waiting-pot": "waiting for a courier to bring a cooking pot"
 }

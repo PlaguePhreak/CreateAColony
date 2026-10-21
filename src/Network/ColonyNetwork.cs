@@ -275,7 +275,7 @@ public partial class ColonyNetwork : ModSystem
         int bar = packet.Text.LastIndexOf('|');
         if (bar <= 0 || !int.TryParse(packet.Text[(bar + 1)..], out int keep) || keep < 0 || keep > 999) return "createacolony:bad-building";
         string key = packet.Text[..bar];
-        if (!Manager.KitchenKinds().Any(k => k.Key == key)) return "createacolony:bad-building";
+        if (!Manager.KitchenKinds().Any(k => k.Key == key) && Manager.MealRecipe(key) == null) return "createacolony:bad-building";
         Manager.SetKitchenKeep(colony, building, key, keep);
         return null;
     }
@@ -550,6 +550,18 @@ public partial class ColonyNetwork : ModSystem
                     Stack = kind.Sample.ToBytes(),
                     Keep = Manager.KitchenKeep(building, kind),
                     Have = Manager.KitchenStock(colony, building, kind, cook)
+                });
+            }
+            foreach (var recipe in Manager.MealRecipes())
+            {
+                if (Manager.MealIcon(recipe) is not { } icon) continue;
+                snapshot.Kitchen.Add(new PotteryView
+                {
+                    Key = ColonyManager.MealKey(recipe),
+                    Name = Manager.MealName(recipe),
+                    Stack = icon.ToBytes(),
+                    Keep = Manager.MealKeep(building, recipe),
+                    Have = Manager.MealStock(colony, building, recipe, cook)
                 });
             }
         }
