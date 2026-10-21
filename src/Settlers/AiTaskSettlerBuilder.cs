@@ -34,8 +34,10 @@ public class AiTaskSettlerBuilder : SettlerTaskBase
 
     bool walking;
     float workTime;
-    /// <summary>Set by Work when the builder stands where its next block goes.</summary>
-    BlockPos? stepAsideTo;
+    /// <summary>Set by Work when the builder stands where its next block goes: the spot to move to.</summary>
+    Vec3d? stepAsideTo;
+    /// <summary>While stepping aside: the block the builder must get its body out of.</summary>
+    BlockPos? clearOf;
     /// <summary>The animation playing while working on the current block.</summary>
     string? workAnim;
     long nextSearchMs;
@@ -132,6 +134,8 @@ public class AiTaskSettlerBuilder : SettlerTaskBase
     public override void StartExecute()
     {
         base.StartExecute();
+        stepAsideTo = null;
+        clearOf = null;
         BeginStep();
     }
 
@@ -141,8 +145,14 @@ public class AiTaskSettlerBuilder : SettlerTaskBase
         if (step != Step.Work && Colony is { } colony && Citizen is { } citizen) PutAwayHand(colony, citizen);
         var center = target.ToVec3d().Add(0.5, 0.5, 0.5);
         walking = !(step == Step.Work && entity.Pos.XYZ.DistanceTo(center) <= WorkRange);
-        float range = step switch { Step.Work => WorkRange - 1, Step.StepAside => 0.3f, _ => 1.5f };
-        if (walking) WalkTo(target.ToVec3d().Add(0.5, 0, 0.5), range);
+        if (!walking) return;
+        if (step == Step.StepAside && stepAsideTo != null)
+        {
+            WalkTo(stepAsideTo, 0.1f);
+            return;
+        }
+        float range = step switch { Step.Work => WorkRange - 1, _ => 1.5f };
+        WalkTo(target.ToVec3d().Add(0.5, 0, 0.5), range);
     }
 
     public override bool ContinueExecute(float dt)
@@ -151,7 +161,8 @@ public class AiTaskSettlerBuilder : SettlerTaskBase
         {
             if (PathFailed)
             {
-                if (step != Step.Work || entity.Pos.XYZ.DistanceTo(target.ToVec3d().Add(0.5, 0.5, 0.5)) > StretchRange)
+                // A failed step aside falls through: the StepAside step shuffles the builder over itself.
+                if (step != Step.StepAside && (step != Step.Work || entity.Pos.XYZ.DistanceTo(target.ToVec3d().Add(0.5, 0.5, 0.5)) > StretchRange))
                 {
                     var o = Colony?.Buildings.Find(b => b.BuildingId == orderId);
                     if (o != null) manager!.BuildStatus[o.BuildingId] = "unreachable";
@@ -185,6 +196,15 @@ public class AiTaskSettlerBuilder : SettlerTaskBase
                 if (!manager!.PackEmpty(citizen)) return false;
                 break;
             case Step.StepAside:
+                // The pathfinder counts "close enough" as arrived, which can leave the builder half inside
+                // the block it wants to place. Shuffle the last bit over to the free spot.
+                if (clearOf != null && stepAsideTo != null && manager!.Overlaps(entity, clearOf)
+                    && entity.Pos.XYZ.DistanceTo(stepAsideTo) < 2.5)
+                {
+                    entity.TeleportToDouble(stepAsideTo.X, stepAsideTo.Y, stepAsideTo.Z);
+                }
+                stepAsideTo = null;
+                clearOf = null;
                 break;
             case Step.Work:
                 if (workAnim == null)
@@ -198,8 +218,8 @@ public class AiTaskSettlerBuilder : SettlerTaskBase
                 StopWorkAnimation();
                 if (stepAsideTo != null)
                 {
-                    Go(Step.StepAside, stepAsideTo);
-                    stepAsideTo = null;
+                    clearOf = target.Copy();
+                    Go(Step.StepAside, stepAsideTo.AsBlockPos);
                     BeginStep();
                     return true;
                 }
@@ -347,10 +367,10 @@ public class AiTaskSettlerBuilder : SettlerTaskBase
         if (manager.EntityInTheWay(place, target) is { } inTheWay)
         {
             if (used != null) manager.AddToPack(colony, citizen, used);
-            if (inTheWay.EntityId == entity.EntityId && manager.FreeSpotNear(entity, entity.Pos.AsBlockPos, 3, target) is { } spot)
+            if (inTheWay.EntityId == entity.EntityId && manager.FreeSpotNear(entity, target, 3, target) is { } spot)
             {
                 // Standing where the block goes: step out of the way first.
-                stepAsideTo = spot.AsBlockPos;
+                stepAsideTo = spot;
             }
             else
             {
