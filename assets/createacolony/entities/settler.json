@@ -1,0 +1,49 @@
+{
+	"code": "settler",
+	"class": "EntitySettler",
+	"variantGroups": [{ "code": "sex", "states": ["male", "female"] }],
+	"canClimb": true,
+	"eyeHeight": 1.6,
+	"hitboxSize": { "x": 0.6, "y": 1.85 },
+	"deadHitboxSize": { "x": 0.75, "y": 0.5 },
+	"attributes": {
+		"outfitConfigFileName": "game:villageraccessories-{sex}"
+	},
+	"client": {
+		"renderer": "Shape",
+		// TODO: confirm the vanilla humanoid shape path in the 1.22 assets folder (assets/game/shapes/entity/humanoid/).
+		"shape": { "base": "game:entity/humanoid/villager-{sex}" },
+		"behaviors": [
+			{ "code": "villagerinventory" },
+			{ "code": "nametag", "showtagonlywhentargeted": true },
+			{ "code": "repulseagents" },
+			{ "code": "controlledphysics", "stepHeight": 1.1 },
+			{ "code": "interpolateposition" }
+		],
+		"animations": [
+			{ "code": "idle", "animation": "idle", "blendMode": "average", "triggeredBy": { "defaultAnim": true } },
+			{ "code": "walk", "animation": "balanced-walk", "blendMode": "average" },
+			{ "code": "die", "animation": "die", "animationSpeed": 1.75, "weight": 10, "blendMode": "addAverage" },
+			{ "code": "hurt", "animation": "hurt", "animationSpeed": 2, "blendMode": "addAverage" }
+		]
+	},
+	"server": {
+		"behaviors": [
+			{ "code": "villagerinventory" },
+			{ "code": "nametag", "showtagonlywhentargeted": true },
+			{ "code": "repulseagents" },
+			{ "code": "controlledphysics", "stepHeight": 1.1 },
+			{ "code": "health", "currenthealth": 20, "maxhealth": 20 },
+			{ "code": "colonycitizen" },
+			{
+				"code": "taskai",
+				"aitasks": [
+					// MVP placeholder routine. Job tasks (settlerwork, settlersleep, settlerseekshelter) replace these in milestone 2.
+					{ "code": "wander", "priority": 1.0, "movespeed": 0.012, "animation": "walk", "maxDistanceToSpawn": 12, "wanderRangeMin": 3, "wanderRangeMax": 10 },
+					{ "code": "lookaround", "priority": 0.5 }
+				]
+			}
+		]
+	},
+	"sounds": {}
+}
