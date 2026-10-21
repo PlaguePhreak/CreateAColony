@@ -26,6 +26,7 @@
 			{ "code": "sleep", "animation": "balanced-lie", "blendMode": "average", "weight": 10 },
 			{ "code": "shelter", "animation": "balanced-sitfloor", "blendMode": "average", "weight": 10 },
 			{ "code": "eat", "animation": "balanced-holdbelly-idle", "blendMode": "average", "weight": 5 },
+			{ "code": "build", "animation": "balanced-hit", "blendMode": "average", "weight": 5 },
 			{ "code": "die", "animation": "balanced-die", "animationSpeed": 1.75, "weight": 10, "blendMode": "addAverage" },
 			{ "code": "hurt", "animation": "balanced-hurt", "animationSpeed": 2, "blendMode": "addAverage" }
 		]
@@ -47,6 +48,7 @@
 					{ "code": "settlersleep", "animation": "walk", "priority": 2.0, "movespeed": 0.018 },
 					{ "code": "settlereat", "animation": "walk", "priority": 1.5, "movespeed": 0.02 },
 					{ "code": "settlercourier", "animation": "walk", "priority": 1.2, "movespeed": 0.022 },
+					{ "code": "settlerbuilder", "animation": "walk", "priority": 1.2, "movespeed": 0.02 },
 					{ "code": "wander", "priority": 1.0, "movespeed": 0.012, "animation": "walk", "maxDistanceToSpawn": 12, "wanderRangeMin": 3, "wanderRangeMax": 10 },
 					{ "code": "lookaround", "priority": 0.5 }
 				]

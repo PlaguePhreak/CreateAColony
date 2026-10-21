@@ -23,6 +23,23 @@ public class CitizenView
 }
 
 [ProtoContract]
+public class BuildingView
+{
+    [ProtoMember(1)] public int BuildingId;
+    [ProtoMember(2)] public string Type = "";
+    [ProtoMember(3)] public int Level;
+    /// <summary>Highest level with a blueprint; 0 means no blueprint is installed for this type.</summary>
+    [ProtoMember(4)] public int MaxLevel;
+    [ProtoMember(5)] public int TargetLevel;
+    [ProtoMember(6)] public int ProgressPercent;
+    /// <summary>What the work order waits on, a lang key suffix ("building", "waiting-materials", ...).</summary>
+    [ProtoMember(7)] public string Status = "";
+    /// <summary>Remaining materials, already formatted: "12 Oak planks".</summary>
+    [ProtoMember(8)] public List<string> Materials = new();
+    [ProtoMember(9)] public int Rotation;
+}
+
+[ProtoContract]
 public class MemberView
 {
     [ProtoMember(1)] public string PlayerUid = "";
@@ -49,6 +66,9 @@ public class ColonySnapshot
     [ProtoMember(11)] public int WarehouseChests;
     [ProtoMember(12)] public int OpenRequests;
     [ProtoMember(13)] public int DropOffs;
+    [ProtoMember(14)] public List<BuildingView> Buildings = new();
+    /// <summary>A timed refresh for construction progress; the window only redraws it on the Buildings tab.</summary>
+    [ProtoMember(15)] public bool Periodic;
 }
 
 public enum ColonyAction
@@ -57,7 +77,10 @@ public enum ColonyAction
     SetJob = 2,
     SetRole = 3,
     RemoveMember = 4,
-    CloseWindow = 5
+    CloseWindow = 5,
+    Build = 6,
+    CancelBuild = 7,
+    Rotate = 8
 }
 
 /// <summary>A change requested from the Town Hall window. The server checks permissions before applying it.</summary>
@@ -70,4 +93,5 @@ public class ColonyActionPacket
     [ProtoMember(4)] public string Text = "";
     [ProtoMember(5)] public string PlayerUid = "";
     [ProtoMember(6)] public int Role;
+    [ProtoMember(7)] public int BuildingId;
 }

@@ -35,7 +35,7 @@ public class BlockWarehouse : Block
         if (!base.DoPlaceBlock(world, byPlayer, blockSel, byItemStack)) return false;
 
         colony.WarehousePos = blockSel.Position.Copy();
-        manager.MarkDirty(colony);
+        manager.AddBuilding(colony, BuildingTypes.Warehouse, blockSel.Position, ColonyManager.RotationFor(player));
         player.SendMessage(0, Lang.Get("createacolony:warehouse-placed", ColonyManager.WarehouseRadius), EnumChatType.Notification);
         return true;
     }
@@ -65,7 +65,7 @@ public class BlockWarehouse : Block
             if (colony?.WarehousePos != null && colony.WarehousePos.Equals(pos))
             {
                 colony.WarehousePos = null;
-                manager.MarkDirty(colony);
+                manager.RemoveBuilding(colony, pos);
             }
         }
         base.OnBlockRemoved(world, pos);

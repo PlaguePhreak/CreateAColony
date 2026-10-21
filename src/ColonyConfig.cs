@@ -36,4 +36,10 @@ public class ColonyConfig
     // Respawn
     /// <summary>A settler not seen for this long while the Town Hall area is loaded is treated as lost and respawned.</summary>
     public double RespawnMissingAfterDays = 0.5;
+
+    // Construction
+    /// <summary>When false, builders conjure blocks without materials. Handy for creative testing.</summary>
+    public bool BuildersNeedMaterials = true;
+    /// <summary>Seconds a builder takes per block placed or cleared.</summary>
+    public float BuilderSecondsPerBlock = 0.75f;
 }

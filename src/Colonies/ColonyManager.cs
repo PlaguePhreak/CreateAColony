@@ -166,6 +166,7 @@ public partial class ColonyManager : ModSystem
         foreach (var colony in colonies.Values)
         {
             if (sapi.World.BlockAccessor.GetChunkAtBlockPos(colony.TownHallPos) == null) continue;
+            EnsureCoreBuildings(colony);
 
             foreach (var citizen in colony.Citizens.ToList())
             {
@@ -240,6 +241,7 @@ public partial class ColonyManager : ModSystem
         sapi.World.Claims.Add(claim);
 
         colonies[colony.ColonyId] = colony;
+        AddBuilding(colony, BuildingTypes.TownHall, townHallPos, RotationFor(founder));
         SaveColony(colony);
         return FoundColonyResult.Ok;
     }
