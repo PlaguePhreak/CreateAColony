@@ -4,8 +4,8 @@
 	"creativeinventory": { "general": ["*"] },
 	"blockmaterial": "Wood",
 	"drawtype": "cube",
-	// Placeholder look: a plank cube. TODO: confirm the texture path in 1.22, or swap for a crate-and-tent model.
-	"textures": { "all": { "base": "game:block/wood/planks/oak1" } },
+	// Placeholder look: a plank cube using a vanilla texture. Swap for a crate-and-tent model later.
+	"textures": { "all": { "base": "game:block/wood/planks/aged1" } },
 	"resistance": 2,
 	"maxStackSize": 1,
 	"sounds": { "place": "game:block/planks", "break": "game:block/planks", "hit": "game:block/planks" }
