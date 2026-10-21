@@ -53,6 +53,8 @@ public class ResourceView
     [ProtoMember(2)] public int Needed;
     [ProtoMember(3)] public int Have;
     [ProtoMember(4)] public bool IsTool;
+    /// <summary>"wood" or "rock" when any type of it will do, else empty.</summary>
+    [ProtoMember(5)] public string AnyOf = "";
 }
 
 /// <summary>Everything a hut window shows.</summary>
@@ -75,6 +77,7 @@ public class HutSnapshot
     [ProtoMember(9)] public string Info = "";
     [ProtoMember(10)] public bool OpenWindow;
     [ProtoMember(11)] public bool Periodic;
+    [ProtoMember(12)] public bool AnyWoodOrStone;
 }
 
 [ProtoContract]
@@ -118,7 +121,9 @@ public enum ColonyAction
     CloseWindow = 5,
     Build = 6,
     CancelBuild = 7,
-    Rotate = 8
+    Rotate = 8,
+    /// <summary>Text "1" lets builders use any wood or stone type, "0" holds them to the blueprint's.</summary>
+    SetAnyWoodOrStone = 9
 }
 
 /// <summary>A change requested from the Town Hall window. The server checks permissions before applying it.</summary>

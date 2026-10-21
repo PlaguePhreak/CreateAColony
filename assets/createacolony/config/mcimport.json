@@ -309,6 +309,7 @@
 		{
 			"Match": "^minecraft:(furnace|blast_furnace|smoker|campfire)$",
 			"Blocks": [
+				"game:firepit-cold",
 				"game:firepit*",
 				"game:air"
 			]

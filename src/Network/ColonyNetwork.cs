@@ -102,6 +102,7 @@ public class ColonyNetwork : ModSystem
             ColonyAction.SetRole => SetRole(colony, role, packet.PlayerUid, (ColonyRole)packet.Role),
             ColonyAction.RemoveMember => SetRole(colony, role, packet.PlayerUid, ColonyRole.Visitor),
             ColonyAction.Build or ColonyAction.CancelBuild or ColonyAction.Rotate => BuildAction(colony, role, packet),
+            ColonyAction.SetAnyWoodOrStone => SetAnyWoodOrStone(colony, role, packet.Text == "1"),
             _ => null
         };
 
@@ -114,6 +115,13 @@ public class ColonyNetwork : ModSystem
             Manager.MarkDirty(colony);
         }
         RefreshViewers(colony);
+    }
+
+    string? SetAnyWoodOrStone(Colony colony, ColonyRole role, bool on)
+    {
+        if (role < ColonyRole.Officer) return "createacolony:denied-officer";
+        Manager.SetAnyWoodOrStone(colony, on);
+        return null;
     }
 
     static string? Rename(Colony colony, ColonyRole role, string name)
@@ -286,6 +294,7 @@ public class ColonyNetwork : ModSystem
             Building = BuildingViewFor(colony, building),
             ViewerRole = (int)colony.RoleOf(viewerUid),
             IsBuilderHut = building.Type == BuildingTypes.Builder,
+            AnyWoodOrStone = colony.AnyWoodOrStone,
             OpenWindow = openWindow
         };
 
@@ -324,11 +333,12 @@ public class ColonyNetwork : ModSystem
                 || Manager.CountItems(storage, s => ColonyManager.ToolFits(s, need.Type, need.Tier)) > 0;
             snapshot.Resources.Add(new ResourceView { Stack = sample.ToBytes(), Needed = 1, Have = has ? 1 : 0, IsTool = true });
         }
-        foreach (var (_, (sample, count)) in Manager.MaterialsNeeded(colony, current, blueprint).OrderByDescending(kv => kv.Value.Count))
+        foreach (var (code, (sample, count)) in Manager.MaterialsNeeded(colony, current, blueprint).OrderByDescending(kv => kv.Value.Count))
         {
-            int have = Manager.CountItems(storage, s => ColonyManager.SameMaterial(s, sample))
-                + (carried != null && ColonyManager.SameMaterial(carried, sample) ? carried.StackSize : 0);
-            snapshot.Resources.Add(new ResourceView { Stack = sample.ToBytes(), Needed = count, Have = have });
+            var match = ColonyManager.Matcher(code);
+            int have = Manager.CountItems(storage, match) + (carried != null && match(carried) ? carried.StackSize : 0);
+            string anyOf = !code.Contains('*') ? "" : sample.Collectible.Variant?.ContainsKey("wood") == true ? "wood" : "rock";
+            snapshot.Resources.Add(new ResourceView { Stack = sample.ToBytes(), Needed = count, Have = have, AnyOf = anyOf });
         }
         return snapshot;
     }

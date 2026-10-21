@@ -77,7 +77,7 @@ public class AiTaskSettlerBuilder : SettlerTaskBase
         }
 
         // The right tool first: a builder digs with a shovel and fells with an axe, like a player.
-        if (manager.ToolNeededAt(buildStep, pos) is { } toolNeed && !ColonyManager.ToolFits(Hand?.Itemstack, toolNeed.Type, toolNeed.Tier))
+        if (manager.ToolNeededAt(colony, buildStep, pos) is { } toolNeed && !ColonyManager.ToolFits(Hand?.Itemstack, toolNeed.Type, toolNeed.Tier))
         {
             neededTool = toolNeed;
             var toolChest = manager.HutStorage(colony, hut)
@@ -90,15 +90,16 @@ public class AiTaskSettlerBuilder : SettlerTaskBase
             return false;
         }
 
-        var material = manager.Config.BuildersNeedMaterials ? manager.MaterialFor(buildStep.BlockId, pos) : null;
-        if (material == null || (carried != null && ColonyManager.SameMaterial(carried, material)))
+        var cost = manager.NextPlacement(colony, buildStep, pos).Cost;
+        var fits = cost == null ? null : ColonyManager.Matcher(cost.Value.Code);
+        if (fits == null || (carried != null && fits(carried)))
         {
             manager.BuildStatus[order.BuildingId] = "building";
             return Go(Step.Work, pos);
         }
         if (carried != null) return StashAt(colony, hut);
 
-        var source = manager.HutStorage(colony, hut).FirstOrDefault(c => c.Inventory.Any(s => !s.Empty && ColonyManager.SameMaterial(s.Itemstack, material)));
+        var source = manager.HutStorage(colony, hut).FirstOrDefault(c => c.Inventory.Any(s => !s.Empty && fits(s.Itemstack)));
         if (source != null)
         {
             manager.BuildStatus[order.BuildingId] = "building";
@@ -198,12 +199,12 @@ public class AiTaskSettlerBuilder : SettlerTaskBase
         var order = colony.Buildings.Find(b => b.BuildingId == orderId);
         if (order == null || entity.World.BlockAccessor.GetBlockEntity(target) is not BlockEntityContainer chest) return;
         var blueprint = manager!.Blueprints.Get(order.Type, order.TargetLevel, order.Rotation);
-        var material = manager.MaterialFor(buildStep.BlockId, manager.StepPos(order, buildStep));
-        if (blueprint == null || material == null) return;
+        var cost = manager.NextPlacement(colony, buildStep, manager.StepPos(order, buildStep)).Cost;
+        if (blueprint == null || cost == null) return;
 
-        string code = material.Collectible.Code.ToString();
-        int needed = manager.MaterialsNeeded(colony, order, blueprint).TryGetValue(code, out var need) ? need.Count : 1;
-        var load = manager.TakeItems(new[] { chest }, s => ColonyManager.SameMaterial(s, material), needed);
+        // Take enough for the rest of the order in one trip, as far as one stack goes.
+        int needed = manager.MaterialsNeeded(colony, order, blueprint).TryGetValue(cost.Value.Code, out var need) ? need.Count : cost.Value.Count;
+        var load = manager.TakeItems(new[] { chest }, ColonyManager.Matcher(cost.Value.Code), needed);
         manager.SetCarried(colony, citizen, load);
     }
 
@@ -244,9 +245,10 @@ public class AiTaskSettlerBuilder : SettlerTaskBase
         if (order == null || hut == null || manager.IsStepDone(colony, buildStep, target)) return;
 
         var ba = entity.World.BlockAccessor;
-        if (ba.GetBlock(target).Id != 0)
+        var current = ba.GetBlock(target);
+        if (current.Id != 0 && !manager.KeepsBlock(colony, current, buildStep.BlockId))
         {
-            var toolNeed = manager.ToolNeededAt(buildStep, target);
+            var toolNeed = manager.ToolNeededAt(colony, buildStep, target);
             var hand = Hand;
             if (toolNeed != null && !ColonyManager.ToolFits(hand?.Itemstack, toolNeed.Value.Type, toolNeed.Value.Tier)) return;
             manager.BreakForBuild(colony, hut, target);
@@ -255,14 +257,19 @@ public class AiTaskSettlerBuilder : SettlerTaskBase
         }
         if (buildStep.BlockId == 0) return;
 
-        if (manager.Config.BuildersNeedMaterials && manager.MaterialFor(buildStep.BlockId, target) != null)
+        var (place, cost) = manager.NextPlacement(colony, buildStep, target);
+        ItemStack? used = null;
+        if (cost != null)
         {
             var load = manager.GetCarried(citizen);
-            if (load == null) return;
+            if (load == null || !ColonyManager.Matcher(cost.Value.Code)(load)) return;
+            used = load.Clone();
             load.StackSize--;
             manager.SetCarried(colony, citizen, load);
         }
-        manager.PlaceForBuild(buildStep.BlockId, target);
+        place = manager.SwapToMaterial(colony, place, used);
+        manager.PlaceForBuild(place.Id, target);
+        manager.FinishPlacement(place, target);
     }
 
     public override void FinishExecute(bool cancelled)

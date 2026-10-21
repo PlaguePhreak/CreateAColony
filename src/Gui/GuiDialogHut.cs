@@ -81,6 +81,7 @@ public class GuiDialogHut : GuiDialog
             case 2: ComposeItems(composer); break;
         }
         SingleComposer = composer.EndChildElements().Compose();
+        SingleComposer.GetSwitch("anytype")?.SetValue(snapshot.AnyWoodOrStone);
     }
 
     void ComposeBuilding(GuiComposer composer)
@@ -109,8 +110,29 @@ public class GuiDialogHut : GuiDialog
                 : Lang.Get("createacolony:hut-no-builder");
             composer.AddStaticText(builder, CairoFont.WhiteSmallText(), ElementBounds.Fixed(0, y, Width, 25));
             y += 30;
+            y = AddAnyTypeSwitch(composer, y);
             composer.AddStaticText(Lang.Get("createacolony:build-hint"), CairoFont.WhiteDetailText(), ElementBounds.Fixed(0, y, Width, 40));
         }
+    }
+
+    /// <summary>The "any wood or stone" setting: a switch for officers, a line of text for everyone else.</summary>
+    double AddAnyTypeSwitch(GuiComposer composer, double y)
+    {
+        if (ViewerRole >= ColonyRole.Officer)
+        {
+            composer
+                .AddSwitch(on => network.SendAction(new ColonyActionPacket
+                    { ColonyId = snapshot.ColonyId, Action = ColonyAction.SetAnyWoodOrStone, Text = on ? "1" : "0" }),
+                    ElementBounds.Fixed(0, y, 30, 30), "anytype")
+                .AddStaticText(Lang.Get("createacolony:any-type"), CairoFont.WhiteSmallText(), ElementBounds.Fixed(40, y + 5, Width - 40, 25));
+        }
+        else
+        {
+            composer.AddStaticText(Lang.Get(snapshot.AnyWoodOrStone ? "createacolony:any-type-on" : "createacolony:any-type-off"),
+                CairoFont.WhiteSmallText(), ElementBounds.Fixed(0, y + 5, Width, 25));
+        }
+        composer.AddStaticText(Lang.Get("createacolony:any-type-hint"), CairoFont.WhiteDetailText(), ElementBounds.Fixed(40, y + 32, Width - 40, 40));
+        return y + 76;
     }
 
     /// <summary>Build/upgrade, cancel and turn buttons for one building. Returns the y below them.</summary>
@@ -208,7 +230,7 @@ public class GuiDialogHut : GuiDialog
         // Green when the builder has enough, orange when it is still waiting.
         var countFont = CairoFont.WhiteDetailText().WithColor(done ? new[] { 0.55, 0.85, 0.45, 1.0 } : new[] { 1.0, 0.65, 0.3, 1.0 });
         string name = r.IsTool ? Lang.Get("createacolony:items-tool", Lang.Get("createacolony:tool-" + (stack.Collectible.Tool?.ToString().ToLowerInvariant() ?? "")))
-            : stack.GetName();
+            : r.AnyOf.Length > 0 ? Lang.Get("createacolony:items-any-" + r.AnyOf, stack.GetName()) : stack.GetName();
         return new RichTextComponentBase[]
         {
             new ItemstackTextComponent(capi, stack, 40, 10),
