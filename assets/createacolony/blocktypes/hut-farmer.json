@@ -1,7 +1,16 @@
 {
 	"code": "hut-farmer",
 	"class": "BlockColonyHut",
-	"attributes": { "buildingType": "farmer" },
+	"entityClass": "ColonyHut",
+	"attributes": {
+		"buildingType": "farmer",
+		// The hut's own storage; chests next to it add more.
+		"defaultType": "hut",
+		"inventoryClassName": "colonyhut",
+		"quantitySlots": { "hut": 25 },
+		"quantityColumns": { "hut": 5 },
+		"dialogTitleLangCode": { "hut": "createacolony:hut-storage" }
+	},
 	"creativeinventory": { "general": ["*"] },
 	"blockmaterial": "Wood",
 	"drawtype": "cube",

@@ -16,7 +16,7 @@ namespace CreateAColony.Colonies;
 /// </summary>
 public partial class ColonyManager
 {
-    /// <summary>Chests this close to a hut block are that building's storage.</summary>
+    /// <summary>Chests this close to a hut block add to that building's storage.</summary>
     public const int HutStorageRadius = 2;
 
     BlueprintLibrary? blueprints;
@@ -68,14 +68,26 @@ public partial class ColonyManager
         return facing.HorizontalAngleIndex * 90 % 360;
     }
 
+    /// <summary>A hut's storage: the hut block's own inventory first, then any chests next to it.</summary>
     public IEnumerable<BlockEntityGenericTypedContainer> HutStorage(Colony colony, Building building)
     {
         var ba = sapi.World.BlockAccessor;
         var hut = building.HutPos;
+        if (ba.GetBlockEntity(hut) is BlockEntityGenericTypedContainer own)
+        {
+            yield return own;
+        }
+        else if (ba.GetBlock(hut) is Blocks.BlockColonyHut { EntityClass: { } entityClass })
+        {
+            // Huts placed before they had their own storage get it now.
+            ba.SpawnBlockEntity(entityClass, hut);
+            if (ba.GetBlockEntity(hut) is BlockEntityGenericTypedContainer added) yield return added;
+        }
         for (int dx = -HutStorageRadius; dx <= HutStorageRadius; dx++)
         for (int dy = -1; dy <= 1; dy++)
         for (int dz = -HutStorageRadius; dz <= HutStorageRadius; dz++)
         {
+            if (dx == 0 && dy == 0 && dz == 0) continue;
             if (ba.GetBlockEntity(hut.AddCopy(dx, dy, dz)) is BlockEntityGenericTypedContainer c) yield return c;
         }
     }

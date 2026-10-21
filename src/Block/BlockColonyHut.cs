@@ -43,6 +43,15 @@ public class BlockColonyHut : Block
 
     public override bool OnBlockInteractStart(IWorldAccessor world, IPlayer byPlayer, BlockSelection blockSel)
     {
+        // Sneaking opens the hut's own storage, like a chest; the server sends the inventory window.
+        if (byPlayer.Entity.Controls.ShiftKey)
+        {
+            if (world.Side == EnumAppSide.Server && world.BlockAccessor.GetBlockEntity(blockSel.Position) is BlockEntityColonyHut storage)
+            {
+                storage.OnPlayerRightClick(byPlayer, blockSel);
+            }
+            return true;
+        }
         // The client asks the server for the hut window; the server decides what to show.
         if (world.Side == EnumAppSide.Client)
         {

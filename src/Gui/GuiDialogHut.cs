@@ -104,7 +104,13 @@ public class GuiDialogHut : GuiDialog
             y += height + 5;
         }
 
-        y = AddOrderButtons(composer, b, y) + 10;
+        y = AddOrderButtons(composer, b, y);
+        if (snapshot.HasStorage && ViewerRole >= ColonyRole.Member)
+        {
+            composer.AddSmallButton(Lang.Get("createacolony:hut-open-storage"), OpenStorage, ElementBounds.Fixed(0, y, 160, 28));
+            y += 34;
+        }
+        y += 10;
         if (snapshot.IsBuilderHut)
         {
             string builder = snapshot.BuilderName.Length > 0
@@ -256,6 +262,15 @@ public class GuiDialogHut : GuiDialog
 
     static string StatusText(BuildingView b) =>
         Lang.Get("createacolony:build-status", b.TargetLevel, b.ProgressPercent, Lang.Get("createacolony:buildstatus-" + b.Status));
+
+    /// <summary>The server opens the storage window; this one closes so they do not overlap.</summary>
+    bool OpenStorage()
+    {
+        int id = snapshot.Building.BuildingId;
+        TryClose();
+        network.SendAction(new ColonyActionPacket { ColonyId = snapshot.ColonyId, Action = ColonyAction.OpenStorage, BuildingId = id });
+        return true;
+    }
 
     bool Send(ColonyAction action, int buildingId)
     {

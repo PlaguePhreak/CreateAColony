@@ -60,13 +60,13 @@ Right-click a hut block to open its window and order a level; the Town Hall's ow
 Town Hall's Overview tab. The Builder's Hut window lists every work order and, under Items needed,
 what its builder still needs with have/need counts. Builders clear soil and sand with a shovel, wood
 with an axe and stone or ore with a pickaxe, of at least the block's mining tier, and wear the tool
-down as they work. Put tools in the hut chest or the warehouse; couriers bring missing ones. Set
+down as they work. Put tools in the hut's storage or the warehouse; couriers bring missing ones. Set
 `BuildersNeedTools` to false in `ModConfig/createacolony.json` to turn this off.
 
 ### Foresters and farmers
 
 Place a **Forester's Hut** (planks, sticks and firewood) or a **Farmer's Hut** (planks, sticks and
-seeds) in the colony, put a chest next to it, and give a settler the Forester or Farmer job in the
+seeds) in the colony and give a settler the Forester or Farmer job in the
 Town Hall. Each works from the free hut of its kind nearest the start of the list.
 
 - The forester needs an axe. It fells wild trees within `ForesterRadius` blocks of its hut (never
@@ -76,9 +76,26 @@ Town Hall. Each works from the free hut of its kind nearest the start of the lis
   `FieldRadius` blocks around it. The farmer harvests ripe crops and sows them again, sows bare
   farmland, and tills soil, up to `FieldsPerFarmer` fields each. Right-click a marker with seeds to
   choose its crop; sneak and right-click it with an empty hand to allow any.
-- Both carry what they gather to the hut chest, where couriers pick it up for the warehouse. They
+- The farmer also pulls weeds on its fields, waters dry crops with a watering can (refilled at the
+  nearest water) when its moisture drops below `FarmerWaterBelow`, spreads fertilizer from the hut on
+  farmland whose nutrient drops below `FarmerFertilizeBelow`, and picks the crop whose nutrient the
+  soil has the most of (crop rotation). It picks ripe berry bushes and fruit trees within
+  `FarmerOrchardRadius` blocks of its hut.
+- Both carry what they gather to the hut's storage, where couriers pick it up for the warehouse. They
   keep their tool and a stock of seeds (`ForesterSeedReserve`, `FarmerSeedReserve`); seeds over that
   go to the warehouse too. Missing tools and seeds are requested from the warehouse.
+
+### Hut storage
+
+Every Builder's, Forester's and Farmer's Hut has its own 25-slot storage: sneak and right-click the
+hut block, or press Storage in its window. Chests within two blocks of the hut add more room.
+
+### The settler window
+
+Right-click a settler to see it laid out like the player's character window: a Character panel with
+the settler's model (drag to turn it) between clothing slots and armor slots that stay empty until
+settlers can wear things, a Stats panel (health, satiety, walk speed, status, bed, job and what it is
+doing), and an Inventory panel with its bags, held item and pack.
 
 ### Importing MineColonies blueprints
 

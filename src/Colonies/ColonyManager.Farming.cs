@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using Vintagestory.API.Common;
+using Vintagestory.API.Config;
 using Vintagestory.API.Datastructures;
 using Vintagestory.API.MathTools;
 using Vintagestory.GameContent;
@@ -8,13 +9,14 @@ using ItemMatch = System.Func<Vintagestory.API.Common.ItemStack, bool>;
 
 namespace CreateAColony.Colonies;
 
-/// <summary>What a farmer has to do on one block of a field.</summary>
-public enum FieldWork { None, Harvest, Sow, Till }
+/// <summary>What a farmer has to do, most urgent first.</summary>
+public enum FieldWork { None, Harvest, Pick, Weed, Water, Sow, Till, Refill }
 
 /// <summary>
 /// The farmer's trade. A Field marker marks out a square of ground around it; on that ground the farmer
-/// tills soil into farmland with a hoe, sows seeds, and harvests ripe crops, the same way a player does,
-/// so the crops grow by the game's own rules (water, soil nutrients, seasons).
+/// tills soil into farmland with a hoe, sows seeds, pulls weeds and harvests ripe crops, the same way a
+/// player does, so the crops grow by the game's own rules (water, soil nutrients, seasons). On fields
+/// where any crop will do it sows the crop that suits the soil best, which rotates crops by itself.
 /// </summary>
 public partial class ColonyManager
 {
@@ -113,13 +115,16 @@ public partial class ColonyManager
     {
         if (!CanWorkAt(colony, ground)) return FieldWork.None;
         var ba = sapi.World.BlockAccessor;
+        var above = ba.GetBlock(ground.UpCopy());
         if (ba.GetBlockEntity(ground) is BlockEntityFarmland farmland)
         {
-            var above = ba.GetBlock(ground.UpCopy());
             if (farmland.HasRipeCrop() || above.Code?.Path.StartsWith("deadcrop") == true) return FieldWork.Harvest;
-            return farmland.CanPlant() ? FieldWork.Sow : FieldWork.None;
+            if (above.Id != 0 && Clearable(above)) return FieldWork.Weed;
+            if (farmland.CanPlant()) return FieldWork.Sow;
+            if (farmland.GetCrop() != null && farmland.MoistureLevel < Config.FarmerWaterBelow) return FieldWork.Water;
+            return FieldWork.None;
         }
-        if (Tillable(ba.GetBlock(ground)) != null && Clearable(ba.GetBlock(ground.UpCopy()))) return FieldWork.Till;
+        if (Tillable(ba.GetBlock(ground)) != null && Clearable(above)) return FieldWork.Till;
         return FieldWork.None;
     }
 
@@ -179,19 +184,25 @@ public partial class ColonyManager
     }
 
     /// <summary>
-    /// Sows a seed from the worker's inventory on farmland: the field's chosen crop if it has one,
-    /// otherwise the crop that grew there before if the worker has its seed, otherwise any seed.
+    /// Sows a seed from the worker's inventory on farmland. A field with a chosen crop gets that crop;
+    /// otherwise the farmer picks the seed whose crop needs the nutrient the soil has most of, so a field
+    /// that a crop wore down gets a different crop next. Poor soil gets fertilizer first if the worker has some.
     /// </summary>
     public bool Sow(Colony colony, CitizenRecord worker, EntityAgent entity, BlockPos ground, FieldRecord field, string? lastCrop)
     {
         if (sapi.World.BlockAccessor.GetBlockEntity(ground) is not BlockEntityFarmland farmland || !farmland.CanPlant()) return false;
 
         var allowed = SeedMatcher(field);
-        bool SameCrop(ItemStack s) => allowed(s) && lastCrop != null && VariantOf(s.Collectible, "type") == lastCrop;
-        var seed = TakeFromPack(colony, worker, SameCrop, 1) ?? TakeFromPack(colony, worker, allowed, 1);
+        var best = PackItems(worker).Where(allowed)
+            .OrderByDescending(s => CropFor(s) is { } c ? farmland.Nutrients[(int)c.CropProps.RequiredNutrient] : -1)
+            .ThenByDescending(s => VariantOf(s.Collectible, "type") == lastCrop)
+            .FirstOrDefault();
+        if (best == null) return false;
+        var seed = TakeFromPack(colony, worker, s => s.Equals(sapi.World, best, GlobalConstants.IgnoredStackAttributes), 1);
         if (seed == null) return false;
 
         var crop = CropFor(seed);
+        if (crop != null) Fertilize(colony, worker, farmland, crop.CropProps.RequiredNutrient);
         var sel = new BlockSelection { Position = ground.Copy(), Face = BlockFacing.UP, HitPosition = new Vec3d(0.5, 1, 0.5) };
         if (crop == null || !farmland.TryPlant(crop, new DummySlot(seed.Clone()), entity, sel))
         {
@@ -199,6 +210,17 @@ public partial class ColonyManager
             return false;
         }
         sapi.World.PlaySoundAt(new AssetLocation("sounds/block/plant"), ground, 0.4375);
+        return true;
+    }
+
+    /// <summary>Pulls up weeds (or any grass) growing on farmland; they go into the worker's inventory.</summary>
+    public bool Weed(Colony colony, Building hut, CitizenRecord worker, BlockPos ground)
+    {
+        var pos = ground.UpCopy();
+        var weed = sapi.World.BlockAccessor.GetBlock(pos);
+        if (weed.Id == 0 || !Clearable(weed)) return false;
+        StoreHarvest(colony, hut, worker, DropsOf(weed, pos), pos);
+        BreakQuietly(pos);
         return true;
     }
 

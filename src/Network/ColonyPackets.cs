@@ -55,6 +55,12 @@ public class CitizenSnapshot
     [ProtoMember(11)] public List<byte[]> Bags = new();
     [ProtoMember(12)] public byte[]? Hand;
     [ProtoMember(13)] public bool OpenWindow;
+    /// <summary>The settler's entity, so the window can draw its model; 0 when it is not loaded.</summary>
+    [ProtoMember(14)] public long EntityId;
+    [ProtoMember(15)] public float Health;
+    [ProtoMember(16)] public float MaxHealth;
+    /// <summary>Walking speed as a fraction of normal (1 = 100%).</summary>
+    [ProtoMember(17)] public float WalkSpeed = 1;
 }
 
 /// <summary>Client asks to open the window of the hut block at Pos.</summary>
@@ -98,6 +104,8 @@ public class HutSnapshot
     [ProtoMember(10)] public bool OpenWindow;
     [ProtoMember(11)] public bool Periodic;
     [ProtoMember(12)] public bool AnyWoodOrStone;
+    /// <summary>The hut has its own storage, so the window offers a Storage button.</summary>
+    [ProtoMember(13)] public bool HasStorage;
 }
 
 [ProtoContract]
@@ -143,7 +151,9 @@ public enum ColonyAction
     CancelBuild = 7,
     Rotate = 8,
     /// <summary>Text "1" lets builders use any wood or stone type, "0" holds them to the blueprint's.</summary>
-    SetAnyWoodOrStone = 9
+    SetAnyWoodOrStone = 9,
+    /// <summary>Opens the storage of the hut with BuildingId.</summary>
+    OpenStorage = 10
 }
 
 /// <summary>A change requested from the Town Hall window. The server checks permissions before applying it.</summary>

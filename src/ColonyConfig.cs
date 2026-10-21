@@ -62,4 +62,10 @@ public class ColonyConfig
     public float FarmerSecondsPerBlock = 1.5f;
     /// <summary>Seeds a farmer keeps on hand for sowing; the rest go to the warehouse.</summary>
     public int FarmerSeedReserve = 32;
+    /// <summary>How far from the Farmer's Hut a farmer picks berries and fruit from bushes and fruit trees.</summary>
+    public int FarmerOrchardRadius = 16;
+    /// <summary>A farmer with a watering can waters growing crops whose farmland is drier than this (0 dry to 1 soaked).</summary>
+    public float FarmerWaterBelow = 0.3f;
+    /// <summary>A farmer with fertilizer spreads it before sowing when the crop's nutrient is below this (soil shows 0 to 100).</summary>
+    public float FarmerFertilizeBelow = 40f;
 }

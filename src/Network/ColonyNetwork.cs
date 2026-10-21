@@ -95,6 +95,12 @@ public class ColonyNetwork : ModSystem
         if (colony == null) return;
         var role = colony.RoleOf(player.PlayerUID);
 
+        if (packet.Action == ColonyAction.OpenStorage)
+        {
+            OpenStorage(player, colony, role, packet.BuildingId);
+            return;
+        }
+
         if (packet.Action == ColonyAction.CloseWindow)
         {
             if (viewersByColony.TryGetValue(colony.ColonyId, out var v)) v.Remove(player.PlayerUID);
@@ -170,6 +176,18 @@ public class ColonyNetwork : ModSystem
                 if (building.Level > 0 || building.HasWorkOrder) return "createacolony:rotate-built";
                 building.Rotation = (building.Rotation + 90) % 360;
                 return null;
+        }
+    }
+
+    /// <summary>Opens a hut's own storage for a member, as sneak + right-click on the hut does.</summary>
+    void OpenStorage(IServerPlayer player, Colony colony, ColonyRole role, int buildingId)
+    {
+        var building = colony.Buildings.Find(b => b.BuildingId == buildingId);
+        if (role < ColonyRole.Member || building == null) return;
+        Manager.HutStorage(colony, building).FirstOrDefault(); // creates the storage of an older hut
+        if (sapi!.World.BlockAccessor.GetBlockEntity(building.HutPos) is BlockEntityColonyHut storage)
+        {
+            storage.OnPlayerRightClick(player, new BlockSelection { Position = building.HutPos.Copy(), Face = BlockFacing.UP, HitPosition = new Vec3d(0.5, 0.5, 0.5) });
         }
     }
 
@@ -323,6 +341,7 @@ public class ColonyNetwork : ModSystem
             activity = task?.Describe(colony, citizen) ?? Lang.Get("createacolony:activity-idle");
         }
 
+        var health = entity?.WatchedAttributes.GetTreeAttribute("health");
         var snapshot = new CitizenSnapshot
         {
             ColonyId = colony.ColonyId,
@@ -338,7 +357,11 @@ public class ColonyNetwork : ModSystem
             Slots = Manager.PackSlots(citizen),
             Bags = Manager.PackBags(citizen).Select(s => s.ToBytes()).ToList(),
             Hand = entity?.RightHandItemSlot?.Itemstack?.ToBytes(),
-            OpenWindow = openWindow
+            OpenWindow = openWindow,
+            EntityId = entity?.EntityId ?? 0,
+            Health = health?.GetFloat("currenthealth") ?? 0,
+            MaxHealth = health?.GetFloat("maxhealth") ?? 0,
+            WalkSpeed = entity?.Stats.GetBlended("walkspeed") ?? 1
         };
         serverChannel!.SendPacket(snapshot, player);
     }
@@ -352,6 +375,7 @@ public class ColonyNetwork : ModSystem
             ViewerRole = (int)colony.RoleOf(viewerUid),
             IsBuilderHut = building.Type == BuildingTypes.Builder,
             AnyWoodOrStone = colony.AnyWoodOrStone,
+            HasStorage = ColonyManager.IsWorkerHut(building.Type),
             OpenWindow = openWindow
         };
 

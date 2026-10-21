@@ -136,9 +136,12 @@ public partial class ColonyManager : ModSystem
     }
 
     /// <summary>All loaded block entities of a type inside the colony's claim area.</summary>
-    IEnumerable<T> FindBlockEntities<T>(Colony colony) where T : BlockEntity
+    IEnumerable<T> FindBlockEntities<T>(Colony colony) where T : BlockEntity =>
+        FindBlockEntities<T>(ClaimArea(colony.TownHallPos, colony.ClaimRadius));
+
+    /// <summary>All loaded block entities of a type inside an area.</summary>
+    IEnumerable<T> FindBlockEntities<T>(Cuboidi area) where T : BlockEntity
     {
-        var area = ClaimArea(colony.TownHallPos, colony.ClaimRadius);
         int size = GlobalConstants.ChunkSize;
         for (int cx = area.X1 / size; cx <= area.X2 / size; cx++)
         for (int cy = Math.Max(0, area.Y1) / size; cy <= area.Y2 / size; cy++)

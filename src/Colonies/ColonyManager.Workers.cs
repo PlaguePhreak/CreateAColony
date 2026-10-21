@@ -16,13 +16,16 @@ namespace CreateAColony.Colonies;
 /// </summary>
 public partial class ColonyManager
 {
-    /// <summary>A hut type with a job that works from it, the tool the job needs, and the seeds it keeps a stock of.</summary>
-    public readonly record struct WorkerHutKind(string Job, EnumTool Tool, ItemMatch Stock);
+    /// <summary>
+    /// A hut type with a job that works from it, the tool the job needs, the seeds it keeps a stock of,
+    /// and other things it keeps (a farmer's watering can and fertilizer).
+    /// </summary>
+    public readonly record struct WorkerHutKind(string Job, EnumTool Tool, ItemMatch Stock, ItemMatch Keeps);
 
     static readonly Dictionary<string, WorkerHutKind> GatherHuts = new()
     {
-        [BuildingTypes.Forester] = new WorkerHutKind(Jobs.Forester, EnumTool.Axe, IsTreeSeed),
-        [BuildingTypes.Farmer] = new WorkerHutKind(Jobs.Farmer, EnumTool.Hoe, IsCropSeed),
+        [BuildingTypes.Forester] = new WorkerHutKind(Jobs.Forester, EnumTool.Axe, IsTreeSeed, _ => false),
+        [BuildingTypes.Farmer] = new WorkerHutKind(Jobs.Farmer, EnumTool.Hoe, IsCropSeed, s => IsWateringCan(s) || IsFertilizer(s)),
     };
 
     /// <summary>Huts a settler works from, whose chests are never warehouse storage.</summary>
@@ -56,15 +59,15 @@ public partial class ColonyManager
         colony.Citizens.Find(c => c.Alive && c.JobCode == job && c.WorkplacePos != null && c.WorkplacePos.Equals(hut.HutPos));
 
     /// <summary>
-    /// At a Forester's or Farmer's Hut everything is for the warehouse except the job's tools, and its
-    /// seeds while the worker is short of them, so a worker running low can pick them up there.
+    /// At a Forester's or Farmer's Hut everything is for the warehouse except the job's tools and things
+    /// it keeps (watering cans, fertilizer), and its seeds while the worker is short of them, so a worker running low can pick them up there.
     /// </summary>
     System.Func<ItemStack, bool> WorkerHutJunk(Colony colony, Building hut)
     {
         var kind = GatherHuts[hut.Type];
         var worker = WorkerAt(colony, hut, kind.Job);
         bool keepSeeds = worker != null && PackCount(worker, kind.Stock) < SeedReserve(kind.Job);
-        return s => s.Collectible.Tool != kind.Tool && !(keepSeeds && kind.Stock(s));
+        return s => s.Collectible.Tool != kind.Tool && !kind.Keeps(s) && !(keepSeeds && kind.Stock(s));
     }
 
     /// <summary>

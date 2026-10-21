@@ -58,6 +58,12 @@ public abstract class AiTaskSettlerWorker : SettlerTaskBase
     /// <summary>What the settler is working on, for the settler window.</summary>
     protected abstract string DescribeWork();
 
+    /// <summary>Other things the worker keeps in its inventory instead of taking them to the hut.</summary>
+    protected virtual bool AlsoKeeps(ItemStack stack) => false;
+
+    /// <summary>Where to walk for the current target; the ground beside it unless a job says otherwise.</summary>
+    protected virtual Vec3d WalkGoal() => target.ToVec3d().Add(0.5, 0, 0.5);
+
     /// <summary>True when the current work is done with the tool in hand, false when it is done bare-handed.</summary>
     protected virtual bool WorkNeedsTool => true;
 
@@ -153,7 +159,7 @@ public abstract class AiTaskSettlerWorker : SettlerTaskBase
     bool HasSurplus(CitizenRecord citizen)
     {
         var items = manager!.PackItems(citizen);
-        return items.Any(s => s.Collectible.Tool != Tool && !Stock(s))
+        return items.Any(s => s.Collectible.Tool != Tool && !Stock(s) && !AlsoKeeps(s))
             || items.Where(Stock).Sum(s => s.StackSize) > manager.SeedReserve(Job);
     }
 
@@ -169,7 +175,7 @@ public abstract class AiTaskSettlerWorker : SettlerTaskBase
         if (step != Step.Work && Colony is { } colony && Citizen is { } citizen) PutAwayHand(colony, citizen);
         var center = target.ToVec3d().Add(0.5, 0.5, 0.5);
         walking = !(step == Step.Work && entity.Pos.XYZ.DistanceTo(center) <= workRange + 0.5);
-        if (walking) WalkTo(target.ToVec3d().Add(0.5, 0, 0.5), step == Step.Work ? workRange : 1.5f);
+        if (walking) WalkTo(step == Step.Work ? WalkGoal() : target.ToVec3d().Add(0.5, 0, 0.5), step == Step.Work ? workRange : 1.5f);
     }
 
     public override bool ContinueExecute(float dt)
@@ -254,11 +260,11 @@ public abstract class AiTaskSettlerWorker : SettlerTaskBase
         return moved > 0;
     }
 
-    /// <summary>Puts everything but the tool and the seed stock into the hut chests. False if they are too full to take it all.</summary>
+    /// <summary>Puts everything but the tool, the seed stock and what the job keeps into the hut storage. False if they are too full to take it all.</summary>
     bool Deposit(Colony colony, CitizenRecord citizen, Building hut)
     {
         var storage = manager!.HutStorage(colony, hut).Cast<BlockEntityContainer>().ToList();
-        manager.UnloadPack(colony, citizen, storage, s => s.Collectible.Tool != Tool && !Stock(s));
+        manager.UnloadPack(colony, citizen, storage, s => s.Collectible.Tool != Tool && !Stock(s) && !AlsoKeeps(s));
 
         int extra = manager.PackCount(citizen, Stock) - manager.SeedReserve(Job);
         if (extra > 0 && manager.TakeFromPack(colony, citizen, Stock, extra) is { } seeds)
