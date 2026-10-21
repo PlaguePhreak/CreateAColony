@@ -1,0 +1,10 @@
+{
+	"ingredientPattern": "S,P",
+	"ingredients": {
+		"P": { "type": "item", "code": "game:plank-*" },
+		"S": { "type": "item", "code": "game:stick" }
+	},
+	"width": 1,
+	"height": 2,
+	"output": { "type": "block", "code": "createacolony:dropoff" }
+}

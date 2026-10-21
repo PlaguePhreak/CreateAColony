@@ -81,19 +81,22 @@ public class GuiDialogTownHall : GuiDialog
         int hungry = snapshot.Citizens.Count(c => c.State == "hungry");
         string stats = Lang.Get("createacolony:overview-stats",
             snapshot.Level, alive, snapshot.BedCount, hungry, snapshot.Members.Count, snapshot.SupplyDeliveriesLeft);
+        stats += "<br>" + (snapshot.HasWarehouse
+            ? Lang.Get("createacolony:overview-warehouse", snapshot.WarehouseChests, snapshot.DropOffs, snapshot.OpenRequests)
+            : Lang.Get("createacolony:overview-no-warehouse"));
 
-        composer.AddRichtext(stats, CairoFont.WhiteSmallText(), ElementBounds.Fixed(0, 30, Width, 140));
+        composer.AddRichtext(stats, CairoFont.WhiteSmallText(), ElementBounds.Fixed(0, 30, Width, 160));
 
         if (ViewerRole >= ColonyRole.Officer)
         {
             composer
-                .AddStaticText(Lang.Get("createacolony:colony-name"), CairoFont.WhiteSmallText(), ElementBounds.Fixed(0, 185, 120, 25))
-                .AddTextInput(ElementBounds.Fixed(120, 180, 280, 30), text => pendingName = text, CairoFont.WhiteSmallText(), "colonyname")
-                .AddSmallButton(Lang.Get("createacolony:rename"), OnRename, ElementBounds.Fixed(410, 180, 120, 30));
+                .AddStaticText(Lang.Get("createacolony:colony-name"), CairoFont.WhiteSmallText(), ElementBounds.Fixed(0, 205, 120, 25))
+                .AddTextInput(ElementBounds.Fixed(120, 200, 280, 30), text => pendingName = text, CairoFont.WhiteSmallText(), "colonyname")
+                .AddSmallButton(Lang.Get("createacolony:rename"), OnRename, ElementBounds.Fixed(410, 200, 120, 30));
         }
         else
         {
-            composer.AddStaticText(Lang.Get("createacolony:visitor-readonly"), CairoFont.WhiteDetailText(), ElementBounds.Fixed(0, 185, Width, 25));
+            composer.AddStaticText(Lang.Get("createacolony:visitor-readonly"), CairoFont.WhiteDetailText(), ElementBounds.Fixed(0, 205, Width, 25));
         }
     }
 

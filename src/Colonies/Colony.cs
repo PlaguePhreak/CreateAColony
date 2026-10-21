@@ -41,8 +41,31 @@ public class CitizenRecord
     /// <summary>Set when Permadeath is off and the settler was knocked out instead of killed.</summary>
     [ProtoMember(11)] public double DownedUntilTotalDays;
     [ProtoMember(12)] public double LastSeenTotalDays;
+    /// <summary>The stack a courier is carrying, serialized, so items survive a save mid-trip.</summary>
+    [ProtoMember(13)] public byte[]? CarriedStack;
 
     public bool IsDowned => DownedUntilTotalDays > 0;
+}
+
+/// <summary>
+/// "Bring N of this item to that container." Builders will create these in a later milestone; for now
+/// officers create them with /colony request. A courier leases a request while carrying it so two
+/// couriers never fetch the same thing; a lease that runs out (courier died, got stuck) frees it again.
+/// </summary>
+[ProtoContract]
+public class DeliveryRequest
+{
+    [ProtoMember(1)] public int RequestId;
+    /// <summary>Item or block code, wildcards allowed, e.g. "game:plank-*".</summary>
+    [ProtoMember(2)] public string ItemCode = "";
+    [ProtoMember(3)] public int Quantity;
+    [ProtoMember(4)] public int Delivered;
+    [ProtoMember(5)] public BlockPos DestPos = new BlockPos(0);
+    [ProtoMember(6)] public string RequestedBy = "";
+    [ProtoMember(7)] public int LeasedByCitizenId;
+    [ProtoMember(8)] public double LeaseUntilTotalHours;
+
+    public int Remaining => Quantity - Delivered;
 }
 
 [ProtoContract]
@@ -65,6 +88,13 @@ public class Colony
     /// <summary>Kept on the colony, not the block, so breaking and re-placing the camp cannot reset it.</summary>
     [ProtoMember(12)] public int SupplyDeliveriesTaken;
     [ProtoMember(13, IsRequired = true)] public int LastSupplyDay = -1;
+
+    /// <summary>Position of the colony's warehouse marker; chests around it form the warehouse.</summary>
+    [ProtoMember(14)] public BlockPos? WarehousePos;
+    /// <summary>Drop-off markers: couriers empty the chests touching them into the warehouse.</summary>
+    [ProtoMember(15)] public List<BlockPos> DropOffs = new();
+    [ProtoMember(16)] public List<DeliveryRequest> Requests = new();
+    [ProtoMember(17, IsRequired = true)] public int NextRequestId = 1;
 
     public string OwnerUid => Members.Find(m => m.Role == ColonyRole.Owner)?.PlayerUid ?? "";
 
