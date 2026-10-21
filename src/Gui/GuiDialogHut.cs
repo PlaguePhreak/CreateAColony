@@ -27,6 +27,7 @@ public class GuiDialogHut : GuiDialog
     const int PotteryRowsPerPage = 7;
     const double PotteryRowHeight = 44;
     const int RecruitsTab = 5;
+    const int KitchenTab = 6;
     const double RecruitRowHeight = 44;
 
     readonly ColonyNetwork network;
@@ -63,7 +64,7 @@ public class GuiDialogHut : GuiDialog
         bgBounds.BothSizing = ElementSizing.FitToChildren;
 
         if (!snapshot.IsBuilderHut && !(snapshot.IsGatherHut && currentTab == WorkAreaTab) && !(snapshot.IsPotterHut && currentTab == PotteryTab)
-            && !(snapshot.IsTavern && currentTab == RecruitsTab)) currentTab = 0;
+            && !(snapshot.IsTavern && currentTab == RecruitsTab) && !(snapshot.IsCookHut && currentTab == KitchenTab)) currentTab = 0;
 
         var composer = capi.Gui.CreateCompo("createacolony-hut", dialogBounds)
             .AddShadedDialogBG(bgBounds)
@@ -97,6 +98,15 @@ public class GuiDialogHut : GuiDialog
             };
             composer.AddVerticalTabs(tabs, ElementBounds.Fixed(-160, 35, 160, 80), (id, tab) => { currentTab = tab.DataInt; page = 0; Compose(); }, "tabs");
         }
+        else if (snapshot.IsCookHut)
+        {
+            var tabs = new[]
+            {
+                new GuiTab { Name = Lang.Get("createacolony:tab-building"), DataInt = 0, Active = currentTab == 0 },
+                new GuiTab { Name = Lang.Get("createacolony:tab-kitchen"), DataInt = KitchenTab, Active = currentTab == KitchenTab },
+            };
+            composer.AddVerticalTabs(tabs, ElementBounds.Fixed(-160, 35, 160, 80), (id, tab) => { currentTab = tab.DataInt; page = 0; Compose(); }, "tabs");
+        }
 
         else if (snapshot.IsTavern)
         {
@@ -115,7 +125,8 @@ public class GuiDialogHut : GuiDialog
             case 1: ComposeOrders(composer); break;
             case 2: ComposeItems(composer); break;
             case WorkAreaTab: ComposeWorkArea(composer); break;
-            case PotteryTab: ComposePottery(composer); break;
+            case PotteryTab: ComposeKeepList(composer, snapshot.Pottery, "pottery", ColonyAction.SetPotteryKeep); break;
+            case KitchenTab: ComposeKeepList(composer, snapshot.Kitchen, "kitchen", ColonyAction.SetKitchenKeep); break;
             case RecruitsTab: ComposeRecruits(composer); break;
         }
         SingleComposer = composer.EndChildElements().Compose();
@@ -211,17 +222,19 @@ public class GuiDialogHut : GuiDialog
     }
 
     /// <summary>
-    /// The Pottery tab of a Potter's Hut: every kind of pottery the game's clay forming recipes make, with
-    /// how many the colony has and how many the potter keeps in stock. Kinds kept in stock come first.
+    /// A "keep in stock" list: the Pottery tab of a Potter's Hut (every kind of pottery the game's clay
+    /// forming recipes make) or the Kitchen tab of a Cook's Hut (every food the game cooks in a fire pit),
+    /// with how many the colony has and how many to keep. Kinds kept in stock come first. Lang keys start
+    /// with the prefix: "-hint", "-none", "-have" and "-keep".
     /// </summary>
-    void ComposePottery(GuiComposer composer)
+    void ComposeKeepList(GuiComposer composer, List<PotteryView> list, string prefix, ColonyAction action)
     {
         bool officer = ViewerRole >= ColonyRole.Officer;
-        composer.AddStaticText(Lang.Get("createacolony:pottery-hint"), CairoFont.WhiteDetailText(), ElementBounds.Fixed(0, 30, Width, 40));
-        var rows = snapshot.Pottery.OrderByDescending(p => p.Keep > 0).ThenBy(p => p.Key).ToList();
+        composer.AddStaticText(Lang.Get("createacolony:" + prefix + "-hint"), CairoFont.WhiteDetailText(), ElementBounds.Fixed(0, 30, Width, 40));
+        var rows = list.OrderByDescending(p => p.Keep > 0).ThenBy(p => p.Key).ToList();
         if (rows.Count == 0)
         {
-            composer.AddStaticText(Lang.Get("createacolony:pottery-none"), CairoFont.WhiteSmallText(), ElementBounds.Fixed(0, 75, Width, 25));
+            composer.AddStaticText(Lang.Get("createacolony:" + prefix + "-none"), CairoFont.WhiteSmallText(), ElementBounds.Fixed(0, 75, Width, 25));
             return;
         }
         int pages = (rows.Count + PotteryRowsPerPage - 1) / PotteryRowsPerPage;
@@ -237,19 +250,19 @@ public class GuiDialogHut : GuiDialog
             {
                 new ItemstackTextComponent(capi, stack, 38, 10),
                 new RichTextComponent(capi, stack.GetName() + "\n", CairoFont.WhiteSmallText()) { VerticalAlign = EnumVerticalAlign.Top },
-                new RichTextComponent(capi, Lang.Get("createacolony:pottery-have", row.Have, row.Clay), countFont)
+                new RichTextComponent(capi, Lang.Get("createacolony:" + prefix + "-have", row.Have, row.Clay), countFont)
             }, ElementBounds.Fixed(0, y, 330, PotteryRowHeight));
 
-            string keep = Lang.Get("createacolony:pottery-keep", row.Keep);
+            string keep = Lang.Get("createacolony:" + prefix + "-keep", row.Keep);
             if (officer)
             {
                 var choices = snapshot.KeepChoices.Union(new[] { row.Keep }).OrderBy(c => c).ToList();
                 int at = choices.IndexOf(row.Keep);
                 string key = row.Key;
                 composer
-                    .AddSmallButton("<", () => SetKeep(key, choices[Math.Max(0, at - 1)]), ElementBounds.Fixed(340, y + 6, 36, 28))
+                    .AddSmallButton("<", () => SetKeep(action, key, choices[Math.Max(0, at - 1)]), ElementBounds.Fixed(340, y + 6, 36, 28))
                     .AddStaticText(keep, CairoFont.WhiteSmallText().WithOrientation(EnumTextOrientation.Center), ElementBounds.Fixed(380, y + 10, 120, 25))
-                    .AddSmallButton(">", () => SetKeep(key, choices[Math.Min(choices.Count - 1, at + 1)]), ElementBounds.Fixed(504, y + 6, 36, 28));
+                    .AddSmallButton(">", () => SetKeep(action, key, choices[Math.Min(choices.Count - 1, at + 1)]), ElementBounds.Fixed(504, y + 6, 36, 28));
             }
             else
             {
@@ -318,10 +331,10 @@ public class GuiDialogHut : GuiDialog
         return true;
     }
 
-    bool SetKeep(string key, int keep)
+    bool SetKeep(ColonyAction action, string key, int keep)
     {
         network.SendAction(new ColonyActionPacket
-            { ColonyId = snapshot.ColonyId, Action = ColonyAction.SetPotteryKeep, BuildingId = snapshot.Building.BuildingId, Text = key + "|" + keep });
+            { ColonyId = snapshot.ColonyId, Action = action, BuildingId = snapshot.Building.BuildingId, Text = key + "|" + keep });
         return true;
     }
 

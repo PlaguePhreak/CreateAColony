@@ -114,6 +114,24 @@ public class ColonyConfig
         ["*ingotmold*"] = 2
     };
 
+    // Cook
+    /// <summary>Seconds a cook takes to load, fuel or empty the fire pit.</summary>
+    public float CookSecondsPerStep = 2f;
+    /// <summary>Raw food a cook keeps on hand, and asks couriers to bring at a time.</summary>
+    public int CookRawReserve = 8;
+    /// <summary>Raw food a cook puts in the fire pit at once.</summary>
+    public int CookBatch = 4;
+    /// <summary>Firewood a cook puts in the fire pit at once.</summary>
+    public int CookFirewood = 4;
+    /// <summary>How far from the Cook's Hut, in blocks, the cook looks for a fire pit.</summary>
+    public int CookFirepitRadius = 8;
+    /// <summary>Raw food that needs more heat than this to cook is left to players (a fire pit with firewood reaches about 700).</summary>
+    public int CookMaxTemperature = 500;
+    /// <summary>How many of each cooked food a new Cook's Hut keeps in stock until an officer changes it.</summary>
+    public int KitchenDefaultKeep = 8;
+    /// <summary>The "Keep in stock" amounts the Kitchen tab offers.</summary>
+    public int[] KitchenKeepChoices = { 0, 2, 4, 8, 16, 32, 64 };
+
     // Recruiting
     /// <summary>How many settlers a built Tavern offers for hire each day.</summary>
     public int TavernRecruits = 3;

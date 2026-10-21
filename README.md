@@ -171,6 +171,17 @@ Forester's and Farmer's Huts have a **Work area** tab in their window (officers 
   A Culinary Artillery's mixing bowl, saucepan and cauldron are skipped by name so settlers never eat what is
   being made in them.
 
+### The cook
+- Craft a **Cook's Hut** (stick, firewood, stick over 3 planks), place it with the Builder's Wand and order
+  level 1. Its blueprint has a fire pit; any finished fire pit within `CookFirepitRadius` (8) blocks works too.
+- Give a settler the Cook job. The cook puts raw food (anything the game cooks in a fire pit into food, such
+  as raw meat, fish or dough, from any mod) in the fire pit, adds firewood, lights it and takes the cooked food
+  out, using the game's own fire pit. Cooked food stays in the hut's storage, where hungry settlers eat it.
+- The Kitchen tab lists every food the game cooks this way, with how much is ready (hut, warehouse, cook and
+  fire pit) and how much to keep (`KitchenDefaultKeep`, 8, until an officer changes it). Raw food and firewood
+  come from the hut storage; the cook asks couriers for raw food the warehouse has, and for firewood.
+- A fire pit holding something the cook does not know how to cook is left alone.
+
 ### Hut storage
 
 Every Builder's, Forester's and Farmer's Hut has its own 25-slot storage: sneak and right-click the

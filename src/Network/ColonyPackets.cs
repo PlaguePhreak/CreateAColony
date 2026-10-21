@@ -131,6 +131,9 @@ public class HutSnapshot
     [ProtoMember(27)] public byte[]? Currency;
     /// <summary>The viewer is in creative mode, where hiring is free.</summary>
     [ProtoMember(28)] public bool Creative;
+    /// <summary>A Cook's Hut, whose window has a Kitchen tab. Its rows reuse PotteryView (Clay unused).</summary>
+    [ProtoMember(29)] public bool IsCookHut;
+    [ProtoMember(30)] public List<PotteryView> Kitchen = new();
 }
 
 /// <summary>One line of a Potter's Hut's Pottery tab: a kind of pottery, how many to keep and how many there are.</summary>
@@ -234,7 +237,9 @@ public enum ColonyAction
     /// <summary>Text "1" turns permadeath on for the colony, "0" off. Owner only.</summary>
     SetPermadeath = 28,
     /// <summary>Hires the recruit named Text at the Tavern with BuildingId.</summary>
-    HireRecruit = 29
+    HireRecruit = 29,
+    /// <summary>Text "food|amount": how much of a cooked food the Cook's Hut with BuildingId keeps in stock.</summary>
+    SetKitchenKeep = 30
 }
 
 /// <summary>The Builder's Wand building list: each building type with how many of its blocks the player carries.</summary>

@@ -136,6 +136,7 @@ public partial class ColonyNetwork : ModSystem
             ColonyAction.SetAnyWoodOrStone => SetAnyWoodOrStone(colony, role, packet.Text == "1"),
             ColonyAction.SetWorkRadius or ColonyAction.SetEscort or ColonyAction.SetCollectBerries => WorkAreaAction(colony, role, packet),
             ColonyAction.SetPotteryKeep => PotteryAction(colony, role, packet),
+            ColonyAction.SetKitchenKeep => KitchenAction(colony, role, packet),
             ColonyAction.WelcomeVisitor or ColonyAction.TurnAwayVisitor => VisitorAction(colony, role, packet),
             ColonyAction.SetPermadeath => SetPermadeath(colony, role, packet.Text == "1"),
             ColonyAction.HireRecruit => HireAction(player, colony, role, packet),
@@ -262,6 +263,20 @@ public partial class ColonyNetwork : ModSystem
         string key = packet.Text[..bar];
         if (!Manager.PotteryKinds().Any(k => k.Key == key)) return "createacolony:bad-building";
         Manager.SetPotteryKeep(colony, building, key, keep);
+        return null;
+    }
+
+    /// <summary>How much of a cooked food a Cook's Hut keeps in stock.</summary>
+    string? KitchenAction(Colony colony, ColonyRole role, ColonyActionPacket packet)
+    {
+        if (role < ColonyRole.Officer) return "createacolony:denied-officer";
+        var building = colony.Buildings.Find(b => b.BuildingId == packet.BuildingId);
+        if (building == null || building.Type != BuildingTypes.Cook) return "createacolony:bad-building";
+        int bar = packet.Text.LastIndexOf('|');
+        if (bar <= 0 || !int.TryParse(packet.Text[(bar + 1)..], out int keep) || keep < 0 || keep > 999) return "createacolony:bad-building";
+        string key = packet.Text[..bar];
+        if (!Manager.KitchenKinds().Any(k => k.Key == key)) return "createacolony:bad-building";
+        Manager.SetKitchenKeep(colony, building, key, keep);
         return null;
     }
 
@@ -490,7 +505,7 @@ public partial class ColonyNetwork : ModSystem
             snapshot.Info = Lang.Get("createacolony:warehouse-summary", containers.Count, Manager.CountItems(containers, _ => true),
                 containers.Sum(c => c.Inventory.Count(s => s.Empty)), containers.Sum(c => c.Inventory.Count));
         }
-        if (building.Type is BuildingTypes.Forester or BuildingTypes.Farmer or BuildingTypes.Potter) snapshot.Info = Manager.WorkerHutInfo(colony, building);
+        if (building.Type is BuildingTypes.Forester or BuildingTypes.Farmer or BuildingTypes.Potter or BuildingTypes.Cook) snapshot.Info = Manager.WorkerHutInfo(colony, building);
         if (building.Type == BuildingTypes.Tavern)
         {
             snapshot.IsTavern = true;
@@ -519,6 +534,22 @@ public partial class ColonyNetwork : ModSystem
                     Keep = Manager.PotteryKeep(building, kind),
                     Have = Manager.PotteryStock(colony, building, kind, potter),
                     Clay = kind.Recipes.Min(ColonyManager.ClayCost)
+                });
+            }
+        }
+        if (building.Type == BuildingTypes.Cook)
+        {
+            snapshot.IsCookHut = true;
+            snapshot.KeepChoices = Manager.Config.KitchenKeepChoices.ToList();
+            var cook = Manager.WorkerAt(colony, building, Jobs.Cook);
+            foreach (var kind in Manager.KitchenKinds())
+            {
+                snapshot.Kitchen.Add(new PotteryView
+                {
+                    Key = kind.Key,
+                    Stack = kind.Sample.ToBytes(),
+                    Keep = Manager.KitchenKeep(building, kind),
+                    Have = Manager.KitchenStock(colony, building, kind, cook)
                 });
             }
         }

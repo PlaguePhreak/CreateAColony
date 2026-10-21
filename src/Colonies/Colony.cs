@@ -121,6 +121,10 @@ public class Building
     [ProtoMember(19)] public List<RecruitOffer> Recruits = new();
     /// <summary>The in-game day the Tavern's recruits arrived; a new day brings new ones.</summary>
     [ProtoMember(20, IsRequired = true)] public int RecruitDay = -1;
+    /// <summary>A Cook's Hut: how many of each cooked food to keep in stock, by the cooked food's code.</summary>
+    [ProtoMember(21)] public Dictionary<string, int> KitchenKeep = new();
+    /// <summary>An officer has set KitchenKeep; until then the config default applies to every food.</summary>
+    [ProtoMember(22)] public bool KitchenChosen;
 
     public bool HasWorkOrder => TargetLevel > Level;
 }
