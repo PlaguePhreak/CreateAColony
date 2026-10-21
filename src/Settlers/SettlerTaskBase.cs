@@ -43,6 +43,8 @@ public abstract class SettlerTaskBase : AiTaskBase
         arrived = false;
         failed = false;
         attempts = 0;
+        // StopWalking ends the walk animation, so every new leg starts it again; otherwise settlers glide.
+        if (animMeta != null) entity.AnimManager.StartAnimation(animMeta);
         StartPath();
     }
 
@@ -95,4 +97,28 @@ public abstract class SettlerTaskBase : AiTaskBase
     }
 
     protected void StopAnimation(string code) => entity.AnimManager.StopAnimation(code);
+
+    /// <summary>
+    /// Plays an animation by its shape code, such as a player tool animation copied in by
+    /// SettlerAnimations, falling back to an animation from the entity config when the shape lacks it.
+    /// </summary>
+    protected string PlayShapeAnimation(string code, string fallback)
+    {
+        if (!SettlerAnimations.PlayerAnimations.Contains(code))
+        {
+            PlayAnimation(fallback);
+            return fallback;
+        }
+        if (!entity.AnimManager.IsAnimationActive(code))
+        {
+            entity.AnimManager.StartAnimation(new AnimationMetaData
+            {
+                Code = code,
+                Animation = code,
+                Weight = 5,
+                BlendMode = EnumAnimationBlendMode.Average
+            }.Init());
+        }
+        return code;
+    }
 }

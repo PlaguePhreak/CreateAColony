@@ -41,8 +41,12 @@ public class CitizenRecord
     /// <summary>Set when Permadeath is off and the settler was knocked out instead of killed.</summary>
     [ProtoMember(11)] public double DownedUntilTotalDays;
     [ProtoMember(12)] public double LastSeenTotalDays;
-    /// <summary>The stack a courier is carrying, serialized, so items survive a save mid-trip.</summary>
+    /// <summary>Old single carried stack; moved into Pack when first read.</summary>
     [ProtoMember(13)] public byte[]? CarriedStack;
+    /// <summary>The settler's own inventory, serialized stacks, so items survive a save mid-trip.</summary>
+    [ProtoMember(14)] public List<byte[]> Pack = new();
+    /// <summary>Bags the settler wears; each adds its slots to the inventory.</summary>
+    [ProtoMember(15)] public List<byte[]> Bags = new();
 
     public bool IsDowned => DownedUntilTotalDays > 0;
 }

@@ -10,8 +10,8 @@ namespace CreateAColony.Settlers;
 /// <summary>
 /// The courier's working day, one trip at a time: deliver what it is carrying, otherwise fetch the
 /// oldest delivery request the warehouse can serve, otherwise empty a drop-off chest into the
-/// warehouse. What the courier carries is saved on its record, so nothing is lost if the trip is
-/// interrupted by night, hunger or a storm; the next trip finishes it.
+/// warehouse. It carries as much as its inventory holds, and what it carries is saved on its record,
+/// so nothing is lost if the trip is interrupted by night, hunger or a storm; the next trip finishes it.
 /// </summary>
 public class AiTaskSettlerCourier : SettlerTaskBase
 {
@@ -36,7 +36,7 @@ public class AiTaskSettlerCourier : SettlerTaskBase
         // A settler whose courier job was taken away still puts its last load back first.
         // Builders carry their own materials, so their loads are left to the builder task.
         if (citizen == null || colony == null || citizen.JobCode == Jobs.Builder) return false;
-        if (citizen.JobCode != Jobs.Courier && citizen.CarriedStack == null) return false;
+        if (citizen.JobCode != Jobs.Courier && manager.PackEmpty(citizen)) return false;
 
         nextSearchMs = entity.World.ElapsedMilliseconds + IdleRetryMs;
         return Plan(colony, citizen);
@@ -45,12 +45,11 @@ public class AiTaskSettlerCourier : SettlerTaskBase
     bool Plan(Colony colony, CitizenRecord citizen)
     {
         requestId = 0;
-        var carried = manager!.GetCarried(citizen);
-        if (carried != null)
+        if (!manager!.PackEmpty(citizen))
         {
             // Finish the delivery we were on, or bring the load back to the warehouse.
             var own = colony.Requests.Find(r => r.LeasedByCitizenId == citizen.CitizenId);
-            if (own != null && ColonyManager.Matcher(own.ItemCode)(carried))
+            if (own != null && manager.PackCount(citizen, ColonyManager.Matcher(own.ItemCode)) > 0)
             {
                 requestId = own.RequestId;
                 return Go(Step.Deliver, own.DestPos);
@@ -131,28 +130,35 @@ public class AiTaskSettlerCourier : SettlerTaskBase
         return false;
     }
 
-    /// <summary>Takes one load from the container at the target, then points the target at its destination.</summary>
+    /// <summary>Fills the inventory from the container at the target, then points the target at its destination.</summary>
     bool Pickup(Colony colony, CitizenRecord citizen)
     {
         if (entity.World.BlockAccessor.GetBlockEntity(target!) is not BlockEntityContainer container) return false;
         var request = colony.Requests.Find(r => r.RequestId == requestId);
 
-        ItemStack? load;
-        BlockPos? destination;
-        if (request != null)
+        var match = request != null ? ColonyManager.Matcher(request.ItemCode) : pickupFilter;
+        int wanted = request?.Remaining ?? int.MaxValue;
+        int taken = 0;
+        while (taken < wanted)
         {
-            load = manager!.TakeItems(new[] { container }, ColonyManager.Matcher(request.ItemCode), request.Remaining);
-            destination = request.DestPos;
-            if (load == null) manager.ReleaseRequest(colony, request);
-        }
-        else
-        {
-            load = manager!.TakeItems(new[] { container }, pickupFilter, int.MaxValue);
-            destination = manager.WarehouseContainers(colony).FirstOrDefault()?.Pos;
+            // One stack at a time; whatever does not fit goes straight back.
+            var part = manager!.TakeItems(new[] { container }, match, wanted - taken);
+            if (part == null) break;
+            int moved = manager.AddToPack(colony, citizen, part);
+            taken += moved;
+            if (part.StackSize > 0)
+            {
+                manager.PutItems(container, part);
+                break;
+            }
         }
 
-        if (load == null) return false;
-        manager.SetCarried(colony, citizen, load);
+        if (taken == 0)
+        {
+            if (request != null) manager!.ReleaseRequest(colony, request);
+            return false;
+        }
+        var destination = request != null ? request.DestPos : manager!.WarehouseContainers(colony).FirstOrDefault()?.Pos;
         if (destination == null) return false; // warehouse removed mid-trip; the load waits until one exists
         target = destination.Copy();
         return true;
@@ -160,11 +166,10 @@ public class AiTaskSettlerCourier : SettlerTaskBase
 
     void Deliver(Colony colony, CitizenRecord citizen)
     {
-        var load = manager!.GetCarried(citizen);
-        if (load == null) return;
+        if (manager!.PackEmpty(citizen)) return;
 
         var request = colony.Requests.Find(r => r.RequestId == requestId);
-        int moved;
+        bool blocked;
         if (request != null)
         {
             if (entity.World.BlockAccessor.GetBlockEntity(request.DestPos) is not BlockEntityContainer dest)
@@ -174,17 +179,23 @@ public class AiTaskSettlerCourier : SettlerTaskBase
                 nextSearchMs = 0;
                 return;
             }
-            moved = manager.PutItems(dest, load);
+            var match = ColonyManager.Matcher(request.ItemCode);
+            int before = manager.PackCount(citizen, match);
+            manager.UnloadPack(colony, citizen, new[] { dest }, match);
+            int moved = before - manager.PackCount(citizen, match);
             manager.RecordDelivery(colony, request, moved);
+            blocked = manager.PackCount(citizen, match) > 0;
         }
         else
         {
-            moved = manager.PutInWarehouse(colony, load);
+            var items = manager.PackItems(citizen);
+            foreach (var stack in items) manager.PutInWarehouse(colony, stack);
+            manager.SavePack(colony, citizen, items);
+            blocked = !manager.PackEmpty(citizen);
         }
 
-        manager.SetCarried(colony, citizen, load);
-        // Straight on to the next job, unless the destination was full.
-        nextSearchMs = load.StackSize > 0 ? entity.World.ElapsedMilliseconds + BlockedRetryMs : 0;
+        // Straight on to the next job (anything left over goes to the warehouse), unless the destination was full.
+        nextSearchMs = blocked ? entity.World.ElapsedMilliseconds + BlockedRetryMs : 0;
     }
 
     public override void FinishExecute(bool cancelled)
@@ -192,7 +203,7 @@ public class AiTaskSettlerCourier : SettlerTaskBase
         // Stopped before picking anything up: let another courier take the request.
         var colony = Colony;
         var citizen = Citizen;
-        if (step == Step.Pickup && colony != null && citizen != null && citizen.CarriedStack == null)
+        if (step == Step.Pickup && colony != null && citizen != null && manager!.PackEmpty(citizen))
         {
             var request = colony.Requests.Find(r => r.RequestId == requestId && r.LeasedByCitizenId == citizen.CitizenId);
             if (request != null) manager!.ReleaseRequest(colony, request);
