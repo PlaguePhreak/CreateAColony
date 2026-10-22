@@ -63,6 +63,7 @@ Create a Colony brings the ideas of the Minecraft mod MineColonies to Vintage St
 - Schools and training buildings for the Education tab
 - Ranged guards, a Barracks and colony walls
 - **Raids**: now and then, enemies turn up and attack the player's colony. The player is warned in chat and on the Town Hall window. There are several raid factions, from bandits (who use the settler models) to the game's own monsters such as drifters and shivers.
+- **Outposts**: a ready-made bundle of buildings that can be placed outside the colony's border. Its buildings level up all together or one at a time. An outpost works as its own small base and tries to look after itself. It keeps a small military force away from home to protect workers out in the field, and gives them a safe place to go when they are attacked, or at night when the outpost is closer than home.
 - Working with more popular Vintage Story mods
 
 ## Far future: AI settlements
@@ -74,3 +75,4 @@ Colonies that run themselves, without a player in charge.
 - **Living in the world**: settlements that appear in the world, so players can find them, visit them, trade with them or join them.
 - **Neighbours**: AI settlements that trade with, help or argue with the player's colony and each other.
 - **War and diplomacy**: a combat system so settlements can raise armies, go to war, defend their land and take or lose territory. Settlements can also form alliances, make peace, sign trade deals and send envoys, with the Mayor deciding who is a friend and who is an enemy.
+- **War camps**: before an attack, an AI settlement builds a war camp near the enemy colony and gathers its forces there.
