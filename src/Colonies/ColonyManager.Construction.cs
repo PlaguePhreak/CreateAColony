@@ -72,9 +72,9 @@ public partial class ColonyManager
     /// Blueprint rotation for a building type: one with a door is turned so the door's side faces the player
     /// placing it. Turning a blueprint by 90 moves each side one step clockwise (east to south).
     /// </summary>
-    public int RotationFor(IPlayer player, string type)
+    public int RotationFor(IPlayer player, string type, string style = BlueprintStyles.Testing)
     {
-        if (Blueprints.Get(type, 1, 0)?.Front is not { } front) return RotationFor(player);
+        if (Blueprints.Get(style, type, 1, 0)?.Front is not { } front) return RotationFor(player);
         int towards = BlockFacing.HorizontalFromYaw(player.Entity.Pos.Yaw).HorizontalAngleIndex;
         return GameMath.Mod(front - towards, 4) * 90;
     }
@@ -110,7 +110,7 @@ public partial class ColonyManager
     {
         if (building.HasWorkOrder) return "createacolony:build-already";
         int next = building.Level + 1;
-        if (Blueprints.Get(building.Type, next, building.Rotation) == null) return "createacolony:build-no-blueprint";
+        if (Blueprints.Get(building, next) == null) return "createacolony:build-no-blueprint";
 
         building.TargetLevel = next;
         building.Cursor = 0;
@@ -293,7 +293,7 @@ public partial class ColonyManager
         var needed = new List<System.Func<ItemStack, bool>>();
         var builder = colony.Citizens.Find(c => c.Alive && c.JobCode == Jobs.Builder && c.WorkplacePos != null && c.WorkplacePos.Equals(hut.HutPos));
         var order = builder == null ? null : colony.Buildings.Find(b => b.HasWorkOrder && b.BuilderCitizenId == builder.CitizenId);
-        var blueprint = order == null ? null : Blueprints.Get(order.Type, order.TargetLevel, order.Rotation);
+        var blueprint = order == null ? null : Blueprints.Get(order, order.TargetLevel);
         if (blueprint != null) needed.AddRange(MaterialsNeeded(colony, order!, blueprint).Keys.Select(Matcher));
         return s => !needed.Any(m => m(s)) && !IsBuilderTool(s);
     }

@@ -32,8 +32,8 @@ public partial class ColonyNetwork
 
     void SendPlacement(IServerPlayer player, Colony colony, Building building, bool openWindow)
     {
-        int level = Manager.Blueprints.MaxLevel(building.Type);
-        var blueprint = level > 0 ? Manager.Blueprints.Get(building.Type, level, building.Rotation) : null;
+        int level = Manager.Blueprints.MaxLevel(building);
+        var blueprint = level > 0 ? Manager.Blueprints.Get(building, level) : null;
         var outline = blueprint == null ? (new List<BlockPos>(), new List<int>(), 0, 0) : Manager.Outline(building, blueprint, MaxOutlineBlocks);
         sapi!.World.HighlightBlocks(player, OutlineSlot, outline.Item1, outline.Item2, EnumHighlightBlocksMode.Absolute, EnumHighlightShape.Arbitrary);
         placementViewers[player.PlayerUID] = (colony.ColonyId, building.BuildingId);
@@ -53,7 +53,8 @@ public partial class ColonyNetwork
             Blocked = outline.Item3,
             CanAdjust = role >= ColonyRole.Member && building.Level == 0 && !building.HasWorkOrder,
             CanOrder = role >= ColonyRole.Officer && !building.HasWorkOrder && building.Level < level,
-            OpenWindow = openWindow
+            OpenWindow = openWindow,
+            Style = BlueprintStyles.Normalize(building.Style)
         }, player);
     }
 

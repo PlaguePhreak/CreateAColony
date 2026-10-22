@@ -70,7 +70,7 @@ public class AiTaskSettlerBuilder : SettlerTaskBase
         if (order == null) return carrying && StashAt(colony, hut);
         orderId = order.BuildingId;
 
-        var blueprint = manager.Blueprints.Get(order.Type, order.TargetLevel, order.Rotation);
+        var blueprint = manager.Blueprints.Get(order, order.TargetLevel);
         if (blueprint == null)
         {
             manager.BuildStatus[order.BuildingId] = "no-blueprint";
@@ -279,7 +279,7 @@ public class AiTaskSettlerBuilder : SettlerTaskBase
         var order = colony.Buildings.Find(b => b.BuildingId == orderId);
         var hut = manager!.EnsureBuilderHut(colony, citizen);
         if (order == null || hut == null) return;
-        var blueprint = manager.Blueprints.Get(order.Type, order.TargetLevel, order.Rotation);
+        var blueprint = manager.Blueprints.Get(order, order.TargetLevel);
         var costs = manager.NextPlacement(colony, buildStep, manager.StepPos(order, buildStep)).Costs;
         if (blueprint == null || costs.Count == 0) return;
 

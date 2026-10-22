@@ -1,3 +1,4 @@
+using CreateAColony.Colonies;
 using CreateAColony.Network;
 using Vintagestory.API.Client;
 using Vintagestory.API.Config;
@@ -50,6 +51,9 @@ public class GuiDialogPlacement : GuiDialog
             .BeginChildElements(bgBounds);
 
         double y = 30;
+        composer.AddStaticText(Lang.Get("createacolony:placement-style", Lang.Get("createacolony:style-" + BlueprintStyles.Normalize(snapshot.Style))),
+            CairoFont.WhiteSmallText(), ElementBounds.Fixed(0, y, Width, 25));
+        y += 28;
         string shown = snapshot.ShownLevel == 0
             ? Lang.Get("createacolony:placement-no-blueprint")
             : Lang.Get("createacolony:placement-shown", snapshot.ShownLevel, snapshot.Blocked, snapshot.Blocks);

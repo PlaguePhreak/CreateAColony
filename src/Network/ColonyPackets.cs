@@ -250,6 +250,10 @@ public class WandChooserSnapshot
 {
     [ProtoMember(1)] public List<string> Types = new();
     [ProtoMember(2)] public List<int> Have = new();
+    /// <summary>"type|style" for each building type that has blueprints in that style.</summary>
+    [ProtoMember(3)] public List<string> WithBlueprints = new();
+    /// <summary>The style of the building being planned, when the list was reopened with Change building; empty otherwise.</summary>
+    [ProtoMember(4)] public string Style = "";
 }
 
 /// <summary>What the placement window shows for one building while its outline is on screen.</summary>
@@ -276,6 +280,8 @@ public class PlacementSnapshot
     [ProtoMember(14)] public bool Planned;
     /// <summary>How many of the building's blocks the player carries.</summary>
     [ProtoMember(15)] public int Have;
+    /// <summary>The blueprint style shown (see BlueprintStyles).</summary>
+    [ProtoMember(16)] public string Style = "";
 }
 
 /// <summary>A change requested from the Town Hall window. The server checks permissions before applying it.</summary>

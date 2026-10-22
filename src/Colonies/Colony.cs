@@ -125,6 +125,8 @@ public class Building
     [ProtoMember(21)] public Dictionary<string, int> KitchenKeep = new();
     /// <summary>An officer has set KitchenKeep; until then the config default applies to every food.</summary>
     [ProtoMember(22)] public bool KitchenChosen;
+    /// <summary>The blueprint style the building is built in (see BlueprintStyles); empty in older saves means Testing.</summary>
+    [ProtoMember(23)] public string Style = "";
 
     public bool HasWorkOrder => TargetLevel > Level;
 }

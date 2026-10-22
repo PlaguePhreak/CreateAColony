@@ -396,12 +396,12 @@ public partial class ColonyNetwork : ModSystem
             BuildingId = b.BuildingId,
             Type = b.Type,
             Level = b.Level,
-            MaxLevel = Manager.Blueprints.MaxLevel(b.Type),
+            MaxLevel = Manager.Blueprints.MaxLevel(b),
             TargetLevel = b.HasWorkOrder ? b.TargetLevel : 0,
             Rotation = b.Rotation,
             Status = b.HasWorkOrder ? Manager.BuildStatus.GetValueOrDefault(b.BuildingId, "queued") : ""
         };
-        var blueprint = b.HasWorkOrder ? Manager.Blueprints.Get(b.Type, b.TargetLevel, b.Rotation) : null;
+        var blueprint = b.HasWorkOrder ? Manager.Blueprints.Get(b, b.TargetLevel) : null;
         if (blueprint != null)
         {
             var (done, total) = Manager.Progress(colony, b, blueprint);
@@ -578,7 +578,7 @@ public partial class ColonyNetwork : ModSystem
 
         var current = colony.Buildings.Find(b => b.HasWorkOrder && b.BuilderCitizenId == builder.CitizenId)
             ?? colony.Buildings.Where(b => b.HasWorkOrder && b.BuilderCitizenId == 0).OrderBy(b => b.BuildingId).FirstOrDefault();
-        var blueprint = current == null ? null : Manager.Blueprints.Get(current.Type, current.TargetLevel, current.Rotation);
+        var blueprint = current == null ? null : Manager.Blueprints.Get(current, current.TargetLevel);
         if (current == null || blueprint == null) return snapshot;
         snapshot.ResourcesFor = Lang.Get("createacolony:building-" + current.Type) + " " + current.TargetLevel;
 

@@ -54,6 +54,13 @@ creative world with its hut block where the hut should stand, select it with Wor
 changes without a restart. Blueprints in ModConfig override the ones shipped in
 `assets/createacolony/config/blueprints/`.
 
+Blueprints come in **styles**, picked with the tabs along the top of the Builder's Wand list. The
+folders above are the **Testing** style (all the blueprints shipped so far). **Dev's Builds** is a
+second style, empty for now: its blueprints go in
+`VintagestoryData/ModConfig/createacolony/blueprints/devsbuilds/<type>/level<N>.json`. A building keeps
+the style it was placed in for every level; a type with no blueprint in a style shows "no blueprint
+yet" in the list.
+
 Doors in a blueprint are hung the way they were in the export, top half included. The first door
 also marks the building's front: when you place the hut, the building is turned so that side faces
 you. Soil in a blueprint counts as built on any soil (grassy or bare, rich or poor), and filling a
@@ -179,7 +186,8 @@ The list is sorted into tabs down its left side, and it opens on the tab you use
 **Fundamentals** (Town Hall, Builder's Hut, Tavern), **Agriculture** (Farmer's and Forester's
 Huts), **Craftsmanship** (Potter's and Cook's Huts), **Infrastructure** (Warehouse), and
 **Education**, **Military**, **Walls** and **Decoration**, which are empty until their buildings
-are added.
+are added. The tabs along the top pick the blueprint style (Testing or Dev's Builds), and the
+placement window shows which style the building uses.
 
 Right-clicking an existing hut, the Town Hall or the Warehouse with the wand shows its outline and
 lets you turn and move the building (up to 8 blocks up or down, 16 to the sides) until its first

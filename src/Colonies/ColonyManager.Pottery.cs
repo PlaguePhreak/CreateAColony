@@ -533,8 +533,8 @@ public partial class ColonyManager
     /// <summary>The space a building takes at its highest level, or just around the hut block when it has no blueprint.</summary>
     Cuboidi Footprint(Building building)
     {
-        int level = Math.Max(1, Blueprints.MaxLevel(building.Type));
-        var blueprint = Blueprints.Get(building.Type, level, building.Rotation);
+        int level = Math.Max(1, Blueprints.MaxLevel(building));
+        var blueprint = Blueprints.Get(building, level);
         var p = building.HutPos;
         if (blueprint == null || blueprint.Steps.Count == 0) return new Cuboidi(p.X - 1, p.Y - 1, p.Z - 1, p.X + 1, p.Y + 2, p.Z + 1);
         var box = new Cuboidi(int.MaxValue, int.MaxValue, int.MaxValue, int.MinValue, int.MinValue, int.MinValue);

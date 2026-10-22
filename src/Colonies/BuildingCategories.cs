@@ -18,3 +18,20 @@ public static class BuildingCategories
         new("decoration", System.Array.Empty<string>()),
     };
 }
+
+/// <summary>
+/// Blueprint styles, the tabs along the top of the Builder's Wand list. Each style has its own set of
+/// blueprints; a building keeps the style it was placed in for all its levels.
+/// </summary>
+public static class BlueprintStyles
+{
+    public const string Testing = "testing";
+    public const string DevsBuilds = "devsbuilds";
+
+    public static readonly string[] All = { Testing, DevsBuilds };
+
+    public static string Normalize(string? style) => string.IsNullOrEmpty(style) || System.Array.IndexOf(All, style) < 0 ? Testing : style;
+
+    /// <summary>The style's folder under blueprints/; Testing uses the blueprints/&lt;type&gt; folders themselves.</summary>
+    public static string Folder(string style) => Normalize(style) == Testing ? "" : Normalize(style);
+}

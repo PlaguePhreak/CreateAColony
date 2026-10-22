@@ -22,7 +22,7 @@ public partial class ColonyNetwork
     /// <summary>Building types put down with the wand, tab by tab.</summary>
     static readonly string[] WandTypes = BuildingCategories.All.SelectMany(c => c.Types).ToArray();
 
-    record Planned(string Type, BlockPos Pos, int Rotation);
+    record Planned(string Type, BlockPos Pos, int Rotation, string Style);
 
     readonly Dictionary<string, Planned> planned = new();
     /// <summary>Where a player started planning, while they pick from the list.</summary>
@@ -44,8 +44,11 @@ public partial class ColonyNetwork
                 SendChooser(player);
                 return;
             case ColonyAction.WandChoose:
-                if (!WandTypes.Contains(packet.Text) || !wandSpots.TryGetValue(uid, out var at)) return;
-                plan = new Planned(packet.Text, at, plan?.Rotation ?? Manager.RotationFor(player, packet.Text));
+                // Text is "type|style".
+                var chosen = packet.Text.Split('|');
+                string type = chosen[0], style = BlueprintStyles.Normalize(chosen.Length > 1 ? chosen[1] : null);
+                if (!WandTypes.Contains(type) || !wandSpots.TryGetValue(uid, out var at)) return;
+                plan = new Planned(type, at, plan?.Rotation ?? Manager.RotationFor(player, type, style), style);
                 planned[uid] = plan;
                 SendPlanned(player, plan, true);
                 return;
@@ -102,6 +105,11 @@ public partial class ColonyNetwork
 
         string? error = placeable.PlaceByWand(player, plan.Pos, plan.Rotation);
         if (error != null) return error;
+        if (Manager.GetAt(plan.Pos) is { } colony && Manager.GetBuilding(colony, plan.Pos) is { } building)
+        {
+            building.Style = plan.Style;
+            Manager.MarkDirty(colony);
+        }
         if (slot != null && player.WorldData.CurrentGameMode != EnumGameMode.Creative)
         {
             slot.TakeOut(1);
@@ -133,19 +141,24 @@ public partial class ColonyNetwork
     void SendChooser(IServerPlayer player)
     {
         var snapshot = new WandChooserSnapshot();
+        if (planned.TryGetValue(player.PlayerUID, out var plan)) snapshot.Style = plan.Style;
         foreach (var type in WandTypes)
         {
             snapshot.Types.Add(type);
             snapshot.Have.Add(HutCount(player, type));
+            foreach (var style in BlueprintStyles.All)
+            {
+                if (Manager.Blueprints.MaxLevel(style, type) > 0) snapshot.WithBlueprints.Add(type + "|" + style);
+            }
         }
         serverChannel!.SendPacket(snapshot, player);
     }
 
     void SendPlanned(IServerPlayer player, Planned plan, bool openWindow)
     {
-        int level = Manager.Blueprints.MaxLevel(plan.Type);
-        var blueprint = level > 0 ? Manager.Blueprints.Get(plan.Type, level, plan.Rotation) : null;
-        var building = new Building { Type = plan.Type, HutPos = plan.Pos.Copy(), Rotation = plan.Rotation };
+        var building = new Building { Type = plan.Type, HutPos = plan.Pos.Copy(), Rotation = plan.Rotation, Style = plan.Style };
+        int level = Manager.Blueprints.MaxLevel(building);
+        var blueprint = level > 0 ? Manager.Blueprints.Get(building, level) : null;
         var outline = blueprint == null ? (new List<BlockPos>(), new List<int>(), 0, 0) : Manager.Outline(building, blueprint, MaxOutlineBlocks);
         // The spot the building's block goes, in yellow.
         outline.Item1.Add(plan.Pos.Copy());
@@ -162,6 +175,7 @@ public partial class ColonyNetwork
             CanAdjust = true,
             CanOrder = true,
             Planned = true,
+            Style = plan.Style,
             Have = HutCount(player, plan.Type),
             OpenWindow = openWindow
         }, player);

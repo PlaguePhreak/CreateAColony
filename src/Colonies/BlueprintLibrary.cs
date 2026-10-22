@@ -46,7 +46,8 @@ public class Blueprint
 
 /// <summary>
 /// Finds and prepares blueprints. A blueprint is a normal vanilla WorldEdit export (/we export), so
-/// buildings are made in-game. They are looked up as blueprints/&lt;type&gt;/level&lt;N&gt;.json, first in
+/// buildings are made in-game. They are looked up as blueprints/&lt;type&gt;/level&lt;N&gt;.json for the
+/// Testing style and blueprints/&lt;style&gt;/&lt;type&gt;/level&lt;N&gt;.json for the others, first in
 /// ModConfig/createacolony/ (so players can add their own without rebuilding the mod), then in the
 /// mod's own assets. If the export contains the building's hut block, that is where the hut sits;
 /// otherwise the hut goes at the bottom centre of the blueprint.
@@ -57,7 +58,7 @@ public class BlueprintLibrary
 
     readonly ICoreServerAPI sapi;
     readonly ColonyConfig config;
-    readonly Dictionary<(string, int, int), Blueprint?> cache = new();
+    readonly Dictionary<(string, string, int, int), Blueprint?> cache = new();
 
     public BlueprintLibrary(ICoreServerAPI sapi, ColonyConfig config)
     {
@@ -67,13 +68,13 @@ public class BlueprintLibrary
 
     public static string UserFolder => Path.Combine(GamePaths.ModConfig, "createacolony", "blueprints");
 
-    /// <summary>The highest level that has a blueprint, 0 if none.</summary>
-    public int MaxLevel(string type)
+    /// <summary>The highest level that has a blueprint in this style, 0 if none.</summary>
+    public int MaxLevel(string style, string type)
     {
         int max = 0;
         for (int level = 1; level <= MaxLevels; level++)
         {
-            if (FindJson(type, level) != null) max = level;
+            if (FindJson(style, type, level) != null) max = level;
             else break;
         }
         return max;
@@ -82,34 +83,42 @@ public class BlueprintLibrary
     /// <summary>Forgets loaded blueprints, so edited files are picked up without a restart.</summary>
     public void Reload() => cache.Clear();
 
-    public Blueprint? Get(string type, int level, int rotation)
+    public int MaxLevel(Building building) => MaxLevel(building.Style, building.Type);
+
+    public Blueprint? Get(string style, string type, int level, int rotation)
     {
-        var key = (type, level, rotation);
+        style = BlueprintStyles.Normalize(style);
+        var key = (style, type, level, rotation);
         if (!cache.TryGetValue(key, out var blueprint))
         {
-            blueprint = Load(type, level, rotation);
+            blueprint = Load(style, type, level, rotation);
             cache[key] = blueprint;
         }
         return blueprint;
     }
 
-    string? FindJson(string type, int level)
+    /// <summary>The building's blueprint for a level, in its own style and turn.</summary>
+    public Blueprint? Get(Building building, int level) => Get(building.Style, building.Type, level, building.Rotation);
+
+    string? FindJson(string style, string type, int level)
     {
-        string file = Path.Combine(UserFolder, type, $"level{level}.json");
+        string folder = BlueprintStyles.Folder(style);
+        string file = Path.Combine(folder == "" ? UserFolder : Path.Combine(UserFolder, folder), type, $"level{level}.json");
         if (File.Exists(file)) return File.ReadAllText(file);
-        return sapi.Assets.TryGet(new AssetLocation(CreateAColonyModSystem.ModId, $"config/blueprints/{type}/level{level}.json"))?.ToText();
+        string asset = folder == "" ? $"config/blueprints/{type}/level{level}.json" : $"config/blueprints/{folder}/{type}/level{level}.json";
+        return sapi.Assets.TryGet(new AssetLocation(CreateAColonyModSystem.ModId, asset))?.ToText();
     }
 
-    Blueprint? Load(string type, int level, int rotation)
+    Blueprint? Load(string style, string type, int level, int rotation)
     {
-        string? json = FindJson(type, level);
+        string? json = FindJson(style, type, level);
         if (json == null) return null;
 
         string error = "";
         var schematic = BlockSchematic.LoadFromString(json, ref error);
         if (schematic == null)
         {
-            sapi.Logger.Error("[createacolony] Blueprint {0} level {1} could not be read: {2}", type, level, error);
+            sapi.Logger.Error("[createacolony] Blueprint {0} level {1} ({2}) could not be read: {3}", type, level, style, error);
             return null;
         }
         schematic.Init(sapi.World.BlockAccessor);
@@ -131,8 +140,8 @@ public class BlueprintLibrary
         }
         if (missing.Count > 0)
         {
-            sapi.Logger.Warning("[createacolony] Blueprint {0} level {1} uses blocks that are not installed, they will be skipped: {2}",
-                type, level, string.Join(", ", missing));
+            sapi.Logger.Warning("[createacolony] Blueprint {0} level {1} ({2}) uses blocks that are not installed, they will be skipped: {3}",
+                type, level, style, string.Join(", ", missing));
         }
 
         // Saved details for the blocks the config lets builders copy (never chests: their contents would come free).
