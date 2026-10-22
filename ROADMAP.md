@@ -62,6 +62,7 @@ Create a Colony brings the ideas of the Minecraft mod MineColonies to Vintage St
 - More jobs from MineColonies, such as a Fisher, Miner, Hunter, Shepherd and Smelter
 - Schools and training buildings for the Education tab
 - Ranged guards, a Barracks and colony walls
+- **Raids**: now and then, enemies turn up and attack the player's colony. The player is warned in chat and on the Town Hall window. There are several raid factions, from bandits (who use the settler models) to the game's own monsters such as drifters and shivers.
 - Working with more popular Vintage Story mods
 
 ## Far future: AI settlements
