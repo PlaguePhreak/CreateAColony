@@ -350,16 +350,17 @@ before shipping converted blueprints.
 
 ### The Town Hall window (0.24.0)
 
-The Town Hall window is laid out like MineColonies', with seven tabs down the left:
+The Town Hall window is laid out like MineColonies', with eight tabs down the left:
 
 - **Actions**: the colony's name and the Town Hall's level on a panel like a hut's Main tab (the pencil
   renames the colony), the colony's numbers, the Town Hall's own upgrade, cancel and turn buttons, how
   much land the colony claims, and a **?** guide.
-- **Town map**: the colony from above. The ground is drawn from the land your game has loaded (dark where it
+- **Town map**: the colony from above (0.24.0). The ground is drawn from the land your game has loaded (dark where it
   is not loaded), the colony's land is tinted with a gold edge, and each building's ground is a box (gold Town
   Hall, blue huts, dashed orange while being built). Settlers are green dots (wanderers yellow, knocked out red)
   and you are white. Point at a building for its name and level; **Redraw map** draws the ground again after
   you walked around. Large colonies get one pixel per few blocks (at most 220 pixels a side).
+- **Banners**: the colony banner, see Colony banners below.
 - **Information**: **Events**, a log of the last 100 things that happened (the colony founded, settlers
   hired, wanderers arriving, welcomed, turned away or leaving, settlers knocked out, recovering or dying,
   buildings placed, finished or taken down), newest first; and **Work orders**, every building waiting for a
@@ -372,11 +373,10 @@ The Town Hall window is laid out like MineColonies', with seven tabs down the le
 - **Permissions**: the players in the colony and their roles (the owner sets roles and removes players).
 - **Settings**: Permadeath (the owner's switch), how often wanderers come, and the warehouse.
 
-MineColonies features with no system here yet are marked "Coming later" on their tab: the colony flag and
-banner, citizen style, alliances, happiness, reordering work orders, custom ranks and
+MineColonies features with no system here yet are marked "Coming later" on their tab: citizen style, alliances, happiness, reordering work orders, custom ranks and
 permission logs, auto hiring and housing, and enter/leave messages.
 
-### Colony banners (0.25.0)
+### Colony banners (0.25.1)
 
 The Town Hall's **Banners** tab works with the [Heraldry](https://mods.vintagestory.at/heraldry) and
 [Heraldry: Banners](https://mods.vintagestory.at/heraldrybanners) mods (both need Attribute Rendering Library).
@@ -388,5 +388,6 @@ Create a Colony does not need them; without them the tab says they are missing.
   banner hanging on a pole (or another display block, never a chest) inside those buildings' blueprint area.
   Each banner keeps its own shape (pennant, swallowtail, ...). Only buildings in loaded land change; chat says
   how many banners changed and how many buildings were skipped.
-- **Put the colony banner on each building when a builder finishes it** does the same for each finished level.
+- **Put the colony banner on each building when a builder finishes it** does the same for each finished level,
+  including banner poles the builder put up from the blueprint (0.25.0).
 - Officers and the owner can use the tab.
