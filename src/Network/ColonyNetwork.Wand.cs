@@ -19,8 +19,8 @@ namespace CreateAColony.Network;
 /// </summary>
 public partial class ColonyNetwork
 {
-    /// <summary>Building types put down with the wand, in the order the list shows them.</summary>
-    static readonly string[] WandTypes = { BuildingTypes.TownHall, BuildingTypes.Builder, BuildingTypes.Warehouse, BuildingTypes.Forester, BuildingTypes.Farmer, BuildingTypes.Potter, BuildingTypes.Cook, BuildingTypes.Tavern };
+    /// <summary>Building types put down with the wand, tab by tab.</summary>
+    static readonly string[] WandTypes = BuildingCategories.All.SelectMany(c => c.Types).ToArray();
 
     record Planned(string Type, BlockPos Pos, int Rotation);
 

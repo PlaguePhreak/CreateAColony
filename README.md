@@ -175,6 +175,12 @@ the outline up so you can walk around it; right-clicking with the wand, on a blo
 brings the window back. **Accept** takes one of the building's blocks from your inventory and puts it
 down; without one it tells you that you need one. **Change building** goes back to the list.
 
+The list is sorted into tabs down its left side, and it opens on the tab you used last:
+**Fundamentals** (Town Hall, Builder's Hut, Tavern), **Agriculture** (Farmer's and Forester's
+Huts), **Craftsmanship** (Potter's and Cook's Huts), **Infrastructure** (Warehouse), and
+**Education**, **Military**, **Walls** and **Decoration**, which are empty until their buildings
+are added.
+
 Right-clicking an existing hut, the Town Hall or the Warehouse with the wand shows its outline and
 lets you turn and move the building (up to 8 blocks up or down, 16 to the sides) until its first
 level is ordered; **Build here** orders it and **Not here** gives a hut back.
