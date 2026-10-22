@@ -106,7 +106,10 @@ public class EntityBehaviorColonyCitizen : EntityBehavior
             var colony = manager.GetById(((EntitySettler)entity).ColonyId!);
             if (colony != null)
             {
-                foreach (var stack in manager.EmptyPackAndBags(colony, record)) entity.World.SpawnItemEntity(stack, entity.Pos.XYZ.Add(0, 0.5, 0));
+                foreach (var stack in manager.EmptyPackAndBags(colony, record).Concat(manager.TakeOffArmor(colony, record)))
+                {
+                    entity.World.SpawnItemEntity(stack, entity.Pos.XYZ.Add(0, 0.5, 0));
+                }
             }
 
             if (record.Visitor)

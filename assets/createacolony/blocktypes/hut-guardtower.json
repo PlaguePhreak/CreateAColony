@@ -1,0 +1,21 @@
+{
+	"code": "hut-guardtower",
+	"class": "BlockColonyHut",
+	"entityClass": "ColonyHut",
+	"attributes": {
+		"buildingType": "guardtower",
+		// The tower's own storage, for weapons, armor and the Minimum stock; chests next to it add more.
+		"defaultType": "hut",
+		"inventoryClassName": "colonyhut",
+		"quantitySlots": { "hut": 25 },
+		"quantityColumns": { "hut": 5 },
+		"dialogTitleLangCode": { "hut": "createacolony:hut-storage" }
+	},
+	"creativeinventory": { "general": ["*"] },
+	"blockmaterial": "Wood",
+	"drawtype": "cube",
+	// The seed of the Guard Tower. Placeholder cube look.
+	"textures": { "all": { "base": "game:block/wood/planks/aged1" }, "up": { "base": "game:block/cloth/linen/blue" }, "down": { "base": "game:block/wood/planks/aged1" } },
+	"resistance": 2,
+	"sounds": { "place": "game:block/planks", "break": "game:block/planks", "hit": "game:block/planks" }
+}

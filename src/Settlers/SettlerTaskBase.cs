@@ -70,6 +70,9 @@ public abstract class SettlerTaskBase : AiTaskBase
 
     protected CitizenRecord? Citizen => entity is EntitySettler s ? manager?.FindCitizen(s.ColonyId, s.CitizenId) : null;
 
+    /// <summary>A guard with a monster close by or an alarm to answer leaves what it is doing (eating, sleeping, sheltering).</summary>
+    protected bool CalledToArms => manager != null && manager.GuardCalled(entity, Colony, Citizen);
+
     /// <summary>
     /// Starts walking to a position. Check Arrived / PathFailed from ContinueExecute and call KeepWalking.
     /// A far goal is walked in stretches; refresh, if given, works the goal out again for the last

@@ -30,7 +30,7 @@ public class AiTaskSettlerEat : SettlerTaskBase
         if (manager == null || entity.World.ElapsedMilliseconds < nextSearchMs) return false;
         var citizen = Citizen;
         var needs = entity.GetBehavior<EntityBehaviorSettlerNeeds>();
-        if (citizen == null || needs == null || !needs.IsHungry(manager.Config, citizen)) return false;
+        if (citizen == null || needs == null || !needs.IsHungry(manager.Config, citizen) || CalledToArms) return false;
 
         var food = manager.FindFood(Colony!, citizen, entity);
         if (food == null)
@@ -53,7 +53,7 @@ public class AiTaskSettlerEat : SettlerTaskBase
 
     public override bool ContinueExecute(float dt)
     {
-        if (PathFailed) return false;
+        if (PathFailed || (!eating && CalledToArms)) return false;
 
         if (!eating)
         {

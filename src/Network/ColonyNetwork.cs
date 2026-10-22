@@ -140,6 +140,7 @@ public partial class ColonyNetwork : ModSystem
             ColonyAction.WelcomeVisitor or ColonyAction.TurnAwayVisitor => VisitorAction(colony, role, packet),
             ColonyAction.SetPermadeath => SetPermadeath(colony, role, packet.Text == "1"),
             ColonyAction.HireRecruit => HireAction(player, colony, role, packet),
+            >= ColonyAction.RenameBuilding and <= ColonyAction.SetMinStock => HutAction(player, colony, role, packet),
             _ => null
         };
 
@@ -476,7 +477,8 @@ public partial class ColonyNetwork : ModSystem
             EntityId = entity?.EntityId ?? 0,
             Health = health?.GetFloat("currenthealth") ?? 0,
             MaxHealth = health?.GetFloat("maxhealth") ?? 0,
-            WalkSpeed = entity?.Stats.GetBlended("walkspeed") ?? 1
+            WalkSpeed = entity?.Stats.GetBlended("walkspeed") ?? 1,
+            Armor = Manager.WornArmor(citizen).Select(s => s?.ToBytes() ?? System.Array.Empty<byte>()).ToList()
         };
         serverChannel!.SendPacket(snapshot, player);
     }
@@ -493,6 +495,7 @@ public partial class ColonyNetwork : ModSystem
             HasStorage = ColonyManager.HasOwnStorage(building.Type),
             OpenWindow = openWindow
         };
+        AddHutAdmin(snapshot, colony, building);
 
         if (ColonyManager.IsGatherHut(building.Type))
         {

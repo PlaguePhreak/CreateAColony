@@ -53,6 +53,8 @@ public class CitizenRecord
     [ProtoMember(17)] public double VisitorUntilTotalDays;
     /// <summary>Food groups (EnumFoodCategory) of the settler's last few meals, oldest first.</summary>
     [ProtoMember(18)] public List<int> RecentFood = new();
+    /// <summary>Armor the settler wears (helmet, body, legs), serialized stacks; it takes the blows first.</summary>
+    [ProtoMember(19)] public List<byte[]> Armor = new();
 
     public bool IsDowned => DownedUntilTotalDays > 0;
 }
@@ -127,8 +129,64 @@ public class Building
     [ProtoMember(22)] public bool KitchenChosen;
     /// <summary>The blueprint style the building is built in (see BlueprintStyles); empty in older saves means Testing.</summary>
     [ProtoMember(23)] public string Style = "";
+    /// <summary>A name the players gave the building; empty uses the type's name.</summary>
+    [ProtoMember(24)] public string CustomName = "";
+    /// <summary>How soon couriers come to take things away from this hut, 1 to 10 (10 first); 0 means never.</summary>
+    [ProtoMember(25, IsRequired = true)] public int PickupPriority = 5;
+    /// <summary>An officer pressed Request pickup now: the next courier free takes everything in the hut's storage.</summary>
+    [ProtoMember(26)] public bool PickupNow;
+    /// <summary>A Guard Tower: what its guards do (see GuardTasks).</summary>
+    [ProtoMember(27)] public int GuardTask;
+    /// <summary>A Guard Tower: where its guards stand on the Guard task; null means at the tower.</summary>
+    [ProtoMember(28)] public BlockPos? GuardSpot;
+    /// <summary>A Guard Tower: guards on the Patrol task walk PatrolPoints instead of from hut to hut.</summary>
+    [ProtoMember(29)] public bool PatrolManual;
+    [ProtoMember(30)] public List<BlockPos> PatrolPoints = new();
+    /// <summary>A Guard Tower: the player its guards follow on the Follow task.</summary>
+    [ProtoMember(31)] public string FollowPlayerUid = "";
+    [ProtoMember(32)] public bool FollowTight;
+    /// <summary>A Guard Tower: badly hurt guards walk back to the tower until they have healed.</summary>
+    [ProtoMember(33, IsRequired = true)] public bool Retreat = true;
+    /// <summary>A Guard Tower: creatures (entity code paths) its guards leave alone; all others are fought.</summary>
+    [ProtoMember(34)] public List<string> HostilesOff = new();
+    /// <summary>Items couriers keep at least this many of in the hut's storage.</summary>
+    [ProtoMember(35)] public List<MinStockEntry> MinStock = new();
+    /// <summary>Counts per in-game day for the Statistics tab, for the last 100 days.</summary>
+    [ProtoMember(36)] public List<StatEntry> Stats = new();
+    /// <summary>All-time totals for the Statistics tab.</summary>
+    [ProtoMember(37)] public Dictionary<string, int> StatTotals = new();
 
     public bool HasWorkOrder => TargetLevel > Level;
+}
+
+/// <summary>What a Guard Tower's guards do.</summary>
+public static class GuardTasks
+{
+    /// <summary>Stand at the guard spot (or the tower) and fight what comes near.</summary>
+    public const int Guard = 0;
+    /// <summary>Walk from patrol point to patrol point, or from hut to hut, fighting on the way.</summary>
+    public const int Patrol = 1;
+    /// <summary>Follow a player as a bodyguard, even outside the colony.</summary>
+    public const int Follow = 2;
+}
+
+/// <summary>"Keep at least Count of this item here."</summary>
+[ProtoContract]
+public class MinStockEntry
+{
+    /// <summary>One of the item, serialized, so the window can show it and couriers can match it.</summary>
+    [ProtoMember(1)] public byte[] Stack = System.Array.Empty<byte>();
+    [ProtoMember(2)] public string Code = "";
+    [ProtoMember(3)] public int Count;
+}
+
+/// <summary>How many times something happened at a building on one in-game day.</summary>
+[ProtoContract]
+public class StatEntry
+{
+    [ProtoMember(1)] public string Key = "";
+    [ProtoMember(2)] public int Day;
+    [ProtoMember(3)] public int Count;
 }
 
 /// <summary>Someone at the Tavern who joins the colony for a price in rusty gears.</summary>

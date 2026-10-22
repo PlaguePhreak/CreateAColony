@@ -29,7 +29,28 @@ public partial class ColonyManager
     };
 
     /// <summary>Huts a settler works from, whose chests are never warehouse storage.</summary>
-    public static bool IsWorkerHut(string type) => type is BuildingTypes.Builder or BuildingTypes.Potter or BuildingTypes.Cook || GatherHuts.ContainsKey(type);
+    public static bool IsWorkerHut(string type) => JobOf(type) != null;
+
+    /// <summary>The job of the settlers who work from a hut of this type, or null for buildings nobody works at.</summary>
+    public static string? JobOf(string type) => type switch
+    {
+        BuildingTypes.Builder => Jobs.Builder,
+        BuildingTypes.Potter => Jobs.Potter,
+        BuildingTypes.Cook => Jobs.Cook,
+        BuildingTypes.GuardTower => Jobs.Guard,
+        _ => GatherHuts.TryGetValue(type, out var kind) ? kind.Job : null
+    };
+
+    /// <summary>How many settlers can work from this building at once.</summary>
+    public static int WorkerSlots(Building hut) => hut.Type == BuildingTypes.GuardTower ? GuardSlots(hut) : JobOf(hut.Type) == null ? 0 : 1;
+
+    /// <summary>The living settlers working from this hut.</summary>
+    public List<CitizenRecord> WorkersAt(Colony colony, Building hut)
+    {
+        string? job = JobOf(hut.Type);
+        return job == null ? new List<CitizenRecord>()
+            : colony.Citizens.Where(c => c.Alive && c.JobCode == job && c.WorkplacePos != null && c.WorkplacePos.Equals(hut.HutPos)).OrderBy(c => c.CitizenId).ToList();
+    }
 
     /// <summary>Huts with their own storage (and a Storage button): the worker huts and the Tavern, where gears can be left for hiring.</summary>
     public static bool HasOwnStorage(string type) => IsWorkerHut(type) || type == BuildingTypes.Tavern;
@@ -46,15 +67,14 @@ public partial class ColonyManager
         _ => Config.ForesterSeedReserve
     };
 
-    /// <summary>The hut of this type a worker works from, assigning a free one if needed.</summary>
+    /// <summary>The hut of this type a worker works from, assigning one with a free place if needed.</summary>
     public Building? EnsureWorkplace(Colony colony, CitizenRecord worker, string hutType)
     {
         if (worker.WorkplacePos != null && GetBuilding(colony, worker.WorkplacePos) is { } hut && hut.Type == hutType) return hut;
 
-        var taken = new HashSet<BlockPos>(colony.Citizens
-            .Where(c => c.Alive && c != worker && c.JobCode == worker.JobCode && c.WorkplacePos != null)
-            .Select(c => c.WorkplacePos!));
-        var free = colony.Buildings.Find(b => b.Type == hutType && !taken.Contains(b.HutPos));
+        var free = colony.Buildings.Where(b => b.Type == hutType).OrderBy(b => b.BuildingId)
+            .FirstOrDefault(b => colony.Citizens.Count(c => c.Alive && c != worker && c.JobCode == worker.JobCode
+                && c.WorkplacePos != null && c.WorkplacePos.Equals(b.HutPos)) < WorkerSlots(b));
         if (free != null || worker.WorkplacePos != null)
         {
             worker.WorkplacePos = free?.HutPos.Copy();
@@ -75,6 +95,7 @@ public partial class ColonyManager
     {
         if (hut.Type == BuildingTypes.Potter) return PotterHutJunk();
         if (hut.Type == BuildingTypes.Cook) return CookHutJunk();
+        if (hut.Type == BuildingTypes.GuardTower) return GuardTowerJunk(hut);
         var kind = GatherHuts[hut.Type];
         var worker = WorkerAt(colony, hut, kind.Job);
         bool keepSeeds = worker != null && PackCount(worker, kind.Stock) < SeedReserve(kind.Job);
@@ -140,8 +161,9 @@ public partial class ColonyManager
     /// <summary>Lines for a Forester's or Farmer's Hut window: who works here, what they are up to, and how the job works.</summary>
     public string WorkerHutInfo(Colony colony, Building hut)
     {
-        string job = hut.Type == BuildingTypes.Potter ? Jobs.Potter : hut.Type == BuildingTypes.Cook ? Jobs.Cook : GatherHuts.TryGetValue(hut.Type, out var kind) ? kind.Job : "";
-        if (job.Length == 0) return "";
+        string job = JobOf(hut.Type) ?? "";
+        if (job.Length == 0 || job == Jobs.Builder) return "";
+        if (hut.Type == BuildingTypes.GuardTower) return GuardTowerInfo(colony, hut);
         var lines = new List<string>();
         var worker = WorkerAt(colony, hut, job);
         if (worker == null)

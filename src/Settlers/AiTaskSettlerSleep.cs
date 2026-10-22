@@ -16,18 +16,17 @@ public class AiTaskSettlerSleep : SettlerTaskBase
 
     public AiTaskSettlerSleep(EntityAgent entity, JsonObject taskConfig, JsonObject aiConfig) : base(entity, taskConfig, aiConfig) { }
 
-    bool IsNight()
+    /// <summary>Night for most settlers; for a guard on night watch, the day hours it sleeps.</summary>
+    bool IsSleepTime()
     {
-        var config = manager!.Config;
-        float hour = entity.World.Calendar.HourOfDay;
-        return config.SleepStartHour > config.SleepEndHour
-            ? hour >= config.SleepStartHour || hour < config.SleepEndHour
-            : hour >= config.SleepStartHour && hour < config.SleepEndHour;
+        var colony = Colony;
+        var citizen = Citizen;
+        return colony != null && citizen != null && manager!.IsSleepTime(colony, citizen, entity.World.Calendar.HourOfDay);
     }
 
     public override bool ShouldExecute()
     {
-        return manager != null && Citizen != null && IsNight();
+        return manager != null && IsSleepTime() && !CalledToArms;
     }
 
     public override void StartExecute()
@@ -42,7 +41,7 @@ public class AiTaskSettlerSleep : SettlerTaskBase
 
     public override bool ContinueExecute(float dt)
     {
-        if (!IsNight()) return false;
+        if (!IsSleepTime() || CalledToArms) return false;
 
         if (!lyingDown && (Arrived || PathFailed))
         {

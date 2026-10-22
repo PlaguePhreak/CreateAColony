@@ -66,6 +66,8 @@ public class CitizenSnapshot
     [ProtoMember(16)] public float MaxHealth;
     /// <summary>Walking speed as a fraction of normal (1 = 100%).</summary>
     [ProtoMember(17)] public float WalkSpeed = 1;
+    /// <summary>Armor worn, by slot (head, body, legs); an empty array where the slot is empty.</summary>
+    [ProtoMember(18)] public List<byte[]> Armor = new();
 }
 
 /// <summary>Client asks to open the window of the hut block at Pos.</summary>
@@ -136,6 +138,55 @@ public class HutSnapshot
     /// <summary>A Cook's Hut, whose window has a Kitchen tab. Its rows reuse PotteryView (Clay unused).</summary>
     [ProtoMember(29)] public bool IsCookHut;
     [ProtoMember(30)] public List<PotteryView> Kitchen = new();
+
+    // The Main tab every hut has.
+    /// <summary>The building's name (its own or its type's), without the level.</summary>
+    [ProtoMember(31)] public string DisplayName = "";
+    /// <summary>The job of the hut's workers, empty for buildings nobody works at.</summary>
+    [ProtoMember(32)] public string Job = "";
+    [ProtoMember(33)] public List<CitizenView> Workers = new();
+    [ProtoMember(34)] public int WorkerSlots;
+    /// <summary>Settlers who could be put to work here (Manage workers): everyone alive who is not a visitor and not already here.</summary>
+    [ProtoMember(35)] public List<CitizenView> Candidates = new();
+    [ProtoMember(36)] public int PickupPriority;
+    [ProtoMember(37)] public bool PickupNow;
+    /// <summary>Everything in the hut's storage, for the chest list.</summary>
+    [ProtoMember(38)] public List<HutItemView> Items = new();
+
+    // A Guard Tower's tabs.
+    [ProtoMember(39)] public bool IsGuardTower;
+    [ProtoMember(40)] public int GuardTask;
+    [ProtoMember(41)] public BlockPos? GuardSpot;
+    [ProtoMember(42)] public bool PatrolManual;
+    [ProtoMember(43)] public List<BlockPos> PatrolPoints = new();
+    /// <summary>The player the guards follow on the Follow task, empty if none.</summary>
+    [ProtoMember(44)] public string FollowName = "";
+    [ProtoMember(45)] public bool FollowTight;
+    [ProtoMember(46)] public bool Retreat;
+    /// <summary>Every creature type guards fight (entity code paths), and which of them this tower leaves alone.</summary>
+    [ProtoMember(47)] public List<string> Hostiles = new();
+    [ProtoMember(48)] public List<string> HostilesOff = new();
+    [ProtoMember(49)] public List<CreateAColony.Colonies.MinStockEntry> MinStock = new();
+    [ProtoMember(50)] public List<StatView> Stats = new();
+    /// <summary>The hut block's position, so the window can show patrol points relative to it.</summary>
+    [ProtoMember(51)] public BlockPos HutPos = new BlockPos(0);
+}
+
+/// <summary>One line of a hut's chest list: an item, how many there are, and which containers hold it.</summary>
+[ProtoContract]
+public class HutItemView
+{
+    [ProtoMember(1)] public byte[] Stack = System.Array.Empty<byte>();
+    [ProtoMember(2)] public int Count;
+    [ProtoMember(3)] public List<BlockPos> Where = new();
+}
+
+/// <summary>One line of the Statistics tab: a key such as "kill:drifter-normal" and its counts for today, yesterday, 7 days, 100 days and all time.</summary>
+[ProtoContract]
+public class StatView
+{
+    [ProtoMember(1)] public string Key = "";
+    [ProtoMember(2)] public int[] Counts = System.Array.Empty<int>();
 }
 
 /// <summary>One line of a Potter's Hut's Pottery tab: a kind of pottery, how many to keep and how many there are.</summary>
@@ -243,7 +294,37 @@ public enum ColonyAction
     /// <summary>Hires the recruit named Text at the Tavern with BuildingId.</summary>
     HireRecruit = 29,
     /// <summary>Text "food|amount": how much of a cooked food the Cook's Hut with BuildingId keeps in stock.</summary>
-    SetKitchenKeep = 30
+    SetKitchenKeep = 30,
+    /// <summary>Text is the new name of the building with BuildingId; empty goes back to its type's name.</summary>
+    RenameBuilding = 31,
+    /// <summary>Puts the settler with CitizenId to work at the hut with BuildingId.</summary>
+    AssignWorker = 32,
+    /// <summary>Takes the settler with CitizenId off the job at the hut with BuildingId.</summary>
+    UnassignWorker = 33,
+    /// <summary>Brings the workers of the hut with BuildingId to it.</summary>
+    RecallWorkers = 34,
+    /// <summary>Text 0 to 10: how soon couriers come for the hut's things; 0 is never.</summary>
+    SetPickupPriority = 35,
+    /// <summary>The next free courier takes everything in the hut's storage.</summary>
+    PickupNow = 36,
+    /// <summary>Gives the player a Guard Scepter for the Guard Tower with BuildingId.</summary>
+    GetGuardScepter = 37,
+    /// <summary>Clears the Guard Tower's patrol points and guard spot.</summary>
+    ClearGuardPoints = 38,
+    /// <summary>Text "code|1" has the tower's guards fight that creature, "code|0" leave it alone; "*" sets all back on.</summary>
+    SetHostile = 39,
+    /// <summary>Text is the tower's task (GuardTasks); Follow follows the player who chose it.</summary>
+    SetGuardTask = 40,
+    /// <summary>Text "1" makes badly hurt guards fall back to the tower.</summary>
+    SetRetreat = 41,
+    /// <summary>Text "1" makes patrols walk the Guard Scepter's points, "0" hut to hut.</summary>
+    SetPatrolManual = 42,
+    /// <summary>Text "1" keeps following guards close, "0" a little further off.</summary>
+    SetFollowTight = 43,
+    /// <summary>Adds the item in the player's hand to the hut's Minimum stock list.</summary>
+    AddMinStock = 44,
+    /// <summary>Text "code|count": how many of an item the hut keeps; 0 takes it off the list.</summary>
+    SetMinStock = 45
 }
 
 /// <summary>The Builder's Wand building list: each building type with how many of its blocks the player carries.</summary>

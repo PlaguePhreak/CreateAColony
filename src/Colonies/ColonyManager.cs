@@ -152,6 +152,7 @@ public partial class ColonyManager : ModSystem
             if (sapi.World.BlockAccessor.GetChunkAtBlockPos(colony.TownHallPos) == null) continue;
             EnsureCoreBuildings(colony);
             TickWanderers(colony, now);
+            EnsureMinStock(colony);
 
             foreach (var citizen in colony.Citizens.ToList())
             {

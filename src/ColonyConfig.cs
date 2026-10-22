@@ -107,6 +107,37 @@ public class ColonyConfig
     /// <summary>Creatures guards fight, and that hunt settlers, as entity codes; * matches anything.</summary>
     public string[] GuardTargets = { "drifter-*", "locust-*", "bell-*", "bowtorn-*", "shiver-*", "wolf-*", "hyena-*", "bear-*" };
 
+    // Guard Tower
+    /// <summary>How far from its guard spot (or the tower) a tower guard on the Guard task goes after monsters.</summary>
+    public float GuardTowerRadius = 20f;
+    /// <summary>Huts this close to a Guard Tower are on its guards' automatic patrol.</summary>
+    public int GuardPatrolRange = 48;
+    /// <summary>Seconds a patrolling guard looks around at each patrol point.</summary>
+    public float GuardPatrolPauseSeconds = 4f;
+    /// <summary>Most patrol points one tower keeps.</summary>
+    public int GuardMaxPatrolPoints = 20;
+    /// <summary>How close a guard keeps to the player it follows, loose and tight grouping.</summary>
+    public float GuardFollowLoose = 7f;
+    public float GuardFollowTight = 3f;
+    /// <summary>A following guard further than this from its player is brought to them, as tamed animals are.</summary>
+    public float GuardFollowTeleport = 48f;
+    /// <summary>A guard below this share of its health walks back to its tower (when Retreat is on)...</summary>
+    public float GuardRetreatHealth = 0.33f;
+    /// <summary>...and goes back to work once healed to this share.</summary>
+    public float GuardReturnHealth = 0.75f;
+    /// <summary>Guards at a tower stay up at night and sleep by day, from GuardSleepStartHour to GuardSleepEndHour.</summary>
+    public bool GuardNightWatch = true;
+    public float GuardSleepStartHour = 10f;
+    public float GuardSleepEndHour = 16f;
+    /// <summary>Tower guards stay out in temporal storms to fight, instead of sheltering with everyone else.</summary>
+    public bool GuardsFightInStorms = true;
+    /// <summary>When a monster hurts a settler inside the colony, the nearest guard comes running; this far around the claim it still counts.</summary>
+    public int GuardAlarmMargin = 16;
+    /// <summary>An alarm is forgotten after this many seconds without the monster striking again.</summary>
+    public float GuardAlarmSeconds = 30f;
+    /// <summary>Guards put on the best armor from the tower storage and the warehouse.</summary>
+    public bool GuardsWearArmor = true;
+
     // Potter
     /// <summary>Seconds a potter takes to shape one layer of clay on the clay forming block.</summary>
     public float PotterSecondsPerLayer = 2.5f;

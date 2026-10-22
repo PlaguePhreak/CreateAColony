@@ -13,7 +13,7 @@ public static class BuildingCategories
         new("craftsmanship", new[] { BuildingTypes.Potter, BuildingTypes.Cook }),
         new("education", System.Array.Empty<string>()),
         new("infrastructure", new[] { BuildingTypes.Warehouse }),
-        new("military", System.Array.Empty<string>()),
+        new("military", new[] { BuildingTypes.GuardTower }),
         new("walls", System.Array.Empty<string>()),
         new("decoration", System.Array.Empty<string>()),
     };

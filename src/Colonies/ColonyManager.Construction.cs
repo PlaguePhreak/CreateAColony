@@ -280,11 +280,18 @@ public partial class ColonyManager
     /// </summary>
     public (BlockEntityContainer Chest, System.Func<ItemStack, bool> IsJunk)? FindHutJunk(Colony colony)
     {
-        foreach (var hut in colony.Buildings.Where(b => IsWorkerHut(b.Type)))
+        foreach (var hut in HutsForPickup(colony).ToList())
         {
-            var isJunk = hut.Type == BuildingTypes.Builder ? BuilderHutJunk(colony, hut) : WorkerHutJunk(colony, hut);
+            // Request pickup now: everything goes, until the hut's storage is empty.
+            System.Func<ItemStack, bool> isJunk = hut.PickupNow ? _ => true
+                : hut.Type == BuildingTypes.Builder ? BuilderHutJunk(colony, hut) : WorkerHutJunk(colony, hut);
             var chest = HutStorage(colony, hut).FirstOrDefault(c => c.Inventory.Any(s => !s.Empty && isJunk(s.Itemstack)));
             if (chest != null) return (chest, isJunk);
+            if (hut.PickupNow)
+            {
+                hut.PickupNow = false;
+                MarkDirty(colony);
+            }
         }
         return null;
     }

@@ -1,18 +1,21 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using CreateAColony.Settlers;
 using Vintagestory.API.Common;
 using Vintagestory.API.Common.Entities;
+using Vintagestory.API.Config;
 using Vintagestory.API.MathTools;
 using Vintagestory.API.Util;
 
 namespace CreateAColony.Colonies;
 
 /// <summary>
-/// Guards: settlers with the Guard job. Each Forester's or Farmer's Hut set to "Escort by guard" gets
-/// one guard, in hut order, who follows its worker and fights monsters near it. Guards left over stay
-/// by the Town Hall and fight what comes near it. A guard fights with the best weapon in its inventory,
-/// fetching one from the warehouse if it has none, or with bare hands.
+/// Guards: settlers with the Guard job. A guard with a place at a Guard Tower lives there and does what
+/// the tower is set to (stand guard, patrol, or follow a player), keeps watch at night and sleeps by day.
+/// Guards without a tower escort the workers of huts set to "Escort by guard", in hut order, or stay by
+/// the Town Hall. Every guard fights with the best weapon it can find, wears the best armor, and comes
+/// running when a monster hurts a settler inside the colony.
 /// </summary>
 public partial class ColonyManager
 {
@@ -27,10 +30,21 @@ public partial class ColonyManager
     /// <summary>How hard a weapon hits; the better of two weapons is the one that hits harder.</summary>
     public static float WeaponDamage(ItemStack stack) => stack.Collectible.GetAttackPower(stack);
 
-    /// <summary>Workers whose hut asks for an escort, each paired with a guard in order.</summary>
+    /// <summary>Places for guards at a Guard Tower: one for each level, and one while only the tower block stands.</summary>
+    public static int GuardSlots(Building tower) => Math.Max(1, tower.Level);
+
+    /// <summary>The guard's tower, giving it a place at one with room if it has none. Null when every tower is full or there is none.</summary>
+    public Building? EnsureGuardTower(Colony colony, CitizenRecord guard) =>
+        guard.JobCode == Jobs.Guard ? EnsureWorkplace(colony, guard, BuildingTypes.GuardTower) : null;
+
+    /// <summary>The guard's tower if it has one, without assigning.</summary>
+    public Building? TowerOf(Colony colony, CitizenRecord guard) =>
+        guard.WorkplacePos != null && GetBuilding(colony, guard.WorkplacePos) is { Type: BuildingTypes.GuardTower } tower ? tower : null;
+
+    /// <summary>Workers whose hut asks for an escort, each paired with a guard that has no tower, in order.</summary>
     List<(CitizenRecord Guard, CitizenRecord Worker, Building Hut)> Escorts(Colony colony)
     {
-        var guards = colony.Citizens.Where(c => c.Alive && !c.IsDowned && c.JobCode == Jobs.Guard).OrderBy(c => c.CitizenId).ToList();
+        var guards = colony.Citizens.Where(c => c.Alive && !c.IsDowned && c.JobCode == Jobs.Guard && TowerOf(colony, c) == null).OrderBy(c => c.CitizenId).ToList();
         var pairs = new List<(CitizenRecord, CitizenRecord, Building)>();
         foreach (var hut in colony.Buildings.Where(b => b.Escort && GatherHuts.ContainsKey(b.Type)).OrderBy(b => b.BuildingId))
         {
@@ -40,7 +54,7 @@ public partial class ColonyManager
         return pairs;
     }
 
-    /// <summary>The worker this guard escorts, or null when it guards the Town Hall.</summary>
+    /// <summary>The worker this guard escorts, or null when it guards the Town Hall or works from a tower.</summary>
     public CitizenRecord? EscortedBy(Colony colony, CitizenRecord guard) =>
         Escorts(colony).Find(p => p.Guard == guard).Worker;
 
@@ -55,11 +69,194 @@ public partial class ColonyManager
         e.Alive && e is EntityAgent && e is not EntityPlayer && e is not EntitySettler
         && Config.GuardTargets.Any(pattern => WildcardUtil.Match(pattern, e.Code.Path));
 
-    /// <summary>The nearest threat within the guard radius of a spot, or null.</summary>
-    public Entity? FindThreat(Vec3d around) =>
-        sapi.World.GetNearestEntity(around, Config.GuardThreatRadius, Config.GuardThreatRadius / 2, IsThreat);
+    /// <summary>A threat this tower's guards fight: not one switched off on its Hostiles tab.</summary>
+    public bool IsThreatFor(Building? tower, Entity e) => IsThreat(e) && (tower == null || !tower.HostilesOff.Contains(e.Code.Path));
 
-    /// <summary>A warehouse chest holding a weapon, or null.</summary>
-    public BlockPos? WarehouseWeapon(Colony colony) =>
-        WarehouseContainers(colony).FirstOrDefault(c => c.Inventory.Any(s => !s.Empty && IsWeapon(s.Itemstack)))?.Pos;
+    /// <summary>The nearest threat within the radius of a spot, or null.</summary>
+    public Entity? FindThreat(Vec3d around, float radius, Building? tower = null) =>
+        sapi.World.GetNearestEntity(around, radius, radius / 2, e => IsThreatFor(tower, e));
+
+    public Entity? FindThreat(Vec3d around) => FindThreat(around, Config.GuardThreatRadius);
+
+    List<string>? hostileTypes;
+
+    /// <summary>Every creature type guards fight, by entity code path, for the Hostiles tab.</summary>
+    public List<string> HostileTypes() => hostileTypes ??= sapi.World.EntityTypes
+        .Where(t => t.Code != null && Config.GuardTargets.Any(p => WildcardUtil.Match(p, t.Code.Path)))
+        .Select(t => t.Code.Path).Distinct().OrderBy(c => c).ToList();
+
+    /// <summary>A container holding a weapon: the guard's tower storage first, then the warehouse.</summary>
+    public BlockPos? WeaponChest(Colony colony, Building? tower) => GearContainers(colony, tower)
+        .FirstOrDefault(c => c.Inventory.Any(s => !s.Empty && IsWeapon(s.Itemstack)))?.Pos;
+
+    public BlockPos? WarehouseWeapon(Colony colony) => WeaponChest(colony, null);
+
+    /// <summary>Where guards look for weapons and armor: their tower's storage, then the warehouse.</summary>
+    public IEnumerable<Vintagestory.GameContent.BlockEntityContainer> GearContainers(Colony colony, Building? tower) =>
+        (tower == null ? Enumerable.Empty<Vintagestory.GameContent.BlockEntityContainer>() : HutStorage(colony, tower))
+        .Concat(WarehouseContainers(colony));
+
+    /// <summary>At a Guard Tower couriers take away everything but weapons, armor and what the Minimum stock tab keeps.</summary>
+    System.Func<ItemStack, bool> GuardTowerJunk(Building tower) => s => !IsWeapon(s) && !IsArmor(s) && !IsMinStock(tower, s);
+
+    // ---- Where guards go ------------------------------------------------------------------
+
+    /// <summary>Where a tower's guards stand on the Guard task: the spot set with the Guard Scepter, or beside the tower.</summary>
+    public Vec3d GuardHome(Building tower) => (tower.GuardSpot ?? tower.HutPos).ToVec3d().Add(0.5, tower.GuardSpot != null ? 0 : 1, 0.5);
+
+    /// <summary>
+    /// The points a tower's guards walk on the Patrol task: the ones set with the Guard Scepter, or (on
+    /// Automatic) the tower and every hut within patrol range of it, in a ring around the tower.
+    /// </summary>
+    public List<Vec3d> PatrolRoute(Colony colony, Building tower)
+    {
+        if (tower.PatrolManual && tower.PatrolPoints.Count > 0) return tower.PatrolPoints.Select(p => p.ToVec3d().Add(0.5, 0, 0.5)).ToList();
+        var t = tower.HutPos;
+        int range = Config.GuardPatrolRange;
+        var route = colony.Buildings
+            .Where(b => b != tower && Math.Abs(b.HutPos.X - t.X) <= range && Math.Abs(b.HutPos.Z - t.Z) <= range)
+            .OrderBy(b => Math.Atan2(b.HutPos.Z - t.Z, b.HutPos.X - t.X))
+            .Select(b => b.HutPos.ToVec3d().Add(0.5, 1, 0.5))
+            .ToList();
+        route.Insert(0, t.ToVec3d().Add(0.5, 1, 0.5));
+        return route;
+    }
+
+    /// <summary>The player a tower's guards follow on the Follow task, if they are online and in this world.</summary>
+    public EntityPlayer? FollowedPlayer(Building tower) =>
+        tower.FollowPlayerUid.Length > 0 && sapi.World.PlayerByUid(tower.FollowPlayerUid)?.Entity is { Alive: true } player ? player : null;
+
+    // ---- Night watch ----------------------------------------------------------------------
+
+    /// <summary>True when this settler should be asleep: at night, or by day for a guard on night watch.</summary>
+    public bool IsSleepTime(Colony colony, CitizenRecord citizen, float hour)
+    {
+        if (OnNightWatch(colony, citizen)) return InHours(hour, Config.GuardSleepStartHour, Config.GuardSleepEndHour);
+        return InHours(hour, Config.SleepStartHour, Config.SleepEndHour);
+    }
+
+    static bool InHours(float hour, float start, float end) => start > end ? hour >= start || hour < end : hour >= start && hour < end;
+
+    /// <summary>A guard with a tower keeps watch at night and sleeps by day.</summary>
+    public bool OnNightWatch(Colony colony, CitizenRecord citizen) =>
+        Config.GuardNightWatch && citizen.JobCode == Jobs.Guard && TowerOf(colony, citizen) != null;
+
+    /// <summary>Tower guards stay out in temporal storms to fight.</summary>
+    public bool StaysOutInStorms(Colony colony, CitizenRecord citizen) =>
+        Config.GuardsFightInStorms && citizen.JobCode == Jobs.Guard && TowerOf(colony, citizen) != null;
+
+    // ---- Alarms and calls to arms ---------------------------------------------------------
+
+    /// <summary>Monsters that hurt a settler inside the colony, by colony: entity id -> when the alarm runs out (ms).</summary>
+    readonly Dictionary<string, Dictionary<long, long>> alarms = new();
+    /// <summary>Guards falling back to their tower right now, by entity id. Not saved.</summary>
+    public readonly HashSet<long> GuardsRetreating = new();
+    readonly Dictionary<long, (long Until, bool Called)> guardCalledCache = new();
+
+    /// <summary>A monster hurt a settler: if it happened in or near the colony, guards are called.</summary>
+    void RaiseAlarm(Colony colony, Entity attacker, Vec3d where)
+    {
+        int reach = colony.ClaimRadius + Config.GuardAlarmMargin;
+        var t = colony.TownHallPos;
+        if (Math.Abs(where.X - t.X) > reach || Math.Abs(where.Z - t.Z) > reach) return;
+        if (!alarms.TryGetValue(colony.ColonyId, out var list)) alarms[colony.ColonyId] = list = new();
+        list[attacker.EntityId] = sapi.World.ElapsedMilliseconds + (long)(Config.GuardAlarmSeconds * 1000);
+    }
+
+    /// <summary>Living monsters the colony's alarm is out for.</summary>
+    IEnumerable<Entity> AlarmThreats(Colony colony)
+    {
+        if (!alarms.TryGetValue(colony.ColonyId, out var list)) yield break;
+        long now = sapi.World.ElapsedMilliseconds;
+        foreach (var (id, until) in list.ToList())
+        {
+            var e = sapi.World.GetEntityById(id);
+            if (until < now || e == null || !e.Alive)
+            {
+                list.Remove(id);
+                continue;
+            }
+            yield return e;
+        }
+    }
+
+    /// <summary>
+    /// A monster from the alarm this guard should go after: one it is the nearest free guard to. Guards
+    /// following a player, retreating, or switched off for that monster are not called.
+    /// </summary>
+    public Entity? AlarmFor(Colony colony, EntityAgent guardEntity, Building? tower)
+    {
+        if (tower?.GuardTask == GuardTasks.Follow || GuardsRetreating.Contains(guardEntity.EntityId)) return null;
+        foreach (var threat in AlarmThreats(colony))
+        {
+            if (!IsThreatFor(tower, threat)) continue;
+            double mine = guardEntity.Pos.SquareDistanceTo(threat.Pos.XYZ);
+            bool nearest = true;
+            foreach (var other in colony.Citizens)
+            {
+                if (!other.Alive || other.IsDowned || other.JobCode != Jobs.Guard || other.EntityId == guardEntity.EntityId) continue;
+                if (sapi.World.GetEntityById(other.EntityId) is not EntityAgent { Alive: true } e || GuardsRetreating.Contains(e.EntityId)) continue;
+                var otherTower = TowerOf(colony, other);
+                if (otherTower?.GuardTask == GuardTasks.Follow || !IsThreatFor(otherTower, threat)) continue;
+                if (e.Pos.SquareDistanceTo(threat.Pos.XYZ) < mine) { nearest = false; break; }
+            }
+            if (nearest) return threat;
+        }
+        return null;
+    }
+
+    /// <summary>
+    /// True when a guard should leave its meal, bed or shelter: a monster is close, or the alarm calls it.
+    /// Worked out at most once a second per guard.
+    /// </summary>
+    public bool GuardCalled(EntityAgent entity, Colony? colony, CitizenRecord? citizen)
+    {
+        if (colony == null || citizen == null || citizen.JobCode != Jobs.Guard || GuardsRetreating.Contains(entity.EntityId)) return false;
+        long now = sapi.World.ElapsedMilliseconds;
+        if (guardCalledCache.TryGetValue(entity.EntityId, out var cached) && cached.Until > now) return cached.Called;
+        var tower = TowerOf(colony, citizen);
+        bool called = FindThreat(entity.Pos.XYZ, Config.GuardThreatRadius, tower) != null || AlarmFor(colony, entity, tower) != null;
+        guardCalledCache[entity.EntityId] = (now + 1000, called);
+        return called;
+    }
+
+    /// <summary>Called for every blow a settler takes, before it lands: armor softens it, monsters raise the alarm, towers count it.</summary>
+    public float OnSettlerHurt(EntitySettler settler, DamageSource source, float damage)
+    {
+        var colony = settler.ColonyId == null ? null : GetById(settler.ColonyId);
+        var citizen = colony?.Citizens.Find(c => c.CitizenId == settler.CitizenId);
+        if (colony == null || citizen == null) return damage;
+
+        var attacker = source.CauseEntity ?? source.SourceEntity;
+        if (attacker != null && IsThreat(attacker)) RaiseAlarm(colony, attacker, settler.Pos.XYZ);
+
+        damage = ArmorAbsorb(colony, citizen, settler, source, damage);
+        if (citizen.JobCode == Jobs.Guard && TowerOf(colony, citizen) is { } tower && damage > 0)
+        {
+            AddStat(tower, "damage-taken", (int)Math.Ceiling(damage));
+        }
+        return damage;
+    }
+
+    // ---- Tower window ---------------------------------------------------------------------
+
+    /// <summary>Lines for a Guard Tower window: who is stationed there, what they do, and what each is up to.</summary>
+    string GuardTowerInfo(Colony colony, Building tower)
+    {
+        var lines = new List<string>();
+        var guards = WorkersAt(colony, tower);
+        lines.Add(Lang.Get("createacolony:tower-guards", guards.Count, GuardSlots(tower)));
+        string task = tower.GuardTask switch
+        {
+            GuardTasks.Patrol => Lang.Get(tower.PatrolManual && tower.PatrolPoints.Count > 0 ? "createacolony:tower-doing-patrol-manual" : "createacolony:tower-doing-patrol-auto",
+                tower.PatrolPoints.Count),
+            GuardTasks.Follow => Lang.Get("createacolony:tower-doing-follow", sapi.World.PlayerByUid(tower.FollowPlayerUid)?.PlayerName ?? "?"),
+            _ => Lang.Get(tower.GuardSpot != null ? "createacolony:tower-doing-guard-spot" : "createacolony:tower-doing-guard")
+        };
+        lines.Add(task);
+        if (guards.Count == 0) lines.Add(Lang.Get("createacolony:tower-no-guards"));
+        lines.Add("");
+        lines.Add(Lang.Get("createacolony:hint-guardtower"));
+        return string.Join("<br>", lines);
+    }
 }

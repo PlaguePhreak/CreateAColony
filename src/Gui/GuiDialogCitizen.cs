@@ -241,12 +241,20 @@ public class GuiDialogCitizen : GuiDialog
         return stacks;
     }
 
-    /// <summary>Empty clothing or armor slots showing the player's slot icons, for when settlers can wear things.</summary>
+    /// <summary>Clothing or armor slots showing the player's slot icons; the armor slots show what the settler wears.</summary>
     InventoryGeneric GearInventory(string name, string[] icons)
     {
         var inv = ViewInventory(name, icons.Length, new List<ItemStack>());
         for (int i = 0; i < icons.Length; i++) inv[i].BackgroundIcon = icons[i];
-        if (name == "armor") foreach (var slot in inv) slot.HexBackgroundColor = "#77503a";
+        if (name != "armor") return inv;
+        foreach (var slot in inv) slot.HexBackgroundColor = "#77503a";
+        // Armor the settler wears, by slot: head, body, legs.
+        for (int i = 0; i < snapshot.Armor.Count && i < inv.Count; i++)
+        {
+            if (snapshot.Armor[i].Length == 0) continue;
+            var stack = new ItemStack(snapshot.Armor[i]);
+            if (stack.ResolveBlockOrItem(capi.World)) inv[i].Itemstack = stack;
+        }
         return inv;
     }
 

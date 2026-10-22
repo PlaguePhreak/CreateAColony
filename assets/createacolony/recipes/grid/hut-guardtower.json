@@ -1,0 +1,11 @@
+{
+	"ingredientPattern": "SWS,PPP",
+	"ingredients": {
+		"P": { "type": "item", "code": "game:plank-*" },
+		"S": { "type": "item", "code": "game:stick" },
+		"W": { "type": "item", "code": "game:spear-*" }
+	},
+	"width": 3,
+	"height": 2,
+	"output": { "type": "block", "code": "createacolony:hut-guardtower" }
+}

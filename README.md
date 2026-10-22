@@ -283,3 +283,23 @@ before shipping converted blueprints.
   guards never look out for monsters. The settler window shows "(stuck, Willpower N%)".
 - Commands: `/colony stuck` lists stuck settlers; `/colony pathdebug [on|off]` shows sparks over them (blue to
   red) and logs to the server log. Config `PathDebug` turns it on at start.
+
+### Guard Tower and the military (0.23.0)
+- **Guard Tower** (Military tab of the Builder's Wand; recipe: two sticks, a spear and three planks). Settlers with the
+  Guard job move in by themselves, one per tower level (one while only the tower block stands). Guards without a
+  tower still escort workers (Escort by guard) or watch the Town Hall.
+- **Tower tasks**: Guard (stay at the tower or the spot set with the Guard Scepter, fighting within
+  `GuardTowerRadius`), Patrol (Automatic: hut to hut within `GuardPatrolRange` of the tower; Manual: the scepter's
+  points) or Follow (bodyguard to the player who chose it, loose or tight, brought to them past `GuardFollowTeleport`).
+- **Night watch** (`GuardNightWatch`): tower guards sleep from `GuardSleepStartHour` to `GuardSleepEndHour` and keep
+  watch at night; they stay out in temporal storms (`GuardsFightInStorms`). A guard with a monster close by, or an
+  alarm to answer, leaves its meal, bed or shelter.
+- **Alarm**: a monster that hurts a settler within the claim (plus `GuardAlarmMargin`) calls the nearest free guard.
+- **Retreat** (tower setting): below `GuardRetreatHealth` a guard walks back to its tower until `GuardReturnHealth`.
+- **Armor** (`GuardsWearArmor`): guards put on the best helmet, body and leg armor from their tower's storage and the
+  warehouse. A blow hits head, body or legs and the armor there works as the game's player armor does, wearing down.
+  It shows in the settler window's armor slots; it does not show on the settler's model yet.
+- **Hut window Main tab** (every hut): name and level with rename, workers with Manage workers / Recall workers,
+  build options, courier pickup priority (0 = never) and Request pickup now, a ? guide, Inventory and a list of
+  everything stored. Guard Towers add Selection tools, Hostiles (per-tower on/off list), Settings, Minimum stock
+  (couriers keep that many in the tower) and Statistics.

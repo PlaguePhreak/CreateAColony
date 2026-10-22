@@ -24,6 +24,16 @@ public class EntitySettler : EntityDressedHumanoid
         set { WatchedAttributes.SetInt(CitizenIdAttr, value); WatchedAttributes.MarkPathDirty(CitizenIdAttr); }
     }
 
+    /// <summary>Armor takes the blow first, and a monster striking a settler calls the guards (see ColonyManager.OnSettlerHurt).</summary>
+    public override bool ReceiveDamage(DamageSource damageSource, float damage)
+    {
+        if (Api.Side == EnumAppSide.Server && Alive && damageSource.Type != EnumDamageType.Heal)
+        {
+            damage = Api.ModLoader.GetModSystem<Colonies.ColonyManager>().OnSettlerHurt(this, damageSource, damage);
+        }
+        return base.ReceiveDamage(damageSource, damage);
+    }
+
     /// <summary>Walking on a Pathblock (a road) is faster, by config PathSpeedMultiplier.</summary>
     public override double GetWalkSpeedMultiplier(double groundDragFactor = 0.3)
     {
