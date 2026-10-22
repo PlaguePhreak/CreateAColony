@@ -100,7 +100,7 @@ come for free.
 ### Ordering buildings and tools
 
 Right-click a hut block to open its window and order a level; the Town Hall's own upgrade is on the
-Town Hall's Overview tab. The Builder's Hut window lists every work order and, under Items needed,
+Town Hall's Actions tab. The Builder's Hut window lists every work order and, under Items needed,
 what its builder still needs with have/need counts. Builders clear soil and sand with a shovel, wood
 with an axe and stone or ore with a pickaxe, of at least the block's mining tier, and wear the tool
 down as they work. Put tools in the hut's storage or the warehouse; couriers bring missing ones. Set
@@ -164,9 +164,9 @@ works with the game's own pottery, by hand:
 - **Wanderers** now and then turn up near the colony border and walk to the Town Hall
   (`WandererEveryDays`, sooner with a built Tavern: `WandererEveryDaysWithTavern`), one at a time and
   only while there is a free bed (`WanderersNeedFreeBed`). Members get a chat message. An officer
-  welcomes them or turns them away on the Town Hall's Settlers tab; one nobody answers moves on after
+  welcomes them or turns them away on the Town Hall's Citizens tab; one nobody answers moves on after
   `WandererWaitDays`. `/colony wanderer` brings one now (admin, for testing).
-- **Permadeath** is a switch on the Town Hall's Overview tab for the colony owner; the config
+- **Permadeath** is a switch on the Town Hall's Settings tab for the colony owner; the config
   `Permadeath` is only the default for new colonies.
 - Settlers get names from `config/settlernames.json`.
 
@@ -300,7 +300,7 @@ before shipping converted blueprints.
   once built), never in someone else's claim.
 - The work range of Forester's and Farmer's Huts (16 to 500 blocks) and guard escorts are unchanged: workers
   may gather in unclaimed land outside the colony, never in another claim.
-- The Town Hall Overview tab shows how much land is claimed. `/colony claims` lists what each building claims;
+- The Town Hall's Actions tab shows how much land is claimed. `/colony claims` lists what each building claims;
   `/colony claims show` marks the edge of the colony's land in blue, `/colony claims hide` clears it.
 
 ### Guard Tower and the military (0.23.0)
@@ -322,3 +322,26 @@ before shipping converted blueprints.
   build options, courier pickup priority (0 = never) and Request pickup now, a ? guide, Inventory and a list of
   everything stored. Guard Towers add Selection tools, Hostiles (per-tower on/off list), Settings, Minimum stock
   (couriers keep that many in the tower) and Statistics.
+
+### The Town Hall window (0.24.0)
+
+The Town Hall window is laid out like MineColonies', with six tabs down the left:
+
+- **Actions**: the colony's name and the Town Hall's level on a panel like a hut's Main tab (the pencil
+  renames the colony), the colony's numbers, the Town Hall's own upgrade, cancel and turn buttons, how
+  much land the colony claims, and a **?** guide.
+- **Information**: **Events**, a log of the last 100 things that happened (the colony founded, settlers
+  hired, wanderers arriving, welcomed, turned away or leaving, settlers knocked out, recovering or dying,
+  buildings placed, finished or taken down), newest first; and **Work orders**, every building waiting for a
+  builder in the order builders take them, with Cancel for officers.
+- **Citizens**: every settler with food, bed and job. Officers pick jobs, **Recall** a stuck settler straight
+  to the Town Hall (only while it is in loaded land), and welcome or turn away wanderers.
+- **Statistics**: **Colony** shows settlers against beds, settlers lost for good, buildings, the colony's age,
+  and each job's settlers against the places its huts offer; **Work done** adds up every hut's Statistics for
+  today, yesterday, the last week, the last 100 days or all time.
+- **Permissions**: the players in the colony and their roles (the owner sets roles and removes players).
+- **Settings**: Permadeath (the owner's switch), how often wanderers come, and the warehouse.
+
+MineColonies features with no system here yet are marked "Coming later" on their tab: the colony flag and
+banner, citizen style, the town map, alliances, happiness, reordering work orders, custom ranks and
+permission logs, auto hiring and housing, and enter/leave messages.

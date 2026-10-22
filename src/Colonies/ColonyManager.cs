@@ -184,6 +184,7 @@ public partial class ColonyManager : ModSystem
                     {
                         citizen.DownedUntilTotalDays = 0;
                         citizen.Saturation = Config.SaturationMax * 0.5f;
+                        LogEvent(colony, "event-recovered", citizen.Name);
                         SpawnEntityFor(colony, citizen);
                     }
                     continue;
@@ -246,6 +247,7 @@ public partial class ColonyManager : ModSystem
             FoundedTotalDays = sapi.World.Calendar.TotalDays
         };
         colony.Members.Add(new ColonyMember { PlayerUid = founder.PlayerUID, LastKnownName = founder.PlayerName, Role = ColonyRole.Owner });
+        colony.Events.Add(new ColonyEvent { TotalDays = colony.FoundedTotalDays, Key = "event-founded", Args = { founder.PlayerName } });
 
         var claim = LandClaim.CreateClaim(founder, protectionLevel: 1);
         claim.Description = ClaimDescription(colony);

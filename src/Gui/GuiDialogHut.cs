@@ -613,7 +613,7 @@ public class GuiDialogHut : GuiDialog
         if (Officer) composer.AddSmallButton(Lang.Get("createacolony:minstock-add"), () => Send(ColonyAction.AddMinStock, id), ElementBounds.Fixed(0, y, 220, 28));
     }
 
-    static readonly string[] StatPeriods = { "today", "yesterday", "week", "hundred", "alltime" };
+    internal static readonly string[] StatPeriods = { "today", "yesterday", "week", "hundred", "alltime" };
 
     /// <summary>Statistics: counts such as monsters killed, for today, yesterday, the last week, the last 100 days or all time.</summary>
     void ComposeStats(GuiComposer composer)
@@ -643,7 +643,7 @@ public class GuiDialogHut : GuiDialog
         }
     }
 
-    static string StatLabel(string key) => key.StartsWith("kill:")
+    internal static string StatLabel(string key) => key.StartsWith("kill:")
         ? Lang.Get("createacolony:stat-kill", CreatureName(key[5..]))
         : Lang.Get("createacolony:stat-" + key);
 
@@ -980,11 +980,11 @@ public class GuiDialogHut : GuiDialog
 
     void AddPager(GuiComposer composer, int pages, double y) => composer.Pager(page, pages, y, Width, p => { page = p; Compose(); });
 
-    static string LevelText(BuildingView b) => b.MaxLevel == 0
+    internal static string LevelText(BuildingView b) => b.MaxLevel == 0
         ? Lang.Get("createacolony:building-no-blueprints", b.Level)
         : Lang.Get("createacolony:building-level", b.Level, b.MaxLevel);
 
-    static string StatusText(BuildingView b) =>
+    internal static string StatusText(BuildingView b) =>
         Lang.Get("createacolony:build-status", b.TargetLevel, b.ProgressPercent, Lang.Get("createacolony:buildstatus-" + b.Status));
 
     /// <summary>The server opens the storage window; this one closes so they do not overlap.</summary>

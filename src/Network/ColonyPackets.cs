@@ -40,6 +40,26 @@ public class BuildingView
     [ProtoMember(9)] public int Rotation;
     /// <summary>The blueprint style (see BlueprintStyles).</summary>
     [ProtoMember(10)] public string Style = "";
+    /// <summary>The name players gave it, or its type's name.</summary>
+    [ProtoMember(11)] public string Name = "";
+}
+
+/// <summary>One line of the Town Hall's event log; the window fills the lang key in.</summary>
+[ProtoContract]
+public class EventView
+{
+    [ProtoMember(1)] public double TotalDays;
+    [ProtoMember(2)] public string Key = "";
+    [ProtoMember(3)] public List<string> Args = new();
+}
+
+/// <summary>One job on the Town Hall's Statistics tab: settlers with it, and places in huts (-1 when it needs no hut).</summary>
+[ProtoContract]
+public class JobView
+{
+    [ProtoMember(1)] public string Job = "";
+    [ProtoMember(2)] public int Workers;
+    [ProtoMember(3)] public int Places;
 }
 
 /// <summary>Everything the settler window shows: who they are, what they do, and what they carry.</summary>
@@ -243,6 +263,15 @@ public class ColonySnapshot
     [ProtoMember(20)] public long ClaimColumns;
     [ProtoMember(21)] public int ClaimSquares;
     [ProtoMember(22)] public int TownHallClaimSize;
+    /// <summary>The event log for the Information tab, oldest first.</summary>
+    [ProtoMember(23)] public List<EventView> Events = new();
+    /// <summary>Every building with a work order, in the order builders take them, for the Work orders page.</summary>
+    [ProtoMember(24)] public List<BuildingView> WorkOrders = new();
+    [ProtoMember(25)] public List<JobView> Jobs = new();
+    /// <summary>All huts' Statistics added together.</summary>
+    [ProtoMember(26)] public List<StatView> Stats = new();
+    [ProtoMember(27)] public double FoundedTotalDays;
+    [ProtoMember(28)] public int BuildingCount;
 }
 
 public enum ColonyAction
@@ -328,7 +357,9 @@ public enum ColonyAction
     /// <summary>Adds the item in the player's hand to the hut's Minimum stock list.</summary>
     AddMinStock = 44,
     /// <summary>Text "code|count": how many of an item the hut keeps; 0 takes it off the list.</summary>
-    SetMinStock = 45
+    SetMinStock = 45,
+    /// <summary>Brings the settler with CitizenId to the Town Hall at once.</summary>
+    RecallCitizen = 46
 }
 
 /// <summary>The Builder's Wand building list: each building type with how many of its blocks the player carries.</summary>

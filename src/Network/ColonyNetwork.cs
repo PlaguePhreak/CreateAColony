@@ -138,6 +138,7 @@ public partial class ColonyNetwork : ModSystem
             ColonyAction.SetPotteryKeep => PotteryAction(colony, role, packet),
             ColonyAction.SetKitchenKeep => KitchenAction(colony, role, packet),
             ColonyAction.WelcomeVisitor or ColonyAction.TurnAwayVisitor => VisitorAction(colony, role, packet),
+            ColonyAction.RecallCitizen => RecallCitizen(colony, role, packet.CitizenId),
             ColonyAction.SetPermadeath => SetPermadeath(colony, role, packet.Text == "1"),
             ColonyAction.HireRecruit => HireAction(player, colony, role, packet),
             >= ColonyAction.RenameBuilding and <= ColonyAction.SetMinStock => HutAction(player, colony, role, packet),
@@ -170,6 +171,14 @@ public partial class ColonyNetwork : ModSystem
         if (packet.Action == ColonyAction.WelcomeVisitor) Manager.Welcome(colony, visitor);
         else Manager.TurnAway(colony, visitor);
         return null;
+    }
+
+    string? RecallCitizen(Colony colony, ColonyRole role, int citizenId)
+    {
+        if (role < ColonyRole.Officer) return "createacolony:denied-officer";
+        var citizen = colony.Citizens.Find(c => c.CitizenId == citizenId);
+        if (citizen == null) return "createacolony:bad-citizen";
+        return Manager.RecallCitizen(colony, citizen);
     }
 
     static string? SetPermadeath(Colony colony, ColonyRole role, bool on)
@@ -360,7 +369,13 @@ public partial class ColonyNetwork : ModSystem
             WanderersNeedFreeBed = config.WanderersNeedFreeBed,
             ClaimColumns = Manager.ClaimedColumns(colony),
             ClaimSquares = Manager.ClaimAreas(colony).Count,
-            TownHallClaimSize = Manager.GetBuilding(colony, colony.TownHallPos) is { } hall ? Manager.ClaimedSize(colony, hall) : 0
+            TownHallClaimSize = Manager.GetBuilding(colony, colony.TownHallPos) is { } hall ? Manager.ClaimedSize(colony, hall) : 0,
+            FoundedTotalDays = colony.FoundedTotalDays,
+            BuildingCount = colony.Buildings.Count,
+            Events = colony.Events.Select(e => new EventView { TotalDays = e.TotalDays, Key = e.Key, Args = e.Args.ToList() }).ToList(),
+            WorkOrders = colony.Buildings.Where(b => b.HasWorkOrder).OrderBy(b => b.BuildingId).Select(b => BuildingViewFor(colony, b)).ToList(),
+            Jobs = Manager.JobCounts(colony).Select(j => new JobView { Job = j.Job, Workers = j.Workers, Places = j.Places }).ToList(),
+            Stats = Manager.ColonyStatSummary(colony).Select(r => new StatView { Key = r.Key, Counts = r.Counts }).ToList()
         };
 
         foreach (var c in colony.Citizens)
@@ -383,7 +398,7 @@ public partial class ColonyNetwork : ModSystem
             });
         }
 
-        // The Town Hall's own upgrade sits on the Overview tab; every other building has its own hut window.
+        // The Town Hall's own upgrade sits on the Actions tab; every other building has its own hut window.
         if (Manager.GetBuilding(colony, colony.TownHallPos) is { } townHall) snapshot.Buildings.Add(BuildingViewFor(colony, townHall));
 
         foreach (var m in colony.Members.OrderByDescending(m => m.Role))
@@ -404,6 +419,7 @@ public partial class ColonyNetwork : ModSystem
             TargetLevel = b.HasWorkOrder ? b.TargetLevel : 0,
             Rotation = b.Rotation,
             Style = BlueprintStyles.Normalize(b.Style),
+            Name = ColonyManager.BuildingName(b),
             Status = b.HasWorkOrder ? Manager.BuildStatus.GetValueOrDefault(b.BuildingId, "queued") : ""
         };
         var blueprint = b.HasWorkOrder ? Manager.Blueprints.Get(b, b.TargetLevel) : null;

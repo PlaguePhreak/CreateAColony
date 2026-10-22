@@ -120,11 +120,13 @@ public class EntityBehaviorColonyCitizen : EntityBehavior
             else if (colony != null && manager.Permadeath(colony))
             {
                 record.Alive = false;
+                manager.LogEvent(colony, "event-died", record.Name);
             }
             else
             {
                 // Knocked out: the respawn pass (milestone 2) brings them back to the Town Hall after this time.
                 record.DownedUntilTotalDays = entity.World.Calendar.TotalDays + manager.Config.DownedRecoveryDays;
+                if (colony != null) manager.LogEvent(colony, "event-downed", record.Name);
             }
         }
         base.OnEntityDeath(damageSourceForDeath);

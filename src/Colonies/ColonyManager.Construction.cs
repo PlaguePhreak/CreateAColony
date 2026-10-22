@@ -37,6 +37,7 @@ public partial class ColonyManager
 
         var building = new Building { BuildingId = colony.NextBuildingId++, Type = type, HutPos = hutPos.Copy(), Rotation = rotation };
         colony.Buildings.Add(building);
+        LogEvent(colony, "event-placed", "@building-" + type);
         MarkDirty(colony);
         RefreshClaim(colony);
         return building;
@@ -47,6 +48,7 @@ public partial class ColonyManager
         var building = GetBuilding(colony, hutPos);
         if (building == null) return;
         colony.Buildings.Remove(building);
+        LogEvent(colony, "event-removed", BuildingName(building));
         CancelBuildRequests(colony, building);
         foreach (var c in colony.Citizens.Where(c => c.WorkplacePos != null && c.WorkplacePos.Equals(hutPos))) c.WorkplacePos = null;
         MarkDirty(colony);
@@ -163,6 +165,7 @@ public partial class ColonyManager
         MarkDirty(colony);
         RefreshClaim(colony);
 
+        LogEvent(colony, "event-built", "@building-" + building.Type, building.Level.ToString());
         string message = Lang.Get("createacolony:build-finished", Lang.Get("createacolony:building-" + building.Type), building.Level);
         foreach (var member in colony.Members)
         {

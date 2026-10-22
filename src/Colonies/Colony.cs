@@ -189,6 +189,16 @@ public class StatEntry
     [ProtoMember(3)] public int Count;
 }
 
+/// <summary>One line of the Town Hall's event log: a lang key and its arguments, filled in by the reader's own language.</summary>
+[ProtoContract]
+public class ColonyEvent
+{
+    [ProtoMember(1)] public double TotalDays;
+    [ProtoMember(2)] public string Key = "";
+    /// <summary>An argument starting with "@" is itself a lang key, such as "@building-farmer".</summary>
+    [ProtoMember(3)] public List<string> Args = new();
+}
+
 /// <summary>Someone at the Tavern who joins the colony for a price in rusty gears.</summary>
 [ProtoContract]
 public class RecruitOffer
@@ -249,6 +259,8 @@ public class Colony
     [ProtoMember(22)] public bool? Permadeath;
     /// <summary>When the next wanderer may come asking to join; 0 until first worked out.</summary>
     [ProtoMember(23)] public double NextWandererTotalDays;
+    /// <summary>The Town Hall's event log, oldest first, the newest ColonyManager.MaxEvents kept.</summary>
+    [ProtoMember(24)] public List<ColonyEvent> Events = new();
 
     public string OwnerUid => Members.Find(m => m.Role == ColonyRole.Owner)?.PlayerUid ?? "";
 

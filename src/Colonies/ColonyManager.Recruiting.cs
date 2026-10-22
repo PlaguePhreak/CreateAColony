@@ -126,6 +126,7 @@ public partial class ColonyManager
         var record = SpawnSettler(colony, offer.Name, offer.Sex, Beside(tavern.HutPos));
         if (record == null) return "createacolony:recruit-failed";
         TellMembers(colony, "createacolony:recruit-hired", record.Name, colony.Name, player.PlayerName);
+        LogEvent(colony, "event-hired", record.Name, player.PlayerName);
         return null;
     }
 
@@ -166,6 +167,7 @@ public partial class ColonyManager
         {
             ForgetCitizen(colony, visitor);
             TellMembers(colony, "createacolony:visitor-left", visitor.Name, colony.Name);
+            LogEvent(colony, "event-visitor-left", visitor.Name);
         }
 
         if (!Config.Wanderers) return;
@@ -200,6 +202,7 @@ public partial class ColonyManager
         var record = SpawnSettler(colony, RandomName(colony, sex), sex, start.ToVec3d().Add(0.5, 0, 0.5), visitor: true);
         if (record == null) return null;
         TellMembers(colony, "createacolony:visitor-arrived", record.Name, colony.Name);
+        LogEvent(colony, "event-visitor-arrived", record.Name);
         return record;
     }
 
@@ -239,6 +242,7 @@ public partial class ColonyManager
         visitor.VisitorUntilTotalDays = 0;
         MarkDirty(colony);
         TellMembers(colony, "createacolony:visitor-welcomed", visitor.Name, colony.Name);
+        LogEvent(colony, "event-welcomed", visitor.Name);
     }
 
     /// <summary>An officer turns a visitor away: it leaves at once.</summary>
@@ -246,6 +250,7 @@ public partial class ColonyManager
     {
         ForgetCitizen(colony, visitor);
         TellMembers(colony, "createacolony:visitor-turned-away", visitor.Name, colony.Name);
+        LogEvent(colony, "event-turned-away", visitor.Name);
     }
 
     /// <summary>Removes a citizen from the colony entirely; its entity leaves and what it carried drops.</summary>
