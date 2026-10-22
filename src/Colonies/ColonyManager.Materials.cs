@@ -51,8 +51,11 @@ public partial class ColonyManager
             if (joined.Id == current.Id) return true;
             target = joined;
         }
-        // Ground in a blueprint is any soil: grass comes and goes, and how fertile it is depends on the spot.
-        if (IsSoil(target) && IsSoil(current)) return true;
+        // A torch is a torch, lit or burned out.
+        if (IsTorch(target) && IsTorch(current) && LitTorch(current.Code).Equals(LitTorch(target.Code))) return true;
+        // Ground in a blueprint is any soil: grass comes and goes, and how fertile it is depends on the spot. Natural
+        // ground of another kind (rock, gravel, sand) will do too, so builders do not dig out stone to put dirt there.
+        if (IsSoil(target) && (IsSoil(current) || IsNaturalGround(current))) return true;
         // A VS Roofing roof block turns bare or filled by itself as its materials load; either one is the roof.
         if (target.Code.Domain == RoofingDomain && VariantOf(current, "type") is { } roofState
             && target.CodeWithVariant("type", roofState).Equals(current.Code)) return true;
@@ -73,6 +76,17 @@ public partial class ColonyManager
     public bool KeepsBlock(Colony colony, Block current, int targetId) =>
         current.Id == targetId || Fulfils(colony, current, targetId) || InProgress(current, targetId);
 
+    /// <summary>Rock, gravel, sand, clay and other natural ground blocks.</summary>
+    static bool IsNaturalGround(Block block) => block.SideSolid.All && block.BlockMaterial is EnumBlockMaterial.Soil
+        or EnumBlockMaterial.Gravel or EnumBlockMaterial.Sand or EnumBlockMaterial.Stone;
+
+    /// <summary>A vanilla torch (lit, extinct or burned out), on the ground or a wall.</summary>
+    public static bool IsTorch(Block block) => block.Code?.Domain == "game" && block.Code.Path.StartsWith("torch-");
+
+    /// <summary>The lit version of a torch's code: torches burn out by themselves, so blueprints ask for lit ones.</summary>
+    public static AssetLocation LitTorch(AssetLocation code) =>
+        new(code.Domain, code.Path.Replace("-burnedout-", "-lit-").Replace("-extinct-", "-lit-"));
+
     /// <summary>Plain soil blocks (soil-medium-normal and the like), not farmland, packed dirt or rammed earth.</summary>
     static bool IsSoil(Block block) => block.Code?.Domain == "game" && block.Code.Path.StartsWith("soil-");
 
@@ -80,7 +94,8 @@ public partial class ColonyManager
 
     /// <summary>
     /// The next block to place on the way to the step's block, and everything placing it costs (empty:
-    /// nothing). Most blocks cost one item; a roof block from VS Roofing costs its frame and materials.
+    /// nothing). Most blocks cost one item; a roof block from VS Roofing costs its frame and materials, and a
+    /// furniture block or banner pole its item in the blueprint's wood and colours (plus the pole's banner).
     /// </summary>
     public (Block Place, IReadOnlyList<MaterialCost> Costs) NextPlacement(Colony colony, BuildStep step, BlockPos pos)
     {
@@ -95,7 +110,7 @@ public partial class ColonyManager
             var start = sapi.World.GetBlock(new AssetLocation("game:firepit-construct1"));
             if (start != null) return (start, Costs(ItemCost("game:drygrass", 1)));
         }
-        if (Config.BuildersNeedMaterials && SavedCost(step, target) is { } saved) return (target, saved);
+        if (Config.BuildersNeedMaterials && (PlacedItemCosts(step, target, pos, colony.AnyWoodOrStone) ?? SavedCost(step, target)) is { } saved) return (target, saved);
         return (target, Costs(PickCost(colony, target, pos)));
     }
 

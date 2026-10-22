@@ -147,6 +147,7 @@
 	"any-type-hint": "When on, pine logs can stand in for oak logs, andesite for granite, and so on. The block is built in the type the builder brings.",
 	"items-any-wood": "{0} (any wood)",
 	"items-any-rock": "{0} (any stone)",
+	"items-any-design": "{0} (with the blueprint's design)",
 	"items-any-binding": "Roof binding: flax fibers, cattail tops, papyrus tops or wild vines",
 	"bag-given": "{0} now wears the bag and has {1} inventory slots.",
 	"bag-full": "{0} already wears {1} bags.",

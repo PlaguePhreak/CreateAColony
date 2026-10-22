@@ -39,13 +39,21 @@ public partial class ColonyManager
         [ProtoMember(3)] public byte[]? Offhand;
     }
 
-    /// <summary>Gives a just-placed block the details the blueprint saved for it.</summary>
-    public void RestoreSavedDetails(BuildStep step, BlockPos pos)
+    /// <summary>
+    /// Gives a just-placed block the details the blueprint saved for it. A block placed from its item
+    /// (furniture, banner poles) set itself up from that item, so it only gets its banner, if any.
+    /// </summary>
+    public void RestoreSavedDetails(BuildStep step, BlockPos pos, IReadOnlyList<ItemStack>? placedFrom = null)
     {
-        if (step.Saved is not { } saved) return;
         var ba = sapi.World.BlockAccessor;
         var block = ba.GetBlock(pos);
         var be = ba.GetBlockEntity(pos);
+        if (placedFrom != null)
+        {
+            FinishPlacedItem(block, be, placedFrom);
+            return;
+        }
+        if (step.Saved is not { } saved) return;
         if (be == null || block.EntityClass != sapi.World.ClassRegistry.GetBlockEntityClass(be.GetType())) return;
         try
         {

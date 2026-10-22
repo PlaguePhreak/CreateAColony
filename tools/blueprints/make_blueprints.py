@@ -6,7 +6,7 @@ Run:  python3 tools/blueprints/make_blueprints.py
 The blueprints go straight into the mod (assets/createacolony/config/blueprints/<type>/level<N>.json);
 pass a folder to write them there instead. Pictures and plans go to tools/blueprints/previews/.
 
-Every building here is cut from blueprints/builder/level1.json (Aaron's own export from Vintage
+Every building here is cut from blueprints/builder/level1-old-0.18.json (Aaron's own export from Vintage
 Story 1.22.7 with VS Roofing). The house is cut into slices across its length: the west gable with
 the door, one ordinary middle slice, and the east gable. A longer house repeats the middle slice, so
 the thatch roof pieces, the frame and the door are all copied from blocks that work in game. Only
@@ -23,7 +23,7 @@ from collections import Counter
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 REPO = os.path.normpath(os.path.join(HERE, "..", ".."))
-KIT = os.path.join(REPO, "assets", "createacolony", "config", "blueprints", "builder", "level1.json")
+KIT = os.path.join(REPO, "assets", "createacolony", "config", "blueprints", "builder", "level1-old-0.18.json")
 
 # Blocks known to exist in 1.22.7: every one comes from Aaron's own exports or from blueprints
 # already built in game by the mod's builders. Nothing else may be used.

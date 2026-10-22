@@ -64,6 +64,14 @@ public class ColonyConfig
     /// </summary>
     public string[] RoofBindings = { "game:flaxfibers", "game:cattailtops", "game:papyrustops", "game:wildvine-*" };
 
+    /// <summary>
+    /// Blocks a builder places the way a player does, from the item in hand, so the block sets itself up:
+    /// W4RD0's Furniture (wood and cloth colours, shelves of several cells, beds) and Heraldry : Banners poles.
+    /// Builders pay for the furniture item in the same wood and colours as the blueprint, and for a banner with
+    /// the same design when a pole holds one. Nothing inside furniture comes along. Both mods are optional.
+    /// </summary>
+    public string[] BlueprintPlaceAsItem = { "w4rd0sfurniture:*", "heraldrybanners:*" };
+
     // Forester
     /// <summary>How far from the Forester's Hut, in blocks, a forester looks for trees.</summary>
     public int ForesterRadius = 16;

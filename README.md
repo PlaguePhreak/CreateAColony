@@ -64,9 +64,18 @@ yet" in the list.
 Doors in a blueprint are hung the way they were in the export, top half included. The first door
 also marks the building's front: when you place the hut, the building is turned so that side faces
 you. Soil in a blueprint counts as built on any soil (grassy or bare, rich or poor), and filling a
-hole in the ground costs any soil. The Builder's Hut level 1 (since 0.18.0) is a 13 x 8 x 11 cottage
-with a thatched VS Roofing roof; the old 5 x 4 x 5 sample is kept as
-`blueprints/builder/level1-old-placeholder.json` (rename it to `level1.json` in ModConfig to use it).
+hole in the ground costs any soil; rock, gravel or sand already there also counts, so builders never
+dig out stone to put dirt in its place. Burned-out torches in a blueprint are built as lit ones, and a
+torch counts as built whether it is lit or burned out. Items lying on the ground (ground storage) are
+left out. Empty space below the hut's floor is dug out only when the blueprint has blocks both under
+and over it (a cellar); elsewhere the ground below the floor is left alone.
+
+Since 0.25.0 the Town Hall and the Builder's Hut have four levels each, built by Aaron in game
+(`blueprints/townhall/level1-4.json`, `blueprints/builder/level1-4.json`), with cellars, furniture
+from W4RD0's Furniture and a flag pole from Heraldry : Banners on the level 4 Town Hall. The 0.18.0
+Builder's Hut is kept as `blueprints/builder/level1-old-0.18.json` (the blueprint generator still cuts
+its cottages from it), and the old 5 x 4 x 5 sample as `blueprints/builder/level1-old-placeholder.json`
+(rename either to `level1.json` in ModConfig to use it).
 
 Since 0.19.0 the Forester's Hut and the Tavern also have thatched cottages for level 1, made from the
 Builder's Hut: a 7 x 7 x 9 log cabin for the Forester and an 11 x 7 x 9 wattle-and-daub hall with a fire
@@ -96,6 +105,22 @@ blocks are skipped, like any block from a mod that is not installed.
 The config list `BlueprintBlockDetails` (default `["vsroofing:*"]`) says which blocks are copied with
 their saved details. Do not add chests or other containers: whatever they held in the export would
 come for free.
+
+### Furniture and banners (W4RD0's Furniture, Heraldry : Banners)
+
+With W4RD0's Furniture (1.5.1) or Heraldry : Banners (2.0.0, with Heraldry) installed, blueprints can hold their
+furniture and banner poles. Both mods are optional: without them those blocks are skipped. A builder
+places these blocks the way a player does, from their item, so the block sets itself up: a double bed
+or a wide table puts down its other half, a shelf its other cells, and the block takes the item's wood
+and colours. The builder pays for the furniture item in the wood and cloth colours the blueprint has
+("Rustic table (Oak)" in Items needed; "(any wood)" when the colony allows any wood), and for a pole's
+banner with the same design, which has to be made at the Heraldry workbench. What furniture held in the
+export (a cupboard's contents, a shelf's display) is not copied. The config list `BlueprintPlaceAsItem`
+(default `["w4rd0sfurniture:*", "heraldrybanners:*"]`) says which blocks are placed this way; any block
+that takes its wood from item attributes (Attribute Rendering Library) is placed this way too.
+
+Settlers sleep in W4RD0's Furniture beds as well as vanilla beds. A double bed sleeps two, each on their
+own half, and counts as two free beds for wanderers.
 
 ### Ordering buildings and tools
 

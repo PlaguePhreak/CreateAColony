@@ -214,8 +214,9 @@ public partial class ColonyManager
         // A half-built fire pit already has its container (the fuel slot), but the firewood still has to go on.
         if (InProgress(current, step.BlockId)) return false;
         if (ba.GetBlockEntity(pos) is BlockEntityContainer) return true;
-        // The top half of a door belongs to the door below it; clearing it would break the door.
-        if (step.BlockId == 0 && current is BlockMultiblock) return true;
+        // The top half of a door belongs to the door below it; clearing it would break the door. The same goes
+        // for the other cells of a furniture shelf.
+        if (step.BlockId == 0 && (current is BlockMultiblock || IsFurnitureCell(pos))) return true;
         // Water and lava are left alone when clearing; builders do not drain lakes.
         if (step.BlockId == 0 && current.IsLiquid()) return true;
         return false;
@@ -348,7 +349,7 @@ public partial class ColonyManager
         }
     }
 
-    public void PlaceForBuild(int blockId, BlockPos pos)
+    public void PlaceForBuild(int blockId, BlockPos pos, ItemStack? fromItem = null)
     {
         var ba = sapi.World.BlockAccessor;
         var block = sapi.World.GetBlock(blockId);
@@ -358,10 +359,14 @@ public partial class ColonyManager
             block = joined;
             blockId = joined.Id;
         }
-        ba.SetBlock(blockId, pos);
+        // Furniture and banner poles go down from their item, which gives them their wood and puts down their other parts.
+        if (fromItem != null) ba.SetBlock(blockId, pos, fromItem);
+        else ba.SetBlock(blockId, pos);
         ba.TriggerNeighbourBlockUpdate(pos);
         if (block.Sounds?.Place != null) sapi.World.PlaySoundAt(block.Sounds.Place, pos, 0);
     }
+
+    bool IsFurnitureCell(BlockPos pos) => sapi.World.BlockAccessor.GetBlockEntity(pos)?.GetType().Name == "BlockEntityFurnitureDisplayCell";
 
     /// <summary>Done and total steps, for the progress bar.</summary>
     public (int Done, int Total) Progress(Colony colony, Building building, Blueprint blueprint)

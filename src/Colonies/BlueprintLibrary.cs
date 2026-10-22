@@ -135,6 +135,8 @@ public class BlueprintLibrary
             int dz = (int)((index >> 10) & BlockSchematic.PosBitMask);
             var code = schematic.BlockCodes[schematic.BlockIds[i]];
             var block = ba.GetBlock(code);
+            // A torch that burned out while the building was being saved is built as a lit one.
+            if (block != null && ColonyManager.IsTorch(block) && ba.GetBlock(ColonyManager.LitTorch(block.Code)) is { } lit) block = lit;
             if (block == null) missing.Add(code.ToString());
             else blocks[(dx, dy, dz)] = block;
         }
@@ -154,14 +156,28 @@ public class BlueprintLibrary
 
         int? front = rotation == 0 ? EntranceSide(schematic, blocks) : null;
 
+        // The lowest and highest block of each column, to tell a cellar (empty space under a floor, with saved
+        // ground below it) from the ground underneath or a yard that was lower than the floor.
+        var lowest = new Dictionary<(int, int), int>();
+        var highest = new Dictionary<(int, int), int>();
+        foreach (var ((x, y, z), _) in blocks)
+        {
+            if (!lowest.TryGetValue((x, z), out int low) || y < low) lowest[(x, z)] = y;
+            if (!highest.TryGetValue((x, z), out int high) || y > high) highest[(x, z)] = y;
+        }
+        bool InCellar(int x, int y, int z) =>
+            lowest.TryGetValue((x, z), out int low) && low < y && highest.TryGetValue((x, z), out int high) && high > y;
+
         // Where the hut block sits inside the blueprint.
         string hutCode = HutBlockCode(type);
         var anchor = blocks.FirstOrDefault(kv => kv.Value.Code.ToString() == hutCode).Key;
         if (!blocks.Any(kv => kv.Value.Code.ToString() == hutCode)) anchor = (schematic.SizeX / 2, 0, schematic.SizeZ / 2);
         var (ax, ay, az) = anchor;
 
+        // Items lying on the ground (ground storage) are left out too: an empty one is nothing, and a full one would come free.
         bool IsMeta(Block b) => b.Id == BlockSchematic.FillerBlockId || b.Id == BlockSchematic.PathwayBlockId
-            || b.Id == BlockSchematic.UndergroundBlockId || b.Id == BlockSchematic.AbovegroundBlockId || b.Id == BlockSchematic.ConnectorBlockId;
+            || b.Id == BlockSchematic.UndergroundBlockId || b.Id == BlockSchematic.AbovegroundBlockId || b.Id == BlockSchematic.ConnectorBlockId
+            || b is BlockGroundStorage;
 
         var clear = new List<BuildStep>();
         var solid = new List<BuildStep>();
@@ -175,7 +191,7 @@ public class BlueprintLibrary
             {
                 if (IsMeta(block)) continue;
                 // The top half of a door (or another part of a big block) comes with the door itself; until then the spot is cleared.
-                if (block is BlockMultiblock)
+                if (block is BlockMultiblock || IsFurniturePart(block, saved.GetValueOrDefault((dx, dy, dz))))
                 {
                     clear.Add(new BuildStep(dx - ax, dy - ay, dz - az, 0));
                     continue;
@@ -185,9 +201,10 @@ public class BlueprintLibrary
                 else if (IsSolid(block)) solid.Add(step);
                 else decor.Add(step);
             }
-            else if (dy >= ay)
+            else if (dy >= ay || InCellar(dx, dy, dz))
             {
-                // Empty space at or above the hut's floor is cleared; below it the ground is left alone.
+                // Empty space at or above the hut's floor is cleared. Below it, only with blueprint blocks both
+                // under and over it (a cellar dug into the ground it was saved with); elsewhere the ground is left alone.
                 clear.Add(new BuildStep(dx - ax, dy - ay, dz - az, 0));
             }
         }
@@ -220,9 +237,37 @@ public class BlueprintLibrary
 
     static bool IsSolid(Block block) => block.SideSolid.Any;
 
-    /// <summary>Doors always keep theirs (which way they face); other blocks when the config lists them.</summary>
+    /// <summary>
+    /// Doors always keep theirs (which way they face); blocks placed from their item keep theirs to know which
+    /// item (its wood and colours, a pole's banner); other blocks when the config lists them.
+    /// </summary>
     bool KeepsDetails(Block block) =>
-        block.EntityClass != null && (IsDoor(block) || config.BlueprintBlockDetails.Any(p => WildcardUtil.Match(new AssetLocation(p), block.Code)));
+        block.EntityClass != null && (IsDoor(block) || PlacedAsItem(block) || config.BlueprintBlockDetails.Any(p => WildcardUtil.Match(new AssetLocation(p), block.Code)));
+
+    /// <summary>
+    /// True for blocks a builder places from their item, as a player does, so they set themselves up: the
+    /// config's list (W4RD0's Furniture, Heraldry : Banners), and any block that takes its look from the item's
+    /// attributes (Attribute Rendering Library: "types" such as wood and cloth).
+    /// </summary>
+    public bool PlacedAsItem(Block block) =>
+        block.Id != 0 && (UsesAttributes(block) || config.BlueprintPlaceAsItem.Any(p => WildcardUtil.Match(new AssetLocation(p), block.Code)));
+
+    /// <summary>A block whose wood, cloth and the like live in its block entity's "types", copied from the item it was placed from.</summary>
+    public static bool UsesAttributes(Block block) => block.BlockBehaviors.Any(IsAttributeBehavior);
+
+    /// <summary>Attribute Rendering Library's block behavior, found by name so the library stays optional.</summary>
+    public static bool IsAttributeBehavior(BlockBehavior behavior) => behavior.GetType().Name == "BlockBehaviorShapeTexturesFromAttributes";
+
+    /// <summary>
+    /// A cell of a W4RD0's Furniture shelf or display other than its first one. The first cell places the
+    /// others when it goes down, so until then the spot is cleared, like the top half of a door.
+    /// </summary>
+    static bool IsFurniturePart(Block block, SavedBlockEntity? saved)
+    {
+        if (saved == null || block.GetType().Name != "BlockFurnitureDisplay") return false;
+        var tree = saved.Tree();
+        return tree.GetInt("partX") != 0 || tree.GetInt("partY") != 0 || tree.GetInt("partZ") != 0;
+    }
 
     public static string HutBlockCode(string type) => type switch
     {
