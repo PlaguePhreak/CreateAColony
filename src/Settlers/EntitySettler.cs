@@ -23,4 +23,11 @@ public class EntitySettler : EntityDressedHumanoid
         get => WatchedAttributes.GetInt(CitizenIdAttr);
         set { WatchedAttributes.SetInt(CitizenIdAttr, value); WatchedAttributes.MarkPathDirty(CitizenIdAttr); }
     }
+
+    /// <summary>Walking on a Pathblock (a road) is faster, by config PathSpeedMultiplier.</summary>
+    public override double GetWalkSpeedMultiplier(double groundDragFactor = 0.3)
+    {
+        double multiplier = base.GetWalkSpeedMultiplier(groundDragFactor);
+        return PathBlocks.SpeedMultiplier != 1f && PathBlocks.StandsOnPath(this) ? multiplier * PathBlocks.SpeedMultiplier : multiplier;
+    }
 }

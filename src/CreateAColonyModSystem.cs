@@ -147,11 +147,43 @@ public class CreateAColonyModSystem : ModSystem
                     return TextCommandResult.Success(list);
                 })
             .EndSubCommand()
+            .BeginSubCommand("stuck")
+                .WithDescription("List the settlers of the colony you are standing in that are stuck and building Willpower")
+                .HandleWith(OnStuck)
+            .EndSubCommand()
+            .BeginSubCommand("pathdebug")
+                .WithDescription("Show Willpower sparks over stuck settlers and log pathing in the server log (on/off, until restart)")
+                .RequiresPrivilege(Privilege.controlserver)
+                .WithArgs(parsers.OptionalBool("on"))
+                .HandleWith(args =>
+                {
+                    var manager = sapi!.ModLoader.GetModSystem<ColonyManager>();
+                    manager.PathDebug = args.Parsers[0].IsMissing ? !manager.PathDebug : (bool)args[0];
+                    return TextCommandResult.Success(Lang.Get(manager.PathDebug ? "createacolony:pathdebug-on" : "createacolony:pathdebug-off"));
+                })
+            .EndSubCommand()
             .BeginSubCommand("cancelrequest")
                 .WithDescription("Cancel a delivery request by its number")
                 .WithArgs(parsers.Int("number"))
                 .HandleWith(OnCancelRequest)
             .EndSubCommand();
+    }
+
+    TextCommandResult OnStuck(TextCommandCallingArgs args)
+    {
+        var manager = sapi!.ModLoader.GetModSystem<ColonyManager>();
+        var colony = manager.GetAt(args.Caller.Entity.Pos.AsBlockPos);
+        if (colony == null) return TextCommandResult.Success(Lang.Get("createacolony:not-in-colony"));
+        var lines = new System.Collections.Generic.List<string>();
+        foreach (var citizen in colony.Citizens)
+        {
+            if (!citizen.Alive || sapi.World.GetEntityById(citizen.EntityId) is not EntitySettler entity) continue;
+            var will = entity.GetBehavior<EntityBehaviorColonyCitizen>()?.Willpower;
+            if (will == null || will.Value <= 0) continue;
+            string why = Lang.Get("createacolony:stuck-reason-" + will.Reason.ToString().ToLowerInvariant()) + (will.Trapped ? ", " + Lang.Get("createacolony:stuck-trapped") : "");
+            lines.Add(Lang.Get("createacolony:stuck-line", citizen.Name, entity.Pos.AsBlockPos.ToLocalPosition(sapi), why, (int)(will.Fraction * 100)));
+        }
+        return TextCommandResult.Success(lines.Count == 0 ? Lang.Get("createacolony:stuck-none") : string.Join("\n", lines));
     }
 
     TextCommandResult OnInfo(TextCommandCallingArgs args)
@@ -317,7 +349,7 @@ public class CreateAColonyModSystem : ModSystem
         var player = (IServerPlayer)args.Caller.Player;
         var manager = sapi!.ModLoader.GetModSystem<ColonyManager>();
         var colony = manager.GetAt(player.Entity.Pos.AsBlockPos);
-        if (colony == null) return TextCommandResult.Error(Lang.Get("createacolony:not-in-colony"));
+        if (colony == null) return TextCommandResult.Success(Lang.Get("createacolony:not-in-colony"));
         if (!colony.CanManage(player.PlayerUID)) return TextCommandResult.Error(Lang.Get("createacolony:denied-officer"));
 
         int id = (int)args[0];

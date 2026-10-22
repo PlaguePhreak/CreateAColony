@@ -427,5 +427,14 @@
 	"kitchen-meal": "Pot meal: {0}",
 	"workstatus-cooking-meal": "cooking a pot meal",
 	"workstatus-fetching-pot": "fetching a cooking pot",
-	"workstatus-waiting-pot": "waiting for a courier to bring a cooking pot"
+	"workstatus-waiting-pot": "waiting for a courier to bring a cooking pot",
+	"activity-stuck": "(stuck, Willpower {0}%)",
+	"stuck-none": "Nobody is stuck.",
+	"stuck-line": "{0} at {1}: {2}, Willpower {3}%",
+	"stuck-reason-nopath": "can't find a way",
+	"stuck-reason-noprogress": "not getting any closer",
+	"stuck-reason-none": "getting over it",
+	"stuck-trapped": "boxed in",
+	"pathdebug-on": "Path debug on: sparks over stuck settlers, Willpower and ladder lines in the server log.",
+	"pathdebug-off": "Path debug off."
 }

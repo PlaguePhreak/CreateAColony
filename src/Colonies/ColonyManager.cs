@@ -62,6 +62,7 @@ public partial class ColonyManager : ModSystem
             Mod.Logger.Error("Bad {0}, using defaults: {1}", ColonyConfig.FileName, e.Message);
         }
         api.StoreModConfig(Config, ColonyConfig.FileName);
+        PathDebug = Config.PathDebug;
 
         api.Event.SaveGameLoaded += OnSaveGameLoaded;
         api.Event.GameWorldSave += OnGameWorldSave;

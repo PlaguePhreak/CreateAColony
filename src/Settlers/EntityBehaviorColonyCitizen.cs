@@ -32,8 +32,15 @@ public class EntityBehaviorColonyCitizen : EntityBehavior
     float sinceStuckCheck;
     float sinceDoorCheck;
     int stuckChecks;
+    int willpowerLogTicks;
 
-    public EntityBehaviorColonyCitizen(Entity entity) : base(entity) { }
+    /// <summary>How long this settler has been stuck, and when it relocates itself (see Willpower.cs). Server only.</summary>
+    public Willpower Willpower { get; }
+
+    public EntityBehaviorColonyCitizen(Entity entity) : base(entity)
+    {
+        Willpower = new Willpower(entity);
+    }
 
     public override string PropertyName() => "colonycitizen";
 
@@ -60,6 +67,7 @@ public class EntityBehaviorColonyCitizen : EntityBehavior
         {
             sinceStuckCheck = 0;
             FreeIfInsideBlock();
+            TickWillpower(StuckCheckSeconds);
         }
         sinceSync += deltaTime;
         if (sinceSync < SyncIntervalSeconds) return;
@@ -173,6 +181,22 @@ public class EntityBehaviorColonyCitizen : EntityBehavior
         stuckChecks = 0;
         var spot = manager!.FreeSpotNear(entity, entity.Pos.AsBlockPos, 4);
         if (spot != null) entity.TeleportToDouble(spot.X, spot.Y, spot.Z);
+    }
+
+    /// <summary>Once a second: build or lose Willpower, show it when debugging, relocate when it is full.</summary>
+    void TickWillpower(float seconds)
+    {
+        if (!manager!.Config.Willpower || entity is not EntityAgent agent) return;
+        bool full = Willpower.Tick(seconds, manager);
+        manager.ShowWillpower(entity, Willpower);
+        if (manager.PathDebug && Willpower.Reason != StuckReason.None && ++willpowerLogTicks >= 5)
+        {
+            willpowerLogTicks = 0;
+            entity.Api.Logger.Notification("[willpower] {0} at {1}: stuck ({2}{3}), willpower {4:0}/{5:0}", FindRecord()?.Name ?? entity.EntityId.ToString(),
+                entity.Pos.AsBlockPos, Willpower.Reason, Willpower.Trapped ? ", trapped" : "", Willpower.Value, Willpower.Threshold);
+        }
+        if (!full || agent.MountedOn != null) return;
+        manager.Relocate(agent, Willpower, FindRecord()?.JobCode);
     }
 
     CitizenRecord? FindRecord()

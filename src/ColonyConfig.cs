@@ -167,4 +167,59 @@ public class ColonyConfig
     public double WandererWaitDays = 2;
     /// <summary>Wanderers only come while the colony has a bed nobody sleeps in.</summary>
     public bool WanderersNeedFreeBed = true;
+
+    // Paths (Pathblocks)
+    /// <summary>
+    /// Blocks settlers treat as roads, as block codes; * matches anything. Settlers walk faster on them and
+    /// the pathfinder prefers routes along them. Stairs listed here count as roads up and down; ladders listed
+    /// here are the ones settlers climb when there is no other way up (see LadderClimbing).
+    /// Use /colony findblock to look up codes, e.g. /colony findblock *path*.
+    /// </summary>
+    public string[] PathBlocks = { "game:stonepath*", "game:ladder-*" };
+    /// <summary>How much faster a settler walks while standing on a Pathblock: 1.4 is 40% faster.</summary>
+    public float PathSpeedMultiplier = 1.4f;
+    /// <summary>
+    /// What one step along a Pathblock costs the pathfinder, compared to a step on anything else. 0.65 means a
+    /// settler will take a road up to about one and a half times as long as the direct way. 1 turns the
+    /// preference off; keep it above 0.3 or the pathfinder slows down a lot.
+    /// </summary>
+    public float PathStepCost = 0.65f;
+    /// <summary>
+    /// When the pathfinder finds no way up or down to a goal (the game's pathfinder only walks, steps up one
+    /// block and drops down), settlers look for a ladder nearby and climb it.
+    /// </summary>
+    public bool LadderClimbing = true;
+    /// <summary>How far around itself, in blocks, a settler looks for a ladder to climb.</summary>
+    public int LadderSearchRadius = 8;
+
+    // Getting stuck: Willpower
+    /// <summary>
+    /// A settler that cannot get where it is going slowly builds Willpower and, once it has enough, moves
+    /// itself to a safe spot nearby. Turn off to leave stuck settlers for the player to help.
+    /// </summary>
+    public bool Willpower = true;
+    /// <summary>A walking settler that has got no closer to its goal (and moved less than 3 blocks) for this many seconds counts as stuck.</summary>
+    public float StuckNoProgressSeconds = 10f;
+    /// <summary>Seconds of being stuck it takes to build full Willpower and relocate.</summary>
+    public float WillpowerSeconds = 20f;
+    /// <summary>Each settler's threshold is rolled up to this fraction above or below WillpowerSeconds each time, so not everyone pops at once.</summary>
+    public float WillpowerJitter = 0.2f;
+    /// <summary>Willpower builds this many times faster while the settler is boxed in (walls all around, a hole with no way out).</summary>
+    public float WillpowerTrappedRate = 2f;
+    /// <summary>Willpower lost per second while the settler makes real progress again.</summary>
+    public float WillpowerDecayPerSecond = 1f;
+    /// <summary>Willpower lost per second while the settler is not trying to walk anywhere.</summary>
+    public float WillpowerIdleDecayPerSecond = 0.1f;
+    /// <summary>How far, in blocks, a relocation may move a settler.</summary>
+    public int WillpowerRadius = 10;
+    /// <summary>
+    /// Chance that a relocating settler does not look before it leaps: it only makes sure it is not inside a
+    /// block and has floor under it, and may land next to lava, in deep water or among monsters.
+    /// Guards never check for monsters.
+    /// </summary>
+    public float WillpowerRecklessChance = 0.05f;
+    /// <summary>At most this many settlers relocate each second across the server, so a pile-up does not cause lag.</summary>
+    public int WillpowerMaxRelocationsPerSecond = 2;
+    /// <summary>Show Willpower in the game: sparks over stuck settlers (blue to red as it fills) and lines in the server log. /colony pathdebug switches it until restart.</summary>
+    public bool PathDebug = false;
 }

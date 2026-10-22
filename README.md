@@ -269,3 +269,17 @@ Minecraft block is matched through `assets/createacolony/config/mcimport.json` (
 `ModConfig/createacolony/mcimport.json` to edit); every candidate is checked against the installed
 game, and blocks with no match are left empty and listed in chat. Check the license of a style pack
 before shipping converted blueprints.
+
+### Roads, ladders and getting unstuck (0.21.0)
+- **Pathblocks** (config `PathBlocks`, default stone path, its slabs and stairs, and ladders) are roads. Settlers
+  walk `PathSpeedMultiplier` (1.4) times faster on them, and the pathfinder counts a step on one as
+  `PathStepCost` (0.65) of a normal step, so settlers take a road when it is up to about 1.5 times longer.
+- **Ladders**: the game's pathfinder does not climb. When a settler finds no path to a goal two or more blocks
+  up or down, it looks for a ladder within `LadderSearchRadius` (8), walks to it and climbs (`LadderClimbing`).
+- **Willpower**: a settler that cannot get where it is going (no path, or no closer for
+  `StuckNoProgressSeconds`) builds Willpower, twice as fast when boxed in. At `WillpowerSeconds` (20, give or
+  take `WillpowerJitter`) it pops to a safe spot within `WillpowerRadius` (10) towards its goal, preferring
+  Pathblocks, with sparks and a crackle. `WillpowerRecklessChance` (5%) of the time it does not look first, and
+  guards never look out for monsters. The settler window shows "(stuck, Willpower N%)".
+- Commands: `/colony stuck` lists stuck settlers; `/colony pathdebug [on|off]` shows sparks over them (blue to
+  red) and logs to the server log. Config `PathDebug` turns it on at start.

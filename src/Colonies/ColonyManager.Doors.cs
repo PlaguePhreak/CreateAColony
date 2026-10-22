@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 using System.Runtime.CompilerServices;
+using CreateAColony.Settlers;
 using HarmonyLib;
 using Vintagestory.API.Common;
 using Vintagestory.API.Common.Entities;
@@ -32,6 +33,8 @@ public partial class ColonyManager
     {
         harmony = new Harmony("createacolony.doors");
         DoorPathing.Patch(harmony);
+        PathBlocks.Init(sapi.World, Config);
+        PathBlocks.Patch(harmony);
         sapi.Event.RegisterGameTickListener(OnDoorTick, DoorTickMs);
     }
 
@@ -103,11 +106,14 @@ public partial class ColonyManager
 /// patches leave out the boxes of closed doors and gates that open by hand, so the path goes through them.
 /// The pathfinder runs on its own thread, so "planning for a settler" is kept per thread.
 /// </summary>
-static class DoorPathing
+public static class DoorPathing
 {
     static readonly ConditionalWeakTable<Cuboidf, object> settlerBoxes = new();
     static readonly object marker = new();
     [ThreadStatic] static bool planning;
+
+    /// <summary>True on the pathfinder's thread while it plans a path for a settler.</summary>
+    public static bool Planning => planning;
     static MethodInfo? openOldDoor;
 
     /// <summary>The pathfinder is given the walker's own collision box, which is how a settler's search is told apart.</summary>
