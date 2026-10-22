@@ -54,7 +54,7 @@ public class GuiDialogPlacement : GuiDialog
         // What is shown, on a sunken panel: style, outline and the building's turn and offsets.
         string shown = snapshot.ShownLevel == 0
             ? Lang.Get("createacolony:placement-no-blueprint")
-            : Lang.Get("createacolony:placement-shown", snapshot.ShownLevel, snapshot.Blocked, snapshot.Blocks);
+            : Lang.Get("createacolony:placement-shown", snapshot.ShownLevel, snapshot.Blocked, snapshot.Blocks, snapshot.MaxLevel);
         string state = snapshot.Planned
             ? Lang.Get("createacolony:placement-state-planned", snapshot.Rotation)
             : Lang.Get("createacolony:placement-state", snapshot.Rotation, Signed(snapshot.YOffset), Signed(snapshot.XOffset), Signed(snapshot.ZOffset));
@@ -66,6 +66,13 @@ public class GuiDialogPlacement : GuiDialog
         double inner = composer.Text(shown, shownFont, 10, y + 32, Width - 20, 4);
         composer.Text(state, GuiKit.Body(), 10, inner, Width - 20, 0);
         y += panel + 10;
+
+        // Flip through the building's levels to see each one where it would stand.
+        if (snapshot.MaxLevel > 1)
+        {
+            AddPair(composer, "level-down", ColonyAction.PlacementLevel, "-1", "level-up", ColonyAction.PlacementLevel, "1", y);
+            y += 34;
+        }
 
         if (snapshot.CanAdjust)
         {

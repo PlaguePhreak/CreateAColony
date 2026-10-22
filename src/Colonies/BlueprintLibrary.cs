@@ -59,6 +59,7 @@ public class BlueprintLibrary
     readonly ICoreServerAPI sapi;
     readonly ColonyConfig config;
     readonly Dictionary<(string, string, int, int), Blueprint?> cache = new();
+    readonly Dictionary<(string Style, string Type), int> maxLevels = new();
 
     public BlueprintLibrary(ICoreServerAPI sapi, ColonyConfig config)
     {
@@ -71,19 +72,37 @@ public class BlueprintLibrary
     /// <summary>The highest level that has a blueprint in this style, 0 if none.</summary>
     public int MaxLevel(string style, string type)
     {
+        style = BlueprintStyles.Normalize(style);
+        if (maxLevels.TryGetValue((style, type), out int known)) return known;
         int max = 0;
         for (int level = 1; level <= MaxLevels; level++)
         {
             if (FindJson(style, type, level) != null) max = level;
             else break;
         }
+        maxLevels[(style, type)] = max;
         return max;
     }
 
     /// <summary>Forgets loaded blueprints, so edited files are picked up without a restart.</summary>
-    public void Reload() => cache.Clear();
+    public void Reload()
+    {
+        cache.Clear();
+        maxLevels.Clear();
+    }
 
-    public int MaxLevel(Building building) => MaxLevel(building.Style, building.Type);
+    public int MaxLevel(Building building) => MaxLevel(StyleFor(building), building.Type);
+
+    /// <summary>
+    /// The style a building's blueprints come from: its own, or, when that style has none for its type (a
+    /// Town Hall from before its blueprints moved to Dev's Builds), the first style that has some.
+    /// </summary>
+    public string StyleFor(Building building)
+    {
+        string own = BlueprintStyles.Normalize(building.Style);
+        if (MaxLevel(own, building.Type) > 0) return own;
+        return BlueprintStyles.All.FirstOrDefault(style => MaxLevel(style, building.Type) > 0) ?? own;
+    }
 
     public Blueprint? Get(string style, string type, int level, int rotation)
     {
@@ -98,7 +117,7 @@ public class BlueprintLibrary
     }
 
     /// <summary>The building's blueprint for a level, in its own style and turn.</summary>
-    public Blueprint? Get(Building building, int level) => Get(building.Style, building.Type, level, building.Rotation);
+    public Blueprint? Get(Building building, int level) => Get(StyleFor(building), building.Type, level, building.Rotation);
 
     string? FindJson(string style, string type, int level)
     {

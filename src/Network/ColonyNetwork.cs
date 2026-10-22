@@ -75,6 +75,7 @@ public partial class ColonyNetwork : ModSystem
             foreach (var viewers in viewersByColony.Values) viewers.Remove(player.PlayerUID);
             hutViewers.Remove(player.PlayerUID);
             placementViewers.Remove(player.PlayerUID);
+            placementLevels.Remove(player.PlayerUID);
             ForgetGhost(player.PlayerUID);
             planned.Remove(player.PlayerUID);
             wandSpots.Remove(player.PlayerUID);
@@ -99,7 +100,7 @@ public partial class ColonyNetwork : ModSystem
     void OnAction(IServerPlayer player, ColonyActionPacket packet)
     {
         // A building planned with the wand has no colony or building yet.
-        if (packet.BuildingId == 0 && packet.Action is >= ColonyAction.OpenPlacement and <= ColonyAction.WandChange)
+        if (packet.BuildingId == 0 && packet.Action is >= ColonyAction.OpenPlacement and <= ColonyAction.WandChange or ColonyAction.PlacementLevel)
         {
             PlannedAction(player, packet);
             return;
@@ -114,7 +115,7 @@ public partial class ColonyNetwork : ModSystem
             return;
         }
 
-        if (packet.Action is >= ColonyAction.OpenPlacement and <= ColonyAction.ReopenPlacement)
+        if (packet.Action is >= ColonyAction.OpenPlacement and <= ColonyAction.ReopenPlacement or ColonyAction.PlacementLevel)
         {
             PlacementAction(player, colony, role, packet);
             return;

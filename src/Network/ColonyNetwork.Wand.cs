@@ -22,7 +22,8 @@ public partial class ColonyNetwork
     /// <summary>Building types put down with the wand, tab by tab.</summary>
     static readonly string[] WandTypes = BuildingCategories.All.SelectMany(c => c.Types).ToArray();
 
-    record Planned(string Type, BlockPos Pos, int Rotation, string Style);
+    /// <summary>A building being planned; Level is the one previewed (0 = the highest).</summary>
+    record Planned(string Type, BlockPos Pos, int Rotation, string Style, int Level = 0);
 
     readonly Dictionary<string, Planned> planned = new();
     /// <summary>Where a player started planning, while they pick from the list.</summary>
@@ -73,6 +74,11 @@ public partial class ColonyNetwork
                 break;
             case ColonyAction.PlacementHeight:
                 plan = plan with { Pos = plan.Pos.UpCopy(packet.Text == "-1" ? -1 : 1) };
+                break;
+            case ColonyAction.PlacementLevel:
+                var forLevels = new Building { Type = plan.Type, Style = plan.Style };
+                int max = Manager.Blueprints.MaxLevel(forLevels);
+                plan = plan with { Level = StepLevel(PreviewLevel(plan.Level, max), max, packet.Text) };
                 break;
             case ColonyAction.PlacementNudge:
                 var moved = new Building { HutPos = plan.Pos.Copy() };
@@ -157,7 +163,8 @@ public partial class ColonyNetwork
     void SendPlanned(IServerPlayer player, Planned plan, bool openWindow)
     {
         var building = new Building { Type = plan.Type, HutPos = plan.Pos.Copy(), Rotation = plan.Rotation, Style = plan.Style };
-        int level = Manager.Blueprints.MaxLevel(building);
+        int max = Manager.Blueprints.MaxLevel(building);
+        int level = PreviewLevel(plan.Level, max);
         var blueprint = level > 0 ? Manager.Blueprints.Get(building, level) : null;
         var outline = PreviewBuilding(player, building, blueprint);
         // The spot the building's block goes, in yellow.
@@ -170,6 +177,7 @@ public partial class ColonyNetwork
             Type = plan.Type,
             Rotation = plan.Rotation,
             ShownLevel = blueprint == null ? 0 : level,
+            MaxLevel = max,
             Blocks = outline.Item4,
             Blocked = outline.Item3,
             CanAdjust = true,

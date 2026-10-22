@@ -27,12 +27,22 @@ public partial class ColonyNetwork
 
     /// <summary>Who is looking at which building's outline.</summary>
     readonly Dictionary<string, (string ColonyId, int BuildingId)> placementViewers = new();
+    /// <summary>The level a player picked to preview for a placed building; the highest when not set.</summary>
+    readonly Dictionary<string, (string ColonyId, int BuildingId, int Level)> placementLevels = new();
+
+    /// <summary>The level to preview: the one picked if the blueprints have it, else the highest.</summary>
+    static int PreviewLevel(int picked, int max) => picked >= 1 && picked <= max ? picked : max;
+
+    /// <summary>One level up or down from the shown one, kept between 1 and the highest.</summary>
+    static int StepLevel(int shown, int max, string way) => GameMath.Clamp(shown + (way == "-1" ? -1 : 1), 1, System.Math.Max(1, max));
 
     public void OpenPlacement(IServerPlayer player, Colony colony, Building building) => SendPlacement(player, colony, building, true);
 
     void SendPlacement(IServerPlayer player, Colony colony, Building building, bool openWindow)
     {
-        int level = Manager.Blueprints.MaxLevel(building);
+        int max = Manager.Blueprints.MaxLevel(building);
+        int picked = placementLevels.TryGetValue(player.PlayerUID, out var pick) && pick.ColonyId == colony.ColonyId && pick.BuildingId == building.BuildingId ? pick.Level : 0;
+        int level = PreviewLevel(picked, max);
         var blueprint = level > 0 ? Manager.Blueprints.Get(building, level) : null;
         var outline = PreviewBuilding(player, building, blueprint);
         sapi!.World.HighlightBlocks(player, OutlineSlot, outline.Item1, outline.Item2, EnumHighlightBlocksMode.Absolute, EnumHighlightShape.Arbitrary);
@@ -49,12 +59,13 @@ public partial class ColonyNetwork
             XOffset = building.XOffset,
             ZOffset = building.ZOffset,
             ShownLevel = blueprint == null ? 0 : level,
+            MaxLevel = max,
             Blocks = outline.Item4,
             Blocked = outline.Item3,
             CanAdjust = role >= ColonyRole.Member && building.Level == 0 && !building.HasWorkOrder,
-            CanOrder = role >= ColonyRole.Officer && !building.HasWorkOrder && building.Level < level,
+            CanOrder = role >= ColonyRole.Officer && !building.HasWorkOrder && building.Level < max,
             OpenWindow = openWindow,
-            Style = BlueprintStyles.Normalize(building.Style)
+            Style = Manager.Blueprints.StyleFor(building)
         }, player);
     }
 
@@ -75,6 +86,7 @@ public partial class ColonyNetwork
 
     void ClearOutline(IServerPlayer player)
     {
+        placementLevels.Remove(player.PlayerUID);
         HideGhost(player);
         sapi!.World.HighlightBlocks(player, OutlineSlot, new List<BlockPos>(), new List<int>());
         placementViewers.Remove(player.PlayerUID);
@@ -91,6 +103,16 @@ public partial class ColonyNetwork
         if (packet.Action is ColonyAction.OpenPlacement or ColonyAction.ReopenPlacement)
         {
             SendPlacement(player, colony, building, true);
+            return;
+        }
+        if (packet.Action == ColonyAction.PlacementLevel)
+        {
+            // Only looking: any member may flip through the levels, built or not.
+            int max = Manager.Blueprints.MaxLevel(building);
+            int shown = placementLevels.TryGetValue(player.PlayerUID, out var pick) && pick.ColonyId == colony.ColonyId && pick.BuildingId == building.BuildingId
+                ? PreviewLevel(pick.Level, max) : max;
+            placementLevels[player.PlayerUID] = (colony.ColonyId, building.BuildingId, StepLevel(shown, max, packet.Text));
+            SendPlacement(player, colony, building, false);
             return;
         }
 

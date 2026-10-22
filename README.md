@@ -55,11 +55,16 @@ changes without a restart. Blueprints in ModConfig override the ones shipped in
 `assets/createacolony/config/blueprints/`.
 
 Blueprints come in **styles**, picked with the tabs along the top of the Builder's Wand list. The
-folders above are the **Testing** style (all the blueprints shipped so far). **Dev's Builds** is a
-second style, empty for now: its blueprints go in
-`VintagestoryData/ModConfig/createacolony/blueprints/devsbuilds/<type>/level<N>.json`. A building keeps
-the style it was placed in for every level; a type with no blueprint in a style shows "no blueprint
-yet" in the list.
+folders above are the **Testing** style. **Dev's Builds** is the second style, with Aaron's own
+buildings (since 0.26.1 the Town Hall and Builder's Hut levels 1 to 4): its blueprints are in
+`blueprints/devsbuilds/<type>/level<N>.json`, in the mod or in
+`VintagestoryData/ModConfig/createacolony/blueprints/devsbuilds/`. A building keeps the style it was
+placed in for every level; a type with no blueprint in a style shows "no blueprint yet" in the list. A
+building whose style has no blueprints for its type (a Town Hall placed before 0.26.1, in Testing)
+uses the first style that has some, so older colonies keep upgrading.
+
+The placement window's **Level down** and **Level up** buttons flip the preview through every level
+of the building, so you can see how big level 4 gets before you place level 1.
 
 Doors in a blueprint are hung the way they were in the export, top half included. The first door
 also marks the building's front: when you place the hut, the building is turned so that side faces
@@ -71,7 +76,7 @@ left out. Empty space below the hut's floor is dug out only when the blueprint h
 and over it (a cellar); elsewhere the ground below the floor is left alone.
 
 Since 0.25.0 the Town Hall and the Builder's Hut have four levels each, built by Aaron in game
-(`blueprints/townhall/level1-4.json`, `blueprints/builder/level1-4.json`), with cellars, furniture
+(now `blueprints/devsbuilds/townhall/level1-4.json` and `blueprints/devsbuilds/builder/level1-4.json`), with cellars, furniture
 from W4RD0's Furniture and a flag pole from Heraldry : Banners on the level 4 Town Hall. The 0.18.0
 Builder's Hut is kept as `blueprints/builder/level1-old-0.18.json` (the blueprint generator still cuts
 its cottages from it), and the old 5 x 4 x 5 sample as `blueprints/builder/level1-old-placeholder.json`

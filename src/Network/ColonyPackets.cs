@@ -389,7 +389,9 @@ public enum ColonyAction
     /// <summary>Copies the colony banner onto the banners of the Town Hall ("townhall"), the Guard Towers ("guardtower") or every building ("all").</summary>
     ReplaceBanners = 48,
     /// <summary>Text "1" puts the colony banner on each building once a builder finishes it.</summary>
-    SetBannerOnNew = 49
+    SetBannerOnNew = 49,
+    /// <summary>Text "-1" or "1" shows the level below or above in the placement preview.</summary>
+    PlacementLevel = 50
 }
 
 /// <summary>The Builder's Wand building list: each building type with how many of its blocks the player carries.</summary>
@@ -444,6 +446,8 @@ public class PlacementSnapshot
     [ProtoMember(15)] public int Have;
     /// <summary>The blueprint style shown (see BlueprintStyles).</summary>
     [ProtoMember(16)] public string Style = "";
+    /// <summary>The highest level the building's blueprints go to; ShownLevel is picked from 1 to this.</summary>
+    [ProtoMember(17)] public int MaxLevel;
 }
 
 /// <summary>A change requested from the Town Hall window. The server checks permissions before applying it.</summary>
