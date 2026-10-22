@@ -399,6 +399,7 @@ public partial class ColonyNetwork : ModSystem
             MaxLevel = Manager.Blueprints.MaxLevel(b),
             TargetLevel = b.HasWorkOrder ? b.TargetLevel : 0,
             Rotation = b.Rotation,
+            Style = BlueprintStyles.Normalize(b.Style),
             Status = b.HasWorkOrder ? Manager.BuildStatus.GetValueOrDefault(b.BuildingId, "queued") : ""
         };
         var blueprint = b.HasWorkOrder ? Manager.Blueprints.Get(b, b.TargetLevel) : null;

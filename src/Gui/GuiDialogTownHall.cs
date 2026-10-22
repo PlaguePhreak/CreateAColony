@@ -64,7 +64,7 @@ public class GuiDialogTownHall : GuiDialog
         var composer = capi.Gui.CreateCompo("createacolony-townhall", dialogBounds)
             .AddShadedDialogBG(bgBounds)
             .AddDialogTitleBar(snapshot.Name, () => TryClose())
-            .AddVerticalTabs(tabs, ElementBounds.Fixed(-160, 35, 160, 160), (id, tab) => { currentTab = id; page = 0; Compose(); }, "tabs")
+            .AddVerticalTabs(tabs, ElementBounds.Fixed(-160, 35, 160, 3 * 30), (id, tab) => { currentTab = id; page = 0; Compose(); }, "tabs")
             .BeginChildElements(bgBounds);
 
         switch (currentTab)
@@ -83,88 +83,103 @@ public class GuiDialogTownHall : GuiDialog
     {
         int alive = snapshot.Citizens.Count(c => c.State != "dead" && !c.Visitor);
         int hungry = snapshot.Citizens.Count(c => c.State == "hungry");
-        string stats = Lang.Get("createacolony:overview-stats",
-            snapshot.Level, alive, snapshot.BedCount, hungry, snapshot.Members.Count, snapshot.SupplyDeliveriesLeft);
-        stats += "<br>" + (snapshot.HasWarehouse
-            ? Lang.Get("createacolony:overview-warehouse", snapshot.WarehouseChests, snapshot.DropOffs, snapshot.OpenRequests)
-            : Lang.Get("createacolony:overview-no-warehouse"));
-        stats += "<br>" + (snapshot.WandererDays <= 0 ? Lang.Get("createacolony:overview-no-wanderers")
-            : Lang.Get(snapshot.WanderersNeedFreeBed ? "createacolony:overview-wanderers-bed" : "createacolony:overview-wanderers",
-                snapshot.WandererDays.ToString("0.#"), snapshot.FreeBeds));
-        int visitors = snapshot.Citizens.Count(c => c.Visitor);
-        if (visitors > 0) stats += "<br>" + Lang.Get("createacolony:overview-visitors", visitors);
+        double y = 30;
 
-        composer.AddRichtext(stats, CairoFont.WhiteSmallText(), ElementBounds.Fixed(0, 30, Width, 200));
+        // The colony's numbers in two columns on a sunken panel.
+        const double pad = 10;
+        double column = (Width - 3 * pad) / 2;
+        composer.AddInset(ElementBounds.Fixed(0, y, Width, 3 * 24 + 2 * pad), 3, 0.8f);
+        double left = y + pad, right = y + pad;
+        left = composer.Row(Lang.Get("createacolony:stat-level"), snapshot.Level.ToString(), pad, left, column);
+        left = composer.Row(Lang.Get("createacolony:stat-settlers"), alive.ToString(), pad, left, column);
+        left = composer.Row(Lang.Get("createacolony:stat-hungry"), hungry.ToString(), pad, left, column, hungry > 0 ? GuiKit.WarnColor : null);
+        right = composer.Row(Lang.Get("createacolony:stat-beds"), snapshot.BedCount.ToString(), 2 * pad + column, right, column);
+        right = composer.Row(Lang.Get("createacolony:stat-members"), snapshot.Members.Count.ToString(), 2 * pad + column, right, column);
+        composer.Row(Lang.Get("createacolony:stat-supplies"), snapshot.SupplyDeliveriesLeft.ToString(), 2 * pad + column, right, column);
+        y += 3 * 24 + 2 * pad + 10;
+
+        y = composer.Text(snapshot.HasWarehouse
+            ? Lang.Get("createacolony:overview-warehouse", snapshot.WarehouseChests, snapshot.DropOffs, snapshot.OpenRequests)
+            : Lang.Get("createacolony:overview-no-warehouse"), GuiKit.Detail(), 0, y, Width, 2);
+        y = composer.Text(snapshot.WandererDays <= 0 ? Lang.Get("createacolony:overview-no-wanderers")
+            : Lang.Get(snapshot.WanderersNeedFreeBed ? "createacolony:overview-wanderers-bed" : "createacolony:overview-wanderers",
+                snapshot.WandererDays.ToString("0.#"), snapshot.FreeBeds), GuiKit.Detail(), 0, y, Width, 2);
+        int visitors = snapshot.Citizens.Count(c => c.Visitor);
+        if (visitors > 0) y = composer.Text(Lang.Get("createacolony:overview-visitors", visitors), GuiKit.Body().WithColor(GuiKit.WarnColor), 0, y, Width, 2);
+        y += 12;
 
         if (ViewerRole >= ColonyRole.Officer)
         {
+            y = composer.Section(Lang.Get("createacolony:colony-name"), y, Width);
             composer
-                .AddStaticText(Lang.Get("createacolony:colony-name"), CairoFont.WhiteSmallText(), ElementBounds.Fixed(0, 245, 120, 25))
-                .AddTextInput(ElementBounds.Fixed(120, 240, 280, 30), text => pendingName = text, CairoFont.WhiteSmallText(), "colonyname")
-                .AddSmallButton(Lang.Get("createacolony:rename"), OnRename, ElementBounds.Fixed(410, 240, 120, 30));
+                .AddTextInput(ElementBounds.Fixed(0, y, Width - 130, 30), text => pendingName = text, CairoFont.WhiteSmallText(), "colonyname")
+                .AddSmallButton(Lang.Get("createacolony:rename"), OnRename, ElementBounds.Fixed(Width - 120, y + 1, 120, 28));
+            y += 44;
         }
         else
         {
-            composer.AddStaticText(Lang.Get("createacolony:visitor-readonly"), CairoFont.WhiteDetailText(), ElementBounds.Fixed(0, 245, Width, 25));
+            y = composer.Text(Lang.Get("createacolony:visitor-readonly"), GuiKit.Muted(), 0, y, Width, 14);
         }
-        ComposeTownHallBuilding(composer, 290);
-        ComposePermadeath(composer, 405);
+        y = ComposeTownHallBuilding(composer, y);
+        ComposePermadeath(composer, y);
     }
 
     /// <summary>The colony's Permadeath setting: a switch for the owner, a line of text for everyone else.</summary>
     void ComposePermadeath(GuiComposer composer, double y)
     {
+        y = composer.Section(Lang.Get("createacolony:permadeath"), y, Width);
         if (ViewerRole == ColonyRole.Owner)
         {
             composer
                 .AddSwitch(on => network.SendAction(new ColonyActionPacket { ColonyId = ColonyId, Action = ColonyAction.SetPermadeath, Text = on ? "1" : "0" }),
                     ElementBounds.Fixed(0, y, 30, 30), "permadeath")
-                .AddStaticText(Lang.Get("createacolony:permadeath"), CairoFont.WhiteSmallText(), ElementBounds.Fixed(40, y + 5, Width - 40, 25));
+                .AddStaticText(Lang.Get(snapshot.Permadeath ? "createacolony:on" : "createacolony:off"), GuiKit.Body(), ElementBounds.Fixed(40, y + 5, 100, 25));
         }
         else
         {
-            composer.AddStaticText(Lang.Get("createacolony:permadeath") + ": " + Lang.Get(snapshot.Permadeath ? "createacolony:on" : "createacolony:off"),
-                CairoFont.WhiteSmallText(), ElementBounds.Fixed(0, y + 5, Width, 25));
+            composer.AddStaticText(Lang.Get(snapshot.Permadeath ? "createacolony:on" : "createacolony:off"), GuiKit.Body(), ElementBounds.Fixed(0, y + 5, Width, 25));
         }
-        composer.AddStaticText(Lang.Get(snapshot.Permadeath ? "createacolony:permadeath-on-hint" : "createacolony:permadeath-off-hint"),
-            CairoFont.WhiteDetailText(), ElementBounds.Fixed(40, y + 34, Width - 40, 40));
+        y += 36;
+        composer.Text(Lang.Get(snapshot.Permadeath ? "createacolony:permadeath-on-hint" : "createacolony:permadeath-off-hint"), GuiKit.Muted(), 0, y, Width);
     }
 
-    /// <summary>The Town Hall's own level and upgrade button. Other buildings are ordered from the Builder's Hut.</summary>
-    void ComposeTownHallBuilding(GuiComposer composer, double y)
+    /// <summary>The Town Hall's own level and upgrade button. Other buildings are ordered from the Builder's Hut. Returns the y below it.</summary>
+    double ComposeTownHallBuilding(GuiComposer composer, double y)
     {
         var b = snapshot.Buildings.FirstOrDefault();
-        if (b == null) return;
+        if (b == null) return y;
 
+        y = composer.Section(Lang.Get("createacolony:building-townhall"), y, Width);
         string level = b.MaxLevel == 0
             ? Lang.Get("createacolony:building-no-blueprints", b.Level)
             : Lang.Get("createacolony:building-level", b.Level, b.MaxLevel);
-        composer.AddStaticText(Lang.Get("createacolony:building-townhall") + ": " + level, CairoFont.WhiteSmallText(), ElementBounds.Fixed(0, y + 6, 390, 25));
+        composer.AddStaticText(level, GuiKit.Body(), ElementBounds.Fixed(0, y + 5, Width - 320, 25));
 
         if (ViewerRole >= ColonyRole.Officer)
         {
             int id = b.BuildingId;
             if (b.TargetLevel > 0)
             {
-                composer.AddSmallButton(Lang.Get("createacolony:build-cancel"), () => Send(ColonyAction.CancelBuild, id), ElementBounds.Fixed(410, y, 120, 28));
+                composer.AddSmallButton(Lang.Get("createacolony:build-cancel"), () => Send(ColonyAction.CancelBuild, id), ElementBounds.Fixed(Width - 120, y, 120, 28));
             }
             else if (b.Level < b.MaxLevel)
             {
                 string label = Lang.Get(b.Level == 0 ? "createacolony:build-start" : "createacolony:build-upgrade", b.Level + 1);
-                composer.AddSmallButton(label, () => Send(ColonyAction.Build, id), ElementBounds.Fixed(410, y, 120, 28));
+                composer.AddSmallButton(label, () => Send(ColonyAction.Build, id), ElementBounds.Fixed(Width - 120, y, 120, 28));
             }
             if (b.Level == 0 && b.TargetLevel == 0)
             {
                 // Like a hut, the Town Hall can be turned until its first level is built.
-                composer.AddSmallButton(Lang.Get("createacolony:build-rotate", b.Rotation), () => Send(ColonyAction.Rotate, id), ElementBounds.Fixed(0, y + 32, 230, 28));
+                composer.AddSmallButton(Lang.Get("createacolony:build-rotate", b.Rotation), () => Send(ColonyAction.Rotate, id), ElementBounds.Fixed(Width - 310, y, 180, 28));
             }
         }
+        y += 34;
         if (b.TargetLevel > 0)
         {
             string status = Lang.Get("createacolony:build-status", b.TargetLevel, b.ProgressPercent, Lang.Get("createacolony:buildstatus-" + b.Status));
-            composer.AddStaticText(status, CairoFont.WhiteDetailText(), ElementBounds.Fixed(0, y + 34, Width, 25));
+            y = composer.Text(status, GuiKit.Detail().WithColor(GuiStyle.ActiveButtonTextColor), 0, y, Width, 4);
         }
-        composer.AddStaticText(Lang.Get("createacolony:townhall-builder-hint"), CairoFont.WhiteDetailText(), ElementBounds.Fixed(0, y + 64, Width, 40));
+        return composer.Text(Lang.Get("createacolony:townhall-builder-hint"), GuiKit.Muted(), 0, y, Width, 14);
     }
 
     void ComposeSettlers(GuiComposer composer)
@@ -173,14 +188,14 @@ public class GuiDialogTownHall : GuiDialog
         var citizens = snapshot.Citizens.OrderByDescending(c => c.Visitor).ThenBy(c => c.State == "dead").ThenBy(c => c.Name).ToList();
         if (citizens.Count == 0)
         {
-            composer.AddStaticText(Lang.Get("createacolony:no-citizens"), CairoFont.WhiteSmallText(), ElementBounds.Fixed(0, 30, Width, 25));
+            composer.Text(Lang.Get("createacolony:no-citizens"), GuiKit.Body(), 0, 30, Width);
             return;
         }
 
         composer
-            .AddStaticText(Lang.Get("createacolony:col-name"), CairoFont.WhiteDetailText(), ElementBounds.Fixed(0, 30, 160, 20))
-            .AddStaticText(Lang.Get("createacolony:col-status"), CairoFont.WhiteDetailText(), ElementBounds.Fixed(160, 30, 200, 20))
-            .AddStaticText(Lang.Get("createacolony:col-job"), CairoFont.WhiteDetailText(), ElementBounds.Fixed(370, 30, 180, 20));
+            .AddStaticText(Lang.Get("createacolony:col-name"), GuiKit.Muted(), ElementBounds.Fixed(10, 30, 150, 20))
+            .AddStaticText(Lang.Get("createacolony:col-status"), GuiKit.Muted(), ElementBounds.Fixed(170, 30, 190, 20))
+            .AddStaticText(Lang.Get("createacolony:col-job"), GuiKit.Muted(), ElementBounds.Fixed(370, 30, 180, 20));
 
         string[] jobCodes = Jobs.All;
         string[] jobNames = jobCodes.Select(JobName).ToArray();
@@ -188,6 +203,8 @@ public class GuiDialogTownHall : GuiDialog
 
         int pages = (citizens.Count + RowsPerPage - 1) / RowsPerPage;
         page = Math.Clamp(page, 0, pages - 1);
+        int shown = Math.Min(RowsPerPage, citizens.Count - page * RowsPerPage);
+        composer.AddInset(ElementBounds.Fixed(0, 52, Width, shown * RowHeight + 6), 3, 0.8f);
         double y = 55;
         foreach (var c in citizens.Skip(page * RowsPerPage).Take(RowsPerPage))
         {
@@ -200,31 +217,24 @@ public class GuiDialogTownHall : GuiDialog
             string status = Lang.Get("createacolony:settler-status", Lang.Get("createacolony:state-" + c.State), c.FoodPercent,
                 Lang.Get(c.HasBed ? "createacolony:has-bed" : "createacolony:no-bed"));
             composer
-                .AddStaticText(c.Name, CairoFont.WhiteSmallText(), ElementBounds.Fixed(0, y + 6, 160, 25))
-                .AddStaticText(status, CairoFont.WhiteDetailText(), ElementBounds.Fixed(160, y + 8, 200, 25));
+                .AddStaticText(c.Name, c.State == "dead" ? GuiKit.Body().WithColor(GuiKit.MutedColor) : GuiKit.Body(), ElementBounds.Fixed(10, y + 6, 155, 25))
+                .AddStaticText(status, c.State == "hungry" ? GuiKit.Detail().WithColor(GuiKit.WarnColor) : GuiKit.Detail(), ElementBounds.Fixed(170, y + 8, 195, 25));
 
             if (canAssign && c.State != "dead")
             {
                 int citizenId = c.CitizenId;
                 int selected = Math.Max(0, Array.IndexOf(jobCodes, c.Job));
                 composer.AddDropDown(jobCodes, jobNames, selected, (code, on) => OnSetJob(citizenId, code),
-                    ElementBounds.Fixed(370, y, 180, 28), "job-" + citizenId);
+                    ElementBounds.Fixed(370, y + 2, 180, 28), "job-" + citizenId);
             }
             else
             {
-                composer.AddStaticText(JobName(c.Job), CairoFont.WhiteSmallText(), ElementBounds.Fixed(370, y + 6, 180, 25));
+                composer.AddStaticText(JobName(c.Job), GuiKit.Body(), ElementBounds.Fixed(370, y + 6, 180, 25));
             }
             y += RowHeight;
         }
 
-        if (pages > 1)
-        {
-            y += 10;
-            composer
-                .AddSmallButton(Lang.Get("createacolony:prev"), () => { page--; Compose(); return true; }, ElementBounds.Fixed(0, y, 80, 28))
-                .AddStaticText(Lang.Get("createacolony:page", page + 1, pages), CairoFont.WhiteDetailText(), ElementBounds.Fixed(100, y + 6, 120, 25))
-                .AddSmallButton(Lang.Get("createacolony:next"), () => { page++; Compose(); return true; }, ElementBounds.Fixed(230, y, 80, 28));
-        }
+        composer.Pager(page, pages, y + 14, Width, p => { page = p; Compose(); });
     }
 
     /// <summary>A wanderer's row: who, how long it still waits, and Welcome / Turn away buttons for officers.</summary>
@@ -232,13 +242,13 @@ public class GuiDialogTownHall : GuiDialog
     {
         var visitorFont = CairoFont.WhiteSmallText().WithColor(new[] { 1.0, 0.85, 0.4, 1.0 });
         composer
-            .AddStaticText(c.Name, visitorFont, ElementBounds.Fixed(0, y + 6, 160, 25))
-            .AddStaticText(Lang.Get("createacolony:visitor-status", c.VisitorHoursLeft), CairoFont.WhiteDetailText(), ElementBounds.Fixed(160, y + 8, 200, 25));
+            .AddStaticText(c.Name, visitorFont, ElementBounds.Fixed(10, y + 6, 155, 25))
+            .AddStaticText(Lang.Get("createacolony:visitor-status", c.VisitorHoursLeft), GuiKit.Detail(), ElementBounds.Fixed(170, y + 8, 195, 25));
         if (!canDecide) return;
         int citizenId = c.CitizenId;
         composer
-            .AddSmallButton(Lang.Get("createacolony:visitor-welcome"), () => SendCitizen(ColonyAction.WelcomeVisitor, citizenId), ElementBounds.Fixed(370, y, 85, 28))
-            .AddSmallButton(Lang.Get("createacolony:visitor-turn-away"), () => SendCitizen(ColonyAction.TurnAwayVisitor, citizenId), ElementBounds.Fixed(460, y, 90, 28));
+            .AddSmallButton(Lang.Get("createacolony:visitor-welcome"), () => SendCitizen(ColonyAction.WelcomeVisitor, citizenId), ElementBounds.Fixed(370, y + 2, 85, 28))
+            .AddSmallButton(Lang.Get("createacolony:visitor-turn-away"), () => SendCitizen(ColonyAction.TurnAwayVisitor, citizenId), ElementBounds.Fixed(460, y + 2, 90, 28));
     }
 
     bool SendCitizen(ColonyAction action, int citizenId)
@@ -254,10 +264,16 @@ public class GuiDialogTownHall : GuiDialog
         string[] roleNames = { Lang.Get("createacolony:role-member"), Lang.Get("createacolony:role-officer") };
 
         double y = 30;
+        composer
+            .AddStaticText(Lang.Get("createacolony:col-player"), GuiKit.Muted(), ElementBounds.Fixed(10, y, 210, 20))
+            .AddStaticText(Lang.Get("createacolony:col-role"), GuiKit.Muted(), ElementBounds.Fixed(230, y, 160, 20));
+        y += 22;
+        composer.AddInset(ElementBounds.Fixed(0, y, Width, snapshot.Members.Count * RowHeight + 6), 3, 0.8f);
+        y += 3;
         foreach (var m in snapshot.Members)
         {
             var role = (ColonyRole)m.Role;
-            composer.AddStaticText(m.Name, CairoFont.WhiteSmallText(), ElementBounds.Fixed(0, y + 6, 220, 25));
+            composer.AddStaticText(m.Name, GuiKit.Body(), ElementBounds.Fixed(10, y + 6, 210, 25));
 
             if (isOwner && role != ColonyRole.Owner)
             {
@@ -265,17 +281,17 @@ public class GuiDialogTownHall : GuiDialog
                 int selected = role == ColonyRole.Officer ? 1 : 0;
                 composer
                     .AddDropDown(roleCodes, roleNames, selected, (code, on) => OnSetRole(uid, int.Parse(code)),
-                        ElementBounds.Fixed(230, y, 160, 28), "role-" + uid)
-                    .AddSmallButton(Lang.Get("createacolony:remove"), () => OnRemove(uid), ElementBounds.Fixed(410, y, 120, 28));
+                        ElementBounds.Fixed(230, y + 2, 160, 28), "role-" + uid)
+                    .AddSmallButton(Lang.Get("createacolony:remove"), () => OnRemove(uid), ElementBounds.Fixed(Width - 130, y + 2, 120, 28));
             }
             else
             {
-                composer.AddStaticText(RoleName(role), CairoFont.WhiteSmallText(), ElementBounds.Fixed(230, y + 6, 160, 25));
+                composer.AddStaticText(RoleName(role), GuiKit.Body(), ElementBounds.Fixed(230, y + 6, 160, 25));
             }
             y += RowHeight;
         }
 
-        composer.AddStaticText(Lang.Get("createacolony:invite-hint"), CairoFont.WhiteDetailText(), ElementBounds.Fixed(0, y + 10, Width, 40));
+        composer.Text(Lang.Get("createacolony:invite-hint"), GuiKit.Muted(), 0, y + 12, Width);
     }
 
     bool Send(ColonyAction action, int buildingId)

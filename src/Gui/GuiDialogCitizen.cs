@@ -85,7 +85,7 @@ public class GuiDialogCitizen : GuiDialog
         string job = Lang.Get("createacolony:job-" + (snapshot.Job.Length == 0 ? "none" : snapshot.Job));
         composer
             .AddStaticText(Lang.Get("createacolony:citizen-tab-character"), CairoFont.WhiteSmallishText(), ElementBounds.Fixed(x, y, width, 25))
-            .AddStaticText(job, CairoFont.WhiteDetailText(), ElementBounds.Fixed(x, y + 26, width, 20));
+            .AddStaticText(job, GuiKit.Muted(), ElementBounds.Fixed(x, y + 26, width, 20));
         y += 52;
 
         double gearHeight = GearRows * SlotSize;
@@ -105,7 +105,7 @@ public class GuiDialogCitizen : GuiDialog
         composer.AddItemSlotGrid(GearInventory("armor", ArmorGear), _ => { }, ArmorGear.Length,
             ElementStdBounds.SlotGrid(EnumDialogArea.None, x + SlotSize + 10, y, ArmorGear.Length, 1), "armor");
         y += SlotSize + 6;
-        composer.AddStaticText(Lang.Get("createacolony:citizen-gear-hint"), CairoFont.WhiteDetailText(), ElementBounds.Fixed(x, y, width, 40));
+        composer.Text(Lang.Get("createacolony:citizen-gear-hint"), GuiKit.Muted(), x, y, width);
         return x + width;
     }
 
@@ -144,7 +144,7 @@ public class GuiDialogCitizen : GuiDialog
         Row(Lang.Get("createacolony:citizen-job-label"), Lang.Get("createacolony:job-" + (snapshot.Job.Length == 0 ? "none" : snapshot.Job)));
         composer.AddStaticText(Lang.Get("createacolony:citizen-doing-label"), label, ElementBounds.Fixed(x, y, StatsWidth, 20));
         y += 20;
-        composer.AddStaticText(snapshot.Activity, CairoFont.WhiteDetailText().WithColor(GuiStyle.ActiveButtonTextColor), ElementBounds.Fixed(x, y, StatsWidth, 60));
+        composer.Text(snapshot.Activity, GuiKit.Detail().WithColor(GuiStyle.ActiveButtonTextColor), x, y, StatsWidth);
         return x + StatsWidth;
     }
 
@@ -176,7 +176,7 @@ public class GuiDialogCitizen : GuiDialog
         y += 22;
         composer.AddItemSlotGrid(ViewInventory("pack", snapshot.Slots, pack), _ => { }, PackColumns, ElementStdBounds.SlotGrid(EnumDialogArea.None, x, y, PackColumns, rows), "pack");
         y += rows * SlotSize + 10;
-        composer.AddStaticText(Lang.Get("createacolony:citizen-bag-hint"), CairoFont.WhiteDetailText(), ElementBounds.Fixed(x, y, width, 60));
+        composer.Text(Lang.Get("createacolony:citizen-bag-hint"), GuiKit.Muted(), x, y, width);
     }
 
     /// <summary>The settler's entity on this client, when it is loaded nearby.</summary>

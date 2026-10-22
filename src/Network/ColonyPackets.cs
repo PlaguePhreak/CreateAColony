@@ -38,6 +38,8 @@ public class BuildingView
     /// <summary>What the work order waits on, a lang key suffix ("building", "waiting-materials", ...).</summary>
     [ProtoMember(7)] public string Status = "";
     [ProtoMember(9)] public int Rotation;
+    /// <summary>The blueprint style (see BlueprintStyles).</summary>
+    [ProtoMember(10)] public string Style = "";
 }
 
 /// <summary>Everything the settler window shows: who they are, what they do, and what they carry.</summary>

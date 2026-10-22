@@ -12,9 +12,13 @@ namespace CreateAColony.Gui;
 /// </summary>
 public class GuiDialogWandChooser : GuiDialog
 {
-    const double Width = 320;
-    const double TabWidth = 170;
-    const double TabsHeight = 8 * 30 + 10;
+    const double Width = 380;
+    const double ButtonWidth = 180;
+    const double RowHeight = 36;
+    const double TabWidth = 180;
+    const double TabsHeight = 8 * 30;
+    /// <summary>Content ends level with the last side tab (the content starts below the dialog padding).</summary>
+    const double MinContentHeight = 35 + TabsHeight - 25;
 
     /// <summary>The tabs shown last, so the list opens where the player left it.</summary>
     static int currentTab;
@@ -50,12 +54,12 @@ public class GuiDialogWandChooser : GuiDialog
         }).ToArray();
 
         var styleTabs = BlueprintStyles.All.Select((s, i) => new GuiTab { Name = Lang.Get("createacolony:style-" + s), DataInt = i }).ToArray();
-        var styleFont = CairoFont.WhiteDetailText();
+        var styleFont = CairoFont.WhiteSmallText();
 
         var composer = capi.Gui.CreateCompo("createacolony-wandchooser", dialogBounds)
             .AddShadedDialogBG(bgBounds)
             .AddDialogTitleBar(Lang.Get("createacolony:wand-choose-title"), () => TryClose())
-            .AddHorizontalTabs(styleTabs, ElementBounds.Fixed(0, -24, Width, 25), id => { currentStyle = id; Compose(); },
+            .AddHorizontalTabs(styleTabs, ElementBounds.Fixed(0, -26, Width, 27), id => { currentStyle = id; Compose(); },
                 styleFont, styleFont.Clone().WithColor(GuiStyle.ActiveButtonTextColor), "styles")
             .AddVerticalTabs(tabs, ElementBounds.Fixed(-TabWidth, 35, TabWidth, TabsHeight), (id, tab) => { currentTab = id; Compose(); }, "tabs")
             .BeginChildElements(bgBounds);
@@ -64,37 +68,41 @@ public class GuiDialogWandChooser : GuiDialog
         var category = BuildingCategories.All[currentTab];
         double y = 30;
         composer.AddStaticText(Lang.Get("createacolony:wand-tab-heading", Lang.Get("createacolony:style-" + style), Lang.Get("createacolony:wand-tab-" + category.Code)),
-            CairoFont.WhiteSmallishText(), ElementBounds.Fixed(0, y, Width, 25));
-        y += 28;
-        composer.AddStaticText(Lang.Get("createacolony:wand-choose-hint"), CairoFont.WhiteDetailText(), ElementBounds.Fixed(0, y, Width, 40));
-        y += 44;
+            GuiKit.Heading(), ElementBounds.Fixed(0, y, Width, 25));
+        y += 30;
+        y = composer.Text(Lang.Get("createacolony:wand-choose-hint"), GuiKit.Muted(), 0, y, Width, 8);
 
-        int shown = 0;
-        foreach (var type in category.Types)
+        // The buildings, one row each, in a sunken box: name button on the left, blocks carried and blueprint state on the right.
+        var types = category.Types.Where(t => snapshot.Types.Contains(t)).ToList();
+        double listHeight = types.Count == 0 ? 52 : types.Count * RowHeight + 8;
+        composer.AddInset(ElementBounds.Fixed(0, y, Width, listHeight), 3, 0.8f);
+        if (types.Count == 0)
         {
-            int i = snapshot.Types.IndexOf(type);
-            if (i < 0) continue;
-            string label = Lang.Get(snapshot.WithBlueprints.Contains(type + "|" + style) ? "createacolony:wand-choose-entry" : "createacolony:wand-choose-entry-none",
-                Lang.Get("createacolony:building-" + type), snapshot.Have[i]);
-            composer.AddSmallButton(label, () => Choose(type, style), ElementBounds.Fixed(0, y, Width, 28));
-            y += 34;
-            shown++;
+            composer.Text(Lang.Get("createacolony:wand-tab-empty"), GuiKit.Muted(), 10, y + 9, Width - 20);
         }
-        if (shown == 0)
+        double row = y + 6;
+        foreach (var type in types)
         {
-            composer.AddStaticText(Lang.Get("createacolony:wand-tab-empty"), CairoFont.WhiteDetailText(), ElementBounds.Fixed(0, y, Width, 40));
-            y += 44;
+            int have = snapshot.Have[snapshot.Types.IndexOf(type)];
+            bool hasBlueprint = snapshot.WithBlueprints.Contains(type + "|" + style);
+            composer.AddSmallButton(Lang.Get("createacolony:building-" + type), () => Choose(type, style), ElementBounds.Fixed(6, row + 3, ButtonWidth, 28));
+            double info = 6 + ButtonWidth + 12;
+            composer.AddStaticText(Lang.Get("createacolony:wand-row-have", have),
+                GuiKit.Detail().WithColor(have > 0 ? GuiKit.GoodColor : GuiStyle.DialogDefaultTextColor), ElementBounds.Fixed(info, row + 1, Width - info - 6, 17));
+            composer.AddStaticText(Lang.Get(hasBlueprint ? "createacolony:wand-row-blueprint" : "createacolony:wand-row-no-blueprint"),
+                hasBlueprint ? GuiKit.Muted() : GuiKit.Detail().WithColor(GuiKit.WarnColor), ElementBounds.Fixed(info, row + 18, Width - info - 6, 17));
+            row += RowHeight;
+        }
+        y += listHeight + 8;
+
+        foreach (var noteKey in new[] { "createacolony:wand-style-note-" + style, "createacolony:wand-tab-note-" + category.Code })
+        {
+            if (!Lang.HasTranslation(noteKey, false, false)) continue;
+            y = composer.Text(Lang.Get(noteKey), GuiKit.Muted(), 0, y, Width, 8);
         }
 
-        string noteKey = "createacolony:wand-tab-note-" + category.Code;
-        if (Lang.HasTranslation(noteKey, false, false))
-        {
-            composer.AddStaticText(Lang.Get(noteKey), CairoFont.WhiteDetailText(), ElementBounds.Fixed(0, y + 6, Width, 60));
-            y += 66;
-        }
-
-        // Keep the window at least as tall as the tabs beside it.
-        if (y < 35 + TabsHeight) composer.AddStaticText("", CairoFont.WhiteDetailText(), ElementBounds.Fixed(0, y, Width, 35 + TabsHeight - y));
+        // Keep the window as tall as the tabs beside it, and no taller.
+        if (y < MinContentHeight) composer.AddStaticText("", CairoFont.WhiteDetailText(), ElementBounds.Fixed(0, y, Width, MinContentHeight - y));
 
         SingleComposer = composer.EndChildElements().Compose();
         SingleComposer.GetHorizontalTabs("styles").activeElement = currentStyle;
