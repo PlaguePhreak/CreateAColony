@@ -31,11 +31,6 @@ public partial class ColonyManager : ModSystem
     const string ColonyKeyPrefix = "createacolony:colony:";
     const string ClaimDescriptionPrefix = "Colony: ";
 
-    public const int BaseClaimRadius = 24;
-    public const int ClaimRadiusPerLevel = 8;
-    public const int ClaimDepthBelow = 16;
-    public const int ClaimHeightAbove = 48;
-
     ICoreServerAPI sapi = null!;
     readonly Dictionary<string, Colony> colonies = new();
 
@@ -116,9 +111,33 @@ public partial class ColonyManager : ModSystem
         return citizen.HomeBedPos;
     }
 
-    /// <summary>All loaded block entities of a type inside the colony's claim area.</summary>
-    IEnumerable<T> FindBlockEntities<T>(Colony colony) where T : BlockEntity =>
-        FindBlockEntities<T>(ClaimArea(colony.TownHallPos, colony.ClaimRadius));
+    /// <summary>All loaded block entities of a type on the colony's land: the Town Hall's square and every hut's.</summary>
+    IEnumerable<T> FindBlockEntities<T>(Colony colony) where T : BlockEntity
+    {
+        var claim = FindClaim(colony);
+        if (claim == null) yield break;
+        // Squares overlap, so each chunk is looked at once and each block entity checked against the whole claim.
+        int size = GlobalConstants.ChunkSize;
+        var chunks = new HashSet<(int, int, int)>();
+        foreach (var area in claim.Areas)
+        {
+            for (int cx = area.X1 / size; cx <= area.X2 / size; cx++)
+            for (int cy = Math.Max(0, area.Y1) / size; cy <= area.Y2 / size; cy++)
+            for (int cz = area.Z1 / size; cz <= area.Z2 / size; cz++)
+            {
+                chunks.Add((cx, cy, cz));
+            }
+        }
+        foreach (var (cx, cy, cz) in chunks)
+        {
+            var chunk = sapi.World.BlockAccessor.GetChunk(cx, cy, cz);
+            if (chunk?.BlockEntities == null) continue;
+            foreach (var be in chunk.BlockEntities.Values)
+            {
+                if (be is T match && claim.PositionInside(be.Pos)) yield return match;
+            }
+        }
+    }
 
     /// <summary>All loaded block entities of a type inside an area.</summary>
     IEnumerable<T> FindBlockEntities<T>(Cuboidi area) where T : BlockEntity
@@ -151,6 +170,7 @@ public partial class ColonyManager : ModSystem
         {
             if (sapi.World.BlockAccessor.GetChunkAtBlockPos(colony.TownHallPos) == null) continue;
             EnsureCoreBuildings(colony);
+            RefreshClaim(colony);
             TickWanderers(colony, now);
 
             foreach (var citizen in colony.Citizens.ToList())
@@ -213,15 +233,15 @@ public partial class ColonyManager : ModSystem
         if (GetOwnedBy(founder.PlayerUID) != null) return FoundColonyResult.AlreadyOwnsColony;
         if (!sapi.World.Claims.TryAccess(founder, townHallPos, EnumBlockAccessFlags.BuildOrBreak)) return FoundColonyResult.NoPermission;
 
-        var area = ClaimArea(townHallPos, BaseClaimRadius);
-        if (sapi.World.Claims.All.Any(c => c.Intersects(area))) return FoundColonyResult.OverlapsClaim;
+        var area = FitClaim(townHallPos, ClaimSize(BuildingTypes.TownHall), null);
+        if (area == null) return FoundColonyResult.OverlapsClaim;
 
         colony = new Colony
         {
             ColonyId = Guid.NewGuid().ToString("N"),
             Name = name,
             TownHallPos = townHallPos.Copy(),
-            ClaimRadius = BaseClaimRadius,
+            ClaimRadius = area.SizeX / 2,
             FoundedTotalDays = sapi.World.Calendar.TotalDays
         };
         colony.Members.Add(new ColonyMember { PlayerUid = founder.PlayerUID, LastKnownName = founder.PlayerName, Role = ColonyRole.Owner });
@@ -350,14 +370,6 @@ public partial class ColonyManager : ModSystem
     {
         string description = ClaimDescription(colony);
         return sapi.World.Claims.All.FirstOrDefault(c => c.Description == description);
-    }
-
-    static Cuboidi ClaimArea(BlockPos center, int radius)
-    {
-        return new Cuboidi(
-            center.X - radius, center.Y - ClaimDepthBelow, center.Z - radius,
-            center.X + radius, center.Y + ClaimHeightAbove, center.Z + radius
-        );
     }
 
     void OnSaveGameLoaded()

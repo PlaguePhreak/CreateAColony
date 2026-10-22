@@ -38,6 +38,7 @@ public partial class ColonyManager
         var building = new Building { BuildingId = colony.NextBuildingId++, Type = type, HutPos = hutPos.Copy(), Rotation = rotation };
         colony.Buildings.Add(building);
         MarkDirty(colony);
+        RefreshClaim(colony);
         return building;
     }
 
@@ -49,6 +50,7 @@ public partial class ColonyManager
         CancelBuildRequests(colony, building);
         foreach (var c in colony.Citizens.Where(c => c.WorkplacePos != null && c.WorkplacePos.Equals(hutPos))) c.WorkplacePos = null;
         MarkDirty(colony);
+        RefreshClaim(colony);
     }
 
     /// <summary>Colonies saved before buildings existed get their Town Hall and Warehouse as buildings.</summary>
@@ -159,6 +161,7 @@ public partial class ColonyManager
         BuildStatus.Remove(building.BuildingId);
         CancelBuildRequests(colony, building);
         MarkDirty(colony);
+        RefreshClaim(colony);
 
         string message = Lang.Get("createacolony:build-finished", Lang.Get("createacolony:building-" + building.Type), building.Level);
         foreach (var member in colony.Members)
@@ -192,12 +195,14 @@ public partial class ColonyManager
     public BlockPos StepPos(Building building, BuildStep step) => building.HutPos.AddCopy(step.Dx + building.XOffset, step.Dy + building.YOffset, step.Dz + building.ZOffset);
 
     /// <summary>
-    /// True when the world already matches the step, or the step must not be touched: outside the
-    /// claim, a hut block, or a container (a chest full of the player's things is never torn down).
+    /// True when the world already matches the step, or the step must not be touched: in someone else's
+    /// land claim, a hut block, or a container (a chest full of the player's things is never torn down).
+    /// A hut only claims land once it is built, so its blueprint may reach past the colony's claim into
+    /// unclaimed land; builders build there too.
     /// </summary>
     public bool IsStepDone(Colony colony, BuildStep step, BlockPos pos)
     {
-        if (!ClaimArea(colony.TownHallPos, colony.ClaimRadius).ContainsOrTouches(pos)) return true;
+        if (!CanWorkAt(colony, pos)) return true;
         var ba = sapi.World.BlockAccessor;
         var current = ba.GetBlock(pos);
         if (current.Id == step.BlockId || Fulfils(colony, current, step.BlockId)) return true;

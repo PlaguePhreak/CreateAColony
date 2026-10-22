@@ -5,8 +5,10 @@ using CreateAColony.Blocks;
 using CreateAColony.Colonies;
 using CreateAColony.Import;
 using CreateAColony.Settlers;
+using Vintagestory.API.Client;
 using Vintagestory.API.Common;
 using Vintagestory.API.Config;
+using Vintagestory.API.MathTools;
 using Vintagestory.API.Server;
 using Vintagestory.GameContent;
 
@@ -162,11 +164,43 @@ public class CreateAColonyModSystem : ModSystem
                     return TextCommandResult.Success(Lang.Get(manager.PathDebug ? "createacolony:pathdebug-on" : "createacolony:pathdebug-off"));
                 })
             .EndSubCommand()
+            .BeginSubCommand("claims")
+                .WithDescription("List the land each building of the colony you are standing in claims; 'show' marks the edge, 'hide' takes the marks away")
+                .WithArgs(parsers.OptionalWordRange("mode", "list", "show", "hide"))
+                .HandleWith(OnClaims)
+            .EndSubCommand()
             .BeginSubCommand("cancelrequest")
                 .WithDescription("Cancel a delivery request by its number")
                 .WithArgs(parsers.Int("number"))
                 .HandleWith(OnCancelRequest)
             .EndSubCommand();
+    }
+
+    /// <summary>Highlight slot for the claim edge marks; the placement outline uses its own.</summary>
+    const int ClaimMarkSlot = 7411;
+    const int ClaimMarkMax = 6000;
+
+    TextCommandResult OnClaims(TextCommandCallingArgs args)
+    {
+        var manager = sapi!.ModLoader.GetModSystem<ColonyManager>();
+        var player = (IServerPlayer)args.Caller.Player;
+        string mode = args.Parsers[0].IsMissing ? "list" : (string)args[0];
+        if (mode == "hide")
+        {
+            sapi.World.HighlightBlocks(player, ClaimMarkSlot, new List<BlockPos>(), new List<int>());
+            return TextCommandResult.Success(Lang.Get("createacolony:claims-hidden"));
+        }
+
+        var colony = manager.GetAt(args.Caller.Entity.Pos.AsBlockPos);
+        if (colony == null) return TextCommandResult.Success(Lang.Get("createacolony:not-in-colony"));
+        var lines = manager.ClaimLines(colony);
+        string header = Lang.Get("createacolony:claims-header", colony.Name, manager.ClaimedColumns(colony).ToString("N0"), manager.ClaimAreas(colony).Count);
+        if (mode != "show") return TextCommandResult.Success(header + "\n" + string.Join("\n", lines));
+
+        var border = manager.ClaimBorder(colony, ClaimMarkMax);
+        int blue = ColorUtil.ColorFromRgba(90, 170, 255, 120);
+        sapi.World.HighlightBlocks(player, ClaimMarkSlot, border, border.Select(_ => blue).ToList(), EnumHighlightBlocksMode.Absolute, EnumHighlightShape.Arbitrary);
+        return TextCommandResult.Success(Lang.Get(border.Count >= ClaimMarkMax ? "createacolony:claims-shown-capped" : "createacolony:claims-shown", border.Count));
     }
 
     TextCommandResult OnStuck(TextCommandCallingArgs args)
