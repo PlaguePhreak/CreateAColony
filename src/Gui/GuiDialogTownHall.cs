@@ -10,7 +10,7 @@ namespace CreateAColony.Gui;
 
 /// <summary>
 /// The Town Hall window, laid out like MineColonies' with tabs down the left: Actions (name, level,
-/// upgrade, land), Information (event log and work orders), Citizens, Statistics, Permissions and
+/// upgrade, land), Town map, Information (event log and work orders), Citizens, Statistics, Permissions and
 /// Settings. Every change goes to the server, which answers with a fresh snapshot; the window never
 /// changes colony data on its own.
 /// </summary>
@@ -30,12 +30,17 @@ public class GuiDialogTownHall : GuiDialog
     const int StatsTab = 3;
     const int PermissionsTab = 4;
     const int SettingsTab = 5;
+    const int MapTab = 6;
+    const double MapHeight = 380;
+    // The map is at most this many pixels a side; bigger colonies get one pixel per few blocks.
+    const int MapMaxSide = 220;
+    const int MapMargin = 16;
     // Opened with the ? button on the Actions tab, with a Back button.
     const int HelpView = 20;
 
     static readonly (int Id, string Lang)[] Tabs =
     {
-        (ActionsTab, "tab-actions"), (InfoTab, "tab-information"), (CitizensTab, "tab-citizens"),
+        (ActionsTab, "tab-actions"), (MapTab, "tab-townmap"), (InfoTab, "tab-information"), (CitizensTab, "tab-citizens"),
         (StatsTab, "tab-statistics"), (PermissionsTab, "tab-permissions"), (SettingsTab, "tab-settings")
     };
 
@@ -49,6 +54,8 @@ public class GuiDialogTownHall : GuiDialog
     int infoPage;
     int statsPage;
     int statPeriod = 1;
+    // The Town map's ground, kept until the player asks for a fresh one or the colony's land changes.
+    ColonyMapTerrain? terrain;
 
     public string ColonyId => snapshot.ColonyId;
 
@@ -93,6 +100,7 @@ public class GuiDialogTownHall : GuiDialog
         switch (currentTab)
         {
             case ActionsTab: ComposeActions(composer); break;
+            case MapTab: ComposeMap(composer); break;
             case InfoTab: ComposeInformation(composer); break;
             case CitizensTab: ComposeCitizens(composer); break;
             case StatsTab: ComposeStatistics(composer); break;
@@ -249,6 +257,60 @@ public class GuiDialogTownHall : GuiDialog
         renaming = false;
         Compose();
         return true;
+    }
+
+    // ---- Town map tab ---------------------------------------------------------------------
+
+    /// <summary>
+    /// The Town map: the colony's land and buildings from above, with the settlers and the player.
+    /// Hovering a building names it. The ground is drawn from what this client has loaded.
+    /// </summary>
+    void ComposeMap(GuiComposer composer)
+    {
+        var xs = new List<int>();
+        var zs = new List<int>();
+        for (int r = 0; r + 3 < snapshot.ClaimRects.Count; r += 4)
+        {
+            xs.Add(snapshot.ClaimRects[r]); xs.Add(snapshot.ClaimRects[r + 2]);
+            zs.Add(snapshot.ClaimRects[r + 1]); zs.Add(snapshot.ClaimRects[r + 3]);
+        }
+        foreach (var b in snapshot.MapBuildings)
+        {
+            xs.Add(b.X1); xs.Add(b.X2);
+            zs.Add(b.Z1); zs.Add(b.Z2);
+        }
+        double y = 30;
+        if (xs.Count == 0)
+        {
+            composer.Text(Lang.Get("createacolony:townmap-empty"), GuiKit.Body(), 0, y, Width);
+            return;
+        }
+        int minX = xs.Min() - MapMargin, maxX = xs.Max() + MapMargin, minZ = zs.Min() - MapMargin, maxZ = zs.Max() + MapMargin;
+        if (terrain == null || !terrain.Covers(minX, minZ, maxX, maxZ, MapMaxSide))
+        {
+            terrain = ColonyMapTerrain.Build(capi, minX, minZ, maxX, maxZ, MapMaxSide);
+        }
+
+        var mapBounds = ElementBounds.Fixed(0, y, Width, MapHeight);
+        composer
+            .AddInset(mapBounds.FlatCopy(), 3, 0.8f)
+            .AddStaticElement(new GuiElementColonyMap(capi, mapBounds, terrain, snapshot, capi.World.Player?.Entity?.Pos.XYZ));
+
+        // Hovering a building names it.
+        var (cell, ox, oy) = GuiElementColonyMap.Fit(terrain, Width, MapHeight);
+        foreach (var b in snapshot.MapBuildings.OrderBy(b => b.Type != BuildingTypes.TownHall))
+        {
+            var (bx, by, bw, bh) = GuiElementColonyMap.Rect(terrain, b, cell, ox, y + oy, 6);
+            string text = Lang.Get("createacolony:hut-name-level", b.Name, b.Level)
+                + (b.UnderConstruction ? "\n" + Lang.Get("createacolony:townmap-being-built") : "");
+            composer.AddHoverText(text, GuiKit.Detail(), 220, ElementBounds.Fixed(bx, by, bw, bh));
+        }
+        y += MapHeight + 8;
+
+        composer.AddSmallButton(Lang.Get("createacolony:townmap-redraw"), () => { terrain = null; Compose(); return true; }, ElementBounds.Fixed(Width - 150, y, 150, 28));
+        y = composer.Text(Lang.Get("createacolony:townmap-legend"), GuiKit.Detail(), 0, y, Width - 160, 6);
+        y = Math.Max(y, MapHeight + 30 + 8 + 34);
+        composer.Text(Lang.Get("createacolony:townmap-hint", terrain.Step), GuiKit.Muted(), 0, y, Width);
     }
 
     // ---- Information tab ------------------------------------------------------------------

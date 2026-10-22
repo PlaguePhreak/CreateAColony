@@ -23,6 +23,23 @@ public class CitizenView
     /// <summary>A wanderer asking to join, and how many in-game hours it still waits.</summary>
     [ProtoMember(7)] public bool Visitor;
     [ProtoMember(8)] public int VisitorHoursLeft;
+    /// <summary>Where the settler was last seen, for the Town map.</summary>
+    [ProtoMember(9)] public int X;
+    [ProtoMember(10)] public int Z;
+}
+
+/// <summary>A building on the Town Hall's Town map: what it is and the ground it stands on (block columns, inclusive).</summary>
+[ProtoContract]
+public class MapBuildingView
+{
+    [ProtoMember(1)] public string Type = "";
+    [ProtoMember(2)] public string Name = "";
+    [ProtoMember(3)] public int Level;
+    [ProtoMember(4)] public bool UnderConstruction;
+    [ProtoMember(5)] public int X1;
+    [ProtoMember(6)] public int Z1;
+    [ProtoMember(7)] public int X2;
+    [ProtoMember(8)] public int Z2;
 }
 
 [ProtoContract]
@@ -272,6 +289,9 @@ public class ColonySnapshot
     [ProtoMember(26)] public List<StatView> Stats = new();
     [ProtoMember(27)] public double FoundedTotalDays;
     [ProtoMember(28)] public int BuildingCount;
+    /// <summary>For the Town map: every building, and the colony's land as x1, z1, x2, z2 (inclusive) per square.</summary>
+    [ProtoMember(29)] public List<MapBuildingView> MapBuildings = new();
+    [ProtoMember(30)] public List<int> ClaimRects = new();
 }
 
 public enum ColonyAction

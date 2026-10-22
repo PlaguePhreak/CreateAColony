@@ -576,7 +576,7 @@
 	"townhall-land": "Colony land",
 	"townhall-help-hover": "How the Town Hall works",
 	"townhall-coming-later": "Coming later: {0}",
-	"townhall-later-actions": "colony flag and banner, citizen style, the town map, alliances.",
+	"townhall-later-actions": "colony flag and banner, citizen style, alliances.",
 	"townhall-later-orders": "moving work orders up and down the list.",
 	"townhall-later-citizens": "happiness.",
 	"townhall-later-stats": "more counts from farmers, foresters, potters and cooks (only guards count things so far).",
@@ -603,7 +603,7 @@
 	"townhall-roles-hint": "Members may use the colony's things. Officers can also give jobs, order buildings and welcome wanderers. Only the owner sets roles and Permadeath.",
 	"townhall-wanderers": "Wanderers",
 	"townhall-wanderers-hint": "Wanderers walk in from the edge of your land and wait at the Town Hall. Welcome them or turn them away on the Citizens tab. A Tavern makes them come sooner and lets you hire recruits.",
-	"guide-townhall": "The Town Hall is the heart of the colony. Its land protects everything around it, and its window has six tabs:<br><br><strong>Actions</strong>: the colony's name (the pencil renames it), its numbers, and the Town Hall's own upgrade.<br><strong>Information</strong>: a log of what happened in the colony, and every work order waiting for a builder.<br><strong>Citizens</strong>: every settler with their food and bed. Officers pick each settler's job here, Recall stuck ones and answer wanderers.<br><strong>Statistics</strong>: settlers against beds, how many workers each job has, and what the huts have done.<br><strong>Permissions</strong>: the players in the colony and their roles.<br><strong>Settings</strong>: Permadeath, wanderers and the warehouse.",
+	"guide-townhall": "The Town Hall is the heart of the colony. Its land protects everything around it, and its window has seven tabs:<br><br><strong>Actions</strong>: the colony's name (the pencil renames it), its numbers, and the Town Hall's own upgrade.<br><strong>Town map</strong>: the colony from above, with the edge of its land, every building and the settlers. Point at a building to see its name.<br><strong>Information</strong>: a log of what happened in the colony, and every work order waiting for a builder.<br><strong>Citizens</strong>: every settler with their food and bed. Officers pick each settler's job here, Recall stuck ones and answer wanderers.<br><strong>Statistics</strong>: settlers against beds, how many workers each job has, and what the huts have done.<br><strong>Permissions</strong>: the players in the colony and their roles.<br><strong>Settings</strong>: Permadeath, wanderers and the warehouse.",
 	"event-founded": "{0} founded the colony",
 	"event-hired": "{0} was hired at the Tavern by {1}",
 	"event-visitor-arrived": "{0} arrived and asks to join",
@@ -615,5 +615,11 @@
 	"event-built": "{0} level {1} was finished",
 	"event-died": "{0} died",
 	"event-downed": "{0} was knocked out",
-	"event-recovered": "{0} recovered and is back at the Town Hall"
+	"event-recovered": "{0} recovered and is back at the Town Hall",
+	"tab-townmap": "Town map",
+	"townmap-empty": "The colony has no land or buildings to show yet.",
+	"townmap-being-built": "Being built",
+	"townmap-redraw": "Redraw map",
+	"townmap-legend": "Gold line: the colony's land. Gold: Town Hall. Blue: huts. Orange, dashed: being built or not built yet. Green dots: settlers. Yellow: wanderers. Red: knocked out. White: you. North is up.",
+	"townmap-hint": "The ground is drawn from the land loaded around you (dark parts are not loaded), at {0} block(s) per pixel. Walk around and press Redraw map to fill it in or show new buildings. Point at a building to see its name."
 }

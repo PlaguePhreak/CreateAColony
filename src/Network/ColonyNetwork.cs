@@ -394,6 +394,8 @@ public partial class ColonyNetwork : ModSystem
                 FoodPercent = c.Saturation < 0 ? 100 : (int)(100 * c.Saturation / config.SaturationMax),
                 HasBed = c.HomeBedPos != null,
                 Visitor = c.Visitor,
+                X = SeenAt(c).X,
+                Z = SeenAt(c).Z,
                 VisitorHoursLeft = c.Visitor ? (int)System.Math.Ceiling(System.Math.Max(0, c.VisitorUntilTotalDays - sapi!.World.Calendar.TotalDays) * sapi.World.Calendar.HoursPerDay) : 0
             });
         }
@@ -405,7 +407,61 @@ public partial class ColonyNetwork : ModSystem
         {
             snapshot.Members.Add(new MemberView { PlayerUid = m.PlayerUid, Name = m.LastKnownName, Role = (int)m.Role });
         }
+
+        // The Town map: buildings with the ground they stand on, and the colony's land.
+        foreach (var b in colony.Buildings)
+        {
+            var (x1, z1, x2, z2) = Footprint(b);
+            snapshot.MapBuildings.Add(new MapBuildingView
+            {
+                Type = b.Type, Name = ColonyManager.BuildingName(b), Level = b.Level, UnderConstruction = b.HasWorkOrder,
+                X1 = x1, Z1 = z1, X2 = x2, Z2 = z2
+            });
+        }
+        foreach (var area in Manager.ClaimAreas(colony))
+        {
+            snapshot.ClaimRects.AddRange(new[] { area.MinX, area.MinZ, area.MaxX - 1, area.MaxZ - 1 });
+        }
         return snapshot;
+    }
+
+    /// <summary>Where a settler is now, or was last seen.</summary>
+    BlockPos SeenAt(CitizenRecord c)
+    {
+        if (sapi!.World.GetEntityById(c.EntityId) is { Alive: true } entity) return entity.Pos.AsBlockPos;
+        return c.LastSeenPos?.AsBlockPos ?? new BlockPos(0);
+    }
+
+    readonly Dictionary<string, (int, int, int, int)> footprints = new();
+
+    /// <summary>
+    /// The block columns a building covers, from the blueprint of its current (or first) level; just the
+    /// hut block's surroundings for buildings without blueprints. Cached, since blueprints are big.
+    /// </summary>
+    (int X1, int Z1, int X2, int Z2) Footprint(Building b)
+    {
+        int level = b.Level > 0 ? b.Level : System.Math.Max(1, b.TargetLevel);
+        string key = $"{b.BuildingId}|{b.Type}|{b.Style}|{level}|{b.Rotation}|{b.HutPos}|{b.XOffset}|{b.ZOffset}";
+        if (footprints.TryGetValue(key, out var cached)) return cached;
+
+        var p = b.HutPos;
+        (int, int, int, int) result = (p.X - 1, p.Z - 1, p.X + 1, p.Z + 1);
+        var blueprint = Manager.Blueprints.Get(b, level);
+        if (blueprint != null && blueprint.Steps.Count > 0)
+        {
+            int minX = int.MaxValue, minZ = int.MaxValue, maxX = int.MinValue, maxZ = int.MinValue;
+            foreach (var step in blueprint.Steps)
+            {
+                if (step.BlockId == 0) continue;
+                int x = p.X + step.Dx + b.XOffset, z = p.Z + step.Dz + b.ZOffset;
+                minX = System.Math.Min(minX, x); maxX = System.Math.Max(maxX, x);
+                minZ = System.Math.Min(minZ, z); maxZ = System.Math.Max(maxZ, z);
+            }
+            if (minX <= maxX) result = (minX, minZ, maxX, maxZ);
+        }
+        if (footprints.Count > 2000) footprints.Clear();
+        footprints[key] = result;
+        return result;
     }
 
     BuildingView BuildingViewFor(Colony colony, Building b)
