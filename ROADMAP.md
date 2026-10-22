@@ -72,3 +72,4 @@ Colonies that run themselves, without a player in charge.
 - **Growing on their own**: AI settlements that start from a Town Hall and grow into villages and towns over time.
 - **Living in the world**: settlements that appear in the world, so players can find them, visit them, trade with them or join them.
 - **Neighbours**: AI settlements that trade with, help or argue with the player's colony and each other.
+- **War and diplomacy**: a combat system so settlements can raise armies, go to war, defend their land and take or lose territory. Settlements can also form alliances, make peace, sign trade deals and send envoys, with the Mayor deciding who is a friend and who is an enemy.
