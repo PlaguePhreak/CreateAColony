@@ -292,6 +292,10 @@ public class ColonySnapshot
     /// <summary>For the Town map: every building, and the colony's land as x1, z1, x2, z2 (inclusive) per square.</summary>
     [ProtoMember(29)] public List<MapBuildingView> MapBuildings = new();
     [ProtoMember(30)] public List<int> ClaimRects = new();
+    /// <summary>The colony banner for the Banners tab (serialized), or null; whether it goes on new buildings; whether Heraldry: Banners is installed.</summary>
+    [ProtoMember(31)] public byte[]? BannerStack;
+    [ProtoMember(32)] public bool BannerOnNew;
+    [ProtoMember(33)] public bool HeraldryInstalled;
 }
 
 public enum ColonyAction
@@ -379,7 +383,13 @@ public enum ColonyAction
     /// <summary>Text "code|count": how many of an item the hut keeps; 0 takes it off the list.</summary>
     SetMinStock = 45,
     /// <summary>Brings the settler with CitizenId to the Town Hall at once.</summary>
-    RecallCitizen = 46
+    RecallCitizen = 46,
+    /// <summary>Makes the Heraldry banner in the player's hand the colony banner.</summary>
+    SetColonyBanner = 47,
+    /// <summary>Copies the colony banner onto the banners of the Town Hall ("townhall"), the Guard Towers ("guardtower") or every building ("all").</summary>
+    ReplaceBanners = 48,
+    /// <summary>Text "1" puts the colony banner on each building once a builder finishes it.</summary>
+    SetBannerOnNew = 49
 }
 
 /// <summary>The Builder's Wand building list: each building type with how many of its blocks the player carries.</summary>

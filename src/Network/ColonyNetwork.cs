@@ -139,6 +139,7 @@ public partial class ColonyNetwork : ModSystem
             ColonyAction.SetKitchenKeep => KitchenAction(colony, role, packet),
             ColonyAction.WelcomeVisitor or ColonyAction.TurnAwayVisitor => VisitorAction(colony, role, packet),
             ColonyAction.RecallCitizen => RecallCitizen(colony, role, packet.CitizenId),
+            ColonyAction.SetColonyBanner or ColonyAction.ReplaceBanners or ColonyAction.SetBannerOnNew => BannerAction(player, colony, role, packet),
             ColonyAction.SetPermadeath => SetPermadeath(colony, role, packet.Text == "1"),
             ColonyAction.HireRecruit => HireAction(player, colony, role, packet),
             >= ColonyAction.RenameBuilding and <= ColonyAction.SetMinStock => HutAction(player, colony, role, packet),
@@ -170,6 +171,32 @@ public partial class ColonyNetwork : ModSystem
         if (visitor == null || !visitor.Alive || !visitor.Visitor) return "createacolony:bad-citizen";
         if (packet.Action == ColonyAction.WelcomeVisitor) Manager.Welcome(colony, visitor);
         else Manager.TurnAway(colony, visitor);
+        return null;
+    }
+
+    /// <summary>The Banners tab: set the colony banner from the player's hand, copy it onto buildings, or put it on new ones.</summary>
+    string? BannerAction(IServerPlayer player, Colony colony, ColonyRole role, ColonyActionPacket packet)
+    {
+        if (role < ColonyRole.Officer) return "createacolony:denied-officer";
+        switch (packet.Action)
+        {
+            case ColonyAction.SetColonyBanner:
+                return Manager.SetColonyBanner(colony, player.InventoryManager.ActiveHotbarSlot?.Itemstack);
+            case ColonyAction.SetBannerOnNew:
+                colony.BannerOnNew = packet.Text == "1";
+                return null;
+        }
+        if (Manager.ColonyBanner(colony) == null) return "createacolony:banner-none";
+        var buildings = packet.Text switch
+        {
+            "townhall" => colony.Buildings.Where(b => b.Type == BuildingTypes.TownHall),
+            "guardtower" => colony.Buildings.Where(b => b.Type == BuildingTypes.GuardTower),
+            _ => colony.Buildings
+        };
+        var (replaced, unloaded) = Manager.ReplaceBanners(colony, buildings.ToList());
+        string message = Lang.GetL(player.LanguageCode, "createacolony:banner-replaced", replaced);
+        if (unloaded > 0) message += " " + Lang.GetL(player.LanguageCode, "createacolony:banner-unloaded", unloaded);
+        player.SendMessage(0, message, EnumChatType.Notification);
         return null;
     }
 
@@ -371,6 +398,9 @@ public partial class ColonyNetwork : ModSystem
             ClaimSquares = Manager.ClaimAreas(colony).Count,
             TownHallClaimSize = Manager.GetBuilding(colony, colony.TownHallPos) is { } hall ? Manager.ClaimedSize(colony, hall) : 0,
             FoundedTotalDays = colony.FoundedTotalDays,
+            BannerStack = colony.BannerStack,
+            BannerOnNew = colony.BannerOnNew,
+            HeraldryInstalled = sapi!.ModLoader.IsModEnabled("heraldrybanners"),
             BuildingCount = colony.Buildings.Count,
             Events = colony.Events.Select(e => new EventView { TotalDays = e.TotalDays, Key = e.Key, Args = e.Args.ToList() }).ToList(),
             WorkOrders = colony.Buildings.Where(b => b.HasWorkOrder).OrderBy(b => b.BuildingId).Select(b => BuildingViewFor(colony, b)).ToList(),

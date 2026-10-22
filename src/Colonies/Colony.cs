@@ -261,6 +261,10 @@ public class Colony
     [ProtoMember(23)] public double NextWandererTotalDays;
     /// <summary>The Town Hall's event log, oldest first, the newest ColonyManager.MaxEvents kept.</summary>
     [ProtoMember(24)] public List<ColonyEvent> Events = new();
+    /// <summary>The colony banner set on the Town Hall's Banners tab (one banner, serialized), or null.</summary>
+    [ProtoMember(25)] public byte[]? BannerStack;
+    /// <summary>Puts the colony banner on each building as soon as a builder finishes it.</summary>
+    [ProtoMember(26)] public bool BannerOnNew;
 
     public string OwnerUid => Members.Find(m => m.Role == ColonyRole.Owner)?.PlayerUid ?? "";
 

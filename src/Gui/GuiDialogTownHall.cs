@@ -4,6 +4,7 @@ using System.Linq;
 using CreateAColony.Colonies;
 using CreateAColony.Network;
 using Vintagestory.API.Client;
+using Vintagestory.API.Common;
 using Vintagestory.API.Config;
 
 namespace CreateAColony.Gui;
@@ -31,6 +32,7 @@ public class GuiDialogTownHall : GuiDialog
     const int PermissionsTab = 4;
     const int SettingsTab = 5;
     const int MapTab = 6;
+    const int BannersTab = 7;
     const double MapHeight = 380;
     // The map is at most this many pixels a side; bigger colonies get one pixel per few blocks.
     const int MapMaxSide = 220;
@@ -40,7 +42,7 @@ public class GuiDialogTownHall : GuiDialog
 
     static readonly (int Id, string Lang)[] Tabs =
     {
-        (ActionsTab, "tab-actions"), (MapTab, "tab-townmap"), (InfoTab, "tab-information"), (CitizensTab, "tab-citizens"),
+        (ActionsTab, "tab-actions"), (MapTab, "tab-townmap"), (BannersTab, "tab-banners"), (InfoTab, "tab-information"), (CitizensTab, "tab-citizens"),
         (StatsTab, "tab-statistics"), (PermissionsTab, "tab-permissions"), (SettingsTab, "tab-settings")
     };
 
@@ -101,6 +103,7 @@ public class GuiDialogTownHall : GuiDialog
         {
             case ActionsTab: ComposeActions(composer); break;
             case MapTab: ComposeMap(composer); break;
+            case BannersTab: ComposeBanners(composer); break;
             case InfoTab: ComposeInformation(composer); break;
             case CitizensTab: ComposeCitizens(composer); break;
             case StatsTab: ComposeStatistics(composer); break;
@@ -112,6 +115,7 @@ public class GuiDialogTownHall : GuiDialog
         SingleComposer = composer.EndChildElements().Compose();
         SingleComposer.GetTextInput("colonyname")?.SetValue(pendingName);
         SingleComposer.GetSwitch("permadeath")?.SetValue(snapshot.Permadeath);
+        SingleComposer.GetSwitch("banneronnew")?.SetValue(snapshot.BannerOnNew);
     }
 
     /// <summary>A row of page buttons along the top of a tab, the chosen one marked. Returns the y below them.</summary>
@@ -311,6 +315,68 @@ public class GuiDialogTownHall : GuiDialog
         y = composer.Text(Lang.Get("createacolony:townmap-legend"), GuiKit.Detail(), 0, y, Width - 160, 6);
         y = Math.Max(y, MapHeight + 30 + 8 + 34);
         composer.Text(Lang.Get("createacolony:townmap-hint", terrain.Step), GuiKit.Muted(), 0, y, Width);
+    }
+
+    // ---- Banners tab ----------------------------------------------------------------------
+
+    /// <summary>
+    /// The colony banner (a Heraldry: Banners banner): set it from the player's hand, copy its design
+    /// onto the banners of the Town Hall, the Guard Towers or every building, and put it on new buildings.
+    /// </summary>
+    void ComposeBanners(GuiComposer composer)
+    {
+        double y = 30;
+        if (!snapshot.HeraldryInstalled)
+        {
+            y = composer.Text(Lang.Get("createacolony:banner-needs-mod"), GuiKit.Body().WithColor(GuiKit.WarnColor), 0, y, Width, 12);
+        }
+
+        y = composer.Section(Lang.Get("createacolony:banner-colony"), y, Width);
+        ItemStack? banner = null;
+        if (snapshot.BannerStack != null)
+        {
+            banner = new ItemStack(snapshot.BannerStack);
+            if (!banner.ResolveBlockOrItem(capi.World)) banner = null;
+        }
+        composer.AddInset(ElementBounds.Fixed(0, y, Width, 76), 3, 0.8f);
+        if (banner != null)
+        {
+            composer.AddRichtext(new RichTextComponentBase[]
+            {
+                new ItemstackTextComponent(capi, banner, 64, 10),
+                new RichTextComponent(capi, banner.GetName(), GuiKit.Body()) { VerticalAlign = EnumVerticalAlign.Middle }
+            }, ElementBounds.Fixed(6, y + 4, Width - 200, 70));
+        }
+        else
+        {
+            composer.AddStaticText(Lang.Get("createacolony:banner-none-yet"), GuiKit.Detail(), ElementBounds.Fixed(10, y + 28, Width - 200, 22));
+        }
+        if (Officer)
+        {
+            composer.AddSmallButton(Lang.Get("createacolony:banner-use-held"), () => SendText(ColonyAction.SetColonyBanner, ""), ElementBounds.Fixed(Width - 180, y + 24, 170, 28));
+        }
+        y += 84;
+        y = composer.Text(Lang.Get("createacolony:banner-hint"), GuiKit.Muted(), 0, y, Width, 12);
+
+        if (!Officer || banner == null) return;
+
+        y = composer.Section(Lang.Get("createacolony:banner-replace"), y, Width);
+        composer
+            .AddSmallButton(Lang.Get("createacolony:banner-on-townhall"), () => SendText(ColonyAction.ReplaceBanners, "townhall"), ElementBounds.Fixed(0, y, 180, 28))
+            .AddSmallButton(Lang.Get("createacolony:banner-on-towers"), () => SendText(ColonyAction.ReplaceBanners, "guardtower"), ElementBounds.Fixed(190, y, 180, 28))
+            .AddSmallButton(Lang.Get("createacolony:banner-on-all"), () => SendText(ColonyAction.ReplaceBanners, "all"), ElementBounds.Fixed(380, y, 180, 28));
+        y += 36;
+        y = composer.Text(Lang.Get("createacolony:banner-replace-hint"), GuiKit.Muted(), 0, y, Width, 12);
+
+        composer
+            .AddSwitch(on => SendText(ColonyAction.SetBannerOnNew, on ? "1" : "0"), ElementBounds.Fixed(0, y, 30, 30), "banneronnew")
+            .AddStaticText(Lang.Get("createacolony:banner-on-new"), GuiKit.Body(), ElementBounds.Fixed(40, y + 5, Width - 40, 25));
+    }
+
+    bool SendText(ColonyAction action, string text)
+    {
+        network.SendAction(new ColonyActionPacket { ColonyId = ColonyId, Action = action, Text = text });
+        return true;
     }
 
     // ---- Information tab ------------------------------------------------------------------

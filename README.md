@@ -350,3 +350,18 @@ The Town Hall window is laid out like MineColonies', with seven tabs down the le
 MineColonies features with no system here yet are marked "Coming later" on their tab: the colony flag and
 banner, citizen style, alliances, happiness, reordering work orders, custom ranks and
 permission logs, auto hiring and housing, and enter/leave messages.
+
+### Colony banners (0.25.0)
+
+The Town Hall's **Banners** tab works with the [Heraldry](https://mods.vintagestory.at/heraldry) and
+[Heraldry: Banners](https://mods.vintagestory.at/heraldrybanners) mods (both need Attribute Rendering Library).
+Create a Colony does not need them; without them the tab says they are missing.
+
+- Design a banner at the Heraldry Workbench, hold it, and press **Use banner in hand**. The Town Hall
+  remembers the design and you keep the banner.
+- **On the Town Hall**, **On Guard Towers** and **On every building** copy the colony banner's layers onto every
+  banner hanging on a pole (or another display block, never a chest) inside those buildings' blueprint area.
+  Each banner keeps its own shape (pennant, swallowtail, ...). Only buildings in loaded land change; chat says
+  how many banners changed and how many buildings were skipped.
+- **Put the colony banner on each building when a builder finishes it** does the same for each finished level.
+- Officers and the owner can use the tab.
