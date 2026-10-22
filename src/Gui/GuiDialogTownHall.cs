@@ -104,6 +104,8 @@ public class GuiDialogTownHall : GuiDialog
         y = composer.Text(snapshot.WandererDays <= 0 ? Lang.Get("createacolony:overview-no-wanderers")
             : Lang.Get(snapshot.WanderersNeedFreeBed ? "createacolony:overview-wanderers-bed" : "createacolony:overview-wanderers",
                 snapshot.WandererDays.ToString("0.#"), snapshot.FreeBeds), GuiKit.Detail(), 0, y, Width, 2);
+        y = composer.Text(Lang.Get("createacolony:overview-claim", snapshot.ClaimColumns.ToString("N0"), snapshot.ClaimSquares, snapshot.TownHallClaimSize),
+            GuiKit.Detail(), 0, y, Width, 2);
         int visitors = snapshot.Citizens.Count(c => c.Visitor);
         if (visitors > 0) y = composer.Text(Lang.Get("createacolony:overview-visitors", visitors), GuiKit.Body().WithColor(GuiKit.WarnColor), 0, y, Width, 2);
         y += 12;

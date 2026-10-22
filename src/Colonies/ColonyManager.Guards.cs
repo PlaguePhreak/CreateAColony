@@ -156,9 +156,9 @@ public partial class ColonyManager
     /// <summary>A monster hurt a settler: if it happened in or near the colony, guards are called.</summary>
     void RaiseAlarm(Colony colony, Entity attacker, Vec3d where)
     {
-        int reach = colony.ClaimRadius + Config.GuardAlarmMargin;
-        var t = colony.TownHallPos;
-        if (Math.Abs(where.X - t.X) > reach || Math.Abs(where.Z - t.Z) > reach) return;
+        // Anywhere on the colony's land (every building's square), or a little past its edge.
+        int margin = Config.GuardAlarmMargin;
+        if (!ClaimAreas(colony).Any(a => where.X >= a.X1 - margin && where.X <= a.X2 + margin && where.Z >= a.Z1 - margin && where.Z <= a.Z2 + margin)) return;
         if (!alarms.TryGetValue(colony.ColonyId, out var list)) alarms[colony.ColonyId] = list = new();
         list[attacker.EntityId] = sapi.World.ElapsedMilliseconds + (long)(Config.GuardAlarmSeconds * 1000);
     }

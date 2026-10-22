@@ -10,7 +10,7 @@ land claim, recruit settlers that persist with the save. Compiles cleanly agains
    game's `Mods` folder.
 
 ## Try it
-- Craft a **Town Hall** (5 planks of any wood in a U shape: top row full, middle row left and right) or take it from the creative inventory, and a **Builder's Wand** (flint on a stick). Right-click the ground with the wand, pick Town Hall and press Accept: this founds the colony, claims a 49x49 area, and 3 to 4 settlers arrive.
+- Craft a **Town Hall** (5 planks of any wood in a U shape: top row full, middle row left and right) or take it from the creative inventory, and a **Builder's Wand** (flint on a stick). Right-click the ground with the wand, pick Town Hall and press Accept: this founds the colony, claims a 100x100 area, and 3 to 4 settlers arrive. Finished huts grow the claim (see "Growing the colony's land").
 - `/colony info` inside the claim shows the colony.
 - `/colony invite <player>`, then that player types `/colony join`. `/colony leave` leaves the colony you stand in.
 - `/colony recruit [name]` (needs controlserver) spawns one more settler, for testing.
@@ -284,6 +284,25 @@ before shipping converted blueprints.
 - Commands: `/colony stuck` lists stuck settlers; `/colony pathdebug [on|off]` shows sparks over them (blue to
   red) and logs to the server log. Config `PathDebug` turns it on at start.
 
+### Growing the colony's land (0.22.0)
+- The Town Hall claims a `TownHallClaimSize` (100) by 100 square centred on its block. Every hut, once its first
+  level is finished, adds a square centred on its hut block; buildings with nothing to build (the Warehouse)
+  claim as soon as they are placed. The colony's land is all those squares together, kept as the areas of the
+  colony's one vanilla land claim, so hut placement, field markers, beds, food, chests and the /land tools all
+  see the grown claim. Each square reaches `ClaimDepthBelow` (32) blocks under and `ClaimHeightAbove` (64)
+  over its hut block.
+- Square sizes (blocks along a side, config `HutClaimSizes`): Builder 40, Warehouse 40, Tavern 50, Farmer 60,
+  Forester 60, Potter 30, Cook 30. Buildings not listed claim `ClaimSizeMin` (30), or `MilitaryClaimSize` (200)
+  if they are on the Builder's Wand Military tab. Every size is kept between `ClaimSizeMin` and `ClaimSizeMax`.
+- A square never covers someone else's land claim: it shrinks two blocks at a time until it fits, down to
+  `ClaimSizeMin`, and claims nothing if even that does not fit. Breaking a hut gives its square back.
+- Builders build a blueprint's blocks in the colony's land and in unclaimed land around it (a hut only claims
+  once built), never in someone else's claim.
+- The work range of Forester's and Farmer's Huts (16 to 500 blocks) and guard escorts are unchanged: workers
+  may gather in unclaimed land outside the colony, never in another claim.
+- The Town Hall Overview tab shows how much land is claimed. `/colony claims` lists what each building claims;
+  `/colony claims show` marks the edge of the colony's land in blue, `/colony claims hide` clears it.
+
 ### Guard Tower and the military (0.23.0)
 - **Guard Tower** (Military tab of the Builder's Wand; recipe: two sticks, a spear and three planks). Settlers with the
   Guard job move in by themselves, one per tower level (one while only the tower block stands). Guards without a
@@ -294,7 +313,7 @@ before shipping converted blueprints.
 - **Night watch** (`GuardNightWatch`): tower guards sleep from `GuardSleepStartHour` to `GuardSleepEndHour` and keep
   watch at night; they stay out in temporal storms (`GuardsFightInStorms`). A guard with a monster close by, or an
   alarm to answer, leaves its meal, bed or shelter.
-- **Alarm**: a monster that hurts a settler within the claim (plus `GuardAlarmMargin`) calls the nearest free guard.
+- **Alarm**: a monster that hurts a settler on the colony's land (plus `GuardAlarmMargin`) calls the nearest free guard.
 - **Retreat** (tower setting): below `GuardRetreatHealth` a guard walks back to its tower until `GuardReturnHealth`.
 - **Armor** (`GuardsWearArmor`): guards put on the best helmet, body and leg armor from their tower's storage and the
   warehouse. A blow hits head, body or legs and the armor there works as the game's player armor does, wearing down.

@@ -357,7 +357,10 @@ public partial class ColonyNetwork : ModSystem
             Permadeath = Manager.Permadeath(colony),
             FreeBeds = Manager.FreeBeds(colony),
             WandererDays = config.Wanderers ? Manager.WandererEveryDays(colony) : 0,
-            WanderersNeedFreeBed = config.WanderersNeedFreeBed
+            WanderersNeedFreeBed = config.WanderersNeedFreeBed,
+            ClaimColumns = Manager.ClaimedColumns(colony),
+            ClaimSquares = Manager.ClaimAreas(colony).Count,
+            TownHallClaimSize = Manager.GetBuilding(colony, colony.TownHallPos) is { } hall ? Manager.ClaimedSize(colony, hall) : 0
         };
 
         foreach (var c in colony.Citizens)

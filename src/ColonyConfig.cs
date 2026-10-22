@@ -1,3 +1,5 @@
+using System.Collections.Generic;
+
 namespace CreateAColony;
 
 /// <summary>Server config, stored in ModConfig/createacolony.json.</summary>
@@ -85,6 +87,35 @@ public class ColonyConfig
     public float FarmerWaterBelow = 0.3f;
     /// <summary>A farmer with fertilizer spreads it before sowing when the crop's nutrient is below this (soil shows 0 to 100).</summary>
     public float FarmerFertilizeBelow = 40f;
+
+    // Land claim
+    /// <summary>
+    /// The square of land, in blocks along each side, the Town Hall claims around itself when the colony is founded.
+    /// 100 claims a 100 by 100 square.
+    /// </summary>
+    public int TownHallClaimSize = 100;
+    /// <summary>
+    /// The square, in blocks along each side, each finished hut adds to the colony's claim around its hut block,
+    /// by building type. Types not listed claim ClaimSizeMin, or MilitaryClaimSize when they are on the Builder's
+    /// Wand Military tab. Every size is kept between ClaimSizeMin and ClaimSizeMax.
+    /// </summary>
+    public Dictionary<string, int> HutClaimSizes = new()
+    {
+        ["builder"] = 40,
+        ["warehouse"] = 40,
+        ["tavern"] = 50,
+        ["farmer"] = 60,
+        ["forester"] = 60,
+        ["potter"] = 30,
+        ["cook"] = 30,
+    };
+    /// <summary>The claim of a military building (Builder's Wand Military tab) that has no entry of its own in HutClaimSizes.</summary>
+    public int MilitaryClaimSize = 200;
+    public int ClaimSizeMin = 30;
+    public int ClaimSizeMax = 200;
+    /// <summary>How far below and above each building's hut block its claim reaches.</summary>
+    public int ClaimDepthBelow = 32;
+    public int ClaimHeightAbove = 64;
 
     // Work area (Forester's and Farmer's Hut windows)
     /// <summary>The ranges, in blocks, a hut's Work area tab offers for how far its worker goes out.</summary>

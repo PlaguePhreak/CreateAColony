@@ -239,6 +239,10 @@ public class ColonySnapshot
     /// <summary>About how many days pass between wanderers; 0 when wanderers are off.</summary>
     [ProtoMember(18)] public double WandererDays;
     [ProtoMember(19)] public bool WanderersNeedFreeBed;
+    /// <summary>Columns of land the colony's claim covers, its number of squares, and the Town Hall's square size.</summary>
+    [ProtoMember(20)] public long ClaimColumns;
+    [ProtoMember(21)] public int ClaimSquares;
+    [ProtoMember(22)] public int TownHallClaimSize;
 }
 
 public enum ColonyAction
