@@ -149,8 +149,8 @@ public partial class ColonyManager
     /// <summary>Beds in the colony nobody has claimed.</summary>
     public int FreeBeds(Colony colony)
     {
-        var taken = new HashSet<BlockPos>(colony.Citizens.Where(c => c.Alive && c.HomeBedPos != null).Select(c => c.HomeBedPos!));
-        return FindBlockEntities<BlockEntityBed>(colony).Count(b => !taken.Contains(b.Pos));
+        var taken = BedsTaken(colony);
+        return FindBlockEntities<BlockEntity>(colony).Sum(b => Math.Max(0, BedPlaces(b) - taken.GetValueOrDefault(b.Pos)));
     }
 
     /// <summary>The average days between wanderers right now: sooner with a built Tavern.</summary>

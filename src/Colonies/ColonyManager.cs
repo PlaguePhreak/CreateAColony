@@ -92,16 +92,19 @@ public partial class ColonyManager : ModSystem
 
     // ---- Beds --------------------------------------------------------------------
 
-    /// <summary>Returns the citizen's bed, claiming a free bed inside the colony if they have none.</summary>
+    /// <summary>
+    /// Returns the citizen's bed, claiming a free bed inside the colony if they have none. Vanilla beds and
+    /// W4RD0's Furniture beds both count; a furniture double bed takes two settlers.
+    /// </summary>
     public BlockPos? EnsureBed(Colony colony, CitizenRecord citizen)
     {
         var ba = sapi.World.BlockAccessor;
-        if (citizen.HomeBedPos != null && ba.GetBlockEntity(citizen.HomeBedPos) is BlockEntityBed) return citizen.HomeBedPos;
+        if (citizen.HomeBedPos != null && ba.GetBlockEntity(citizen.HomeBedPos) is { } own && BedPlaces(own) > 0) return citizen.HomeBedPos;
 
         citizen.HomeBedPos = null;
-        var taken = new HashSet<BlockPos>(colony.Citizens.Where(c => c.HomeBedPos != null).Select(c => c.HomeBedPos!));
-        BlockEntityBed? free = FindBlockEntities<BlockEntityBed>(colony)
-            .Where(b => !taken.Contains(b.Pos))
+        var taken = BedsTaken(colony);
+        BlockEntity? free = FindBlockEntities<BlockEntity>(colony)
+            .Where(b => BedPlaces(b) > taken.GetValueOrDefault(b.Pos))
             .OrderBy(b => b.Pos.DistanceSqTo(colony.TownHallPos.X, colony.TownHallPos.Y, colony.TownHallPos.Z))
             .FirstOrDefault();
         if (free == null) return null;
@@ -110,6 +113,12 @@ public partial class ColonyManager : ModSystem
         SaveColony(colony);
         return citizen.HomeBedPos;
     }
+
+    /// <summary>How many living settlers sleep in each bed.</summary>
+    Dictionary<BlockPos, int> BedsTaken(Colony colony) => colony.Citizens
+        .Where(c => c.Alive && c.HomeBedPos != null)
+        .GroupBy(c => c.HomeBedPos!)
+        .ToDictionary(g => g.Key, g => g.Count());
 
     /// <summary>All loaded block entities of a type on the colony's land: the Town Hall's square and every hut's.</summary>
     IEnumerable<T> FindBlockEntities<T>(Colony colony) where T : BlockEntity

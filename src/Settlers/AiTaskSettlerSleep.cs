@@ -48,8 +48,9 @@ public class AiTaskSettlerSleep : SettlerTaskBase
             StopWalking();
             if (bedPos != null && Arrived)
             {
-                // Lie on top of the bed block.
-                entity.TeleportToDouble(bedPos.X + 0.5, bedPos.Y + 0.6, bedPos.Z + 0.5);
+                // Lie on top of the bed block (on its own half of a furniture double bed).
+                var spot = manager!.BedSpot(Colony!, Citizen!, bedPos);
+                entity.TeleportToDouble(spot.X, spot.Y, spot.Z);
             }
             PlayAnimation("sleep");
             lyingDown = true;

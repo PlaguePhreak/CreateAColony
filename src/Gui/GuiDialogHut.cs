@@ -963,13 +963,26 @@ public class GuiDialogHut : GuiDialog
         AddPager(composer, pages, 60 + ItemRowsPerPage * ItemRowHeight + 20);
     }
 
+    /// <summary>
+    /// The item's name with its wood when the wood is an item attribute (W4RD0's Furniture, banner poles) and
+    /// the name does not say it already, so "Rustic table (Oak)" and "Rustic table (Pine)" are told apart.
+    /// </summary>
+    static string WithWood(ItemStack stack)
+    {
+        string name = stack.GetName();
+        string? wood = stack.Attributes?.GetTreeAttribute("types")?.GetString("wood");
+        if (string.IsNullOrEmpty(wood) || !Lang.HasTranslation("material-" + wood)) return name;
+        string material = Lang.Get("material-" + wood);
+        return name.Contains(material, StringComparison.OrdinalIgnoreCase) ? name : name + " (" + material + ")";
+    }
+
     RichTextComponentBase[] ItemRow(ItemStack stack, ResourceView r)
     {
         bool done = r.Have >= r.Needed;
         // Green when the builder has enough, orange when it is still waiting.
         var countFont = CairoFont.WhiteDetailText().WithColor(done ? GuiKit.GoodColor : GuiKit.WarnColor);
         string name = r.IsTool ? Lang.Get("createacolony:items-tool", Lang.Get("createacolony:tool-" + (stack.Collectible.Tool?.ToString().ToLowerInvariant() ?? "")))
-            : r.AnyOf.Length > 0 ? Lang.Get("createacolony:items-any-" + r.AnyOf, stack.GetName()) : stack.GetName();
+            : r.AnyOf.Length > 0 ? Lang.Get("createacolony:items-any-" + r.AnyOf, stack.GetName()) : WithWood(stack);
         return new RichTextComponentBase[]
         {
             new ItemstackTextComponent(capi, stack, 40, 10),

@@ -428,9 +428,10 @@ public class AiTaskSettlerBuilder : SettlerTaskBase
             }
             return;
         }
-        manager.PlaceForBuild(place.Id, target);
+        var placedFrom = manager.PlacementStacks(buildStep, place, target, paid);
+        manager.PlaceForBuild(place.Id, target, placedFrom?.FirstOrDefault());
         manager.FinishPlacement(place, target);
-        if (place.Id == buildStep.BlockId) manager.RestoreSavedDetails(buildStep, target);
+        if (place.Id == buildStep.BlockId) manager.RestoreSavedDetails(buildStep, target, placedFrom);
     }
 
     /// <summary>What a player would play: the held tool's swing when clearing a block, the place motion when building.</summary>
