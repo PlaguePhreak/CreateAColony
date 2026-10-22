@@ -1,0 +1,59 @@
+{
+	"code": "settlerchild",
+	"class": "EntitySettler",
+	"variantGroups": [{ "code": "sex", "states": ["male", "female"] }],
+	"canClimb": true,
+	"eyeHeight": 1.0,
+	"hitboxSize": { "x": 0.45, "y": 1.15 },
+	"deadHitboxSize": { "x": 0.5, "y": 0.35 },
+	"attributes": {
+		"outfitConfigFileName": "game:villageraccessories-{sex}"
+	},
+	"client": {
+		"renderer": "Shape",
+		// A settler's child: the adult settler model drawn smaller. Grows up into a settler (see ColonyManager.Families.cs).
+		"size": 0.62,
+		// Humanoid model from VS Village (MIT), see THIRD_PARTY_NOTICES.md. Uses vanilla skin textures.
+		"shape": { "base": "createacolony:entity/humanoid/settler-{sex}" },
+		"behaviors": [
+			{ "code": "villagerinventory" },
+			{ "code": "nametag", "showtagonlywhentargeted": true },
+			{ "code": "repulseagents" },
+			{ "code": "controlledphysics", "stepHeight": 1.05 },
+			{ "code": "interpolateposition" }
+		],
+		"animations": [
+			{ "code": "idle", "animation": "balanced-idle", "blendMode": "average", "triggeredBy": { "defaultAnim": true } },
+			{ "code": "walk", "animation": "balanced-walk", "blendMode": "average" },
+			{ "code": "sleep", "animation": "balanced-lie", "blendMode": "average", "weight": 10 },
+			{ "code": "shelter", "animation": "balanced-sitfloor", "blendMode": "average", "weight": 10 },
+			{ "code": "eat", "animation": "balanced-holdbelly-idle", "blendMode": "average", "weight": 5 },
+			{ "code": "build", "animation": "balanced-hit", "blendMode": "average", "weight": 5 },
+			{ "code": "die", "animation": "balanced-die", "animationSpeed": 1.75, "weight": 10, "blendMode": "addAverage" },
+			{ "code": "hurt", "animation": "balanced-hurt", "animationSpeed": 2, "blendMode": "addAverage" }
+		]
+	},
+	"server": {
+		"behaviors": [
+			{ "code": "villagerinventory" },
+			{ "code": "nametag", "showtagonlywhentargeted": true },
+			{ "code": "repulseagents" },
+			{ "code": "controlledphysics", "stepHeight": 1.05 },
+			{ "code": "health", "currenthealth": 10, "maxhealth": 10 },
+			{ "code": "colonycitizen" },
+			{ "code": "settlerneeds" },
+			{
+				"code": "taskai",
+				"aitasks": [
+					// Highest priority wins. Children have no job: they shelter, sleep, eat and play near home.
+					{ "code": "settlershelter", "animation": "walk", "priority": 3.0, "movespeed": 0.025 },
+					{ "code": "settlersleep", "animation": "walk", "priority": 2.0, "movespeed": 0.018 },
+					{ "code": "settlereat", "animation": "walk", "priority": 1.5, "movespeed": 0.02 },
+					{ "code": "wander", "priority": 1.0, "movespeed": 0.012, "animation": "walk", "maxDistanceToSpawn": 10, "wanderRangeMin": 2, "wanderRangeMax": 8 },
+					{ "code": "lookaround", "priority": 0.5 }
+				]
+			}
+		]
+	},
+	"sounds": {}
+}

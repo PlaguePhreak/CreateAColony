@@ -8,7 +8,7 @@ public static class BuildingCategories
     /// <summary>Tabs with no types yet still show, as placeholders for buildings to come.</summary>
     public static readonly Category[] All =
     {
-        new("fundamentals", new[] { BuildingTypes.TownHall, BuildingTypes.Builder, BuildingTypes.Tavern }),
+        new("fundamentals", new[] { BuildingTypes.TownHall, BuildingTypes.Builder, BuildingTypes.Tavern, BuildingTypes.Residence }),
         new("agriculture", new[] { BuildingTypes.Farmer, BuildingTypes.Forester }),
         new("craftsmanship", new[] { BuildingTypes.Potter, BuildingTypes.Cook }),
         new("education", System.Array.Empty<string>()),

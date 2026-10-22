@@ -307,4 +307,5 @@ public static class BuildingTypes
     public const string Tavern = "tavern";
     public const string Cook = "cook";
     public const string GuardTower = "guardtower";
+    public const string Residence = "residence";
 }

@@ -115,6 +115,7 @@ public class ColonyConfig
         ["farmer"] = 60,
         ["forester"] = 60,
         ["potter"] = 30,
+        ["residence"] = 30,
         ["cook"] = 30,
     };
     /// <summary>The claim of a military building (Builder's Wand Military tab) that has no entry of its own in HutClaimSizes.</summary>
@@ -237,6 +238,28 @@ public class ColonyConfig
     public double WandererWaitDays = 2;
     /// <summary>Wanderers only come while the colony has a bed nobody sleeps in.</summary>
     public bool WanderersNeedFreeBed = true;
+
+    // Families
+    /// <summary>Settlers pair up, share a home and have children who grow up into new settlers.</summary>
+    public bool Families = true;
+    /// <summary>How many in-game days a settler lives in the colony before it may pair up with another.</summary>
+    public double FamilyCoupleAfterDays = 2;
+    /// <summary>At most this many new couples a colony gets each in-game day.</summary>
+    public int FamilyCouplesPerDay = 1;
+    /// <summary>Two settlers of the same sex may also pair up. Only a man and a woman have children.</summary>
+    public bool FamilyCouplesAnySex = false;
+    /// <summary>The chance each in-game day that a couple who can have a child has one.</summary>
+    public double FamilyChildChancePerDay = 0.35;
+    /// <summary>In-game days a couple waits after a child before the next one.</summary>
+    public double FamilyChildCooldownDays = 3;
+    /// <summary>The most children one couple has.</summary>
+    public int FamilyMaxChildren = 4;
+    /// <summary>In-game days a child takes to grow up into an adult settler who can work.</summary>
+    public double FamilyChildGrowDays = 6;
+    /// <summary>Children are only born while the colony has a bed nobody sleeps in, so housing limits growth.</summary>
+    public bool FamilyChildNeedsFreeBed = true;
+    /// <summary>No children are born once the colony has this many living settlers (children count); 0 means no limit.</summary>
+    public int FamilyMaxColonySize = 0;
 
     // Paths (Pathblocks)
     /// <summary>

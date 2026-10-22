@@ -39,6 +39,7 @@ public partial class ColonyManager
         string? job = JobOf(hut.Type);
         if (job == null) return "createacolony:bad-building";
         if (!citizen.Alive || citizen.Visitor) return "createacolony:bad-citizen";
+        if (citizen.IsChild) return "createacolony:child-no-job";
         var workers = WorkersAt(colony, hut);
         if (workers.Contains(citizen)) return null;
         if (workers.Count >= WorkerSlots(hut)) return "createacolony:hut-full";

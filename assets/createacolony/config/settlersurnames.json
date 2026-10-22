@@ -1,0 +1,11 @@
+{
+	// Family names new settlers are given, picked at random. Children take a parent's. Add or remove
+	// names freely; a family name already in the colony is skipped while there are others left.
+	"surnames": [
+		"Ashdown", "Barrow", "Blackwood", "Bramble", "Brightwater", "Carver", "Cobb", "Coldwell", "Crane", "Dale",
+		"Elmsworth", "Fairfax", "Fallow", "Fenn", "Fletcher", "Flint", "Fox", "Greaves", "Hale", "Hartley",
+		"Hawthorn", "Heath", "Holloway", "Kettle", "Larkin", "Linden", "Marsh", "Meadows", "Mercer", "Millward",
+		"Moss", "Oakley", "Pike", "Quarry", "Redfern", "Rook", "Rushton", "Sallow", "Shepherd", "Stone",
+		"Thatcher", "Thorne", "Tillman", "Underhill", "Wade", "Weaver", "Whitlock", "Wick", "Winslow", "Wren"
+	]
+}

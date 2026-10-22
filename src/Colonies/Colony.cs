@@ -55,8 +55,21 @@ public class CitizenRecord
     [ProtoMember(18)] public List<int> RecentFood = new();
     /// <summary>Armor the settler wears (helmet, body, legs), serialized stacks; it takes the blows first.</summary>
     [ProtoMember(19)] public List<byte[]> Armor = new();
+    /// <summary>The family name, also the last word of Name; children take one of their parents'.</summary>
+    [ProtoMember(20)] public string Surname = "";
+    /// <summary>The settler this one shares a home with, 0 if single. Stays set after the partner dies.</summary>
+    [ProtoMember(21)] public int PartnerId;
+    /// <summary>A child's mother and father (citizen ids); empty for settlers who came from outside.</summary>
+    [ProtoMember(22)] public List<int> ParentIds = new();
+    /// <summary>When the settler joined the colony or was born; 0 in older saves, which counts as long ago.</summary>
+    [ProtoMember(23)] public double JoinedTotalDays;
+    /// <summary>A child grows up at this time; 0 for adults.</summary>
+    [ProtoMember(24)] public double GrowsUpTotalDays;
+    /// <summary>When this couple last had a child, so the next one waits a while.</summary>
+    [ProtoMember(25)] public double LastChildTotalDays;
 
     public bool IsDowned => DownedUntilTotalDays > 0;
+    public bool IsChild => GrowsUpTotalDays > 0;
 }
 
 /// <summary>
@@ -265,6 +278,8 @@ public class Colony
     [ProtoMember(25)] public byte[]? BannerStack;
     /// <summary>Puts the colony banner on each building as soon as a builder finishes it.</summary>
     [ProtoMember(26)] public bool BannerOnNew;
+    /// <summary>The last in-game day couples and births were looked at.</summary>
+    [ProtoMember(27, IsRequired = true)] public int LastFamilyDay = -1;
 
     public string OwnerUid => Members.Find(m => m.Role == ColonyRole.Owner)?.PlayerUid ?? "";
 

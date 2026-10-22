@@ -243,6 +243,7 @@ public partial class ColonyNetwork : ModSystem
         var citizen = colony.Citizens.Find(c => c.CitizenId == citizenId);
         if (citizen == null || !citizen.Alive) return "createacolony:bad-citizen";
         if (citizen.Visitor) return "createacolony:visitor-no-job";
+        if (citizen.IsChild && job.Length > 0) return "createacolony:child-no-job";
         if (citizen.JobCode != (job.Length == 0 ? null : job)) citizen.WorkplacePos = null;
         citizen.JobCode = job.Length == 0 ? null : job;
         return null;
@@ -429,6 +430,8 @@ public partial class ColonyNetwork : ModSystem
                 Visitor = c.Visitor,
                 X = SeenAt(c).X,
                 Z = SeenAt(c).Z,
+                Child = c.IsChild,
+                GrowsUpHours = Manager.HoursToGrowUp(c),
                 VisitorHoursLeft = c.Visitor ? (int)System.Math.Ceiling(System.Math.Max(0, c.VisitorUntilTotalDays - sapi!.World.Calendar.TotalDays) * sapi.World.Calendar.HoursPerDay) : 0
             });
         }
@@ -586,7 +589,13 @@ public partial class ColonyNetwork : ModSystem
             Health = health?.GetFloat("currenthealth") ?? 0,
             MaxHealth = health?.GetFloat("maxhealth") ?? 0,
             WalkSpeed = entity?.Stats.GetBlended("walkspeed") ?? 1,
-            Armor = Manager.WornArmor(citizen).Select(s => s?.ToBytes() ?? System.Array.Empty<byte>()).ToList()
+            Armor = Manager.WornArmor(citizen).Select(s => s?.ToBytes() ?? System.Array.Empty<byte>()).ToList(),
+            Family = FamilyOf(colony, citizen),
+            Child = citizen.IsChild,
+            GrowsUpHours = Manager.HoursToGrowUp(citizen),
+            Home = citizen.HomeBedPos != null && Manager.ResidenceAt(colony, citizen.HomeBedPos) is { } home ? ColonyManager.BuildingName(home) : "",
+            FamilyNote = FamilyNote(colony, citizen),
+            Surname = citizen.Surname
         };
         serverChannel!.SendPacket(snapshot, player);
     }
@@ -604,6 +613,7 @@ public partial class ColonyNetwork : ModSystem
             OpenWindow = openWindow
         };
         AddHutAdmin(snapshot, colony, building);
+        if (building.Type == BuildingTypes.Residence) AddResidence(snapshot, colony, building);
 
         if (ColonyManager.IsGatherHut(building.Type))
         {

@@ -502,7 +502,16 @@ public class GuiDialogTownHall : GuiDialog
                 .AddStaticText(c.Name, c.State == "dead" ? GuiKit.Body().WithColor(GuiKit.MutedColor) : GuiKit.Body(), ElementBounds.Fixed(10, y + 6, 150, 25))
                 .AddStaticText(status, c.State == "hungry" ? GuiKit.Detail().WithColor(GuiKit.WarnColor) : GuiKit.Detail(), ElementBounds.Fixed(165, y + 8, 172, 25));
 
-            if (Officer && c.State != "dead")
+            if (c.Child && c.State != "dead")
+            {
+                composer.AddStaticText(Lang.Get("createacolony:child-grows-up", c.GrowsUpHours), GuiKit.Detail(), ElementBounds.Fixed(340, y + 8, 145, 25));
+                if (Officer && c.State != "downed")
+                {
+                    int childId = c.CitizenId;
+                    composer.AddSmallButton(Lang.Get("createacolony:townhall-recall"), () => SendCitizen(ColonyAction.RecallCitizen, childId), ElementBounds.Fixed(490, y + 2, 70, 28));
+                }
+            }
+            else if (Officer && c.State != "dead")
             {
                 int citizenId = c.CitizenId;
                 int selected = Math.Max(0, Array.IndexOf(jobCodes, c.Job));

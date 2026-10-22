@@ -82,7 +82,8 @@ public class GuiDialogCitizen : GuiDialog
     double ComposeCharacter(GuiComposer composer, double x, double y)
     {
         double width = 2 * SlotSize + ModelWidth + 20;
-        string job = Lang.Get("createacolony:job-" + (snapshot.Job.Length == 0 ? "none" : snapshot.Job));
+        string job = snapshot.Child ? Lang.Get("createacolony:citizen-child", snapshot.GrowsUpHours)
+            : Lang.Get("createacolony:job-" + (snapshot.Job.Length == 0 ? "none" : snapshot.Job));
         composer
             .AddStaticText(Lang.Get("createacolony:citizen-tab-character"), CairoFont.WhiteSmallishText(), ElementBounds.Fixed(x, y, width, 25))
             .AddStaticText(job, GuiKit.Muted(), ElementBounds.Fixed(x, y + 26, width, 20));
@@ -141,10 +142,27 @@ public class GuiDialogCitizen : GuiDialog
 
         composer.AddStaticText(Lang.Get("createacolony:citizen-work"), heading, ElementBounds.Fixed(x, y, StatsWidth, 22));
         y += 26;
-        Row(Lang.Get("createacolony:citizen-job-label"), Lang.Get("createacolony:job-" + (snapshot.Job.Length == 0 ? "none" : snapshot.Job)));
+        Row(Lang.Get("createacolony:citizen-job-label"), snapshot.Child ? Lang.Get("createacolony:job-child")
+            : Lang.Get("createacolony:job-" + (snapshot.Job.Length == 0 ? "none" : snapshot.Job)));
         composer.AddStaticText(Lang.Get("createacolony:citizen-doing-label"), label, ElementBounds.Fixed(x, y, StatsWidth, 20));
         y += 20;
-        composer.Text(snapshot.Activity, GuiKit.Detail().WithColor(GuiStyle.ActiveButtonTextColor), x, y, StatsWidth);
+        y = composer.Text(snapshot.Activity, GuiKit.Detail().WithColor(GuiStyle.ActiveButtonTextColor), x, y, StatsWidth);
+        y += 10;
+
+        // Family: home, then partner, parents, children, brothers and sisters, then whether a child may come.
+        composer.AddStaticText(Lang.Get("createacolony:citizen-family"), heading, ElementBounds.Fixed(x, y, StatsWidth, 22));
+        y += 26;
+        Row(Lang.Get("createacolony:citizen-home"), snapshot.Home.Length > 0 ? snapshot.Home : Lang.Get("createacolony:citizen-no-home"));
+        if (snapshot.Family.Count == 0) y = composer.Text(Lang.Get("createacolony:citizen-no-family"), GuiKit.Muted(), x, y, StatsWidth);
+        foreach (var m in snapshot.Family)
+        {
+            string name = m.Name + (!m.Alive ? " " + Lang.Get("createacolony:family-deceased") : m.Child ? " " + Lang.Get("createacolony:family-child-tag") : "");
+            composer
+                .AddStaticText(m.Relation, label, ElementBounds.Fixed(x, y, StatsWidth, 20))
+                .AddStaticText(name, m.Alive ? value : value.Clone().WithColor(GuiKit.MutedColor), ElementBounds.Fixed(x, y, StatsWidth, 20));
+            y += 22;
+        }
+        if (snapshot.FamilyNote.Length > 0) composer.Text(snapshot.FamilyNote, GuiKit.Muted(), x, y + 2, StatsWidth);
         return x + StatsWidth;
     }
 

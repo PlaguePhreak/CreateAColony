@@ -26,6 +26,33 @@ public class CitizenView
     /// <summary>Where the settler was last seen, for the Town map.</summary>
     [ProtoMember(9)] public int X;
     [ProtoMember(10)] public int Z;
+    /// <summary>A child, who cannot be given a job, and how many in-game hours until it grows up.</summary>
+    [ProtoMember(11)] public bool Child;
+    [ProtoMember(12)] public int GrowsUpHours;
+}
+
+/// <summary>One person in a family list: who, how they are related, and what they do.</summary>
+[ProtoContract]
+public class FamilyMemberView
+{
+    [ProtoMember(1)] public int CitizenId;
+    [ProtoMember(2)] public string Name = "";
+    /// <summary>Already in words: "Partner", "Child", "Mother" and so on, or empty.</summary>
+    [ProtoMember(3)] public string Relation = "";
+    [ProtoMember(4)] public string Job = "";
+    [ProtoMember(5)] public bool Child;
+    [ProtoMember(6)] public int GrowsUpHours;
+    [ProtoMember(7, IsRequired = true)] public bool Alive = true;
+}
+
+/// <summary>A couple and their children, or one settler on their own, living in a Residence.</summary>
+[ProtoContract]
+public class HouseholdView
+{
+    [ProtoMember(1)] public string Surname = "";
+    [ProtoMember(2)] public List<FamilyMemberView> Members = new();
+    /// <summary>Why this couple is not having a child right now, already in words; empty when they can.</summary>
+    [ProtoMember(3)] public string Note = "";
 }
 
 /// <summary>A building on the Town Hall's Town map: what it is and the ground it stands on (block columns, inclusive).</summary>
@@ -105,6 +132,15 @@ public class CitizenSnapshot
     [ProtoMember(17)] public float WalkSpeed = 1;
     /// <summary>Armor worn, by slot (head, body, legs); an empty array where the slot is empty.</summary>
     [ProtoMember(18)] public List<byte[]> Armor = new();
+    /// <summary>The settler's family: partner, parents, children, brothers and sisters.</summary>
+    [ProtoMember(19)] public List<FamilyMemberView> Family = new();
+    [ProtoMember(20)] public bool Child;
+    [ProtoMember(21)] public int GrowsUpHours;
+    /// <summary>The Residence the settler lives in, or empty.</summary>
+    [ProtoMember(22)] public string Home = "";
+    /// <summary>For a couple: whether a child may come, already in words.</summary>
+    [ProtoMember(23)] public string FamilyNote = "";
+    [ProtoMember(24)] public string Surname = "";
 }
 
 /// <summary>Client asks to open the window of the hut block at Pos.</summary>
@@ -205,6 +241,11 @@ public class HutSnapshot
     [ProtoMember(48)] public List<string> HostilesOff = new();
     [ProtoMember(49)] public List<CreateAColony.Colonies.MinStockEntry> MinStock = new();
     [ProtoMember(50)] public List<StatView> Stats = new();
+    /// <summary>A Residence, whose window has a Residents tab: the households living there and its beds.</summary>
+    [ProtoMember(51)] public bool IsResidence;
+    [ProtoMember(52)] public List<HouseholdView> Households = new();
+    [ProtoMember(53)] public int ResidenceBeds;
+    [ProtoMember(54)] public int ResidenceFreeBeds;
     /// <summary>The hut block's position, so the window can show patrol points relative to it.</summary>
     [ProtoMember(51)] public BlockPos HutPos = new BlockPos(0);
 }

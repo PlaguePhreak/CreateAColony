@@ -36,6 +36,9 @@ public class GuiDialogHut : GuiDialog
     const int SettingsTab = 9;
     const int MinStockTab = 10;
     const int StatsTab = 11;
+    const int ResidentsTab = 12;
+    /// <summary>Households shown per page of a Residence's Residents tab.</summary>
+    const int HouseholdsPerPage = 3;
     // Pages opened from the Main tab, with a Back button.
     const int ManageView = 20;
     const int ChestView = 21;
@@ -85,6 +88,7 @@ public class GuiDialogHut : GuiDialog
         if (snapshot.IsPotterHut) tabs.Add((PotteryTab, "tab-pottery"));
         if (snapshot.IsCookHut) tabs.Add((KitchenTab, "tab-kitchen"));
         if (snapshot.IsTavern) tabs.Add((RecruitsTab, "tab-recruits"));
+        if (snapshot.IsResidence) tabs.Add((ResidentsTab, "tab-residents"));
         if (snapshot.IsGuardTower)
         {
             tabs.AddRange(new[] { (ToolsTab, "tab-tools"), (HostilesTab, "tab-hostiles"), (SettingsTab, "tab-settings"), (MinStockTab, "tab-minstock"), (StatsTab, "tab-stats") });
@@ -123,6 +127,7 @@ public class GuiDialogHut : GuiDialog
             case PotteryTab: ComposeKeepList(composer, snapshot.Pottery, "pottery", ColonyAction.SetPotteryKeep); break;
             case KitchenTab: ComposeKeepList(composer, snapshot.Kitchen, "kitchen", ColonyAction.SetKitchenKeep); break;
             case RecruitsTab: ComposeRecruits(composer); break;
+            case ResidentsTab: ComposeResidents(composer); break;
             case ToolsTab: ComposeTools(composer); break;
             case HostilesTab: ComposeHostiles(composer); break;
             case SettingsTab: ComposeSettings(composer); break;
@@ -761,6 +766,43 @@ public class GuiDialogHut : GuiDialog
     /// The Recruits tab of a Tavern: today's people looking for work, what each asks in rusty gears,
     /// and a Hire button. The viewer pays, from what they carry and then from the Tavern's storage.
     /// </summary>
+    /// <summary>A Residence's Residents tab: its beds, then each household living there with how they are related.</summary>
+    void ComposeResidents(GuiComposer composer)
+    {
+        double y = composer.Text(Lang.Get("createacolony:residence-beds", snapshot.ResidenceBeds, snapshot.ResidenceFreeBeds), GuiKit.Body(), 0, 30, Width);
+        y = composer.Text(Lang.Get("createacolony:residence-hint"), GuiKit.Muted(), 0, y, Width, 10);
+        if (snapshot.Households.Count == 0)
+        {
+            composer.Text(Lang.Get("createacolony:residence-empty"), GuiKit.Body(), 0, y, Width);
+            return;
+        }
+
+        int pages = (snapshot.Households.Count + HouseholdsPerPage - 1) / HouseholdsPerPage;
+        page = Math.Clamp(page, 0, pages - 1);
+        foreach (var house in snapshot.Households.Skip(page * HouseholdsPerPage).Take(HouseholdsPerPage))
+        {
+            string title = house.Members.Count > 1 || house.Surname.Length == 0
+                ? Lang.Get("createacolony:residence-household", house.Surname.Length > 0 ? house.Surname : house.Members[0].Name)
+                : Lang.Get("createacolony:residence-single", house.Members[0].Name);
+            // The panel goes down first so the text draws on top of it.
+            double height = 6 + GuiKit.TextHeight(capi, GuiKit.Heading(), title, Width - 20) + 4 + 24 * house.Members.Count
+                + (house.Note.Length > 0 ? 2 + GuiKit.TextHeight(capi, GuiKit.Muted(), house.Note, Width - 40) + 4 : 0);
+            composer.AddInset(ElementBounds.Fixed(0, y, Width, height + 6), 2, 0.6f);
+            y = composer.Text(title, GuiKit.Heading(), 10, y + 6, Width - 20, 4);
+            foreach (var m in house.Members)
+            {
+                string what = m.Child ? Lang.Get("createacolony:child-grows-up", m.GrowsUpHours) : JobName(m.Job);
+                string relation = m.Relation.Length > 0 ? m.Relation : "";
+                y = composer.Row(m.Name + (relation.Length > 0 ? "  (" + relation + ")" : ""), what, 20, y, Width - 40);
+            }
+            if (house.Note.Length > 0) y = composer.Text(house.Note, GuiKit.Muted(), 20, y + 2, Width - 40, 4);
+            y += 14;
+        }
+        composer.Pager(page, pages, y + 4, Width, p => { page = p; Compose(); });
+    }
+
+    static string JobName(string job) => Lang.Get("createacolony:job-" + (job.Length == 0 ? "none" : job));
+
     void ComposeRecruits(GuiComposer composer)
     {
         if (snapshot.Building.Level < 1)

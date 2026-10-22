@@ -94,7 +94,9 @@ public partial class ColonyManager : ModSystem
 
     /// <summary>
     /// Returns the citizen's bed, claiming a free bed inside the colony if they have none. Vanilla beds and
-    /// W4RD0's Furniture beds both count; a furniture double bed takes two settlers.
+    /// W4RD0's Furniture beds both count; a furniture double bed takes two settlers. A settler with a
+    /// partner looks for a bed near the partner's, a child near a parent's; others take a bed in a
+    /// Residence before one elsewhere, nearest the Town Hall.
     /// </summary>
     public BlockPos? EnsureBed(Colony colony, CitizenRecord citizen)
     {
@@ -103,9 +105,15 @@ public partial class ColonyManager : ModSystem
 
         citizen.HomeBedPos = null;
         var taken = BedsTaken(colony);
+        var family = (PartnerOf(colony, citizen) is { Alive: true } partner ? new[] { partner } : Array.Empty<CitizenRecord>())
+            .Concat(citizen.IsChild ? ParentsOf(colony, citizen) : Enumerable.Empty<CitizenRecord>())
+            .Select(c => c.HomeBedPos).FirstOrDefault(p => p != null);
+        var anchor = family ?? colony.TownHallPos;
+        var boxes = ResidenceBoxes(colony);
         BlockEntity? free = FindBlockEntities<BlockEntity>(colony)
             .Where(b => BedPlaces(b) > taken.GetValueOrDefault(b.Pos))
-            .OrderBy(b => b.Pos.DistanceSqTo(colony.TownHallPos.X, colony.TownHallPos.Y, colony.TownHallPos.Z))
+            .OrderBy(b => family == null && ResidenceAt(colony, b.Pos, boxes) == null)
+            .ThenBy(b => b.Pos.DistanceSqTo(anchor.X, anchor.Y, anchor.Z))
             .FirstOrDefault();
         if (free == null) return null;
 
@@ -181,6 +189,7 @@ public partial class ColonyManager : ModSystem
             EnsureCoreBuildings(colony);
             RefreshClaim(colony);
             TickWanderers(colony, now);
+            TickFamilies(colony, now);
             EnsureMinStock(colony);
 
             foreach (var citizen in colony.Citizens.ToList())
@@ -325,23 +334,28 @@ public partial class ColonyManager : ModSystem
     /// Creates a citizen record and its entity, beside the Town Hall or at the given spot. A visitor is
     /// a wanderer asking to join. Returns null if the entity type is missing.
     /// </summary>
-    public CitizenRecord? SpawnSettler(Colony colony, string? name, string? sex = null, Vec3d? at = null, bool visitor = false)
+    public CitizenRecord? SpawnSettler(Colony colony, string? name, string? sex = null, Vec3d? at = null, bool visitor = false, bool child = false)
     {
         sex ??= RandomSex();
-        if (sapi.World.GetEntityType(SettlerCode(sex)) == null)
+        if (sapi.World.GetEntityType(SettlerCode(sex, child)) == null)
         {
-            Mod.Logger.Error("Entity type {0} not found", SettlerCode(sex));
+            Mod.Logger.Error("Entity type {0} not found", SettlerCode(sex, child));
             return null;
         }
+        name ??= RandomName(colony, sex);
+        double now = sapi.World.Calendar.TotalDays;
 
         var record = new CitizenRecord
         {
             CitizenId = colony.NextCitizenId++,
-            Name = name ?? RandomName(colony, sex),
+            Name = name,
+            Surname = SurnameOf(name),
             Sex = sex,
             Saturation = Config.SaturationMax,
             Visitor = visitor,
-            VisitorUntilTotalDays = visitor ? sapi.World.Calendar.TotalDays + Config.WandererWaitDays : 0
+            VisitorUntilTotalDays = visitor ? now + Config.WandererWaitDays : 0,
+            JoinedTotalDays = now,
+            GrowsUpTotalDays = child ? now + Math.Max(0.01, Config.FamilyChildGrowDays) : 0
         };
         colony.Citizens.Add(record);
         SpawnEntityFor(colony, record, at);
@@ -351,7 +365,7 @@ public partial class ColonyManager : ModSystem
     /// <summary>Spawns (or respawns) the entity for an existing citizen record, next to the Town Hall unless a spot is given.</summary>
     public void SpawnEntityFor(Colony colony, CitizenRecord record, Vec3d? at = null)
     {
-        var type = sapi.World.GetEntityType(SettlerCode(record.Sex));
+        var type = sapi.World.GetEntityType(SettlerCode(record.Sex, record.IsChild));
         if (type == null) return;
 
         var entity = (EntitySettler)sapi.World.ClassRegistry.CreateEntity(type);
@@ -374,7 +388,8 @@ public partial class ColonyManager : ModSystem
         return pos.ToVec3d().Add(0.5 + Math.Cos(angle) * 2, 1, 0.5 + Math.Sin(angle) * 2);
     }
 
-    static AssetLocation SettlerCode(string sex) => new AssetLocation(CreateAColonyModSystem.ModId, "settler-" + sex);
+    /// <summary>The entity type of a settler: the small one for children.</summary>
+    static AssetLocation SettlerCode(string sex, bool child = false) => new AssetLocation(CreateAColonyModSystem.ModId, (child ? "settlerchild-" : "settler-") + sex);
 
     static string ClaimDescription(Colony colony) => ClaimDescriptionPrefix + colony.ColonyId;
 

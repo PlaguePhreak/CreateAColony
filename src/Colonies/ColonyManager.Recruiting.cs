@@ -28,8 +28,16 @@ public partial class ColonyManager
 
     // ---- Names ----------------------------------------------------------------------------
 
-    /// <summary>A name from config/settlernames.json nobody in the colony has yet, if there is one.</summary>
+    /// <summary>A first name from config/settlernames.json and a new family name from config/settlersurnames.json.</summary>
     public string RandomName(Colony colony, string sex)
+    {
+        string first = RandomFirstName(colony, sex);
+        string surname = RandomSurname(colony);
+        return surname.Length > 0 ? $"{first} {surname}" : first;
+    }
+
+    /// <summary>A first name from config/settlernames.json nobody in the colony has yet, if there is one.</summary>
+    string RandomFirstName(Colony colony, string sex)
     {
         names ??= sapi.Assets.TryGet(new AssetLocation(CreateAColonyModSystem.ModId, NamesAsset))?.ToObject<Dictionary<string, string[]>>()
             ?? new Dictionary<string, string[]>();
@@ -37,8 +45,8 @@ public partial class ColonyManager
         {
             return Lang.Get("createacolony:settler-default-name", colony.NextCitizenId);
         }
-        var used = new HashSet<string>(colony.Citizens.Where(c => c.Alive).Select(c => c.Name));
-        foreach (var b in colony.Buildings) used.UnionWith(b.Recruits.Select(r => r.Name));
+        var used = new HashSet<string>(colony.Citizens.Where(c => c.Alive).Select(c => FirstNameOf(c)));
+        foreach (var b in colony.Buildings) used.UnionWith(b.Recruits.Select(r => FirstNameOf(r.Name)));
         var free = list.Where(n => !used.Contains(n)).ToArray();
         var pick = free.Length > 0 ? free : list;
         return pick[sapi.World.Rand.Next(pick.Length)];

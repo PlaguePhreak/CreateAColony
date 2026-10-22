@@ -402,3 +402,31 @@ Create a Colony does not need them; without them the tab says they are missing.
 - **Put the colony banner on each building when a builder finishes it** does the same for each finished level,
   including banner poles the builder put up from the blueprint (0.25.0).
 - Officers and the owner can use the tab.
+
+### Families and the Residence (0.27.0)
+
+Settlers have families, as MineColonies citizens do (`src/Colonies/ColonyManager.Families.cs`).
+
+- **Family names.** Every settler has a family name from `config/settlersurnames.json`; settlers from
+  older saves get one the first time the colony loads. Children take their mother's or father's.
+- **Couples.** Once a day, two single adults who have lived in the colony for `FamilyCoupleAfterDays`
+  pair up (`FamilyCouplesPerDay`; `FamilyCouplesAnySex` lets two men or two women pair, but only a man and a
+  woman have children). Never brothers and sisters, nor a parent and child. They move in together: one
+  furniture double bed (W4RD0's Furniture), else beds side by side in the Residence one of them lives in.
+- **Children.** Each day a couple has a `FamilyChildChancePerDay` chance of a child, if both are well and
+  not hungry, they have fewer than `FamilyMaxChildren`, `FamilyChildCooldownDays` have passed since the last
+  one, the colony is below `FamilyMaxColonySize` (0 = no limit) and, with `FamilyChildNeedsFreeBed`, there
+  is a free bed. So housing limits growth. A child is a smaller settler (`entities/settlerchild.json`): no
+  job, it sleeps near its parents, eats, sheds and plays near home. After `FamilyChildGrowDays` it grows up
+  into a normal settler who can be given a job.
+- **Residence** (Fundamentals tab of the Builder's Wand; planks, sticks and dry grass). Settlers who sleep
+  in a bed inside it are its residents; settlers looking for a bed take one in a Residence first. Its
+  window has a **Residents** tab with each household (a couple and their children, or someone on their
+  own), jobs, how long children take to grow up and whether a couple can have a child right now. Level 1
+  is a placeholder 7x4x7 room with two hay beds.
+- **Settler window**: a Family section under Work shows their Residence, partner, parents, children,
+  brothers and sisters, and for a couple whether a child may come. The Town Hall's Citizens tab shows
+  children with their time to grow up instead of a job.
+- `/colony family couple <name> <name>`, `/colony family child <name>` (the couple has a child now, if the
+  real limits allow) and `/colony family grow <name>` are admin test commands. Names can be first names.
+- `Families: false` in the config stops new couples and children.

@@ -99,6 +99,12 @@ public class CreateAColonyModSystem : ModSystem
                 .RequiresPrivilege(Privilege.controlserver)
                 .HandleWith(OnWanderer)
             .EndSubCommand()
+            .BeginSubCommand("family")
+                .WithDescription("Families, for testing: couple two settlers, give a couple a child, or make a child grow up")
+                .RequiresPrivilege(Privilege.controlserver)
+                .WithArgs(parsers.WordRange("action", "couple", "child", "grow"), parsers.Word("settler"), parsers.OptionalWord("partner"))
+                .HandleWith(OnFamily)
+            .EndSubCommand()
             .BeginSubCommand("invite")
                 .WithDescription("Invite an online player to join your colony")
                 .WithArgs(parsers.OnlinePlayer("player"))
@@ -261,6 +267,51 @@ public class CreateAColonyModSystem : ModSystem
         if (record == null) return TextCommandResult.Error("Settler entity type not found, see server log");
 
         return TextCommandResult.Success(Lang.Get("createacolony:recruited", record.Name));
+    }
+
+    /// <summary>
+    /// /colony family couple A B, /colony family child A (A and their partner have a child), /colony family grow A:
+    /// family events at once, for testing. Settlers are found by first or full name.
+    /// </summary>
+    TextCommandResult OnFamily(TextCommandCallingArgs args)
+    {
+        var player = (IServerPlayer)args.Caller.Player;
+        var manager = sapi!.ModLoader.GetModSystem<ColonyManager>();
+        var colony = manager.GetOwnedBy(player.PlayerUID);
+        if (colony == null) return TextCommandResult.Error(Lang.Get("createacolony:no-colony"));
+
+        CitizenRecord? Find(string? name) => name == null ? null : colony.Citizens.Find(c => c.Alive && !c.Visitor
+            && (c.Name.Equals(name, StringComparison.OrdinalIgnoreCase) || c.Name.Split(' ')[0].Equals(name, StringComparison.OrdinalIgnoreCase)));
+        string action = (string)args[0];
+        var a = Find(args[1] as string);
+        if (a == null) return TextCommandResult.Error(Lang.Get("createacolony:family-cmd-notfound", args[1]));
+        double now = sapi.World.Calendar.TotalDays;
+
+        switch (action)
+        {
+            case "couple":
+                var b = Find(args[2] as string);
+                if (b == null) return TextCommandResult.Error(Lang.Get("createacolony:family-cmd-notfound", args[2] ?? ""));
+                if (a == b || a.IsChild || b.IsChild || manager.PartnerOf(colony, a) is { Alive: true } || manager.PartnerOf(colony, b) is { Alive: true }
+                    || a.ParentIds.Contains(b.CitizenId) || b.ParentIds.Contains(a.CitizenId) || a.ParentIds.Intersect(b.ParentIds).Any())
+                {
+                    return TextCommandResult.Error(Lang.Get("createacolony:family-cmd-bad-couple"));
+                }
+                manager.MakeCouple(colony, a, b);
+                return TextCommandResult.Success(Lang.Get("createacolony:family-cmd-couple", a.Name, b.Name));
+            case "child":
+                if (manager.PartnerOf(colony, a) is not { Alive: true } partner) return TextCommandResult.Error(Lang.Get("createacolony:family-cmd-cant", Lang.Get("createacolony:citizen-no-family")));
+                // The test command skips the waiting time and the dice, but not the real limits.
+                a.LastChildTotalDays = partner.LastChildTotalDays = now - manager.Config.FamilyChildCooldownDays - 1;
+                if (manager.ChildBlocker(colony, a, partner, now) is { } why) return TextCommandResult.Error(Lang.Get("createacolony:family-cmd-cant", Lang.Get(why)));
+                var mother = a.Sex == "female" ? a : partner;
+                var child = manager.HaveChild(colony, mother, mother == a ? partner : a);
+                return child == null ? TextCommandResult.Error("Settler entity type not found, see server log") : TextCommandResult.Success(Lang.Get("createacolony:family-cmd-child", child.Name));
+            default:
+                if (!a.IsChild) return TextCommandResult.Error(Lang.Get("createacolony:family-cmd-nochild", a.Name));
+                manager.GrowUp(colony, a);
+                return TextCommandResult.Success(Lang.Get("createacolony:family-cmd-grow", a.Name));
+        }
     }
 
     TextCommandResult OnWanderer(TextCommandCallingArgs args)

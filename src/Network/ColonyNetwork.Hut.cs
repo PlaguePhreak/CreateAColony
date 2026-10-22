@@ -127,7 +127,7 @@ public partial class ColonyNetwork
         {
             var workers = Manager.WorkersAt(colony, building);
             snapshot.Workers = workers.Select(c => new CitizenView { CitizenId = c.CitizenId, Name = c.Name, Job = c.JobCode ?? "" }).ToList();
-            snapshot.Candidates = colony.Citizens.Where(c => c.Alive && !c.Visitor && !workers.Contains(c)).OrderBy(c => c.JobCode != null).ThenBy(c => c.Name)
+            snapshot.Candidates = colony.Citizens.Where(c => c.Alive && !c.Visitor && !c.IsChild && !workers.Contains(c)).OrderBy(c => c.JobCode != null).ThenBy(c => c.Name)
                 .Select(c => new CitizenView { CitizenId = c.CitizenId, Name = c.Name, Job = c.JobCode ?? "" }).ToList();
         }
         if (snapshot.HasStorage)
