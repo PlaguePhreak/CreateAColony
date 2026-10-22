@@ -242,10 +242,10 @@ public class HutSnapshot
     [ProtoMember(49)] public List<CreateAColony.Colonies.MinStockEntry> MinStock = new();
     [ProtoMember(50)] public List<StatView> Stats = new();
     /// <summary>A Residence, whose window has a Residents tab: the households living there and its beds.</summary>
-    [ProtoMember(51)] public bool IsResidence;
-    [ProtoMember(52)] public List<HouseholdView> Households = new();
-    [ProtoMember(53)] public int ResidenceBeds;
-    [ProtoMember(54)] public int ResidenceFreeBeds;
+    [ProtoMember(52)] public bool IsResidence;
+    [ProtoMember(53)] public List<HouseholdView> Households = new();
+    [ProtoMember(54)] public int ResidenceBeds;
+    [ProtoMember(55)] public int ResidenceFreeBeds;
     /// <summary>The hut block's position, so the window can show patrol points relative to it.</summary>
     [ProtoMember(51)] public BlockPos HutPos = new BlockPos(0);
 }

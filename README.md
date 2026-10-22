@@ -403,7 +403,7 @@ Create a Colony does not need them; without them the tab says they are missing.
   including banner poles the builder put up from the blueprint (0.25.0).
 - Officers and the owner can use the tab.
 
-### Families and the Residence (0.27.0)
+### Families and the Residence (0.27.0, fixed in 0.27.1)
 
 Settlers have families, as MineColonies citizens do (`src/Colonies/ColonyManager.Families.cs`).
 
