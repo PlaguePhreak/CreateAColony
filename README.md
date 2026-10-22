@@ -99,6 +99,10 @@ with an axe and stone or ore with a pickaxe, of at least the block's mining tier
 down as they work. Put tools in the hut's storage or the warehouse; couriers bring missing ones. Set
 `BuildersNeedTools` to false in `ModConfig/createacolony.json` to turn this off.
 
+A builder works on each block from the ground below it, beside it, so roofs and the tops of walls are
+built from underneath. It can reach `BuilderReach` (12) blocks; a block further than that from anywhere
+the builder can stand shows as unreachable.
+
 ### Foresters and farmers
 
 Place a **Forester's Hut** (planks, sticks and firewood) or a **Farmer's Hut** (planks, sticks and

@@ -21,8 +21,8 @@ public class AiTaskSettlerBuilder : SettlerTaskBase
     const long WaitRetryMs = 15_000;
     /// <summary>How close a builder must stand to place or clear a block.</summary>
     const float WorkRange = 4.5f;
-    /// <summary>If no path gets closer, a builder still works on blocks this close, so it never gets stuck on its own walls.</summary>
-    const float StretchRange = 8f;
+    /// <summary>How far below a block a builder looks for the ground to stand on while working on it.</summary>
+    const int GroundSearchDepth = 12;
 
     enum Step { Fetch, Stash, FetchTool, Work, StepAside }
 
@@ -153,8 +153,39 @@ public class AiTaskSettlerBuilder : SettlerTaskBase
             WalkTo(stepAsideTo, 0.1f);
             return;
         }
-        float range = step switch { Step.Work => WorkRange - 1, _ => 1.5f };
-        WalkTo(target.ToVec3d().Add(0.5, 0, 0.5), range);
+        if (step == Step.Work)
+        {
+            WalkTo(WorkSpot(), 1f);
+            return;
+        }
+        WalkTo(target.ToVec3d().Add(0.5, 0, 0.5), 1.5f);
+    }
+
+    /// <summary>
+    /// Where to stand to work on the target: on the ground below it, beside it. A block high up (a roof,
+    /// the top of a wall) is worked on from the ground underneath, within the builder's reach.
+    /// </summary>
+    Vec3d WorkSpot()
+    {
+        var ba = entity.World.BlockAccessor;
+        var ground = target.Copy();
+        for (int i = 0; i < GroundSearchDepth && ground.Y > 1; i++)
+        {
+            var below = ground.DownCopy();
+            var boxes = ba.GetBlock(below).GetCollisionBoxes(ba, below);
+            if (boxes != null && boxes.Length > 0) break;
+            ground = below;
+        }
+        return manager!.FreeSpotNear(entity, ground, 3, target) ?? target.ToVec3d().Add(0.5, 0, 0.5);
+    }
+
+    bool InReach() => entity.Pos.XYZ.DistanceTo(target.ToVec3d().Add(0.5, 0.5, 0.5)) <= manager!.Config.BuilderReach;
+
+    void MarkUnreachable()
+    {
+        var o = Colony?.Buildings.Find(b => b.BuildingId == orderId);
+        if (o != null) manager!.BuildStatus[o.BuildingId] = "unreachable";
+        nextSearchMs = entity.World.ElapsedMilliseconds + WaitRetryMs;
     }
 
     public override bool ContinueExecute(float dt)
@@ -164,11 +195,10 @@ public class AiTaskSettlerBuilder : SettlerTaskBase
             if (PathFailed)
             {
                 // A failed step aside falls through: the StepAside step shuffles the builder over itself.
-                if (step != Step.StepAside && (step != Step.Work || entity.Pos.XYZ.DistanceTo(target.ToVec3d().Add(0.5, 0.5, 0.5)) > StretchRange))
+                // If no path gets closer, a builder still works on blocks within reach, so it never gets stuck on its own walls.
+                if (step != Step.StepAside && (step != Step.Work || !InReach()))
                 {
-                    var o = Colony?.Buildings.Find(b => b.BuildingId == orderId);
-                    if (o != null) manager!.BuildStatus[o.BuildingId] = "unreachable";
-                    nextSearchMs = entity.World.ElapsedMilliseconds + WaitRetryMs;
+                    MarkUnreachable();
                     return false;
                 }
             }
@@ -179,6 +209,12 @@ public class AiTaskSettlerBuilder : SettlerTaskBase
             }
             StopWalking();
             walking = false;
+            // Standing on the ground below a block can still leave it out of reach (too high up).
+            if (step == Step.Work && !InReach())
+            {
+                MarkUnreachable();
+                return false;
+            }
         }
 
         var colony = Colony;
