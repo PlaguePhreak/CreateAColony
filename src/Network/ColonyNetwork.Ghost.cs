@@ -14,15 +14,15 @@ namespace CreateAColony.Network;
 /// import tool shows a schematic. It works the same way WorldEdit does: each player gets a preview
 /// mini-dimension on the server, the blueprint's blocks are put in it, the game sends its chunks to the
 /// client like any other chunks, and the client draws that mini-dimension at the building's spot with the
-/// game's preview transparency. Turning the building refills the blocks; nudging or raising it only
-/// moves where the client draws them.
+/// game's preview transparency. Every change (turning, moving, another level) makes the preview afresh,
+/// as WorldEdit's CreatePreview does: only moving where the client draws it left the old copy on screen.
 /// </summary>
 public partial class ColonyNetwork
 {
     const string GhostDimsKey = "createacolony-ghostdims";
 
-    /// <summary>Each player's preview mini-dimension, and the blueprint in it right now (null when empty).</summary>
-    readonly Dictionary<string, (IMiniDimension Dim, Blueprint? Shown)> ghosts = new();
+    /// <summary>Each player's preview mini-dimension, and the blueprint and spot in it right now (null when empty).</summary>
+    readonly Dictionary<string, (IMiniDimension Dim, Blueprint? Shown, BlockPos? At)> ghosts = new();
     /// <summary>The mini-dimension number each player was given, kept in the save so it is reused after a restart.</summary>
     Dictionary<string, int>? ghostDimIds;
 
@@ -50,14 +50,15 @@ public partial class ColonyNetwork
         {
             int minX = solid.Min(s => s.Dx), minY = solid.Min(s => s.Dy), minZ = solid.Min(s => s.Dz);
             var dim = GhostDimension(player);
-            if (!ReferenceEquals(ghosts[player.PlayerUID].Shown, blueprint))
-            {
-                FillGhost(dim, solid, minX, minY, minZ);
-                ghosts[player.PlayerUID] = (dim, blueprint);
-            }
             // The corner of the blueprint is where the mini-dimension's first block is drawn.
             var origin = Manager.StepPos(building, new BuildStep(minX, minY, minZ, 0));
-            dim.CurrentPos.SetPos(origin.ToVec3d());
+            var shown = ghosts[player.PlayerUID];
+            // The window refreshes without changes too; only a real change remakes the preview.
+            if (ReferenceEquals(shown.Shown, blueprint) && origin.Equals(shown.At)) return true;
+            dim.ClearChunks();
+            dim.CurrentPos.SetPos(origin);
+            FillGhost(dim, solid, minX, minY, minZ);
+            ghosts[player.PlayerUID] = (dim, blueprint, origin.Copy());
             serverChannel!.SendPacket(new GhostPreviewPacket { DimId = dim.subDimensionId, X = origin.X, Y = origin.Y, Z = origin.Z }, player);
             return true;
         }
@@ -72,7 +73,6 @@ public partial class ColonyNetwork
     /// <summary>Puts the blueprint's blocks in the mini-dimension, its corner at the mini-dimension's origin.</summary>
     void FillGhost(IMiniDimension dim, List<BuildStep> solid, int minX, int minY, int minZ)
     {
-        dim.ClearChunks();
         var corner = new BlockPos(0, 0, 0, Dimensions.MiniDimensions);
         dim.AdjustPosForSubDimension(corner);
         foreach (var step in solid)
@@ -108,7 +108,7 @@ public partial class ColonyNetwork
         dim.SetSubDimensionId(id);
         // Marks it as a preview: nothing in it ticks, on the server or the client.
         dim.BlocksPreviewSubDimension_Server = id;
-        ghosts[uid] = (dim, null);
+        ghosts[uid] = (dim, null, null);
         return dim;
     }
 
@@ -120,7 +120,7 @@ public partial class ColonyNetwork
         {
             ghost.Dim.ClearChunks();
             ghost.Dim.UnloadUnusedServerChunks();
-            ghosts[player.PlayerUID] = (ghost.Dim, null);
+            ghosts[player.PlayerUID] = (ghost.Dim, null, null);
         }
         serverChannel!.SendPacket(new GhostPreviewPacket { DimId = -1 }, player);
     }
@@ -131,7 +131,7 @@ public partial class ColonyNetwork
         if (!ghosts.TryGetValue(uid, out var ghost)) return;
         ghost.Dim.ClearChunks();
         ghost.Dim.UnloadUnusedServerChunks();
-        ghosts[uid] = (ghost.Dim, null);
+        ghosts[uid] = (ghost.Dim, null, null);
     }
 
     // ---- Client ---------------------------------------------------------------------------
@@ -152,8 +152,8 @@ public partial class ColonyNetwork
         }
         var pos = new BlockPos(packet.X, packet.Y, packet.Z);
         world.SetBlocksPreviewDimension(packet.DimId);
+        // Exactly as WorldEdit's client does it: the game places the mini-dimension at pos.
         var dim = world.GetOrCreateDimension(packet.DimId, pos.ToVec3d());
-        dim.CurrentPos.SetPos(pos.ToVec3d());
         dim.selectionTrackingOriginalPos = pos;
         dim.TrackSelection = false;
         shownGhost = packet.DimId;
