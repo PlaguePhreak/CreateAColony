@@ -76,6 +76,33 @@ public partial class ColonyManager
     }
 
     /// <summary>
+    /// Gives a block in a ghost preview its saved details, so roofs, furniture and banners look as they will
+    /// when built. Only for looks: nothing in a preview ticks or can be used.
+    /// </summary>
+    public void GhostDetails(IBlockAccessor ba, BuildStep step, BlockPos pos)
+    {
+        if (step.Saved is not { } saved) return;
+        var block = ba.GetBlock(pos);
+        var be = ba.GetBlockEntity(pos);
+        if (be == null || block.EntityClass != sapi.World.ClassRegistry.GetBlockEntityClass(be.GetType())) return;
+        try
+        {
+            var tree = saved.Tree();
+            tree.SetInt("posx", pos.X);
+            tree.SetInt("posy", pos.InternalY);
+            tree.SetInt("posz", pos.Z);
+            tree.SetString("blockCode", block.Code.ToShortString());
+            be.FromTreeAttributes(tree, sapi.World);
+            be.OnLoadCollectibleMappings(sapi.World, saved.Source.BlockCodes, saved.Source.ItemCodes, 0, false);
+            be.MarkDirty(true);
+        }
+        catch (Exception e)
+        {
+            sapi.Logger.VerboseDebug("[createacolony] Ghost preview without the saved details of {0}: {1}", block.Code, e.Message);
+        }
+    }
+
+    /// <summary>
     /// A door turned the way the blueprint has it: its hit boxes follow the turn, it pairs with a door beside it,
     /// and its top half goes in, as when a player hangs it.
     /// </summary>

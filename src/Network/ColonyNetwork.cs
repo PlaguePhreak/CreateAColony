@@ -46,7 +46,8 @@ public partial class ColonyNetwork : ModSystem
             .RegisterMessageType<HutSnapshot>()
             .RegisterMessageType<CitizenSnapshot>()
             .RegisterMessageType<PlacementSnapshot>()
-            .RegisterMessageType<WandChooserSnapshot>();
+            .RegisterMessageType<WandChooserSnapshot>()
+            .RegisterMessageType<GhostPreviewPacket>();
     }
 
     // ---- Server ---------------------------------------------------------------------------
@@ -74,6 +75,7 @@ public partial class ColonyNetwork : ModSystem
             foreach (var viewers in viewersByColony.Values) viewers.Remove(player.PlayerUID);
             hutViewers.Remove(player.PlayerUID);
             placementViewers.Remove(player.PlayerUID);
+            ForgetGhost(player.PlayerUID);
             planned.Remove(player.PlayerUID);
             wandSpots.Remove(player.PlayerUID);
             citizenViewers.Remove(player.PlayerUID);
@@ -731,7 +733,8 @@ public partial class ColonyNetwork : ModSystem
             .SetMessageHandler<HutSnapshot>(OnHutSnapshot)
             .SetMessageHandler<CitizenSnapshot>(OnCitizenSnapshot)
             .SetMessageHandler<PlacementSnapshot>(OnPlacementSnapshot)
-            .SetMessageHandler<WandChooserSnapshot>(OnWandChooserSnapshot);
+            .SetMessageHandler<WandChooserSnapshot>(OnWandChooserSnapshot)
+            .SetMessageHandler<GhostPreviewPacket>(OnGhostPreview);
     }
 
     /// <summary>Called by the Town Hall block when a player right-clicks it.</summary>

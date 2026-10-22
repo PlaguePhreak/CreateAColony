@@ -15,8 +15,11 @@ public partial class ColonyManager
     static readonly int OutlineBlocked = ColorUtil.ColorFromRgba(255, 70, 60, 130);
     static readonly (int, int, int)[] Neighbours = { (1, 0, 0), (-1, 0, 0), (0, 1, 0), (0, -1, 0), (0, 0, 1), (0, 0, -1) };
 
-    /// <summary>The outline blocks with their colours, and how many of them are in the way. At most max blocks.</summary>
-    public (List<BlockPos> Positions, List<int> Colors, int Blocked, int Total) Outline(Building building, Blueprint blueprint, int max)
+    /// <summary>
+    /// The outline blocks with their colours, and how many of them are in the way. At most max blocks. With
+    /// blockedOnly (beside a ghost preview) only the blocks in the way are listed, inside the walls too.
+    /// </summary>
+    public (List<BlockPos> Positions, List<int> Colors, int Blocked, int Total) Outline(Building building, Blueprint blueprint, int max, bool blockedOnly = false)
     {
         var ba = sapi.World.BlockAccessor;
         var solid = blueprint.Steps.Where(s => s.BlockId != 0).ToList();
@@ -27,13 +30,13 @@ public partial class ColonyManager
         foreach (var step in solid)
         {
             // Blocks buried inside the building would only hide the shell.
-            if (Neighbours.All(n => filled.Contains((step.Dx + n.Item1, step.Dy + n.Item2, step.Dz + n.Item3)))) continue;
+            if (!blockedOnly && Neighbours.All(n => filled.Contains((step.Dx + n.Item1, step.Dy + n.Item2, step.Dz + n.Item3)))) continue;
             var pos = StepPos(building, step);
             if (pos.Equals(building.HutPos)) continue;
             var existing = ba.GetBlock(pos);
             bool inTheWay = existing.Id != 0 && existing.Id != step.BlockId && existing.Replaceable < 6000;
             if (inTheWay) blocked++;
-            if (positions.Count >= max) continue;
+            if (positions.Count >= max || (blockedOnly && !inTheWay)) continue;
             positions.Add(pos);
             colors.Add(inTheWay ? OutlineBlocked : OutlineFree);
         }

@@ -218,6 +218,13 @@ Right-clicking an existing hut, the Town Hall or the Warehouse with the wand sho
 lets you turn and move the building (up to 8 blocks up or down, 16 to the sides) until its first
 level is ordered; **Build here** orders it and **Not here** gives a hut back.
 
+The preview is a **ghost** of the building: its real blocks, see-through, as the WorldEdit import tool
+shows a schematic (roofs, doors and furniture included). Blocks in the way are still marked red and the
+building's block yellow. Turning the building redraws the ghost; moving it only shifts it, so even the
+biggest Town Hall moves smoothly. The game's own "preview transparency" setting decides how see-through
+it is. Set `PlacementPreview` in the mod config to `"outline"` for the old blue outline, or `"both"`
+for the two together; if the ghost cannot be made for some reason, the outline is shown instead.
+
 ### Work area and guards
 
 Forester's and Farmer's Huts have a **Work area** tab in their window (officers change it):

@@ -404,6 +404,20 @@ public class WandChooserSnapshot
     [ProtoMember(4)] public string Style = "";
 }
 
+/// <summary>
+/// Where the ghost preview of a building stands. Its blocks travel to the client in the player's preview
+/// mini-dimension, like the WorldEdit import preview; this only tells the client which one it is and where
+/// to draw it. DimId -1 hides it.
+/// </summary>
+[ProtoContract]
+public class GhostPreviewPacket
+{
+    [ProtoMember(1)] public int DimId = -1;
+    [ProtoMember(2)] public int X;
+    [ProtoMember(3)] public int Y;
+    [ProtoMember(4)] public int Z;
+}
+
 /// <summary>What the placement window shows for one building while its outline is on screen.</summary>
 [ProtoContract]
 public class PlacementSnapshot

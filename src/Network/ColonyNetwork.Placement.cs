@@ -34,7 +34,7 @@ public partial class ColonyNetwork
     {
         int level = Manager.Blueprints.MaxLevel(building);
         var blueprint = level > 0 ? Manager.Blueprints.Get(building, level) : null;
-        var outline = blueprint == null ? (new List<BlockPos>(), new List<int>(), 0, 0) : Manager.Outline(building, blueprint, MaxOutlineBlocks);
+        var outline = PreviewBuilding(player, building, blueprint);
         sapi!.World.HighlightBlocks(player, OutlineSlot, outline.Item1, outline.Item2, EnumHighlightBlocksMode.Absolute, EnumHighlightShape.Arbitrary);
         placementViewers[player.PlayerUID] = (colony.ColonyId, building.BuildingId);
 
@@ -58,8 +58,24 @@ public partial class ColonyNetwork
         }, player);
     }
 
+    /// <summary>
+    /// Shows the building's ghost (or its outline, if the ghost is off or fails) and returns the outline
+    /// blocks to highlight: all of them for the outline, only the ones in the way beside the ghost.
+    /// </summary>
+    (List<BlockPos>, List<int>, int, int) PreviewBuilding(IServerPlayer player, Building building, Blueprint? blueprint)
+    {
+        if (blueprint == null)
+        {
+            HideGhost(player);
+            return (new List<BlockPos>(), new List<int>(), 0, 0);
+        }
+        bool ghost = ShowGhost(player, building, blueprint);
+        return Manager.Outline(building, blueprint, MaxOutlineBlocks, blockedOnly: ghost && !OutlineToo);
+    }
+
     void ClearOutline(IServerPlayer player)
     {
+        HideGhost(player);
         sapi!.World.HighlightBlocks(player, OutlineSlot, new List<BlockPos>(), new List<int>());
         placementViewers.Remove(player.PlayerUID);
     }

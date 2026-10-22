@@ -159,7 +159,7 @@ public partial class ColonyNetwork
         var building = new Building { Type = plan.Type, HutPos = plan.Pos.Copy(), Rotation = plan.Rotation, Style = plan.Style };
         int level = Manager.Blueprints.MaxLevel(building);
         var blueprint = level > 0 ? Manager.Blueprints.Get(building, level) : null;
-        var outline = blueprint == null ? (new List<BlockPos>(), new List<int>(), 0, 0) : Manager.Outline(building, blueprint, MaxOutlineBlocks);
+        var outline = PreviewBuilding(player, building, blueprint);
         // The spot the building's block goes, in yellow.
         outline.Item1.Add(plan.Pos.Copy());
         outline.Item2.Add(ColorUtil.ColorFromRgba(255, 220, 60, 160));
