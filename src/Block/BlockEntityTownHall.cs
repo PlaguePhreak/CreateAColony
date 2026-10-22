@@ -46,9 +46,9 @@ public class BlockEntityTownHall : BlockEntity
         if (mesh == null || meshRotation != Rotation)
         {
             tesselator.TesselateBlock(Block, out var turned);
-            // Blueprint rotation 90 faces a player looking north. The model's front is a quarter turn to the
-            // left of the blueprints' front, so it gets a further 90 degrees clockwise (a negative turn).
-            turned.Rotate(new Vec3f(0.5f, 0.5f, 0.5f), 0, (Rotation - 90 - 90) * GameMath.DEG2RAD, 0);
+            // Blueprint rotation 90 faces a player looking north. The model's front is a quarter turn away
+            // from the blueprints' front, so it gets a further 90 degrees (checked in game by Aaron).
+            turned.Rotate(new Vec3f(0.5f, 0.5f, 0.5f), 0, (Rotation - 90 + 90) * GameMath.DEG2RAD, 0);
             mesh = turned;
             meshRotation = Rotation;
         }
