@@ -489,6 +489,12 @@ public class PlacementSnapshot
     [ProtoMember(16)] public string Style = "";
     /// <summary>The highest level the building's blueprints go to; ShownLevel is picked from 1 to this.</summary>
     [ProtoMember(17)] public int MaxLevel;
+    /// <summary>The names of the buildings nearby that the shown level would overlap.</summary>
+    [ProtoMember(18)] public List<string> Overlaps = new();
+    /// <summary>The names of the buildings nearby it would overlap once they are upgraded to their top level.</summary>
+    [ProtoMember(19)] public List<string> OverlapsLater = new();
+    /// <summary>How many buildings nearby have their outlines shown.</summary>
+    [ProtoMember(20)] public int Nearby;
 }
 
 /// <summary>A change requested from the Town Hall window. The server checks permissions before applying it.</summary>

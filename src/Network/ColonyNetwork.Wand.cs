@@ -168,9 +168,9 @@ public partial class ColonyNetwork
         var blueprint = level > 0 ? Manager.Blueprints.Get(building, level) : null;
         var outline = PreviewBuilding(player, building, blueprint);
         // The spot the building's block goes, in yellow.
-        outline.Item1.Add(plan.Pos.Copy());
-        outline.Item2.Add(ColorUtil.ColorFromRgba(255, 220, 60, 160));
-        sapi!.World.HighlightBlocks(player, OutlineSlot, outline.Item1, outline.Item2, EnumHighlightBlocksMode.Absolute, EnumHighlightShape.Arbitrary);
+        outline.Positions.Add(plan.Pos.Copy());
+        outline.Colors.Add(ColorUtil.ColorFromRgba(255, 220, 60, 160));
+        sapi!.World.HighlightBlocks(player, OutlineSlot, outline.Positions, outline.Colors, EnumHighlightBlocksMode.Absolute, EnumHighlightShape.Arbitrary);
 
         serverChannel!.SendPacket(new PlacementSnapshot
         {
@@ -178,8 +178,11 @@ public partial class ColonyNetwork
             Rotation = plan.Rotation,
             ShownLevel = blueprint == null ? 0 : level,
             MaxLevel = max,
-            Blocks = outline.Item4,
-            Blocked = outline.Item3,
+            Blocks = outline.Total,
+            Blocked = outline.Blocked,
+            Overlaps = outline.Overlaps,
+            OverlapsLater = outline.OverlapsLater,
+            Nearby = outline.Nearby,
             CanAdjust = true,
             CanOrder = true,
             Planned = true,

@@ -322,4 +322,12 @@ public class ColonyConfig
     /// the ghost cannot be made, the outline is shown instead.
     /// </summary>
     public string PlacementPreview = "ghost";
+    /// <summary>
+    /// While a building is being placed, the colonies' buildings within this many blocks of it show box
+    /// outlines (purple, orange where the new one would overlap), so buildings can go right next to each
+    /// other. 0 turns this off.
+    /// </summary>
+    public int NearbyOutlineRange = 32;
+    /// <summary>At most this many nearby buildings get an outline, the nearest first.</summary>
+    public int NearbyOutlineMax = 30;
 }

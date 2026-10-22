@@ -229,6 +229,12 @@ building's block yellow. Every turn, move or level change redraws the ghost wher
 it is. Set `PlacementPreview` in the mod config to `"outline"` for the old blue outline, or `"both"`
 for the two together; if the ghost cannot be made for some reason, the outline is shown instead.
 
+While you place a building, the colony's other buildings close by get **box outlines** so you can set
+the new one right beside them: purple for the size they are now (or are being built to), faint purple
+for the size they grow to at their top level, and orange for any the new building would overlap. The
+placement window names the buildings it overlaps. `NearbyOutlineRange` (default 32 blocks, 0 = off) and
+`NearbyOutlineMax` (default 30) in the mod config change how far and how many.
+
 ### Work area and guards
 
 Forester's and Farmer's Huts have a **Work area** tab in their window (officers change it):

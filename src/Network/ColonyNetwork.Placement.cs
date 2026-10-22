@@ -22,6 +22,8 @@ public partial class ColonyNetwork
     /// <summary>The highlight slot the outline uses, so it never clears another mod's highlight.</summary>
     const int OutlineSlot = 7410;
     const int MaxOutlineBlocks = 30000;
+    /// <summary>Room for the outlines of the buildings nearby, on top of the building's own.</summary>
+    const int MaxNearbyBlocks = 20000;
     const int MaxYOffset = 8;
     const int MaxNudge = 16;
 
@@ -45,7 +47,7 @@ public partial class ColonyNetwork
         int level = PreviewLevel(picked, max);
         var blueprint = level > 0 ? Manager.Blueprints.Get(building, level) : null;
         var outline = PreviewBuilding(player, building, blueprint);
-        sapi!.World.HighlightBlocks(player, OutlineSlot, outline.Item1, outline.Item2, EnumHighlightBlocksMode.Absolute, EnumHighlightShape.Arbitrary);
+        sapi!.World.HighlightBlocks(player, OutlineSlot, outline.Positions, outline.Colors, EnumHighlightBlocksMode.Absolute, EnumHighlightShape.Arbitrary);
         placementViewers[player.PlayerUID] = (colony.ColonyId, building.BuildingId);
 
         var role = colony.RoleOf(player.PlayerUID);
@@ -60,8 +62,11 @@ public partial class ColonyNetwork
             ZOffset = building.ZOffset,
             ShownLevel = blueprint == null ? 0 : level,
             MaxLevel = max,
-            Blocks = outline.Item4,
-            Blocked = outline.Item3,
+            Blocks = outline.Total,
+            Blocked = outline.Blocked,
+            Overlaps = outline.Overlaps,
+            OverlapsLater = outline.OverlapsLater,
+            Nearby = outline.Nearby,
             CanAdjust = role >= ColonyRole.Member && building.Level == 0 && !building.HasWorkOrder,
             CanOrder = role >= ColonyRole.Officer && !building.HasWorkOrder && building.Level < max,
             OpenWindow = openWindow,
@@ -69,19 +74,25 @@ public partial class ColonyNetwork
         }, player);
     }
 
+    /// <summary>What the preview shows: the blocks to highlight, how many are in the way, and the buildings nearby.</summary>
+    record Preview(List<BlockPos> Positions, List<int> Colors, int Blocked, int Total, List<string> Overlaps, List<string> OverlapsLater, int Nearby);
+
     /// <summary>
     /// Shows the building's ghost (or its outline, if the ghost is off or fails) and returns the outline
-    /// blocks to highlight: all of them for the outline, only the ones in the way beside the ghost.
+    /// blocks to highlight: all of them for the outline, only the ones in the way beside the ghost. The
+    /// outlines of the buildings nearby are added, so the new one can be set right beside them.
     /// </summary>
-    (List<BlockPos>, List<int>, int, int) PreviewBuilding(IServerPlayer player, Building building, Blueprint? blueprint)
+    Preview PreviewBuilding(IServerPlayer player, Building building, Blueprint? blueprint)
     {
         if (blueprint == null)
         {
             HideGhost(player);
-            return (new List<BlockPos>(), new List<int>(), 0, 0);
+            return new Preview(new List<BlockPos>(), new List<int>(), 0, 0, new List<string>(), new List<string>(), 0);
         }
         bool ghost = ShowGhost(player, building, blueprint);
-        return Manager.Outline(building, blueprint, MaxOutlineBlocks, blockedOnly: ghost && !OutlineToo);
+        var (positions, colors, blocked, total) = Manager.Outline(building, blueprint, MaxOutlineBlocks, blockedOnly: ghost && !OutlineToo);
+        var (overlaps, later, nearby) = Manager.NearbyOutlines(building, blueprint, positions, colors, MaxOutlineBlocks + MaxNearbyBlocks);
+        return new Preview(positions, colors, blocked, total, overlaps, later, nearby);
     }
 
     void ClearOutline(IServerPlayer player)

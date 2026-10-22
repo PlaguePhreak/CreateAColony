@@ -67,6 +67,21 @@ public class GuiDialogPlacement : GuiDialog
         composer.Text(state, GuiKit.Body(), 10, inner, Width - 20, 0);
         y += panel + 10;
 
+        // The buildings nearby, outlined so this one can go right beside them, and any it would overlap.
+        if (snapshot.Overlaps.Count > 0)
+        {
+            y = composer.Text(Lang.Get("createacolony:placement-overlap", string.Join(", ", snapshot.Overlaps)), GuiKit.Body().WithColor(GuiKit.WarnColor), 0, y, Width, 4);
+        }
+        if (snapshot.OverlapsLater.Count > 0)
+        {
+            y = composer.Text(Lang.Get("createacolony:placement-overlap-later", string.Join(", ", snapshot.OverlapsLater)), GuiKit.Detail().WithColor(GuiKit.WarnColor), 0, y, Width, 4);
+        }
+        if (snapshot.Nearby > 0)
+        {
+            y = composer.Text(Lang.Get("createacolony:placement-nearby", snapshot.Nearby), GuiKit.Muted(), 0, y, Width, 4);
+        }
+        if (snapshot.Overlaps.Count + snapshot.OverlapsLater.Count + snapshot.Nearby > 0) y += 6;
+
         // Flip through the building's levels to see each one where it would stand.
         if (snapshot.MaxLevel > 1)
         {
