@@ -64,6 +64,41 @@ public partial class ColonyManager
     List<(BlockPos Min, BlockPos Max)> DigProtected(Colony colony) =>
         colony.Buildings.Select(b => BuildingBox(b)).ToList();
 
+    /// <summary>
+    /// What a hut's worker may not dig at its own dig site. Usually every building's box. When the hut's
+    /// blueprint marks the site with a waypoint, the site is inside the hut's own box, so that box is left
+    /// open and only the blocks its blueprint builds (Keep) are spared.
+    /// </summary>
+    (List<(BlockPos Min, BlockPos Max)> Boxes, HashSet<BlockPos> Keep) DigLimits(Colony colony, Building hut, bool marked)
+    {
+        var keep = new HashSet<BlockPos>();
+        if (!marked) return (DigProtected(colony), keep);
+        var boxes = colony.Buildings.Where(b => b != hut).Select(b => BuildingBox(b)).ToList();
+        if (Blueprints.Get(hut, Math.Max(1, hut.Level)) is { } blueprint)
+        {
+            foreach (var step in blueprint.Steps) if (step.BlockId != 0) keep.Add(StepPos(hut, step));
+        }
+        keep.Add(hut.HutPos.Copy());
+        return (boxes, keep);
+    }
+
+    /// <summary>
+    /// Where a waypoint block of this kind ("mine" or "quarry") sits in the hut's blueprint, in the world:
+    /// the current level's blueprint first, then the others. Null when no blueprint has one.
+    /// </summary>
+    BlockPos? WaypointOf(Building hut, string kind)
+    {
+        int now = Math.Max(1, hut.Level);
+        foreach (int level in Enumerable.Range(1, Math.Max(now, Blueprints.MaxLevel(hut))).OrderBy(l => l == now ? 0 : 1))
+        {
+            if (Blueprints.Get(hut, level)?.Waypoints is { } marks && marks.TryGetValue(kind, out var at))
+            {
+                return hut.HutPos.AddCopy(at.Dx + hut.XOffset, at.Dy + hut.YOffset, at.Dz + hut.ZOffset);
+            }
+        }
+        return null;
+    }
+
     static bool Inside(BlockPos pos, List<(BlockPos Min, BlockPos Max)> boxes) =>
         boxes.Any(b => pos.X >= b.Min.X && pos.X <= b.Max.X && pos.Y >= b.Min.Y && pos.Y <= b.Max.Y && pos.Z >= b.Min.Z && pos.Z <= b.Max.Z);
 
@@ -533,9 +568,19 @@ public partial class ColonyManager
         return null;
     }
 
-    /// <summary>The middle of the Miner's Hut's shaft, chosen the first time it is needed; null when there is no room beside the hut.</summary>
-    BlockPos? ShaftFor(Colony colony, Building hut)
+    /// <summary>
+    /// The middle of the Miner's Hut's shaft: the Mine waypoint in its blueprint, or else a spot beside the
+    /// hut chosen the first time it is needed; null when there is no room beside the hut.
+    /// </summary>
+    BlockPos? ShaftFor(Colony colony, Building hut, out bool marked)
     {
+        var mark = WaypointOf(hut, "mine");
+        marked = mark != null;
+        if (mark != null)
+        {
+            if (!mark.Equals(hut.ShaftPos)) { hut.ShaftPos = mark; MarkDirty(colony); }
+            return mark;
+        }
         if (hut.ShaftPos != null) return hut.ShaftPos;
         hut.ShaftPos = SpotBeside(colony, hut, 1);
         if (hut.ShaftPos != null) MarkDirty(colony);
@@ -549,7 +594,7 @@ public partial class ColonyManager
     /// </summary>
     MineJob? NextShaftJob(Colony colony, Building hut, BlockPos at, System.Func<BlockPos, bool> skip, out string status)
     {
-        if (ShaftFor(colony, hut) is not { } centre)
+        if (ShaftFor(colony, hut, out bool marked) is not { } centre)
         {
             status = "mine-no-shaft-spot";
             return null;
@@ -560,9 +605,10 @@ public partial class ColonyManager
             status = "mine-travelling";
             return new MineJob(MineWork.Travel, centre, centre, false);
         }
-        var boxes = DigProtected(colony);
+        var (boxes, keep) = DigLimits(colony, hut, marked);
         var plan = ShaftPlan(centre, ShaftLevels(hut), Math.Max(1, Config.MinerTunnelLength));
         var floors = new HashSet<BlockPos>(plan.Select(p => p.Feet.DownCopy()));
+        floors.UnionWith(keep);
 
         // Ore in sight of the spot in the mine where the miner stands comes out first.
         if (plan.Any(p => p.Feet.Equals(at)) && OreInReach(colony, hut, at, IsOre, skip, boxes, floors) is { } ore)
@@ -579,7 +625,7 @@ public partial class ColonyManager
             {
                 var dig = spot.Feet.UpCopy(h);
                 if (IsClear(dig)) continue;
-                if (skip(dig) || !CanDig(colony, dig, boxes))
+                if (skip(dig) || keep.Contains(dig) || !CanDig(colony, dig, boxes))
                 {
                     if (spot.Tunnel < 0)
                     {

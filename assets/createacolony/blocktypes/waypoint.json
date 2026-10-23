@@ -1,0 +1,15 @@
+{
+	"code": "waypoint",
+	"variantgroups": [ { "code": "type", "states": ["mine", "quarry"] } ],
+	"creativeinventory": { "general": ["*"] },
+	"blockmaterial": "Wood",
+	"drawtype": "cube",
+	// Put in a Miner's Hut or Quarry blueprint to mark where the mine shaft or the quarry pit goes. Builders
+	// leave it out (the spot is cleared), and the miner or quarrier digs there. Placeholder cube look.
+	"texturesByType": {
+		"*-mine": { "all": { "base": "game:block/wood/debarked/aged" }, "up": { "base": "game:block/cloth/linen/black" } },
+		"*-quarry": { "all": { "base": "game:block/wood/debarked/aged" }, "up": { "base": "game:block/cloth/linen/red" } }
+	},
+	"resistance": 1,
+	"sounds": { "place": "game:block/planks", "break": "game:block/planks", "hit": "game:block/planks" }
+}

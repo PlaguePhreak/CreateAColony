@@ -42,6 +42,11 @@ public class Blueprint
     /// HorizontalAngleIndex), or null when the blueprint has no door. Worked out from the first door.
     /// </summary>
     public int? Front;
+    /// <summary>
+    /// Waypoint blocks in the blueprint, by kind ("mine", "quarry"), as offsets from the hut block: where
+    /// the Miner's Hut's shaft or the Quarry's pit goes.
+    /// </summary>
+    public Dictionary<string, (int Dx, int Dy, int Dz)> Waypoints = new();
 }
 
 /// <summary>
@@ -193,6 +198,15 @@ public class BlueprintLibrary
         if (!blocks.Any(kv => kv.Value.Code.ToString() == hutCode)) anchor = (schematic.SizeX / 2, 0, schematic.SizeZ / 2);
         var (ax, ay, az) = anchor;
 
+        // Waypoints mark where a mine shaft or a quarry pit goes. The builder only clears their spot, and
+        // leaves out the blueprint's blocks where the miner or quarrier will dig, so the two never fight.
+        var waypoints = new Dictionary<string, (int Dx, int Dy, int Dz)>();
+        foreach (var ((x, y, z), b) in blocks)
+        {
+            if (IsWaypoint(b)) waypoints[b.Variant["type"] ?? b.Code.Path] = (x - ax, y - ay, z - az);
+        }
+        var dugOut = DugOut(waypoints);
+
         // Items lying on the ground (ground storage) are left out too: an empty one is nothing, and a full one would come free.
         bool IsMeta(Block b) => b.Id == BlockSchematic.FillerBlockId || b.Id == BlockSchematic.PathwayBlockId
             || b.Id == BlockSchematic.UndergroundBlockId || b.Id == BlockSchematic.AbovegroundBlockId || b.Id == BlockSchematic.ConnectorBlockId
@@ -209,6 +223,12 @@ public class BlueprintLibrary
             if (blocks.TryGetValue((dx, dy, dz), out var block))
             {
                 if (IsMeta(block)) continue;
+                if (IsWaypoint(block))
+                {
+                    clear.Add(new BuildStep(dx - ax, dy - ay, dz - az, 0));
+                    continue;
+                }
+                if (dugOut.Contains((dx - ax, dy - ay, dz - az))) continue;
                 // The top half of a door (or another part of a big block) comes with the door itself; until then the spot is cleared.
                 if (block is BlockMultiblock || IsFurniturePart(block, saved.GetValueOrDefault((dx, dy, dz))))
                 {
@@ -220,6 +240,7 @@ public class BlueprintLibrary
                 else if (IsSolid(block)) solid.Add(step);
                 else decor.Add(step);
             }
+            else if (dugOut.Contains((dx - ax, dy - ay, dz - az))) continue;
             else if (dy >= ay || InCellar(dx, dy, dz))
             {
                 // Empty space at or above the hut's floor is cleared. Below it, only with blueprint blocks both
@@ -230,7 +251,41 @@ public class BlueprintLibrary
 
         // Clear from the top down so nothing is left floating, then walls bottom-up, then torches, doors and the like.
         clear.Reverse();
-        return new Blueprint { Type = type, Level = level, Steps = clear.Concat(solid).Concat(decor).ToList(), Front = front };
+        return new Blueprint { Type = type, Level = level, Steps = clear.Concat(solid).Concat(decor).ToList(), Front = front, Waypoints = waypoints };
+    }
+
+    /// <summary>A Mine or Quarry waypoint block (createacolony:waypoint-mine, createacolony:waypoint-quarry).</summary>
+    public static bool IsWaypoint(Block block) => block.Code?.Domain == CreateAColonyModSystem.ModId && block.Code.Path.StartsWith("waypoint-");
+
+    /// <summary>
+    /// The spots, as offsets from the hut block, that the miner or quarrier digs out around the blueprint's
+    /// waypoints: the shaft's steps and the top of its tunnels below a Mine waypoint, and the widest,
+    /// deepest pit below a Quarry waypoint. The blueprint's own blocks there are left out of the building.
+    /// </summary>
+    HashSet<(int, int, int)> DugOut(Dictionary<string, (int Dx, int Dy, int Dz)> waypoints)
+    {
+        var dug = new HashSet<(int, int, int)>();
+        // Shaft plans are worked out well above the bottom of the world, then moved back.
+        const int Lift = 10000;
+        if (waypoints.TryGetValue("mine", out var mine))
+        {
+            foreach (var spot in ColonyManager.ShaftPlan(new BlockPos(mine.Dx, mine.Dy + Lift, mine.Dz), 3, Math.Max(1, config.MinerTunnelLength)))
+            {
+                for (int h = 0; h < spot.Height; h++) dug.Add((spot.Feet.X, spot.Feet.Y + h - Lift, spot.Feet.Z));
+            }
+        }
+        if (waypoints.TryGetValue("quarry", out var pit))
+        {
+            int r = Math.Max(1, Math.Max(config.QuarryRadius, config.QuarryMaxRadius));
+            int depth = Math.Clamp(config.QuarryDepthPerLevel * MaxLevels, 1, 8 * r - 1);
+            for (int i = -r; i <= r; i++)
+            for (int j = -r; j <= r; j++)
+            for (int k = 1; k <= depth; k++)
+            {
+                dug.Add((pit.Dx + i, pit.Dy - k, pit.Dz + j));
+            }
+        }
+        return dug;
     }
 
     /// <summary>
