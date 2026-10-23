@@ -24,7 +24,11 @@ public class GuiDialogCitizen : GuiDialog
 {
     const double SlotSize = 51; // GuiElementItemSlotGridBase slot width plus padding
     const int PackColumns = 6;
-    const double ModelWidth = 250;
+    const double TabsWidth = 620;
+    /// <summary>Content width that makes the window body as wide as the title bar above it (the tabs set that width).</summary>
+    static readonly double BodyWidth = TabsWidth - 2 * GuiStyle.ElementToDialogPadding;
+    /// <summary>The model fills the space between the two clothing columns.</summary>
+    static readonly double ModelWidth = BodyWidth - 2 * SlotSize - 20;
     const double GearRows = 6;
     const double StatsWidth = 250;
 
@@ -84,9 +88,11 @@ public class GuiDialogCitizen : GuiDialog
         var composer = capi.Gui.CreateCompo("createacolony-citizen", dialogBounds)
             .AddShadedDialogBG(bgBounds)
             .AddDialogTitleBar(snapshot.Name, () => TryClose())
-            .AddHorizontalTabs(tabs, ElementBounds.Fixed(0, -24, 620, 25), id => { lastTab = (Tab)id; Compose(); }, tabFont,
+            .AddHorizontalTabs(tabs, ElementBounds.Fixed(0, -24, TabsWidth, 25), id => { lastTab = (Tab)id; Compose(); }, tabFont,
                 tabFont.Clone().WithColor(GuiStyle.ActiveButtonTextColor), "tabs")
-            .BeginChildElements(bgBounds);
+            .BeginChildElements(bgBounds)
+            // Keeps every tab's body at least as wide as the title bar.
+            .AddStaticText("", CairoFont.WhiteDetailText(), ElementBounds.Fixed(0, 0, BodyWidth, 1));
 
         double top = 30;
         switch (lastTab)
