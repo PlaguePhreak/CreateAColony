@@ -44,6 +44,7 @@ public partial class ColonyManager
         BuildingTypes.Cook => Jobs.Cook,
         BuildingTypes.Smelter => Jobs.Smelter,
         BuildingTypes.Blacksmith => Jobs.Blacksmith,
+        BuildingTypes.Sawmill => Jobs.Sawyer,
         BuildingTypes.GuardTower => Jobs.Guard,
         _ => GatherHuts.TryGetValue(type, out var kind) ? kind.Job : null
     };
@@ -73,6 +74,7 @@ public partial class ColonyManager
         Jobs.Cook => Config.CookRawReserve,
         Jobs.Smelter => Config.SmelterOreReserve,
         Jobs.Blacksmith => 0,
+        Jobs.Sawyer => 0,
         _ => Config.ForesterSeedReserve
     };
 
@@ -106,6 +108,7 @@ public partial class ColonyManager
         if (hut.Type == BuildingTypes.Cook) return CookHutJunk();
         if (hut.Type == BuildingTypes.Smelter) return SmelterHutJunk();
         if (hut.Type == BuildingTypes.Blacksmith) return BlacksmithHutJunk();
+        if (hut.Type == BuildingTypes.Sawmill) return SawmillHutJunk(hut);
         if (hut.Type == BuildingTypes.GuardTower) return GuardTowerJunk(hut);
         var kind = GatherHuts[hut.Type];
         var worker = WorkerAt(colony, hut, kind.Job);
@@ -201,6 +204,7 @@ public partial class ColonyManager
         if (hut.Type == BuildingTypes.Cook) lines.Add(FirepitInfo(colony, hut));
         if (hut.Type == BuildingTypes.Smelter) lines.Add(SmelterInfo(colony, hut));
         if (hut.Type == BuildingTypes.Blacksmith) lines.Add(BlacksmithInfo(hut));
+        if (hut.Type == BuildingTypes.Sawmill) lines.Add(SawmillInfo(hut));
         if (hut.Type == BuildingTypes.Prospector) lines.Add(ProspectorInfo(colony, hut));
         if (hut.Type == BuildingTypes.Miner) lines.Add(MineInfo(colony, hut));
         if (hut.Type == BuildingTypes.Quarry) lines.Add(QuarryInfo(hut));

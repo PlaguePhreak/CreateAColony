@@ -49,6 +49,7 @@ planks of any wood.
 | Quarry | 2 rock blocks (any) + 7 planks |
 | Smelter's Hut | 2 charcoal + 7 planks |
 | Blacksmith's Hut | 2 ingots (any metal) + 7 planks |
+| Sawmill | 2 logs (any) + 7 planks |
 | Supply Camp | 3 firewood over 2 sticks (unchanged) |
 | Colony Ledger | 4 paper (any), 2 leather, 2 charcoal: paper, leather, paper / charcoal, paper, charcoal / paper, leather, paper |
 | Drop-off | stick over a plank (unchanged) |
@@ -428,6 +429,18 @@ Smithing skill grows with both jobs.
   The Smithing tab shows everything that can be made from the metals the colony has ingots of, with the
   ingots each takes; nothing is kept until an officer picks something.
 
+### The sawmill (0.52.0)
+- **Sawmill** (2 logs + 7 planks), with a simple placeholder model and a placeholder level 1 blueprint (an open
+  plank shed). It is on the wand's Craftsmanship tab. A settler with the Sawyer job needs a saw and works at the
+  hut block itself, one crafting recipe every `SawmillSecondsPerCraft` (5) seconds; the saw wears as it would
+  for a player. What it can make comes from the game's crafting recipes: every recipe whose ingredients are all
+  wood (`SawmillWoodParts`: logs, planks, firewood, sticks, support beams and the like) and whose tool, if any,
+  is a saw (`SawmillToolParts`). Recipes with more than `SawmillMaxInputs` (16) pieces of wood are left to
+  players. The Sawmill tab lists what the colony has the wood for and how many to keep; a new Sawmill keeps 16
+  planks of each wood (`SawmillDefaultKeep`). The sawyer fetches wood from the hut storage, or asks couriers
+  for up to `SawmillBatch` (4) recipes' worth from the warehouse. What it makes goes to the warehouse. The new
+  Carpentry skill grows with the work and makes it faster.
+
 ### Doors and gates
 
 Settlers walk through doors and fence gates that open by hand. They open one as they reach it and close
@@ -595,8 +608,8 @@ Settlers learn by doing, Project Zomboid style (`src/Colonies/ColonyManager.Skil
 `config/skills.json`). Each skill goes from level 0 to 10; level n costs `SkillXpPerLevel` x n XP on top
 of the level below (75, 150, 225... 4,125 in all).
 
-- **Job skills**: Building, Farming, Woodcutting, Pottery, Cooking, Hauling, Fighting, Prospecting and
-  Mining (miner and quarrier), plus Smithing for a blacksmith job that doesn't exist yet. XP comes from the
+- **Job skills**: Building, Farming, Woodcutting, Pottery, Cooking, Hauling, Fighting, Prospecting,
+  Mining (miner and quarrier), Smithing (blacksmith and smelter) and Carpentry (sawyer). XP comes from the
   work itself (a block built, a tree felled, a hit landed, a stack delivered); each usable level makes the
   job's work 4% faster (Fighting: 2% faster swings and 3% more damage a level).
 - **Strength and Fitness** grow for everyone: Strength from felling trees, mining, fighting and full courier

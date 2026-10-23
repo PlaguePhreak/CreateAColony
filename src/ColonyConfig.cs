@@ -199,6 +199,7 @@ public class ColonyConfig
         ["quarry"] = 40,
         ["smelter"] = 30,
         ["blacksmith"] = 30,
+        ["sawmill"] = 30,
     };
     /// <summary>
     /// How many blocks each side of a hut's square grows for every hut level above 1, so a hut near the edge of the
@@ -318,8 +319,8 @@ public class ColonyConfig
     /// <summary>The "Keep in stock" amounts the Kitchen tab offers.</summary>
     public int[] KitchenKeepChoices = { 0, 2, 4, 8, 16, 32, 64 };
 
-    // Crafter huts (Smelter, Blacksmith)
-    /// <summary>The "Keep in stock" amounts the Smelting and Smithing tabs offer.</summary>
+    // Crafter huts (Smelter, Blacksmith, Sawmill)
+    /// <summary>The "Keep in stock" amounts the Smelting, Smithing and Sawmill tabs offer.</summary>
     public int[] CraftKeepChoices = { 0, 1, 2, 4, 8, 16, 32, 64 };
 
     // Smelter
@@ -365,6 +366,26 @@ public class ColonyConfig
     public int BlacksmithMaxIngots = 8;
     /// <summary>What a new Blacksmith's Hut keeps in stock until an officer changes it, by code (wildcards allowed). Everything else is 0.</summary>
     public System.Collections.Generic.Dictionary<string, int> BlacksmithDefaultKeep = new();
+
+    // Sawmill
+    /// <summary>Seconds a sawyer takes to make one thing at the Sawmill (one crafting recipe, such as a log into planks).</summary>
+    public float SawmillSecondsPerCraft = 5f;
+    /// <summary>
+    /// What counts as wood for the sawyer, by the first part of a code (plank in plank-oak). The sawyer only
+    /// uses crafting recipes whose ingredients are all wood.
+    /// </summary>
+    public string[] SawmillWoodParts = { "log", "logsection", "debarkedlog", "plank", "planks", "plankslab", "firewood", "stick", "supportbeam" };
+    /// <summary>The tools a sawyer's recipe may take, by the first part of the code. Recipes with any other tool are left to players.</summary>
+    public string[] SawmillToolParts = { "saw" };
+    /// <summary>Recipes that take more pieces of wood than this are left to players.</summary>
+    public int SawmillMaxInputs = 16;
+    /// <summary>The most times over the sawyer fetches or asks couriers for the wood of one recipe at once.</summary>
+    public int SawmillBatch = 4;
+    /// <summary>What a new Sawmill keeps in stock until an officer changes it, by code (wildcards allowed). Everything else is 0.</summary>
+    public System.Collections.Generic.Dictionary<string, int> SawmillDefaultKeep = new()
+    {
+        ["game:plank-*"] = 16
+    };
 
     // Recruiting
     /// <summary>How many settlers a built Tavern offers for hire each day.</summary>

@@ -22,12 +22,13 @@ Everything listed under "What we have" and "Partly done" has been tested in game
 - Our own jobs: the Prospector (finds ore and marks the map) and the Potter (shapes clay and fires pit kilns) *(tested)*
 - Smelter's Hut: melts nuggets in a crucible over the fire pit and pours ingots into molds (0.50.0, placeholder model and building, not tested yet)
 - Blacksmith's Hut: heats ingots in the forge and makes tool heads and finished tools on the anvil (0.50.0, placeholder model and building, not tested yet)
+- Sawmill: a sawyer saws logs into planks and makes other wooden things from the game's recipes (0.52.0, placeholder model and building, not tested yet)
 
 **Colony systems**
 - Colony land that grows with every hut and Town Hall level *(tested)*
 - Town Hall window: actions, town map, banners, events, work orders, citizens, statistics, permissions, settings, prospecting and quests *(tested)*
 - Settlers who eat real meals, like a varied diet, sleep in beds, shelter from storms and come back after dying (or not, with Permadeath) *(tested)*
-- Skills (12) and traits, inherited by children *(tested)*
+- Skills (13) and traits, inherited by children *(tested)*
 - Families: couples, children who grow up, surnames, a population cap *(tested)*
 - Requests: workers ask for missing items, couriers fetch them, guard towers keep a minimum stock *(tested)*
 - Hut levels, ordered from each hut's window, with the Medieval Oak packs converted from Aaron's MineColonies blueprints (0.48.0) and Aaron's Dev's Builds *(tested)*
@@ -56,7 +57,7 @@ Everything listed under "What we have" and "Partly done" has been tested in game
 **Next, in this order**
 1. **Smelter** (started in 0.50.0): still to do are alloys such as bronze, and a bloomery for iron
 2. **Happiness**: food variety, a bed, safety, health, deaths and how full the colony is, added into one score; happy settlers work faster
-3. **A request list and the first crafter**: players can see and fill what workers need, and a Sawmill carpenter makes planks and boards for the Builder
+3. **A request list**: players can see and fill what workers need (the Sawmill came first, in 0.52.0)
 4. **Animal herders and a Tanner**: chickens, pigs, sheep and goats in pens for meat, eggs and hides, and a Tanner who makes leather in barrels
 5. **Ranged guards, a Barracks and a rally banner**, then **Raids**: now and then, enemies turn up and attack the player's colony. The player is warned in chat and on the Town Hall window. There are several raid factions, from bandits (who use the settler models) to the game's own monsters such as drifters and shivers.
 6. **Hospital and Graveyard**: a healer with poultices and bandages, and an undertaker who buries the dead

@@ -8,7 +8,7 @@ using ItemMatch = System.Func<Vintagestory.API.Common.ItemStack, bool>;
 namespace CreateAColony.Colonies;
 
 /// <summary>
-/// What the crafter huts share (Smelter, Blacksmith, and the ones to come): a "keep in stock" list on the
+/// What the crafter huts share (Smelter, Blacksmith, Sawmill, and the ones to come): a "keep in stock" list on the
 /// hut window, saved on the building as CraftKeep, and asking couriers for what the work needs. Each
 /// crafter hut has its own list of things it can make, by key (CraftRows).
 /// </summary>
@@ -19,6 +19,7 @@ public partial class ColonyManager
     {
         BuildingTypes.Smelter => "smelting",
         BuildingTypes.Blacksmith => "smithing",
+        BuildingTypes.Sawmill => "sawmill",
         _ => null
     };
 
@@ -26,7 +27,12 @@ public partial class ColonyManager
     public int CraftKeep(Building hut, string key)
     {
         if (hut.CraftChosen) return hut.CraftKeep.GetValueOrDefault(key);
-        var defaults = hut.Type == BuildingTypes.Smelter ? Config.SmelterDefaultKeep : Config.BlacksmithDefaultKeep;
+        var defaults = hut.Type switch
+        {
+            BuildingTypes.Smelter => Config.SmelterDefaultKeep,
+            BuildingTypes.Sawmill => Config.SawmillDefaultKeep,
+            _ => Config.BlacksmithDefaultKeep
+        };
         foreach (var (pattern, keep) in defaults)
         {
             if (WildcardUtil.Match(pattern, key)) return keep;
@@ -39,6 +45,7 @@ public partial class ColonyManager
     {
         BuildingTypes.Smelter => SmeltKinds().Select(k => k.Key),
         BuildingTypes.Blacksmith => SmithKinds().Select(k => k.Key),
+        BuildingTypes.Sawmill => SawKinds().Select(k => k.Key),
         _ => Enumerable.Empty<string>()
     };
 
