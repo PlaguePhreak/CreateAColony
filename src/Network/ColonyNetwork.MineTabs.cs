@@ -47,18 +47,35 @@ public partial class ColonyNetwork
         return CarriedSlots(player).Where(s => !s.Empty && match(s.Itemstack)).Sum(s => s.StackSize);
     }
 
-    /// <summary>Text "code|count": moves up to count of the item from the player into the hut's storage.</summary>
+    /// <summary>
+    /// Text "code|count" (GiveResource), or one such line per item (GiveAllResources, Fulfil all): moves up
+    /// to count of each item from the player's hotbar and backpack into the hut's storage.
+    /// </summary>
     string? GiveResource(IServerPlayer player, Colony colony, ColonyRole role, ColonyActionPacket packet)
     {
         if (role < ColonyRole.Member) return "createacolony:denied-member";
         var hut = colony.Buildings.Find(b => b.BuildingId == packet.BuildingId);
         if (hut == null || !ColonyManager.HasOwnStorage(hut.Type)) return "createacolony:bad-building";
-        int bar = packet.Text.LastIndexOf('|');
-        if (bar <= 0 || !int.TryParse(packet.Text[(bar + 1)..], out int want) || want <= 0) return "createacolony:bad-building";
-        var match = ColonyManager.Matcher(packet.Text[..bar]);
-        var storage = Manager.HutStorage(colony, hut).ToList();
+        var storage = Manager.HutStorage(colony, hut).Cast<Vintagestory.GameContent.BlockEntityContainer>().ToList();
         if (storage.Count == 0) return "createacolony:give-no-storage";
-        want = Math.Min(want, 999);
+        int given = 0, kinds = 0;
+        foreach (string line in packet.Text.Split('\n', StringSplitOptions.RemoveEmptyEntries).Take(200))
+        {
+            int bar = line.LastIndexOf('|');
+            if (bar <= 0 || !int.TryParse(line[(bar + 1)..], out int want) || want <= 0) continue;
+            int moved = Give(player, storage, line[..bar], Math.Min(want, 999));
+            given += moved;
+            if (moved > 0) kinds++;
+        }
+        if (given == 0) return "createacolony:give-none";
+        player.SendMessage(0, Lang.GetL(player.LanguageCode, kinds > 1 ? "createacolony:give-done-all" : "createacolony:give-done", given, kinds), EnumChatType.Notification);
+        return null;
+    }
+
+    /// <summary>Moves up to want of the item from the player into the storage. Returns how many moved.</summary>
+    int Give(IServerPlayer player, List<Vintagestory.GameContent.BlockEntityContainer> storage, string code, int want)
+    {
+        var match = ColonyManager.Matcher(code);
         int given = 0;
         foreach (var slot in CarriedSlots(player))
         {
@@ -79,12 +96,20 @@ public partial class ColonyNetwork
                 else slot.Itemstack.StackSize += part.StackSize;
             }
             slot.MarkDirty();
+            // The hut's storage is full.
             if (part.StackSize > 0) break;
         }
-        if (given == 0) return "createacolony:give-none";
-        player.SendMessage(0, Lang.GetL(player.LanguageCode, "createacolony:give-done", given), EnumChatType.Notification);
-        return null;
+        return given;
     }
+
+    /// <summary>"wood" or "rock" when any wood or any stone will do for the item code, as the Builder's list says it; else empty.</summary>
+    internal static string AnyOfFor(string code, ItemStack sample) =>
+        code.Contains('|') ? "binding"
+        : ColonyManager.AnyType(code) ? "wood"
+        : code.StartsWith("heraldrybanners:banner") && code.Contains('{') ? "design"
+        : !code.Contains('*') ? ""
+        : sample.Collectible.Variant?.ContainsKey("wood") == true ? "wood"
+        : sample.Collectible.Variant?.ContainsKey("rock") == true ? "rock" : "";
 
     /// <summary>Fills in a Miner's Hut's Levels, Settings, Guards and Required resources tabs.</summary>
     void AddMineTabs(HutSnapshot snapshot, Colony colony, Building mine, string viewerUid)
@@ -122,7 +147,7 @@ public partial class ColonyNetwork
         {
             var match = ColonyManager.Matcher(need.Code);
             int have = Manager.CountItems(storage, match) + (miner == null ? 0 : Manager.PackCount(miner, match));
-            snapshot.Resources.Add(new ResourceView { Stack = need.Sample.ToBytes(), Needed = need.Count, Have = have, Code = need.Code, AnyOf = need.Code.Contains('*') ? "rock" : "" });
+            snapshot.Resources.Add(new ResourceView { Stack = need.Sample.ToBytes(), Needed = need.Count, Have = have, Code = need.Code, AnyOf = AnyOfFor(need.Code, need.Sample) });
         }
         AddPlayerHas(snapshot, viewerUid);
     }

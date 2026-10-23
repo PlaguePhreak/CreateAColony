@@ -133,6 +133,7 @@ public class GuiDialogTownHall : GuiDialog
             case HelpView: ComposeHelp(composer); break;
         }
 
+        composer.FitTabs(tabs.Length);
         SingleComposer = composer.EndChildElements().Compose();
         SingleComposer.GetTextInput("colonyname")?.SetValue(pendingName);
         SingleComposer.GetSwitch("permadeath")?.SetValue(snapshot.Permadeath);

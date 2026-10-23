@@ -18,9 +18,6 @@ namespace CreateAColony.Gui;
 public class GuiDialogHut : GuiDialog
 {
     const double Width = 560;
-    const int ItemRowsPerPage = 7;
-    const int ItemColumns = 2;
-    const double ItemRowHeight = 46;
     const int OrdersPerPage = 5;
     const double OrderRowHeight = 62;
     const int WorkAreaTab = 3;
@@ -162,7 +159,10 @@ public class GuiDialogHut : GuiDialog
             case ChestView: ComposeChest(composer); break;
             case HelpView: ComposeHelp(composer); break;
         }
+        composer.FitTabs(tabs.Count);
         SingleComposer = composer.EndChildElements().Compose();
+        SingleComposer.GetStatbar("supplied")?.SetValues(suppliedPercent, 0, 100);
+        SingleComposer.GetStatbar("used")?.SetValues(usedPercent, 0, 100);
         SingleComposer.GetSwitch("anytype")?.SetValue(snapshot.AnyWoodOrStone);
         SingleComposer.GetSwitch("escort")?.SetValue(snapshot.Escort);
         SingleComposer.GetSwitch("mineprospected")?.SetValue(snapshot.MineProspected);
@@ -191,8 +191,14 @@ public class GuiDialogHut : GuiDialog
         var b = snapshot.Building;
         double y = 30;
 
-        // Header: name and level, and the pencil.
-        double headerHeight = b.TargetLevel > 0 ? 84 : 60;
+        // Header: name and level with the pencil, then the level line, the asset pack and any build in progress,
+        // each on its own line so a long one wraps instead of running into the next.
+        string levelText = LevelText(b);
+        string packText = b.Variant == ""
+            ? Lang.Get("createacolony:placement-style", Lang.Get("createacolony:style-" + BlueprintStyles.Normalize(b.Style)))
+            : Lang.Get("createacolony:placement-style-variant", Lang.Get("createacolony:style-" + BlueprintStyles.Normalize(b.Style)), GuiKit.VariantName(b.Variant));
+        double levelHeight = GuiKit.TextHeight(capi, GuiKit.Detail(), levelText, Width - 20);
+        double headerHeight = 40 + levelHeight + 22 + (b.TargetLevel > 0 ? 22 : 0) + 6;
         composer.AddInset(ElementBounds.Fixed(0, y, Width, headerHeight), 3, 0.8f);
         if (renaming)
         {
@@ -210,17 +216,13 @@ public class GuiDialogHut : GuiDialog
                 composer.AddHoverText(Lang.Get("createacolony:hut-rename"), GuiKit.Detail(), 200, ElementBounds.Fixed(Width - 42, y + 6, 30, 30));
             }
         }
-        composer
-            .AddStaticText(LevelText(b), GuiKit.Detail(), ElementBounds.Fixed(10, y + 36, Width / 2, 20))
-            .AddStaticText(b.Variant == ""
-                    ? Lang.Get("createacolony:placement-style", Lang.Get("createacolony:style-" + BlueprintStyles.Normalize(b.Style)))
-                    : Lang.Get("createacolony:placement-style-variant", Lang.Get("createacolony:style-" + BlueprintStyles.Normalize(b.Style)), GuiKit.VariantName(b.Variant)),
-                GuiKit.Detail().WithOrientation(EnumTextOrientation.Right), ElementBounds.Fixed(Width / 2, y + 36, Width / 2 - 10, 20));
+        double line = composer.Text(levelText, GuiKit.Detail(), 10, y + 38, Width - 20, 2);
+        composer.AddStaticText(packText, GuiKit.Muted(), ElementBounds.Fixed(10, line, Width - 20, 20));
         if (b.TargetLevel > 0)
         {
-            composer.AddStaticText(StatusText(b), GuiKit.Detail().WithColor(GuiStyle.ActiveButtonTextColor), ElementBounds.Fixed(10, y + 58, Width - 20, 22));
+            composer.AddStaticText(StatusText(b), GuiKit.Detail().WithColor(GuiStyle.ActiveButtonTextColor), ElementBounds.Fixed(10, line + 22, Width - 20, 22));
         }
-        y += headerHeight + 8;
+        y += headerHeight + 12;
 
         // Assigned workers, with Manage workers and Recall workers.
         if (snapshot.Job.Length > 0)
@@ -284,6 +286,7 @@ public class GuiDialogHut : GuiDialog
         if (snapshot.Info.Length > 0)
         {
             // A worker's hut shows who works there, what they are doing and how the job works.
+            y = composer.Section(Lang.Get("createacolony:hut-status-section"), y, Width);
             y = composer.Rich(snapshot.Info, GuiKit.Detail(), 0, y, Width, 10);
         }
 
@@ -1268,11 +1271,15 @@ public class GuiDialogHut : GuiDialog
 
     static readonly double[] MissingColor = { 1.0, 0.4, 0.35, 1.0 };
 
+    const int ResourceRowsPerPage = 6;
+    const double ResourceRowHeight = 44;
+    int suppliedPercent, usedPercent;
+
     /// <summary>
     /// Required resources, as in MineColonies: the work the hut's worker is on (a Builder's work order, a
-    /// Miner's mineshaft piece), how far along it is, and each item still needed with how many are in the
-    /// hut. Red: neither the hut nor you have it. Green: you carry some, and the ^ button puts them in the
-    /// hut's storage. White: the hut has enough.
+    /// Miner's mineshaft piece), bars for how much of it the hut has (Supplied) and how much is done (Used),
+    /// and one row per item still needed. Red: neither the hut nor you have it. Green: you carry some, and
+    /// the ^ button puts them in the hut's storage. White: the hut has enough. Fulfil all does every row.
     /// </summary>
     void ComposeItems(GuiComposer composer)
     {
@@ -1288,49 +1295,84 @@ public class GuiDialogHut : GuiDialog
             return;
         }
 
-        composer.AddStaticText(Lang.Get("createacolony:resources-project", snapshot.ResourcesFor), GuiKit.Heading(), ElementBounds.Fixed(0, 30, Width, 25));
-        var materials = snapshot.Resources.Where(r => !r.IsTool).ToList();
-        int needed = materials.Sum(r => r.Needed);
-        int supplied = needed == 0 ? 100 : materials.Sum(r => Math.Min(r.Have, r.Needed)) * 100 / needed;
-        string line = Lang.Get("createacolony:resources-step", snapshot.ResourcesStep)
-            + "   " + Lang.Get("createacolony:resources-supplied", supplied, Math.Max(0, snapshot.UsedPercent));
-        composer.AddStaticText(line, GuiKit.Detail(), ElementBounds.Fixed(0, 56, Width, 20));
-
-        // Missing items first, so the list leads with what the worker is waiting on.
-        var rows = snapshot.Resources.OrderBy(r => r.Have >= r.Needed).ThenByDescending(r => r.IsTool).ToList();
-        if (rows.Count == 0)
+        // Fulfil all: as many of every item as the hut still needs, from what the viewer carries.
+        var givable = snapshot.Resources.Where(r => !r.IsTool && r.Code.Length > 0 && r.PlayerHas > 0 && r.Have < r.Needed).ToList();
+        bool canGive = ViewerRole >= ColonyRole.Member;
+        composer.AddStaticText(Lang.Get("createacolony:resources-project", snapshot.ResourcesFor), GuiKit.Heading(),
+            ElementBounds.Fixed(0, 30, canGive && givable.Count > 0 ? Width - 160 : Width, 26));
+        if (canGive && givable.Count > 0)
         {
-            composer.Text(Lang.Get("createacolony:items-none"), GuiKit.Body(), 0, 84, Width);
-            return;
+            string all = string.Join("\n", givable.Select(r => r.Code + "|" + (r.Needed - r.Have)));
+            composer.AddSmallButton(Lang.Get("createacolony:resources-fulfil-all"), () => SendText(ColonyAction.GiveAllResources, BuildingId, all),
+                ElementBounds.Fixed(Width - 150, 28, 150, 28));
+            composer.AddHoverText(Lang.Get("createacolony:resources-fulfil-all-hint"), GuiKit.Detail(), 260, ElementBounds.Fixed(Width - 150, 28, 150, 28));
         }
 
-        const double top = 82;
-        int perPage = ItemRowsPerPage * ItemColumns;
-        int pages = (rows.Count + perPage - 1) / perPage;
+        // Supplied: share of the items in the hut. Used: share of the work done.
+        var materials = snapshot.Resources.Where(r => !r.IsTool).ToList();
+        int needed = materials.Sum(r => r.Needed);
+        suppliedPercent = needed == 0 ? 100 : materials.Sum(r => Math.Min(r.Have, r.Needed)) * 100 / needed;
+        usedPercent = Math.Clamp(snapshot.UsedPercent, 0, 100);
+        double half = (Width - 20) / 2;
+        composer
+            .AddStaticText(Lang.Get("createacolony:resources-supplied-bar", suppliedPercent), GuiKit.Detail(), ElementBounds.Fixed(0, 64, half, 20))
+            .AddStaticText(Lang.Get("createacolony:resources-used-bar", usedPercent), GuiKit.Detail(), ElementBounds.Fixed(half + 20, 64, half, 20))
+            .AddStatbar(ElementBounds.Fixed(0, 86, half, 10), GuiStyle.FoodBarColor, "supplied")
+            .AddStatbar(ElementBounds.Fixed(half + 20, 86, half, 10), GuiStyle.XPBarColor, "used");
+        composer.AddStaticText(Lang.Get("createacolony:resources-step", snapshot.ResourcesStep), GuiKit.Muted(), ElementBounds.Fixed(0, 104, Width, 20));
+
+        // Missing items first, so the list leads with what the worker is waiting on.
+        var rows = snapshot.Resources.OrderBy(r => r.Have >= r.Needed).ThenByDescending(r => r.IsTool).ThenByDescending(r => r.Needed - r.Have).ToList();
+        const double top = 130;
+        if (rows.Count == 0)
+        {
+            composer.Text(Lang.Get("createacolony:items-none"), GuiKit.Body(), 0, top, Width);
+            return;
+        }
+        int pages = (rows.Count + ResourceRowsPerPage - 1) / ResourceRowsPerPage;
         page = Math.Clamp(page, 0, pages - 1);
-        double columnWidth = (Width - 12) / ItemColumns;
-        int onPage = Math.Min(perPage, rows.Count - page * perPage);
-        composer.AddInset(ElementBounds.Fixed(0, top, Width, (onPage + ItemColumns - 1) / ItemColumns * ItemRowHeight + 8), 3, 0.8f);
-        bool canGive = ViewerRole >= ColonyRole.Member;
-        int i = 0;
-        foreach (var r in rows.Skip(page * perPage).Take(perPage))
+        int onPage = Math.Min(ResourceRowsPerPage, rows.Count - page * ResourceRowsPerPage);
+        composer.AddInset(ElementBounds.Fixed(0, top, Width, onPage * ResourceRowHeight + 8), 3, 0.8f);
+        double y = top + 4;
+        foreach (var r in rows.Skip(page * ResourceRowsPerPage).Take(ResourceRowsPerPage))
         {
             var stack = new ItemStack(r.Stack);
             if (!stack.ResolveBlockOrItem(capi.World)) continue;
-            double x = 6 + i % ItemColumns * columnWidth;
-            double y = top + 4 + i / ItemColumns * ItemRowHeight;
             bool give = canGive && r.PlayerHas > 0 && r.Have < r.Needed && r.Code.Length > 0;
-            composer.AddRichtext(ItemRow(stack, r), ElementBounds.Fixed(x, y, columnWidth - (give ? 50 : 10), ItemRowHeight));
+            composer.AddRichtext(new RichTextComponentBase[] { new ItemstackTextComponent(capi, stack, 34, 6) }, ElementBounds.Fixed(6, y + 2, 44, 40));
+            composer.AddStaticText(ResourceName(stack, r), GuiKit.Body(), ElementBounds.Fixed(52, y + 4, Width - 240, 20));
+            composer.AddStaticText(ResourceCounts(r), CountFont(r), ElementBounds.Fixed(52, y + 24, Width - 240, 18));
+            composer.AddStaticText(Lang.Get("createacolony:items-count", Math.Min(r.Have, r.Needed), r.Needed),
+                CountFont(r).Clone().WithFontSize(16).WithOrientation(EnumTextOrientation.Right), ElementBounds.Fixed(Width - 190, y + 12, 130, 22));
             if (give)
             {
                 string code = r.Code;
                 int amount = r.Needed - r.Have;
-                composer.AddSmallButton("^", () => SendText(ColonyAction.GiveResource, BuildingId, code + "|" + amount), ElementBounds.Fixed(x + columnWidth - 46, y + 8, 34, 28));
-                composer.AddHoverText(Lang.Get("createacolony:resources-give", Math.Min(amount, r.PlayerHas)), GuiKit.Detail(), 220, ElementBounds.Fixed(x + columnWidth - 46, y + 8, 34, 28));
+                composer.AddSmallButton("^", () => SendText(ColonyAction.GiveResource, BuildingId, code + "|" + amount), ElementBounds.Fixed(Width - 50, y + 8, 40, 28));
+                composer.AddHoverText(Lang.Get("createacolony:resources-give", Math.Min(amount, r.PlayerHas)), GuiKit.Detail(), 220, ElementBounds.Fixed(Width - 50, y + 8, 40, 28));
             }
-            i++;
+            y += ResourceRowHeight;
         }
-        AddPager(composer, pages, top + ItemRowsPerPage * ItemRowHeight + 20);
+        y = top + ResourceRowsPerPage * ResourceRowHeight + 16;
+        composer.Text(Lang.Get("createacolony:resources-legend"), GuiKit.Muted(), 0, y, Width, 6);
+        AddPager(composer, pages, y + 24);
+    }
+
+    /// <summary>White when the hut has enough, green when you carry some, red when nobody has it.</summary>
+    static CairoFont CountFont(ResourceView r) => r.Have >= r.Needed ? GuiKit.Detail()
+        : GuiKit.Detail().WithColor(r.PlayerHas > 0 ? GuiKit.GoodColor : MissingColor);
+
+    string ResourceName(ItemStack stack, ResourceView r) =>
+        r.IsTool ? Lang.Get("createacolony:items-tool", Lang.Get("createacolony:tool-" + (stack.Collectible.Tool?.ToString().ToLowerInvariant() ?? "")))
+        : r.AnyOf.Length > 0 ? Lang.Get("createacolony:items-any-" + r.AnyOf, stack.GetName()) : WithWood(stack);
+
+    /// <summary>"In the hut: 0. You have 100." under the item's name.</summary>
+    static string ResourceCounts(ResourceView r)
+    {
+        if (r.Have >= r.Needed) return Lang.Get("createacolony:resources-ready");
+        string line = Lang.Get("createacolony:resources-in-hut", r.Have);
+        return r.PlayerHas > 0 ? line + "   " + Lang.Get("createacolony:resources-you-have", r.PlayerHas)
+            : r.IsTool ? line : line + "   " + Lang.Get("createacolony:resources-nobody");
     }
 
     /// <summary>
@@ -1344,22 +1386,6 @@ public class GuiDialogHut : GuiDialog
         if (string.IsNullOrEmpty(wood) || !Lang.HasTranslation("material-" + wood)) return name;
         string material = Lang.Get("material-" + wood);
         return name.Contains(material, StringComparison.OrdinalIgnoreCase) ? name : name + " (" + material + ")";
-    }
-
-    RichTextComponentBase[] ItemRow(ItemStack stack, ResourceView r)
-    {
-        bool done = r.Have >= r.Needed;
-        // White when the hut has enough, green when you carry some, red when nobody has it.
-        var countFont = done ? CairoFont.WhiteDetailText() : CairoFont.WhiteDetailText().WithColor(r.PlayerHas > 0 ? GuiKit.GoodColor : MissingColor);
-        string name = r.IsTool ? Lang.Get("createacolony:items-tool", Lang.Get("createacolony:tool-" + (stack.Collectible.Tool?.ToString().ToLowerInvariant() ?? "")))
-            : r.AnyOf.Length > 0 ? Lang.Get("createacolony:items-any-" + r.AnyOf, stack.GetName()) : WithWood(stack);
-        return new RichTextComponentBase[]
-        {
-            new ItemstackTextComponent(capi, stack, 40, 10),
-            new RichTextComponent(capi, name + "\n", CairoFont.WhiteSmallText()) { VerticalAlign = EnumVerticalAlign.Top },
-            new RichTextComponent(capi, Lang.Get("createacolony:items-count", Math.Min(r.Have, r.Needed), r.Needed)
-                + (!done && r.PlayerHas > 0 ? "  " + Lang.Get("createacolony:resources-you-have", r.PlayerHas) : ""), countFont)
-        };
     }
 
     void AddPager(GuiComposer composer, int pages, double y) => composer.Pager(page, pages, y, Width, p => { page = p; Compose(); });

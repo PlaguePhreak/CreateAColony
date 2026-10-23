@@ -162,7 +162,7 @@ public partial class ColonyNetwork : ModSystem
             ColonyAction.SetMineOre or ColonyAction.SetMineProspected or ColonyAction.NewMine => MiningAction(colony, role, packet),
             ColonyAction.SetWorkRole => WorkRoleAction(colony, role, packet),
             >= ColonyAction.SetMineLevel and <= ColonyAction.UnassignMineGuard => MineTabAction(colony, role, packet),
-            ColonyAction.GiveResource => GiveResource(player, colony, role, packet),
+            ColonyAction.GiveResource or ColonyAction.GiveAllResources => GiveResource(player, colony, role, packet),
             ColonyAction.WelcomeVisitor or ColonyAction.TurnAwayVisitor => VisitorAction(colony, role, packet),
             ColonyAction.RecallCitizen => RecallCitizen(colony, role, packet.CitizenId),
             ColonyAction.SetColonyBanner or ColonyAction.ReplaceBanners or ColonyAction.SetBannerOnNew => BannerAction(player, colony, role, packet),
@@ -960,8 +960,7 @@ public partial class ColonyNetwork : ModSystem
         {
             var match = ColonyManager.Matcher(code);
             int have = Manager.CountItems(storage, match) + Manager.PackCount(builder, match);
-            string anyOf = code.Contains('|') ? "binding" : ColonyManager.AnyType(code) ? "wood"
-                : code.StartsWith("heraldrybanners:banner") && code.Contains('{') ? "design" : !code.Contains('*') ? "" : sample.Collectible.Variant?.ContainsKey("wood") == true ? "wood" : "rock";
+            string anyOf = AnyOfFor(code, sample);
             snapshot.Resources.Add(new ResourceView { Stack = sample.ToBytes(), Needed = count, Have = have, AnyOf = anyOf, Code = code });
         }
         AddPlayerHas(snapshot, viewerUid);

@@ -124,6 +124,7 @@ public class GuiDialogQuestBook : GuiDialog
         if (group == null)
         {
             composer.Text(Lang.Get("createacolony:quests-none-loaded"), GuiKit.Muted(), 0, y, Width);
+            composer.FitTabs(tabs.Length);
             SingleComposer = composer.EndChildElements().Compose();
             return;
         }
@@ -180,6 +181,7 @@ public class GuiDialogQuestBook : GuiDialog
             ComposeCard(composer, quest, y);
         }
 
+        composer.FitTabs(tabs.Length);
         SingleComposer = composer.EndChildElements().Compose();
     }
 

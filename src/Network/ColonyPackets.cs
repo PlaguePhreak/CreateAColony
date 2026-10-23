@@ -697,7 +697,9 @@ public enum ColonyAction
     /// <summary>Takes the guard with CitizenId off the Miner's Hut with BuildingId.</summary>
     UnassignMineGuard = 96,
     /// <summary>Moves the item with code Text from the player's inventory into the hut's storage, as many as are still needed.</summary>
-    GiveResource = 97
+    GiveResource = 97,
+    /// <summary>Fulfil all: Text holds one "code|count" line per item; each moves from the player into the hut's storage, as many as it still needs.</summary>
+    GiveAllResources = 98
 }
 
 /// <summary>The Builder's Wand building list: each building type with how many of its blocks the player carries.</summary>

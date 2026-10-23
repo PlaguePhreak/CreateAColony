@@ -85,11 +85,21 @@ public static class GuiKit
         return y + height + gap;
     }
 
-    /// <summary>A section heading. Returns the y below it.</summary>
+    /// <summary>A section heading with a thin line under it and a little room above. Returns the y below it.</summary>
     public static double Section(this GuiComposer composer, string title, double y, double width)
     {
-        composer.AddStaticText(title, Heading(), ElementBounds.Fixed(0, y, width, 24));
-        return y + 30;
+        composer.AddStaticText(title, Heading(), ElementBounds.Fixed(0, y + 4, width, 24));
+        composer.AddInset(ElementBounds.Fixed(0, y + 30, width, 2), 1, 0.5f);
+        return y + 40;
+    }
+
+    /// <summary>
+    /// Makes a tabbed window at least as tall as its tab list down the left side, so the last tabs never
+    /// hang below the window. Call it between BeginChildElements and EndChildElements.
+    /// </summary>
+    public static void FitTabs(this GuiComposer composer, int tabCount)
+    {
+        if (tabCount > 1) composer.AddStaticText("", Detail(), ElementBounds.Fixed(0, 35 + tabCount * 30, 1, 1));
     }
 
     /// <summary>One label / value line, the label on the left and the value right-aligned. Returns the y below it.</summary>
