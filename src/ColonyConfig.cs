@@ -448,7 +448,7 @@ public class ColonyConfig
     /// <summary>No skill effect multiplies a number by more than this (or less than one over it).</summary>
     public float SkillEffectMax = 2f;
 
-    // Traits (config/traits.json lists them; see ColonyManager.Traits.cs)
+    // Traits (config/colonytraits.json lists them; see ColonyManager.Traits.cs)
     /// <summary>Settlers are born with traits: strengths and flaws that change how they work, eat, fight and live.</summary>
     public bool Traits = true;
     /// <summary>How many traits a settler from outside rolls (children inherit theirs and can have more than the max).</summary>

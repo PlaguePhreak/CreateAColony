@@ -75,7 +75,7 @@ public class CitizenRecord
     [ProtoMember(28)] public Dictionary<string, int> SkillXp = new();
     /// <summary>Whether starting skills were rolled, so settlers from saves before skills get theirs once.</summary>
     [ProtoMember(29)] public bool SkillsRolled;
-    /// <summary>Traits they were born with or earned, each with its level (config/traits.json; ColonyManager.Traits.cs). 30-34 are traits; the settler inventory thread uses 40+.</summary>
+    /// <summary>Traits they were born with or earned, each with its level (config/colonytraits.json; ColonyManager.Traits.cs). 30-34 are traits; the settler inventory thread uses 40+.</summary>
     [ProtoMember(30)] public List<TraitRecord> Traits = new();
     /// <summary>Whether traits were rolled, so settlers from saves before traits get theirs once.</summary>
     [ProtoMember(31)] public bool TraitsRolled;

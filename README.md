@@ -544,10 +544,13 @@ of the level below (75, 150, 225... 4,125 in all).
 ### Traits, the population cap and meal levels (0.45.0)
 
 **Traits** are what a settler is born with (`src/Colonies/ColonyManager.Traits.cs`, listed in
-`config/traits.json`). Every settler has 2 to 10 of them, always at least one good (points above 0) and
+`config/colonytraits.json`). Every settler has 2 to 10 of them, always at least one good (points above 0) and
 one bad (points below 0); quirks have 0 points. Each trait has a level from 0 to 20: a good trait's effect
 grows 5% a level, a bad trait's penalty shrinks 4% a level, so a higher level is always better for the
 settler. Traits gain 1 XP every in-game day (3 while in use) and level L to L+1 costs (L+1) x 3 XP.
+
+The file is `colonytraits.json`, not `traits.json`: the game reads every mod's `config/traits.json` as player
+character traits, and 0.45.0's file of that name stopped every world from loading (fixed in 0.45.1).
 
 - **General**: Hard Worker / Lazy (work speed), Tough / Frail (max health), Light Eater / Glutton
   (hunger), Fleet-footed / Sluggish (walking), Fast Healer / Slow Healer (time knocked out, healing),

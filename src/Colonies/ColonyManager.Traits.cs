@@ -7,7 +7,7 @@ using Vintagestory.API.Config;
 
 namespace CreateAColony.Colonies;
 
-/// <summary>One trait from config/traits.json.</summary>
+/// <summary>One trait from config/colonytraits.json.</summary>
 public class TraitDef
 {
     public string Code = "";
@@ -22,7 +22,7 @@ public class TraitDef
     /// <summary>Given by the game (Veteran, Shaken), never rolled or inherited.</summary>
     public bool Earned;
     public string[] Conflicts = Array.Empty<string>();
-    /// <summary>Effect key to value; see traits.json for which keys multiply and which add.</summary>
+    /// <summary>Effect key to value; see colonytraits.json for which keys multiply and which add.</summary>
     public Dictionary<string, float> Effects = new();
 
     public bool IsGood => Points > 0;
@@ -40,7 +40,7 @@ public class TraitDef
 /// </summary>
 public partial class ColonyManager
 {
-    const string TraitsAsset = "config/traits.json";
+    const string TraitsAsset = "config/colonytraits.json";
     public const string Veteran = "veteran";
     public const string Shaken = "shaken";
     public const string Brave = "brave";
