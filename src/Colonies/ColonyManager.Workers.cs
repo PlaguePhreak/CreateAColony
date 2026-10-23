@@ -46,11 +46,12 @@ public partial class ColonyManager
         BuildingTypes.Blacksmith => Jobs.Blacksmith,
         BuildingTypes.Sawmill => Jobs.Sawyer,
         BuildingTypes.GuardTower => Jobs.Guard,
+        BuildingTypes.Barracks => Jobs.Guard,
         _ => GatherHuts.TryGetValue(type, out var kind) ? kind.Job : null
     };
 
     /// <summary>How many settlers can work from this building at once.</summary>
-    public static int WorkerSlots(Building hut) => hut.Type == BuildingTypes.GuardTower ? GuardSlots(hut) : JobOf(hut.Type) == null ? 0 : 1;
+    public static int WorkerSlots(Building hut) => IsGuardPost(hut.Type) ? GuardSlots(hut) : JobOf(hut.Type) == null ? 0 : 1;
 
     /// <summary>The living settlers working from this hut.</summary>
     public List<CitizenRecord> WorkersAt(Colony colony, Building hut)
@@ -109,7 +110,7 @@ public partial class ColonyManager
         if (hut.Type == BuildingTypes.Smelter) return SmelterHutJunk();
         if (hut.Type == BuildingTypes.Blacksmith) return BlacksmithHutJunk();
         if (hut.Type == BuildingTypes.Sawmill) return SawmillHutJunk(hut);
-        if (hut.Type == BuildingTypes.GuardTower) return GuardTowerJunk(hut);
+        if (IsGuardPost(hut.Type)) return GuardTowerJunk(hut);
         var kind = GatherHuts[hut.Type];
         var worker = WorkerAt(colony, hut, kind.Job);
         bool keepSeeds = worker != null && PackCount(worker, kind.Stock) < SeedReserve(kind.Job);
@@ -182,7 +183,7 @@ public partial class ColonyManager
     {
         string job = JobOf(hut.Type) ?? "";
         if (job.Length == 0 || job == Jobs.Builder) return "";
-        if (hut.Type == BuildingTypes.GuardTower) return GuardTowerInfo(colony, hut);
+        if (IsGuardPost(hut.Type)) return GuardTowerInfo(colony, hut);
         var lines = new List<string>();
         var worker = WorkerAt(colony, hut, job);
         if (worker == null)

@@ -14,7 +14,7 @@ public static class BuildingCategories
         new("mining", new[] { BuildingTypes.Prospector, BuildingTypes.Miner, BuildingTypes.Quarry }),
         new("education", System.Array.Empty<string>()),
         new("infrastructure", new[] { BuildingTypes.Warehouse }),
-        new("military", new[] { BuildingTypes.GuardTower }),
+        new("military", new[] { BuildingTypes.GuardTower, BuildingTypes.Barracks }),
         new("walls", System.Array.Empty<string>()),
         new("decoration", System.Array.Empty<string>()),
     };

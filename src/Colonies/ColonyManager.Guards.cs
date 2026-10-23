@@ -30,16 +30,36 @@ public partial class ColonyManager
     /// <summary>How hard a weapon hits; the better of two weapons is the one that hits harder.</summary>
     public static float WeaponDamage(ItemStack stack) => stack.Collectible.GetAttackPower(stack);
 
-    /// <summary>Places for guards at a Guard Tower: one for each level, and one while only the tower block stands.</summary>
-    public static int GuardSlots(Building tower) => Math.Max(1, tower.Level);
+    /// <summary>Guard places a Barracks has for each level.</summary>
+    public const int BarracksGuardsPerLevel = 2;
 
-    /// <summary>The guard's tower, giving it a place at one with room if it has none. Null when every tower is full or there is none.</summary>
-    public Building? EnsureGuardTower(Colony colony, CitizenRecord guard) =>
-        guard.JobCode == Jobs.Guard ? EnsureWorkplace(colony, guard, BuildingTypes.GuardTower) : null;
+    /// <summary>
+    /// Buildings guards are stationed at: Guard Towers and Barracks. Both work the same way (Guard, Patrol or
+    /// Follow, the Guard Scepter, the Hostiles and Minimum stock tabs); a Barracks holds more guards and
+    /// watches and patrols farther. "Tower" in the guard code means either.
+    /// </summary>
+    public static bool IsGuardPost(string type) => type is BuildingTypes.GuardTower or BuildingTypes.Barracks;
 
-    /// <summary>The guard's tower if it has one, without assigning.</summary>
+    /// <summary>Places for guards: one for each Guard Tower level, two for each Barracks level, and as many as for level 1 while only the hut block stands.</summary>
+    public static int GuardSlots(Building tower) => Math.Max(1, tower.Level) * (tower.Type == BuildingTypes.Barracks ? BarracksGuardsPerLevel : 1);
+
+    /// <summary>How far around its guard spot a post's guards fight monsters on the Guard task.</summary>
+    public float GuardRadius(Building tower) => tower.Type == BuildingTypes.Barracks ? Config.BarracksRadius : Config.GuardTowerRadius;
+
+    /// <summary>
+    /// The guard's tower or Barracks, giving it a place at one with room if it has none (towers first). Null
+    /// when every one is full or there is none.
+    /// </summary>
+    public Building? EnsureGuardTower(Colony colony, CitizenRecord guard)
+    {
+        if (guard.JobCode != Jobs.Guard) return null;
+        if (TowerOf(colony, guard) is { } post) return post;
+        return EnsureWorkplace(colony, guard, BuildingTypes.GuardTower) ?? EnsureWorkplace(colony, guard, BuildingTypes.Barracks);
+    }
+
+    /// <summary>The guard's tower or Barracks if it has one, without assigning.</summary>
     public Building? TowerOf(Colony colony, CitizenRecord guard) =>
-        guard.WorkplacePos != null && GetBuilding(colony, guard.WorkplacePos) is { Type: BuildingTypes.GuardTower } tower ? tower : null;
+        guard.WorkplacePos != null && GetBuilding(colony, guard.WorkplacePos) is { } tower && IsGuardPost(tower.Type) ? tower : null;
 
     /// <summary>Workers whose hut asks for an escort, each paired with a guard that has no tower, in order.</summary>
     List<(CitizenRecord Guard, CitizenRecord Worker, Building Hut)> Escorts(Colony colony)
@@ -112,7 +132,7 @@ public partial class ColonyManager
     {
         if (tower.PatrolManual && tower.PatrolPoints.Count > 0) return tower.PatrolPoints.Select(p => p.ToVec3d().Add(0.5, 0, 0.5)).ToList();
         var t = tower.HutPos;
-        int range = Config.GuardPatrolRange;
+        int range = tower.Type == BuildingTypes.Barracks ? Config.BarracksPatrolRange : Config.GuardPatrolRange;
         var route = colony.Buildings
             .Where(b => b != tower && Math.Abs(b.HutPos.X - t.X) <= range && Math.Abs(b.HutPos.Z - t.Z) <= range)
             .OrderBy(b => Math.Atan2(b.HutPos.Z - t.Z, b.HutPos.X - t.X))
@@ -266,7 +286,7 @@ public partial class ColonyManager
         lines.Add(task);
         if (guards.Count == 0) lines.Add(Lang.Get("createacolony:tower-no-guards"));
         lines.Add("");
-        lines.Add(Lang.Get("createacolony:hint-guardtower"));
+        lines.Add(Lang.Get("createacolony:hint-" + tower.Type));
         return string.Join("<br>", lines);
     }
 }

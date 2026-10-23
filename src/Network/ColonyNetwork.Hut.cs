@@ -51,7 +51,7 @@ public partial class ColonyNetwork
             }
         }
 
-        if (building.Type != BuildingTypes.GuardTower) return "createacolony:bad-building";
+        if (!ColonyManager.IsGuardPost(building.Type)) return "createacolony:bad-building";
         switch (packet.Action)
         {
             case ColonyAction.GetGuardScepter:
@@ -147,7 +147,7 @@ public partial class ColonyNetwork
         snapshot.MinStock = building.MinStock.ToList();
         snapshot.Stats = Manager.StatSummary(building).Select(r => new StatView { Key = r.Key, Counts = r.Counts }).ToList();
 
-        if (building.Type != BuildingTypes.GuardTower) return;
+        if (!ColonyManager.IsGuardPost(building.Type)) return;
         snapshot.IsGuardTower = true;
         snapshot.GuardTask = building.GuardTask;
         snapshot.GuardSpot = building.GuardSpot?.Copy();

@@ -200,6 +200,7 @@ public class ColonyConfig
         ["smelter"] = 30,
         ["blacksmith"] = 30,
         ["sawmill"] = 30,
+        ["barracks"] = 40,
     };
     /// <summary>
     /// How many blocks each side of a hut's square grows for every hut level above 1, so a hut near the edge of the
@@ -238,8 +239,12 @@ public class ColonyConfig
     // Guard Tower
     /// <summary>How far from its guard spot (or the tower) a tower guard on the Guard task goes after monsters.</summary>
     public float GuardTowerRadius = 20f;
+    /// <summary>The same for a Barracks, whose guards watch farther.</summary>
+    public float BarracksRadius = 32f;
     /// <summary>Huts this close to a Guard Tower are on its guards' automatic patrol.</summary>
     public int GuardPatrolRange = 48;
+    /// <summary>The same for a Barracks, whose guards walk a wider round.</summary>
+    public int BarracksPatrolRange = 96;
     /// <summary>Seconds a patrolling guard looks around at each patrol point.</summary>
     public float GuardPatrolPauseSeconds = 4f;
     /// <summary>Most patrol points one tower keeps.</summary>

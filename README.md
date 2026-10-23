@@ -42,6 +42,7 @@ planks of any wood.
 | Cook's Hut | 2 bread (any) + 7 planks |
 | Residence | 2 dry grass + 7 planks |
 | Guard Tower | 2 spears (any) + 7 planks |
+| Barracks | 2 bows (any) + 7 planks |
 | Tavern | 2 rusty gears + 7 planks |
 | Warehouse | 2 chests + 7 planks |
 | Prospector's Hut | 2 stones (any rock) + 7 planks |
@@ -428,6 +429,15 @@ Smithing skill grows with both jobs.
   can be made comes from the game's smithing recipes; the anvil's tier must be high enough for the metal.
   The Smithing tab shows everything that can be made from the metals the colony has ingots of, with the
   ingots each takes; nothing is kept until an officer picks something.
+
+### The barracks (0.54.0)
+- **Barracks** (2 bows + 7 planks), with a simple placeholder model and a placeholder level 1 blueprint (an open
+  plank shed). It is on the wand's Military tab. It is a second kind of guard post and works like a Guard
+  Tower: the same window tabs (Guard Scepter, Hostiles, Settings, Minimum stock, Statistics), tasks, night
+  watch and armor. It has `ColonyManager.BarracksGuardsPerLevel` (2) guard places per level instead of one.
+  Guards on the Guard task fight up to `BarracksRadius` (32) blocks from their spot instead of
+  `GuardTowerRadius` (20), and the automatic patrol visits every hut within `BarracksPatrolRange` (96) instead of
+  `GuardPatrolRange` (48). New guards fill Guard Towers with room first, then Barracks.
 
 ### The sawmill (0.52.0)
 - **Sawmill** (2 logs + 7 planks), with a simple placeholder model and a placeholder level 1 blueprint (an open

@@ -213,7 +213,7 @@ public partial class ColonyNetwork : ModSystem
         var buildings = packet.Text switch
         {
             "townhall" => colony.Buildings.Where(b => b.Type == BuildingTypes.TownHall),
-            "guardtower" => colony.Buildings.Where(b => b.Type == BuildingTypes.GuardTower),
+            "guardtower" => colony.Buildings.Where(b => ColonyManager.IsGuardPost(b.Type)),
             _ => colony.Buildings
         };
         var (replaced, unloaded) = Manager.ReplaceBanners(colony, buildings.ToList());

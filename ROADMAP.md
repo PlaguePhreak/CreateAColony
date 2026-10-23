@@ -19,6 +19,7 @@ Everything listed under "What we have" and "Partly done" has been tested in game
 - Quarry: a stepped pit for stone *(tested)*
 - Cook: grilling and pot meals, harder meals as the Cooking skill grows *(tested)*
 - Guard Tower: guard, patrol and follow tasks, night watch, alarms, retreat and armor *(tested)*
+- Barracks: a bigger guard post, two guards per level, with a wider watch and patrol (0.54.0, placeholder model and building, not tested yet)
 - Our own jobs: the Prospector (finds ore and marks the map) and the Potter (shapes clay and fires pit kilns) *(tested)*
 - Smelter's Hut: melts nuggets in a crucible over the fire pit and pours ingots into molds (0.50.0, placeholder model and building, not tested yet)
 - Blacksmith's Hut: heats ingots in the forge and makes tool heads and finished tools on the anvil (0.50.0, placeholder model and building, not tested yet)
@@ -59,7 +60,7 @@ Everything listed under "What we have" and "Partly done" has been tested in game
 2. **Happiness**: food variety, a bed, safety, health, deaths and how full the colony is, added into one score; happy settlers work faster
 3. **A request list**: players can see and fill what workers need (the Sawmill came first, in 0.52.0)
 4. **Animal herders and a Tanner**: chickens, pigs, sheep and goats in pens for meat, eggs and hides, and a Tanner who makes leather in barrels
-5. **Ranged guards, a Barracks and a rally banner**, then **Raids**: now and then, enemies turn up and attack the player's colony. The player is warned in chat and on the Town Hall window. There are several raid factions, from bandits (who use the settler models) to the game's own monsters such as drifters and shivers.
+5. **Ranged guards and a rally banner** (the Barracks came in 0.54.0), then **Raids**: now and then, enemies turn up and attack the player's colony. The player is warned in chat and on the Town Hall window. There are several raid factions, from bandits (who use the settler models) to the game's own monsters such as drifters and shivers.
 6. **Hospital and Graveyard**: a healer with poultices and bandages, and an undertaker who buries the dead
 7. **School, Library and University** with a **research tree** that unlocks faster work and new huts
 8. **Blacksmith** (started in 0.50.0): still to do are repairs, armor, and making the tools workers ask for

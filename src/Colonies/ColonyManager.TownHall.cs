@@ -48,7 +48,7 @@ public partial class ColonyManager
 
     /// <summary>
     /// For each job: how many settlers have it, and how many places the colony's huts offer (-1 for the
-    /// unemployed, couriers, and guards while there is no Guard Tower, since none of them need a hut).
+    /// unemployed, couriers, and guards while there is no Guard Tower or Barracks, since none of them need a hut).
     /// </summary>
     public List<(string Job, int Workers, int Places)> JobCounts(Colony colony)
     {

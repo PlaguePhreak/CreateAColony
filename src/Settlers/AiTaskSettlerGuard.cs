@@ -128,7 +128,7 @@ public class AiTaskSettlerGuard : SettlerTaskBase
         else
         {
             center = m.GuardHome(tower);
-            radius = m.Config.GuardTowerRadius;
+            radius = m.GuardRadius(tower);
         }
         radius = Math.Max(1, radius + farther);
 

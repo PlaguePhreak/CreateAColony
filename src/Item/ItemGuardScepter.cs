@@ -29,7 +29,7 @@ public class ItemGuardScepter : Item
         var manager = api.ModLoader.GetModSystem<ColonyManager>();
         var attrs = slot.Itemstack.Attributes;
         var colony = manager.GetById(attrs.GetString(ColonyAttr, ""));
-        var tower = colony?.Buildings.Find(b => b.BuildingId == attrs.GetInt(TowerAttr) && b.Type == BuildingTypes.GuardTower);
+        var tower = colony?.Buildings.Find(b => b.BuildingId == attrs.GetInt(TowerAttr) && ColonyManager.IsGuardPost(b.Type));
         if (colony == null || tower == null)
         {
             Tell(serverPlayer, "createacolony:scepter-no-tower");
