@@ -157,7 +157,7 @@ public class AiTaskSettlerCourier : SettlerTaskBase
             // One stack at a time; whatever does not fit goes straight back.
             var part = manager!.TakeItems(new[] { container }, match, wanted - taken);
             if (part == null) break;
-            int moved = manager.AddToPack(colony, citizen, part);
+            int moved = manager.AddToPack(colony, citizen, part, toolBar: false); // a load to deliver, not its own tools
             taken += moved;
             if (part.StackSize > 0)
             {

@@ -68,12 +68,12 @@ public partial class ColonyManager
 
     /// <summary>
     /// Puts as much of the stack as fits into the settler's inventory. A tool, weapon or shield goes to its
-    /// free tool bar slot first. The stack keeps what did not fit.
+    /// free tool bar slot first, unless toolBar is false (a courier's load). The stack keeps what did not fit.
     /// </summary>
-    public int AddToPack(Colony colony, CitizenRecord citizen, ItemStack stack)
+    public int AddToPack(Colony colony, CitizenRecord citizen, ItemStack stack, bool toolBar = true)
     {
         int moved = 0;
-        if (stack.StackSize > 0 && PutOnToolBar(colony, citizen, stack))
+        if (toolBar && stack.StackSize > 0 && PutOnToolBar(colony, citizen, stack))
         {
             moved = 1;
             if (stack.StackSize <= 0) return moved;
