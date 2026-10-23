@@ -1,4 +1,6 @@
 {
+	// The creative inventory tab with all of the mod's blocks and items. The game looks the name up in its own domain.
+	"game:tabname-vintagecolonies": "Vintage Colonies",
 	"block-townhall": "Town Hall",
 	"default-colony-name": "{0}'s Colony",
 	"founded": "{0} has been founded. Your colony claim now protects the land around the Town Hall.",

@@ -1,7 +1,7 @@
 {
 	"code": "colonyledger",
 	"class": "ItemColonyLedger",
-	"creativeinventory": { "general": ["*"] },
+	"creativeinventory": { "general": ["*"], "vintagecolonies": ["*"] },
 	"maxstacksize": 1,
 	// Placeholder look: a closed book in red cloth.
 	"shape": { "base": "createacolony:item/colonyledger" },

@@ -11,7 +11,7 @@
 		"quantityColumns": { "hut": 5 },
 		"dialogTitleLangCode": { "hut": "createacolony:hut-storage" }
 	},
-	"creativeinventory": { "general": ["*"] },
+	"creativeinventory": { "general": ["*"], "vintagecolonies": ["*"] },
 	"blockmaterial": "Wood",
 	"drawtype": "json",
 	// The seed of the Barracks. Simple placeholder model: a crate with a spear rack and a flag on top.

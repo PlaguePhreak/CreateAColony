@@ -1,7 +1,7 @@
 {
 	"code": "fieldmarker",
 	"class": "BlockFieldMarker",
-	"creativeinventory": { "general": ["*"] },
+	"creativeinventory": { "general": ["*"], "vintagecolonies": ["*"] },
 	"blockmaterial": "Wood",
 	"drawtype": "json",
 	// Marks out a field for farmers, like MineColonies' scarecrow. Simple model: a scarecrow two blocks tall.

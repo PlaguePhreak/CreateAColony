@@ -1,7 +1,7 @@
 {
 	"code": "warehouse",
 	"class": "BlockWarehouse",
-	"creativeinventory": { "general": ["*"] },
+	"creativeinventory": { "general": ["*"], "vintagecolonies": ["*"] },
 	"blockmaterial": "Wood",
 	"drawtype": "json",
 	// Marks the warehouse; chests within 5 blocks become its storage. Simple model: stacked crates and a sack.

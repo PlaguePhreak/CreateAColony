@@ -11,7 +11,7 @@
 		"quantityColumns": { "hut": 5 },
 		"dialogTitleLangCode": { "hut": "createacolony:hut-storage" }
 	},
-	"creativeinventory": { "general": ["*"] },
+	"creativeinventory": { "general": ["*"], "vintagecolonies": ["*"] },
 	"blockmaterial": "Wood",
 	"drawtype": "json",
 	// The seed of the Sawmill. Simple placeholder model: a crate with a log on two sawhorses and a saw in it.

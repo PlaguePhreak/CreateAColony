@@ -2,7 +2,7 @@
 	"code": "townhall",
 	"class": "BlockTownHall",
 	"entityClass": "TownHall",
-	"creativeinventory": { "general": ["*"] },
+	"creativeinventory": { "general": ["*"], "vintagecolonies": ["*"] },
 	"blockmaterial": "Wood",
 	"drawtype": "json",
 	// Model and textures by Aaron's friend; texture names match the ones in the model file.

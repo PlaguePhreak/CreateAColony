@@ -10,7 +10,7 @@
 		"quantityColumns": { "camp": 4 },
 		"dialogTitleLangCode": { "camp": "createacolony:supplycamp-storage" }
 	},
-	"creativeinventory": { "general": ["*"] },
+	"creativeinventory": { "general": ["*"], "vintagecolonies": ["*"] },
 	"blockmaterial": "Wood",
 	"drawtype": "json",
 	// The supply camp a new colony starts from. Simple model: a crate, a sack and a small tent.

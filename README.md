@@ -457,6 +457,10 @@ Smithing skill grows with both jobs.
   The Smithing tab shows everything that can be made from the metals the colony has ingots of, with the
   ingots each takes; nothing is kept until an officer picks something.
 
+### Creative tab (0.58.0)
+- Every block and item of the mod is also on its own **Vintage Colonies** tab of the creative inventory
+  (`"vintagecolonies"` in each `creativeinventory`; the tab name is `game:tabname-vintagecolonies` in the lang file).
+
 ### Hut models (0.57.0)
 - Every hut block that was a plain cube now has a small model on a crate, like the new huts: Builder (toolbox and
   hammer), Cook (pot on a fire), Forester (stump and axe), Guard Tower (lookout), Miner (rock, ore and pickaxe),
