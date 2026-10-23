@@ -16,13 +16,18 @@ namespace CreateAColony.Network;
 /// client like any other chunks, and the client draws that mini-dimension at the building's spot with the
 /// game's preview transparency. Every change (turning, moving, another level) makes the preview afresh,
 /// as WorldEdit's CreatePreview does: only moving where the client draws it left the old copy on screen.
+/// The old blocks are set to air rather than cleared away: chunks that are emptied and unloaded on the server
+/// are never sent again, so the client kept drawing them, and a big building previewed earlier (a Town Hall)
+/// showed through the next, smaller one.
 /// </summary>
 public partial class ColonyNetwork
 {
     const string GhostDimsKey = "createacolony-ghostdims";
 
-    /// <summary>Each player's preview mini-dimension, and the blueprint and spot in it right now (null when empty).</summary>
+    /// <summary>Each player's preview mini-dimension, the blueprint and spot in it right now (null when empty), and the blocks it holds.</summary>
     readonly Dictionary<string, (IMiniDimension Dim, Blueprint? Shown, BlockPos? At)> ghosts = new();
+    /// <summary>Where each player's preview has blocks now (inside the mini-dimension), so the next preview can air them out.</summary>
+    readonly Dictionary<string, List<(BlockPos Pos, bool Fluid)>> ghostBlocks = new();
     /// <summary>The mini-dimension number each player was given, kept in the save so it is reused after a restart.</summary>
     Dictionary<string, int>? ghostDimIds;
 
@@ -55,9 +60,9 @@ public partial class ColonyNetwork
             var shown = ghosts[player.PlayerUID];
             // The window refreshes without changes too; only a real change remakes the preview.
             if (ReferenceEquals(shown.Shown, blueprint) && origin.Equals(shown.At)) return true;
-            dim.ClearChunks();
+            EmptyGhost(player.PlayerUID, dim);
             dim.CurrentPos.SetPos(origin);
-            FillGhost(dim, solid, minX, minY, minZ);
+            ghostBlocks[player.PlayerUID] = FillGhost(dim, solid, minX, minY, minZ);
             ghosts[player.PlayerUID] = (dim, blueprint, origin.Copy());
             serverChannel!.SendPacket(new GhostPreviewPacket { DimId = dim.subDimensionId, X = origin.X, Y = origin.Y, Z = origin.Z }, player);
             return true;
@@ -70,9 +75,10 @@ public partial class ColonyNetwork
         }
     }
 
-    /// <summary>Puts the blueprint's blocks in the mini-dimension, its corner at the mini-dimension's origin.</summary>
-    void FillGhost(IMiniDimension dim, List<BuildStep> solid, int minX, int minY, int minZ)
+    /// <summary>Puts the blueprint's blocks in the mini-dimension, its corner at the mini-dimension's origin. Returns where they went.</summary>
+    List<(BlockPos Pos, bool Fluid)> FillGhost(IMiniDimension dim, List<BuildStep> solid, int minX, int minY, int minZ)
     {
+        var placed = new List<(BlockPos, bool)>(solid.Count);
         var corner = new BlockPos(0, 0, 0, Dimensions.MiniDimensions);
         dim.AdjustPosForSubDimension(corner);
         foreach (var step in solid)
@@ -82,10 +88,26 @@ public partial class ColonyNetwork
             var pos = corner.AddCopy(step.Dx - minX, step.Dy - minY, step.Dz - minZ);
             if (block.ForFluidsLayer) dim.SetBlock(step.BlockId, pos, BlockLayersAccess.Fluid);
             else dim.SetBlock(step.BlockId, pos);
+            placed.Add((pos, block.ForFluidsLayer));
             // Roofs, furniture and doors draw from their saved details, as in a WorldEdit preview.
             if (step.Saved != null) Manager.GhostDetails(dim, step, pos);
         }
+        return placed;
+    }
+
+    /// <summary>
+    /// Sets the blocks of the player's current preview to air. The emptied chunks stay loaded so the client is
+    /// sent them empty; they are unloaded the next time round, once they have gone out.
+    /// </summary>
+    void EmptyGhost(string uid, IMiniDimension dim)
+    {
         dim.UnloadUnusedServerChunks();
+        if (!ghostBlocks.Remove(uid, out var old)) return;
+        foreach (var (pos, fluid) in old)
+        {
+            if (fluid) dim.SetBlock(0, pos, BlockLayersAccess.Fluid);
+            else dim.SetBlock(0, pos);
+        }
     }
 
     /// <summary>The player's preview mini-dimension, made the first time it is needed.</summary>
@@ -118,8 +140,7 @@ public partial class ColonyNetwork
         if (!ghosts.TryGetValue(player.PlayerUID, out var ghost)) return;
         if (ghost.Shown != null)
         {
-            ghost.Dim.ClearChunks();
-            ghost.Dim.UnloadUnusedServerChunks();
+            EmptyGhost(player.PlayerUID, ghost.Dim);
             ghosts[player.PlayerUID] = (ghost.Dim, null, null);
         }
         serverChannel!.SendPacket(new GhostPreviewPacket { DimId = -1 }, player);
@@ -131,6 +152,7 @@ public partial class ColonyNetwork
         if (!ghosts.TryGetValue(uid, out var ghost)) return;
         ghost.Dim.ClearChunks();
         ghost.Dim.UnloadUnusedServerChunks();
+        ghostBlocks.Remove(uid);
         ghosts[uid] = (ghost.Dim, null, null);
     }
 
