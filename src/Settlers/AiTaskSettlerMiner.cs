@@ -167,7 +167,11 @@ public class AiTaskSettlerMiner : AiTaskSettlerDigger
         }
         if (job.Kind == ColonyManager.MineWork.Build)
         {
-            if (job.Step is { } step && !manager!.BuildMineshaftBlock(colony, citizen, entity, step, target)) MarkUnreachable(target);
+            if (job.Step is { } step)
+            {
+                if (manager!.BuildMineshaftBlock(colony, citizen, entity, step, target)) manager.AddStat(hut, "mine-blocks-built");
+                else MarkUnreachable(target);
+            }
             return;
         }
         if (job.Kind == ColonyManager.MineWork.Search)

@@ -41,6 +41,9 @@ public class GuiDialogHut : GuiDialog
     const int QuarryTab = 14;
     /// <summary>A crafter hut's "keep in stock" tab (Smelting, Smithing).</summary>
     const int CraftTab = 15;
+    /// <summary>A Miner's Hut's Levels and Guards tabs (its Settings tab shares SettingsTab with the Guard Tower's).</summary>
+    const int LevelsTab = 16;
+    const int MineGuardsTab = 17;
     const int OreRowsPerPage = 6;
     const double OreRowHeight = 44;
     /// <summary>Households shown per page of a Residence's Residents tab.</summary>
@@ -85,11 +88,16 @@ public class GuiDialogHut : GuiDialog
     ColonyRole ViewerRole => (ColonyRole)snapshot.ViewerRole;
     bool Officer => ViewerRole >= ColonyRole.Officer;
 
-    /// <summary>The tabs down the left side for this kind of hut; every hut starts with Main.</summary>
+    /// <summary>
+    /// The tabs down the left side, in MineColonies' order: Main, then the hut's own tabs (Work orders,
+    /// Levels, Ore...), then the shared ones where the hut has a use for them: Settings, Guards, Required
+    /// resources, Minimum stock and Statistics.
+    /// </summary>
     List<(int Id, string Lang)> Tabs()
     {
         var tabs = new List<(int, string)> { (0, "tab-main") };
-        if (snapshot.IsBuilderHut) tabs.AddRange(new[] { (1, "tab-orders"), (2, "tab-items") });
+        if (snapshot.IsBuilderHut) tabs.Add((1, "tab-orders"));
+        if (snapshot.MineLevels.Count > 0) tabs.Add((LevelsTab, "tab-levels"));
         if (snapshot.IsGatherHut) tabs.Add((WorkAreaTab, "tab-workarea"));
         if (snapshot.IsPotterHut) tabs.Add((PotteryTab, "tab-pottery"));
         if (snapshot.IsCookHut) tabs.Add((KitchenTab, "tab-kitchen"));
@@ -98,10 +106,13 @@ public class GuiDialogHut : GuiDialog
         if (snapshot.IsResidence) tabs.Add((ResidentsTab, "tab-residents"));
         if (snapshot.IsOreHut) tabs.Add((OreTab, "tab-ore"));
         if (snapshot.IsQuarry) tabs.Add((QuarryTab, "tab-quarry"));
-        if (snapshot.IsGuardTower)
-        {
-            tabs.AddRange(new[] { (ToolsTab, "tab-tools"), (HostilesTab, "tab-hostiles"), (SettingsTab, "tab-settings"), (MinStockTab, "tab-minstock"), (StatsTab, "tab-stats") });
-        }
+        if (snapshot.IsGuardTower) tabs.AddRange(new[] { (ToolsTab, "tab-tools"), (HostilesTab, "tab-hostiles") });
+        // The shared tabs.
+        if (snapshot.IsGuardTower || snapshot.IsMiner) tabs.Add((SettingsTab, "tab-settings"));
+        if (snapshot.IsMiner) tabs.Add((MineGuardsTab, "tab-guards"));
+        if (snapshot.IsBuilderHut || snapshot.IsMiner) tabs.Add((2, "tab-resources"));
+        if (snapshot.HasStorage) tabs.Add((MinStockTab, "tab-minstock"));
+        if (snapshot.Job.Length > 0) tabs.Add((StatsTab, "tab-stats"));
         return tabs;
     }
 
@@ -132,6 +143,8 @@ public class GuiDialogHut : GuiDialog
             case 0: ComposeMain(composer); break;
             case 1: ComposeOrders(composer); break;
             case 2: ComposeItems(composer); break;
+            case LevelsTab: ComposeLevels(composer); break;
+            case MineGuardsTab: ComposeMineGuards(composer); break;
             case WorkAreaTab: ComposeWorkArea(composer); break;
             case PotteryTab: ComposeKeepList(composer, snapshot.Pottery, "pottery", ColonyAction.SetPotteryKeep); break;
             case KitchenTab: ComposeKeepList(composer, snapshot.Kitchen, "kitchen", ColonyAction.SetKitchenKeep); break;
@@ -142,7 +155,7 @@ public class GuiDialogHut : GuiDialog
             case QuarryTab: ComposeQuarry(composer); break;
             case ToolsTab: ComposeTools(composer); break;
             case HostilesTab: ComposeHostiles(composer); break;
-            case SettingsTab: ComposeSettings(composer); break;
+            case SettingsTab: if (snapshot.IsMiner) ComposeMineSettings(composer); else ComposeSettings(composer); break;
             case MinStockTab: ComposeMinStock(composer); break;
             case StatsTab: ComposeStats(composer); break;
             case ManageView: ComposeManage(composer); break;
@@ -430,6 +443,151 @@ public class GuiDialogHut : GuiDialog
         composer.Rich(text, GuiKit.Detail(), 0, y, Width);
     }
 
+    // ---- Miner's Hut tabs ------------------------------------------------------------------
+
+    const int LevelsPerPage = 6;
+    const double LevelRowHeight = 50;
+
+    /// <summary>
+    /// Levels: each loop of the mineshaft's stairs, with its sections and what is left to dig or build. A
+    /// red number marks the level the miner is on. Mine here sends new sections to that level first;
+    /// Repair has the miner put the level back as it was before anything else.
+    /// </summary>
+    void ComposeLevels(GuiComposer composer)
+    {
+        int id = BuildingId;
+        double y = composer.Text(Lang.Get("createacolony:levels-hint"), GuiKit.Muted(), 0, 30, Width, 8);
+        string target = snapshot.MineLevel == 0 ? Lang.Get("createacolony:levels-target-any") : Lang.Get("createacolony:levels-target", snapshot.MineLevel);
+        composer.AddStaticText(target, GuiKit.Body(), ElementBounds.Fixed(0, y + 5, Width - 200, 25));
+        if (Officer && snapshot.MineLevel != 0)
+        {
+            composer.AddSmallButton(Lang.Get("createacolony:levels-any"), () => SendText(ColonyAction.SetMineLevel, id, "0"), ElementBounds.Fixed(Width - 190, y, 190, 28));
+        }
+        y += 38;
+
+        var rows = snapshot.MineLevels;
+        int pages = (rows.Count + LevelsPerPage - 1) / LevelsPerPage;
+        page = Math.Clamp(page, 0, pages - 1);
+        int shown = Math.Min(LevelsPerPage, rows.Count - page * LevelsPerPage);
+        composer.AddInset(ElementBounds.Fixed(0, y, Width, shown * LevelRowHeight + 8), 3, 0.8f);
+        y += 4;
+        int hutY = snapshot.HutPos.Y;
+        foreach (var level in rows.Skip(page * LevelsPerPage).Take(LevelsPerPage))
+        {
+            int number = level.Level;
+            var numberFont = GuiKit.Heading().WithColor(level.Working ? MissingColor : GuiStyle.DialogDefaultTextColor);
+            composer.AddStaticText(number.ToString(), numberFont.WithOrientation(EnumTextOrientation.Center), ElementBounds.Fixed(6, y + 10, 34, 28));
+            if (level.Working) composer.AddHoverText(Lang.Get("createacolony:levels-working"), GuiKit.Detail(), 200, ElementBounds.Fixed(6, y + 8, 34, 30));
+            string title = Lang.Get("createacolony:levels-row", number, Math.Max(0, hutY - level.Y));
+            if (snapshot.MineLevel == number) title += "  " + Lang.Get("createacolony:levels-chosen");
+            if (snapshot.RepairLevel == number) title += "  " + Lang.Get("createacolony:levels-repairing");
+            string detail = Lang.Get("createacolony:levels-detail", level.Sections, level.Left);
+            composer
+                .AddStaticText(title, GuiKit.Body(), ElementBounds.Fixed(48, y + 4, Width - 300, 22))
+                .AddStaticText(detail, GuiKit.Detail().WithColor(level.Left == 0 ? GuiKit.GoodColor : GuiKit.MutedColor), ElementBounds.Fixed(48, y + 26, Width - 300, 20));
+            if (Officer)
+            {
+                if (snapshot.MineLevel != number)
+                    composer.AddSmallButton(Lang.Get("createacolony:levels-mine-here"), () => SendText(ColonyAction.SetMineLevel, id, number.ToString()), ElementBounds.Fixed(Width - 250, y + 10, 120, 28));
+                composer.AddSmallButton(Lang.Get("createacolony:levels-repair"), () => SendText(ColonyAction.RepairMineLevel, id, number.ToString()), ElementBounds.Fixed(Width - 120, y + 10, 110, 28));
+            }
+            y += LevelRowHeight;
+        }
+        AddPager(composer, pages, y + 14);
+    }
+
+    /// <summary>Settings of a Miner's Hut: the fill block, how deep the mine goes, and what is not in the mod yet.</summary>
+    void ComposeMineSettings(GuiComposer composer)
+    {
+        int id = BuildingId;
+        double y = 30;
+
+        y = composer.Section(Lang.Get("createacolony:minesettings-fill"), y, Width);
+        y = AddStringChoice(composer, y, snapshot.FillBlock, ColonyAction.SetFillBlock, MineFillBlocks.All.Select(f => (f, "createacolony:fill-" + f)).ToArray());
+        y = composer.Text(Lang.Get("createacolony:minesettings-fill-hint"), GuiKit.Muted(), 0, y, Width, 12);
+
+        y = composer.Section(Lang.Get("createacolony:minesettings-depth"), y, Width);
+        int allowed = Math.Max(1, snapshot.MineLevelsAllowed);
+        int max = snapshot.MaxMineLevels <= 0 ? allowed : Math.Min(snapshot.MaxMineLevels, allowed);
+        string depth = snapshot.MaxMineLevels <= 0 ? Lang.Get("createacolony:minesettings-depth-all", allowed) : Lang.Get("createacolony:minesettings-depth-n", max, allowed);
+        if (Officer)
+        {
+            composer
+                .AddSmallButton("<", () => SendText(ColonyAction.SetMaxMineLevels, id, Math.Max(1, max - 1).ToString()), ElementBounds.Fixed(0, y, 36, 28))
+                .AddStaticText(depth, GuiKit.Body().WithOrientation(EnumTextOrientation.Center), ElementBounds.Fixed(40, y + 4, 300, 25))
+                .AddSmallButton(">", () => SendText(ColonyAction.SetMaxMineLevels, id, (max + 1 >= allowed ? 0 : max + 1).ToString()), ElementBounds.Fixed(344, y, 36, 28));
+            y += 36;
+        }
+        else
+        {
+            y = composer.Text(depth, GuiKit.Body(), 0, y + 4, Width, 6);
+        }
+        y = composer.Text(Lang.Get("createacolony:minesettings-depth-hint"), GuiKit.Muted(), 0, y, Width, 12);
+
+        y = composer.Section(Lang.Get("createacolony:settings-recipe-mode"), y, Width);
+        composer.Text(Lang.Get("createacolony:settings-recipe-mode-later"), GuiKit.Muted(), 0, y, Width);
+    }
+
+    /// <summary>A row of buttons for a setting kept as text, the chosen one marked; plain text for non-officers. Returns the y below it.</summary>
+    double AddStringChoice(GuiComposer composer, double y, string current, ColonyAction action, (string Value, string Lang)[] choices)
+    {
+        if (!Officer)
+        {
+            string chosen = choices.FirstOrDefault(c => c.Value == current).Lang ?? choices[0].Lang;
+            return composer.Text(Lang.Get(chosen), GuiKit.Body(), 0, y + 4, Width, 6);
+        }
+        double x = 0;
+        double width = Math.Min(170, (Width - 10 * (choices.Length - 1)) / choices.Length);
+        int id = BuildingId;
+        foreach (var (value, key) in choices)
+        {
+            string label = (value == current ? "\u2022 " : "") + Lang.Get(key);
+            string v = value;
+            composer.AddSmallButton(label, () => SendText(action, id, v), ElementBounds.Fixed(x, y, width, 28), value == current ? EnumButtonStyle.Normal : EnumButtonStyle.Small);
+            x += width + 10;
+        }
+        return y + 36;
+    }
+
+    /// <summary>
+    /// Guards: guards who go with this mine's miner and fight what comes for it. Only guards of Guard Towers
+    /// set to Patrol mine (on the tower's Settings tab) can be taken on; one per hut level.
+    /// </summary>
+    void ComposeMineGuards(GuiComposer composer)
+    {
+        double y = composer.Text(Lang.Get("createacolony:mineguards-hint"), GuiKit.Muted(), 0, 30, Width, 8);
+        y = composer.Section(Lang.Get("createacolony:mineguards-here", snapshot.MineGuards.Count, snapshot.MineGuardSlots), y, Width);
+        if (snapshot.MineGuards.Count == 0) y = composer.Text(Lang.Get("createacolony:mineguards-none"), GuiKit.Detail(), 0, y, Width, 8);
+        foreach (var g in snapshot.MineGuards)
+        {
+            int cid = g.CitizenId;
+            composer.AddStaticText(g.Name, GuiKit.Body(), ElementBounds.Fixed(10, y + 5, Width - 150, 25));
+            if (Officer) composer.AddSmallButton(Lang.Get("createacolony:manage-remove"), () => SendCitizen(ColonyAction.UnassignMineGuard, cid), ElementBounds.Fixed(Width - 130, y, 120, 28));
+            y += ListRowHeight;
+        }
+
+        y = composer.Section(Lang.Get("createacolony:mineguards-others"), y + 6, Width);
+        var others = snapshot.MineGuardChoices;
+        if (others.Count == 0)
+        {
+            composer.Text(Lang.Get("createacolony:mineguards-nobody"), GuiKit.Detail(), 0, y, Width);
+            return;
+        }
+        int pages = (others.Count + ListRowsPerPage - 1) / ListRowsPerPage;
+        page = Math.Clamp(page, 0, pages - 1);
+        bool full = snapshot.MineGuards.Count >= snapshot.MineGuardSlots;
+        foreach (var g in others.Skip(page * ListRowsPerPage).Take(ListRowsPerPage))
+        {
+            int cid = g.CitizenId;
+            composer.AddStaticText(g.Name, GuiKit.Body(), ElementBounds.Fixed(10, y + 5, 200, 25));
+            if (g.Job.Length > 0) composer.AddStaticText(Lang.Get("createacolony:mineguards-at", g.Job), GuiKit.Muted(), ElementBounds.Fixed(210, y + 8, Width - 350, 22));
+            if (Officer && !full) composer.AddSmallButton(Lang.Get("createacolony:manage-assign"), () => SendCitizen(ColonyAction.AssignMineGuard, cid), ElementBounds.Fixed(Width - 130, y, 120, 28));
+            y += ListRowHeight;
+        }
+        AddPager(composer, pages, y + 14);
+        if (Officer && full) composer.Text(Lang.Get("createacolony:mineguards-full"), GuiKit.Detail().WithColor(GuiKit.WarnColor), 0, y + (pages > 1 ? 50 : 14), Width);
+    }
+
     // ---- Guard Tower tabs ------------------------------------------------------------------
 
     /// <summary>Selection tools: get a Guard Scepter, and see the guard spot or patrol points set with it.</summary>
@@ -546,12 +704,12 @@ public class GuiDialogHut : GuiDialog
         int id = BuildingId;
         double y = 30;
         y = composer.Section(Lang.Get("createacolony:settings-task"), y, Width);
-        y = AddChoice(composer, y, snapshot.GuardTask, ColonyAction.SetGuardTask, new[]
-        {
-            (GuardTasks.Patrol, "createacolony:task-patrol"), (GuardTasks.Guard, "createacolony:task-guard"), (GuardTasks.Follow, "createacolony:task-follow")
-        });
+        var tasks = new List<(int, string)> { (GuardTasks.Patrol, "createacolony:task-patrol"), (GuardTasks.Guard, "createacolony:task-guard"), (GuardTasks.Follow, "createacolony:task-follow") };
+        if (snapshot.Building.Type == BuildingTypes.GuardTower) tasks.Add((GuardTasks.PatrolMine, "createacolony:task-patrolmine"));
+        y = AddChoice(composer, y, snapshot.GuardTask, ColonyAction.SetGuardTask, tasks.ToArray());
         string taskHint = snapshot.GuardTask switch
         {
+            GuardTasks.PatrolMine => Lang.Get("createacolony:task-patrolmine-hint"),
             GuardTasks.Patrol => Lang.Get("createacolony:task-patrol-hint"),
             GuardTasks.Follow => Lang.Get("createacolony:task-follow-hint", snapshot.FollowName.Length > 0 ? snapshot.FollowName : "?"),
             _ => Lang.Get("createacolony:task-guard-hint")
@@ -1108,11 +1266,20 @@ public class GuiDialogHut : GuiDialog
         AddPager(composer, pages, y + 12);
     }
 
+    static readonly double[] MissingColor = { 1.0, 0.4, 0.35, 1.0 };
+
+    /// <summary>
+    /// Required resources, as in MineColonies: the work the hut's worker is on (a Builder's work order, a
+    /// Miner's mineshaft piece), how far along it is, and each item still needed with how many are in the
+    /// hut. Red: neither the hut nor you have it. Green: you carry some, and the ^ button puts them in the
+    /// hut's storage. White: the hut has enough.
+    /// </summary>
     void ComposeItems(GuiComposer composer)
     {
+        string job = Lang.Get("createacolony:job-" + snapshot.Job);
         if (snapshot.BuilderName.Length == 0)
         {
-            composer.Text(Lang.Get("createacolony:hut-no-builder"), GuiKit.Body().WithColor(GuiKit.WarnColor), 0, 30, Width);
+            composer.Text(Lang.Get("createacolony:resources-no-worker", job), GuiKit.Body().WithColor(GuiKit.WarnColor), 0, 30, Width);
             return;
         }
         if (snapshot.ResourcesFor.Length == 0)
@@ -1121,33 +1288,49 @@ public class GuiDialogHut : GuiDialog
             return;
         }
 
-        composer.AddStaticText(Lang.Get("createacolony:items-for", snapshot.ResourcesFor), GuiKit.Heading(), ElementBounds.Fixed(0, 30, Width, 25));
+        composer.AddStaticText(Lang.Get("createacolony:resources-project", snapshot.ResourcesFor), GuiKit.Heading(), ElementBounds.Fixed(0, 30, Width, 25));
+        var materials = snapshot.Resources.Where(r => !r.IsTool).ToList();
+        int needed = materials.Sum(r => r.Needed);
+        int supplied = needed == 0 ? 100 : materials.Sum(r => Math.Min(r.Have, r.Needed)) * 100 / needed;
+        string line = Lang.Get("createacolony:resources-step", snapshot.ResourcesStep)
+            + "   " + Lang.Get("createacolony:resources-supplied", supplied, Math.Max(0, snapshot.UsedPercent));
+        composer.AddStaticText(line, GuiKit.Detail(), ElementBounds.Fixed(0, 56, Width, 20));
 
-        // Missing items first, so the list leads with what the builder is waiting on.
+        // Missing items first, so the list leads with what the worker is waiting on.
         var rows = snapshot.Resources.OrderBy(r => r.Have >= r.Needed).ThenByDescending(r => r.IsTool).ToList();
         if (rows.Count == 0)
         {
-            composer.Text(Lang.Get("createacolony:items-none"), GuiKit.Body(), 0, 62, Width);
+            composer.Text(Lang.Get("createacolony:items-none"), GuiKit.Body(), 0, 84, Width);
             return;
         }
 
+        const double top = 82;
         int perPage = ItemRowsPerPage * ItemColumns;
         int pages = (rows.Count + perPage - 1) / perPage;
         page = Math.Clamp(page, 0, pages - 1);
         double columnWidth = (Width - 12) / ItemColumns;
         int onPage = Math.Min(perPage, rows.Count - page * perPage);
-        composer.AddInset(ElementBounds.Fixed(0, 60, Width, (onPage + ItemColumns - 1) / ItemColumns * ItemRowHeight + 8), 3, 0.8f);
+        composer.AddInset(ElementBounds.Fixed(0, top, Width, (onPage + ItemColumns - 1) / ItemColumns * ItemRowHeight + 8), 3, 0.8f);
+        bool canGive = ViewerRole >= ColonyRole.Member;
         int i = 0;
         foreach (var r in rows.Skip(page * perPage).Take(perPage))
         {
             var stack = new ItemStack(r.Stack);
             if (!stack.ResolveBlockOrItem(capi.World)) continue;
             double x = 6 + i % ItemColumns * columnWidth;
-            double y = 64 + i / ItemColumns * ItemRowHeight;
-            composer.AddRichtext(ItemRow(stack, r), ElementBounds.Fixed(x, y, columnWidth - 10, ItemRowHeight));
+            double y = top + 4 + i / ItemColumns * ItemRowHeight;
+            bool give = canGive && r.PlayerHas > 0 && r.Have < r.Needed && r.Code.Length > 0;
+            composer.AddRichtext(ItemRow(stack, r), ElementBounds.Fixed(x, y, columnWidth - (give ? 50 : 10), ItemRowHeight));
+            if (give)
+            {
+                string code = r.Code;
+                int amount = r.Needed - r.Have;
+                composer.AddSmallButton("^", () => SendText(ColonyAction.GiveResource, BuildingId, code + "|" + amount), ElementBounds.Fixed(x + columnWidth - 46, y + 8, 34, 28));
+                composer.AddHoverText(Lang.Get("createacolony:resources-give", Math.Min(amount, r.PlayerHas)), GuiKit.Detail(), 220, ElementBounds.Fixed(x + columnWidth - 46, y + 8, 34, 28));
+            }
             i++;
         }
-        AddPager(composer, pages, 60 + ItemRowsPerPage * ItemRowHeight + 20);
+        AddPager(composer, pages, top + ItemRowsPerPage * ItemRowHeight + 20);
     }
 
     /// <summary>
@@ -1166,15 +1349,16 @@ public class GuiDialogHut : GuiDialog
     RichTextComponentBase[] ItemRow(ItemStack stack, ResourceView r)
     {
         bool done = r.Have >= r.Needed;
-        // Green when the builder has enough, orange when it is still waiting.
-        var countFont = CairoFont.WhiteDetailText().WithColor(done ? GuiKit.GoodColor : GuiKit.WarnColor);
+        // White when the hut has enough, green when you carry some, red when nobody has it.
+        var countFont = done ? CairoFont.WhiteDetailText() : CairoFont.WhiteDetailText().WithColor(r.PlayerHas > 0 ? GuiKit.GoodColor : MissingColor);
         string name = r.IsTool ? Lang.Get("createacolony:items-tool", Lang.Get("createacolony:tool-" + (stack.Collectible.Tool?.ToString().ToLowerInvariant() ?? "")))
             : r.AnyOf.Length > 0 ? Lang.Get("createacolony:items-any-" + r.AnyOf, stack.GetName()) : WithWood(stack);
         return new RichTextComponentBase[]
         {
             new ItemstackTextComponent(capi, stack, 40, 10),
             new RichTextComponent(capi, name + "\n", CairoFont.WhiteSmallText()) { VerticalAlign = EnumVerticalAlign.Top },
-            new RichTextComponent(capi, Lang.Get("createacolony:items-count", Math.Min(r.Have, r.Needed), r.Needed), countFont)
+            new RichTextComponent(capi, Lang.Get("createacolony:items-count", Math.Min(r.Have, r.Needed), r.Needed)
+                + (!done && r.PlayerHas > 0 ? "  " + Lang.Get("createacolony:resources-you-have", r.PlayerHas) : ""), countFont)
         };
     }
 

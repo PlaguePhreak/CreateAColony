@@ -232,6 +232,7 @@ public partial class ColonyManager
         var crop = ba.GetBlock(cropPos);
         if (crop.Id == 0) return null;
         StoreHarvest(colony, hut, worker, DropsOf(crop, cropPos), cropPos);
+        AddStat(hut, "crops-harvested");
         BreakQuietly(cropPos);
         if (crop.Sounds?.Break != null) sapi.World.PlaySoundAt(crop.Sounds.Break, cropPos, 0);
         return crop is BlockCrop ? VariantOf(crop, "type") : null;

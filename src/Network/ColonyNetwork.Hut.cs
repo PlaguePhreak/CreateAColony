@@ -73,7 +73,9 @@ public partial class ColonyNetwork
                 if (packet.Text[(sep + 1)..] == "0" && Manager.HostileTypes().Contains(code)) building.HostilesOff.Add(code);
                 return null;
             case ColonyAction.SetGuardTask:
-                if (number is < GuardTasks.Guard or > GuardTasks.Follow) return "createacolony:bad-building";
+                if (number is < GuardTasks.Guard or > GuardTasks.PatrolMine) return "createacolony:bad-building";
+                // Only Guard Towers patrol mines, as in MineColonies (Barracks do not).
+                if (number == GuardTasks.PatrolMine && building.Type != BuildingTypes.GuardTower) return "createacolony:bad-building";
                 building.GuardTask = number;
                 if (number == GuardTasks.Follow) building.FollowPlayerUid = player.PlayerUID;
                 return null;

@@ -45,7 +45,7 @@ public partial class ColonyManager
     public List<PlacedPiece>? MineshaftPieces(Colony colony, Building hut)
     {
         if (MineshaftStyle(hut) is not { } style || Blueprints.GetMinePiece(style, BlueprintLibrary.MineEntrance, hut.Rotation) is not { } entrance) return null;
-        entrance = entrance.Deeper(Math.Max(0, Config.MinerEntranceRepeatsPerHutLevel) * Math.Max(1, hut.Level));
+        entrance = entrance.Deeper(MineshaftRepeats(hut));
         int half = Math.Max(Math.Max(-entrance.Min.X, entrance.Max.X), Math.Max(-entrance.Min.Z, entrance.Max.Z));
         if (hut.MineshaftPos == null)
         {
@@ -74,6 +74,7 @@ public partial class ColonyManager
         status = "";
         var pieces = MineshaftPieces(colony, hut);
         if (pieces == null) return null;
+        mineshaftWorking.Remove(hut.BuildingId);
         for (int round = 0; round < 3; round++)
         {
             var job = ScanMineshaft(colony, hut, miner, pieces, at, skip, out status, out bool busy);
@@ -113,16 +114,19 @@ public partial class ColonyManager
             if (OreInReach(colony, hut.Trip, at, IsOre, skip, boxes, guard) is { } ore)
             {
                 status = "mine-ore";
+                mineshaftWorking[hut.BuildingId] = LevelAt(pieces, at.Y);
                 return new MineJob(MineWork.Dig, ore, at.Copy(), true);
             }
         }
 
         var needs = new HashSet<string>();
         MineJob? found = null;
-        foreach (var piece in pieces)
+        PlacedPiece? foundIn = null;
+        int fillId = FillBlockId(hut);
+        foreach (var piece in WorkOrder(pieces, hut))
         {
             var origin = piece.Origin;
-            foreach (var step in piece.Piece.Steps.OrderByDescending(s => s.Dy).ThenBy(StepOrder).ThenBy(s => Math.Abs(s.Dx) + Math.Abs(s.Dz)))
+            foreach (var step in StepsWithFill(piece, cells, fillId).OrderByDescending(s => s.Dy).ThenBy(StepOrder).ThenBy(s => Math.Abs(s.Dx) + Math.Abs(s.Dz)))
             {
                 var pos = piece.At(step);
                 if (ba.GetChunkAtBlockPos(pos) == null)
@@ -163,9 +167,20 @@ public partial class ColonyManager
                 found = new MineJob(MineWork.Build, pos, spot, false, step);
             }
             // Pieces are dug in order: the next waits until this one has nothing left to start.
-            if (found != null) break;
+            if (found != null)
+            {
+                foundIn = piece;
+                break;
+            }
         }
         mineshaftNeeds[hut.BuildingId] = needs;
+        if (found != null && foundIn != null) mineshaftWorking[hut.BuildingId] = LevelAt(pieces, found.Value.Block.Y);
+        // A repair is done once the miner has nothing left to do on that level.
+        if (hut.RepairLevel > 0 && (found == null ? !busy : foundIn != pieces[0] && LevelOf(pieces, foundIn!) != hut.RepairLevel))
+        {
+            hut.RepairLevel = 0;
+            MarkDirty(colony);
+        }
         if (found != null) busy = true;
         return found;
     }
@@ -315,7 +330,7 @@ public partial class ColonyManager
     /// </summary>
     bool GrowMineshaft(Colony colony, Building hut, List<PlacedPiece> pieces)
     {
-        int limit = Math.Max(0, Config.MinerSectionsPerHutLevel) * Math.Max(1, hut.Level);
+        int limit = MineshaftSectionLimit(hut);
         if (hut.Sections.Count >= limit || MineshaftStyle(hut) is not { } style) return false;
         var rand = sapi.World.Rand;
         var others = colony.Buildings.Where(b => b != hut).Select(b => BuildingBox(b)).ToList();
@@ -326,7 +341,7 @@ public partial class ColonyManager
         // Every open side with nothing beyond it yet, in a random order, so the mine branches out as a maze.
         var sides = pieces.SelectMany(piece => piece.Piece.Open.Select(o => (piece, o.Face, Out: piece.Origin.AddCopy(o.X + o.Face.Normali.X, o.Y, o.Z + o.Face.Normali.Z))))
             .Where(s => !pieces.Any(p => s.Out.X >= p.Min.X && s.Out.X <= p.Max.X && s.Out.Y >= p.Min.Y && s.Out.Y <= p.Max.Y && s.Out.Z >= p.Min.Z && s.Out.Z <= p.Max.Z))
-            .OrderBy(_ => rand.Next()).ToList();
+            .OrderBy(s => hut.MineLevel > 0 && LevelAt(pieces, s.Out.Y) == hut.MineLevel ? 0 : 1).ThenBy(_ => rand.Next()).ToList();
         foreach (var (_, face, outside) in sides)
         {
             var choices = BlueprintLibrary.MineSections.SelectMany(name => new[] { 0, 90, 180, 270 }.Select(turn => (name, turn)))
@@ -364,7 +379,7 @@ public partial class ColonyManager
             bool done = step.BlockId == 0 ? IsClear(pos) || NearLiquid(pos) : KeepsBlock(colony, ba.GetBlock(pos), step.BlockId, pos);
             if (!done) left++;
         }
-        int limit = Math.Max(0, Config.MinerSectionsPerHutLevel) * Math.Max(1, hut.Level);
+        int limit = MineshaftSectionLimit(hut);
         var o = pieces[0].Origin;
         return Lang.Get("createacolony:mineshaft-info", hut.Sections.Count, limit, left, o.X, o.Y, o.Z);
     }

@@ -117,7 +117,9 @@ public class AiTaskSettlerGuard : SettlerTaskBase
 
         // Who or what the guard looks after, and how far around it monsters are fought.
         EntityPlayer? player = tower?.GuardTask == GuardTasks.Follow ? m.FollowedPlayer(tower) : null;
-        CitizenRecord? escorted = tower == null ? m.EscortedBy(colony, citizen) : null;
+        // A tower on Patrol mine sends its guard with the miner of the mine that took it on its Guards tab.
+        CitizenRecord? escorted = tower == null ? m.EscortedBy(colony, citizen)
+            : tower.GuardTask == GuardTasks.PatrolMine ? m.MinerGuardedBy(colony, citizen) : null;
         protectee = player ?? (escorted == null ? null : entity.World.GetEntityById(escorted.EntityId));
         Vec3d center;
         float radius = m.Config.GuardThreatRadius;
@@ -179,6 +181,11 @@ public class AiTaskSettlerGuard : SettlerTaskBase
             case GuardTasks.Patrol:
                 Patrol(colony, tower);
                 break;
+            case GuardTasks.PatrolMine when protectee != null:
+                mode = Mode.Follow;
+                if (entity.Pos.DistanceTo(center) > FollowDistance) Walk(center, FollowDistance - 1.5f);
+                if (protectee is EntityAgent && m.MineGuardedBy(colony, citizen) is { } mine && entity.Pos.DistanceTo(center) < FollowDistance) PatrolStat(m, mine);
+                break;
             default:
                 mode = Mode.Hold;
                 var home = m.GuardHome(tower);
@@ -236,6 +243,17 @@ public class AiTaskSettlerGuard : SettlerTaskBase
         if (route.Count == 0) return;
         patrolIndex %= route.Count;
         Walk(route[patrolIndex], 2f);
+    }
+
+    double minePatrolCounted;
+
+    /// <summary>Counts each in-game hour a guard spends by its miner, for the mine's Statistics tab.</summary>
+    void PatrolStat(ColonyManager m, Building mine)
+    {
+        double hours = entity.World.Calendar.TotalHours;
+        if (hours - minePatrolCounted < 1) return;
+        if (minePatrolCounted > 0) m.AddStat(mine, "guard-hours");
+        minePatrolCounted = hours;
     }
 
     void ReachedPatrolPoint(Colony colony)
@@ -342,7 +360,7 @@ public class AiTaskSettlerGuard : SettlerTaskBase
         return mode switch
         {
             Mode.Fight => Lang.Get(answeringAlarm ? "createacolony:activity-guard-alarm" : "createacolony:activity-guard-fight", threat?.GetName() ?? ""),
-            Mode.Follow => Lang.Get("createacolony:activity-guard-escort", m.EscortedBy(colony, citizen)?.Name ?? ""),
+            Mode.Follow => Lang.Get("createacolony:activity-guard-escort", (m.EscortedBy(colony, citizen) ?? m.MinerGuardedBy(colony, citizen))?.Name ?? ""),
             Mode.FetchGear => Lang.Get("createacolony:activity-guard-gear"),
             Mode.Hold => Lang.Get("createacolony:activity-guard-hold"),
             Mode.Patrol => Lang.Get("createacolony:activity-guard-patrol"),

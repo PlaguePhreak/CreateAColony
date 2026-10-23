@@ -266,6 +266,23 @@ public class ResourceView
     [ProtoMember(4)] public bool IsTool;
     /// <summary>"wood" or "rock" when any type of it will do, else empty.</summary>
     [ProtoMember(5)] public string AnyOf = "";
+    /// <summary>The item code the colony asks for (with * where any will do), for the give button.</summary>
+    [ProtoMember(6)] public string Code = "";
+    /// <summary>How many of it the viewer carries.</summary>
+    [ProtoMember(7)] public int PlayerHas;
+}
+
+/// <summary>One level of a Miner's Hut's mineshaft, for the Levels tab.</summary>
+[ProtoContract]
+public class MineLevelView
+{
+    [ProtoMember(1)] public int Level;
+    [ProtoMember(2)] public int Y;
+    [ProtoMember(3)] public int Sections;
+    /// <summary>Blocks still to dig out or build on this level.</summary>
+    [ProtoMember(4)] public int Left;
+    /// <summary>The miner is working on this level now.</summary>
+    [ProtoMember(5)] public bool Working;
 }
 
 /// <summary>Everything a hut window shows.</summary>
@@ -375,6 +392,23 @@ public class HutSnapshot
     [ProtoMember(80)] public string CraftTab = "";
     /// <summary>The rows of that tab. Clay is how many of the input each one takes (nuggets per ingot, ingots per piece).</summary>
     [ProtoMember(81)] public List<PotteryView> Craft = new();
+
+    // The Miner's Hut's Levels, Settings and Guards tabs (82-99).
+    [ProtoMember(82)] public bool IsMiner;
+    /// <summary>The mineshaft's levels, top first; empty when the hut digs the old spiral shaft.</summary>
+    [ProtoMember(83)] public List<MineLevelView> MineLevels = new();
+    [ProtoMember(84)] public int MineLevel;
+    [ProtoMember(85)] public int RepairLevel;
+    [ProtoMember(86)] public int MaxMineLevels;
+    [ProtoMember(87)] public int MineLevelsAllowed;
+    [ProtoMember(88)] public string FillBlock = "";
+    [ProtoMember(89)] public List<CitizenView> MineGuards = new();
+    /// <summary>Guards of towers on Patrol mine not with this mine, and the mine they are with ("" for none) in CitizenView.Job.</summary>
+    [ProtoMember(90)] public List<CitizenView> MineGuardChoices = new();
+    [ProtoMember(91)] public int MineGuardSlots;
+    /// <summary>Required resources: "N of M spots done" for a mineshaft piece, the used share for a builder.</summary>
+    [ProtoMember(92)] public int UsedPercent = -1;
+    [ProtoMember(93)] public string ResourcesStep = "";
 }
 
 /// <summary>One line of a hut's chest list: an item, how many there are, and which containers hold it.</summary>
@@ -649,7 +683,21 @@ public enum ColonyAction
     /// <summary>Text "key|amount": how many of a thing the crafter hut (Smelter, Blacksmith, Sawmill) with BuildingId keeps in stock.</summary>
     SetCraftKeep = 70,
     /// <summary>Text is what the settler with CitizenId does at the Prospector's Hut with BuildingId (ProspectorRoles: 0 finds ore, 1 mines it).</summary>
-    SetWorkRole = 90
+    SetWorkRole = 90,
+    /// <summary>Text is the level (1 at the top) new mineshaft sections of the Miner's Hut with BuildingId go on first; 0 lets the miner pick.</summary>
+    SetMineLevel = 91,
+    /// <summary>Text is the level the miner puts back as it was first.</summary>
+    RepairMineLevel = 92,
+    /// <summary>Text is how many levels deep the mineshaft goes at most; 0 as deep as the hut allows.</summary>
+    SetMaxMineLevels = 93,
+    /// <summary>Text is what holes in the mineshaft floor are filled with (MineFillBlocks).</summary>
+    SetFillBlock = 94,
+    /// <summary>Puts the guard with CitizenId on the Miner's Hut with BuildingId.</summary>
+    AssignMineGuard = 95,
+    /// <summary>Takes the guard with CitizenId off the Miner's Hut with BuildingId.</summary>
+    UnassignMineGuard = 96,
+    /// <summary>Moves the item with code Text from the player's inventory into the hut's storage, as many as are still needed.</summary>
+    GiveResource = 97
 }
 
 /// <summary>The Builder's Wand building list: each building type with how many of its blocks the player carries.</summary>

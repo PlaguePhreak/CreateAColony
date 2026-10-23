@@ -440,6 +440,7 @@ public class AiTaskSettlerBuilder : SettlerTaskBase
         manager.FinishPlacement(place, target);
         if (place.Id == buildStep.BlockId) manager.RestoreSavedDetails(buildStep, target, placedFrom);
         manager.GainWorkXp(colony, citizen, Jobs.Builder);
+        if (manager.EnsureBuilderHut(colony, citizen) is { } builderHut) manager.AddStat(builderHut, "blocks-placed");
     }
 
     /// <summary>What a player would play: the held tool's swing when clearing a block, the place motion when building.</summary>

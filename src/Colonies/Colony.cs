@@ -240,7 +240,17 @@ public class Building
     [ProtoMember(49)] public List<MineSection> Sections = new();
     /// <summary>A Miner's Hut: where its mineshaft's entrance comes up beside the hut, at the height a settler stands on the ground there.</summary>
     [ProtoMember(50)] public BlockPos? MineshaftPos;
-    // 51-59 left free for other building fields.
+    /// <summary>A Miner's Hut: the level of the mineshaft (1 is the top stair loop) new sections go on first; 0 lets the miner pick.</summary>
+    [ProtoMember(51)] public int MineLevel;
+    /// <summary>A Miner's Hut: a level the miner puts back as it was before anything else; 0 when none was asked for.</summary>
+    [ProtoMember(52)] public int RepairLevel;
+    /// <summary>A Miner's Hut: how many levels deep the mineshaft goes at most; 0 goes as deep as the hut's level allows.</summary>
+    [ProtoMember(53)] public int MaxMineLevels;
+    /// <summary>A Miner's Hut: what the miner fills holes in the mineshaft floor with (see MineFillBlocks); "none" leaves them.</summary>
+    [ProtoMember(54, IsRequired = true)] public string FillBlock = MineFillBlocks.Soil;
+    /// <summary>A Miner's Hut: the guards (citizen ids) that patrol its mine, from Guard Towers set to Patrol mine.</summary>
+    [ProtoMember(55)] public List<int> MineGuards = new();
+    // 56-59 left free for other building fields.
     // 60 and 61 held the trip's entrances and the mines to fill in before 0.62.0.
     [ProtoMember(60)] List<BlockPos> oldSiteEntrances = new();
     [ProtoMember(61)] List<BlockPos> oldMineSeals = new();
@@ -324,6 +334,27 @@ public static class GuardTasks
     public const int Patrol = 1;
     /// <summary>Follow a player as a bodyguard, even outside the colony.</summary>
     public const int Follow = 2;
+    /// <summary>Go with the miner of the Miner's Hut that took them on its Guards tab (Guard Towers only, as in MineColonies).</summary>
+    public const int PatrolMine = 3;
+}
+
+/// <summary>What a miner fills holes in its mineshaft floor with (Building.FillBlock), and the block placed for each.</summary>
+public static class MineFillBlocks
+{
+    public const string None = "none";
+    public const string Soil = "soil";
+    public const string Cobblestone = "cobblestone";
+    public const string Gravel = "gravel";
+    public static readonly string[] All = { Soil, Cobblestone, Gravel, None };
+
+    /// <summary>The block code placed; null for None. Any rock will do when "any wood or stone" is on.</summary>
+    public static string? BlockCode(string fill) => fill switch
+    {
+        Soil => "game:soil-medium-none",
+        Cobblestone => "game:cobblestone-granite",
+        Gravel => "game:gravel-granite",
+        _ => null
+    };
 }
 
 /// <summary>"Keep at least Count of this item here."</summary>

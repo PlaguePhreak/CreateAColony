@@ -296,6 +296,12 @@ public partial class ColonyManager
             // Request pickup now: everything goes, until the hut's storage is empty.
             System.Func<ItemStack, bool> isJunk = hut.PickupNow ? _ => true
                 : hut.Type == BuildingTypes.Builder ? BuilderHutJunk(colony, hut) : WorkerHutJunk(colony, hut);
+            // What the Minimum stock tab keeps stays, unless everything was asked for.
+            if (!hut.PickupNow && hut.MinStock.Count > 0)
+            {
+                var junk = isJunk;
+                isJunk = s => junk(s) && !IsMinStock(hut, s);
+            }
             var chest = HutStorage(colony, hut).FirstOrDefault(c => c.Inventory.Any(s => !s.Empty && isJunk(s.Itemstack)));
             if (chest != null) return (chest, isJunk);
             if (hut.PickupNow)

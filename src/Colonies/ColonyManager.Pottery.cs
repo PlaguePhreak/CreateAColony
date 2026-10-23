@@ -241,6 +241,7 @@ public partial class ColonyManager
         var piece = recipe.Output!.ResolvedItemstack!.Clone();
         ba.SetBlock(0, hut.FormPos);
         StoreHarvest(colony, hut, potter, new[] { piece }, hut.FormPos);
+        AddStat(hut, "pottery-shaped");
         return true;
     }
 
@@ -495,6 +496,7 @@ public partial class ColonyManager
         var stacks = pile.Inventory.Where(s => !s.Empty).Select(s => s.Itemstack!.Clone()).ToList();
         ba.SetBlock(0, hut.KilnPos);
         StoreHarvest(colony, hut, potter, stacks, hut.KilnPos);
+        AddStat(hut, "pottery-fired", stacks.Sum(s => s.StackSize));
     }
 
     // ---- Finding spots ----------------------------------------------------------------------

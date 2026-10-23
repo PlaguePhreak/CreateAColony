@@ -161,6 +161,8 @@ public partial class ColonyNetwork : ModSystem
             ColonyAction.SetCraftKeep => CraftAction(colony, role, packet),
             ColonyAction.SetMineOre or ColonyAction.SetMineProspected or ColonyAction.NewMine => MiningAction(colony, role, packet),
             ColonyAction.SetWorkRole => WorkRoleAction(colony, role, packet),
+            >= ColonyAction.SetMineLevel and <= ColonyAction.UnassignMineGuard => MineTabAction(colony, role, packet),
+            ColonyAction.GiveResource => GiveResource(player, colony, role, packet),
             ColonyAction.WelcomeVisitor or ColonyAction.TurnAwayVisitor => VisitorAction(colony, role, packet),
             ColonyAction.RecallCitizen => RecallCitizen(colony, role, packet.CitizenId),
             ColonyAction.SetColonyBanner or ColonyAction.ReplaceBanners or ColonyAction.SetBannerOnNew => BannerAction(player, colony, role, packet),
@@ -921,6 +923,7 @@ public partial class ColonyNetwork : ModSystem
             }
         }
         if (ColonyManager.CraftTabOf(building.Type) is { } craftTab) AddCraftRows(snapshot, colony, building, craftTab);
+        if (building.Type == BuildingTypes.Miner) AddMineTabs(snapshot, colony, building, viewerUid);
         if (!snapshot.IsBuilderHut) return snapshot;
 
         foreach (var order in colony.Buildings.Where(b => b.HasWorkOrder).OrderBy(b => b.BuildingId))
@@ -937,6 +940,9 @@ public partial class ColonyNetwork : ModSystem
         var blueprint = current == null ? null : Manager.Blueprints.Get(current, current.TargetLevel);
         if (current == null || blueprint == null) return snapshot;
         snapshot.ResourcesFor = Lang.Get("createacolony:building-" + current.Type) + " " + current.TargetLevel;
+        var view = BuildingViewFor(colony, current);
+        snapshot.UsedPercent = view.ProgressPercent;
+        snapshot.ResourcesStep = Lang.Get("createacolony:buildstatus-" + view.Status);
 
         var storage = Manager.HutStorage(colony, building).Cast<BlockEntityContainer>().ToList();
         var hand = (sapi!.World.GetEntityById(builder.EntityId) as EntityAgent)?.RightHandItemSlot?.Itemstack;
@@ -956,8 +962,9 @@ public partial class ColonyNetwork : ModSystem
             int have = Manager.CountItems(storage, match) + Manager.PackCount(builder, match);
             string anyOf = code.Contains('|') ? "binding" : ColonyManager.AnyType(code) ? "wood"
                 : code.StartsWith("heraldrybanners:banner") && code.Contains('{') ? "design" : !code.Contains('*') ? "" : sample.Collectible.Variant?.ContainsKey("wood") == true ? "wood" : "rock";
-            snapshot.Resources.Add(new ResourceView { Stack = sample.ToBytes(), Needed = count, Have = have, AnyOf = anyOf });
+            snapshot.Resources.Add(new ResourceView { Stack = sample.ToBytes(), Needed = count, Have = have, AnyOf = anyOf, Code = code });
         }
+        AddPlayerHas(snapshot, viewerUid);
         return snapshot;
     }
 
