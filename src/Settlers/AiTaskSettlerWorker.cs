@@ -38,6 +38,7 @@ public abstract class AiTaskSettlerWorker : SettlerTaskBase
     string? workAnim;
     ItemMatch supplyMatch = _ => false;
     int supplyWant;
+    string? supplyName;
     readonly Dictionary<BlockPos, long> unreachable = new();
 
     protected AiTaskSettlerWorker(EntityAgent entity, JsonObject taskConfig, JsonObject aiConfig) : base(entity, taskConfig, aiConfig) { }
@@ -174,7 +175,19 @@ public abstract class AiTaskSettlerWorker : SettlerTaskBase
     {
         supplyMatch = match;
         supplyWant = want;
+        supplyName = SupplyName(chest, match);
         return Go(Step.FetchSupplies, chest);
+    }
+
+    /// <summary>What the worker is fetching, for its "Doing right now" line: the first matching item in the chest.</summary>
+    string? SupplyName(BlockPos chest, ItemMatch match)
+    {
+        if (entity.World.BlockAccessor.GetBlockEntity(chest) is not IBlockEntityContainer container) return null;
+        foreach (var slot in container.Inventory)
+        {
+            if (!slot.Empty && match(slot.Itemstack)) return slot.Itemstack.GetName();
+        }
+        return null;
     }
 
     /// <summary>True when a spot could not be reached a little while ago, so the worker tries something else first.</summary>
@@ -363,7 +376,7 @@ public abstract class AiTaskSettlerWorker : SettlerTaskBase
         return step switch
         {
             Step.FetchTool => Lang.Get("createacolony:activity-worker-tool", Lang.Get("createacolony:tool-" + Tool.ToString().ToLowerInvariant())),
-            Step.FetchSupplies => Lang.Get("createacolony:activity-worker-seeds"),
+            Step.FetchSupplies => supplyName != null ? Lang.Get("createacolony:activity-worker-supplies", supplyName) : Lang.Get("createacolony:activity-worker-supplies-any"),
             Step.Deposit => Lang.Get("createacolony:activity-worker-deposit"),
             _ => DescribeWork()
         };
