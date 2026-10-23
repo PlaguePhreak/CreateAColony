@@ -52,32 +52,44 @@ public class Blueprint
 /// <summary>
 /// One piece of a Miner's Hut's mineshaft (BlueprintLibrary.GetMinePiece): its steps as offsets from where it
 /// lines up (the entrance's Mine waypoint, a section's bottom middle), digging first, top down; the sides it
-/// is open on, each with the middle of that edge (X, Z offsets; on its bottom layer); and its box around that spot.
+/// is open on, each with the middle of that way out and the height of its floor (offsets); and its box around that spot.
 /// </summary>
 public class MinePiece
 {
     public required string Name;
     public required List<BuildStep> Steps;
-    public required List<(BlockFacing Face, int X, int Z)> Open;
+    public required List<(BlockFacing Face, int X, int Y, int Z)> Open;
     public (int X, int Y, int Z) Min, Max;
-    /// <summary>The entrance: how many layers, from its bottom up to its ground layer, repeat downwards to go deeper; 0 for a section.</summary>
+    /// <summary>
+    /// The entrance: how many layers lower each loop of its stairs is when it goes deeper (its ground layer
+    /// down to the layer above its bottom; the next loop's ground layer sits on this one's floor); 0 for a section.
+    /// </summary>
     public int Period;
 
     readonly Dictionary<int, MinePiece> deeper = new();
 
     /// <summary>
     /// The entrance gone deeper: its ground layer and everything below it (the stairs round the opening) copied
-    /// this many times underneath, each copy Period layers lower. Its open sides move down to the bottom copy.
+    /// this many times underneath, each copy Period layers lower, as in Aaron's example. Where a copy's ground
+    /// layer meets the floor of the loop above, the copy's blocks win and the floor's stay where the copy has
+    /// natural ground. Every loop has the entrance's open sides, so tunnels can start on each of them.
     /// </summary>
     public MinePiece Deeper(int repeats)
     {
         if (repeats <= 0 || Period <= 0) return this;
         if (deeper.TryGetValue(repeats, out var piece)) return piece;
-        int ground = Min.Y + Period - 1; // the ground layer, as an offset (0 when the anchor is on it)
-        var band = Steps.Where(s => s.Dy <= ground).ToList();
-        var steps = new List<BuildStep>(Steps);
-        for (int k = 1; k <= repeats; k++) steps.AddRange(band.Select(s => s with { Dy = s.Dy - k * Period }));
-        piece = new MinePiece { Name = Name, Steps = steps, Open = Open, Min = (Min.X, Min.Y - repeats * Period, Min.Z), Max = Max, Period = Period };
+        var band = Steps.Where(s => s.Dy <= 0).ToList();
+        var cells = new Dictionary<(int, int, int), BuildStep>();
+        foreach (var step in Steps) cells[(step.Dx, step.Dy, step.Dz)] = step;
+        var open = new List<(BlockFacing Face, int X, int Y, int Z)>(Open);
+        for (int k = 1; k <= repeats; k++)
+        {
+            foreach (var step in band) cells[(step.Dx, step.Dy - k * Period, step.Dz)] = step with { Dy = step.Dy - k * Period };
+            open.AddRange(Open.Select(o => (o.Face, o.X, o.Y - k * Period, o.Z)));
+        }
+        // Digging first; the miner sorts the rest as it works (ColonyManager.ScanMineshaft).
+        var steps = cells.Values.OrderBy(s => s.BlockId == 0 ? 0 : 1).ToList();
+        piece = new MinePiece { Name = Name, Steps = steps, Open = open, Min = (Min.X, Min.Y - repeats * Period, Min.Z), Max = Max, Period = Period };
         deeper[repeats] = piece;
         return piece;
     }
@@ -364,9 +376,9 @@ public class BlueprintLibrary
     /// <summary>
     /// Reads a mineshaft piece. Unlike a building, its natural ground (rock, soil, gravel, sand, ore) is
     /// left as the miner finds it, every empty spot in it is dug out, and everything else (planks, logs,
-    /// ladders, torches) is built. The entrance lines up by its Mine waypoint with the hut's (or else the
-    /// middle of its top); a section by the middle of its bottom. Its open sides are the sides with an
-    /// empty spot in the middle of the edge, in its bottom four layers.
+    /// ladders, torches) is built. The entrance lines up by the middle of its ground layer with the ground
+    /// beside the hut, and tunnels start off it at its rows of Mine waypoints; a section lines up by the
+    /// middle of its bottom, and its open sides are the gaps along its edges in its bottom four layers.
     /// </summary>
     MinePiece? LoadMinePiece(string style, string name, int rotation)
     {
@@ -446,10 +458,9 @@ public class BlueprintLibrary
             else decor.Add(step);
         }
 
-        // The open sides, in the bottom four layers. Each one's middle is the middle of the widest gap along
-        // that edge, so pieces line up by their ways through whatever their size. In the entrance, a Mine
-        // waypoint on an edge down there marks the way out (the gap nearest it); without one, its widest gap.
-        (int From, int To)? Gap(BlockFacing face, int near = int.MinValue)
+        // The open sides of a section, in its bottom four layers: the middle of the widest gap along each edge,
+        // on its floor (the bottom layer), so pieces line up by their ways through whatever their size.
+        (int From, int To)? Gap(BlockFacing face)
         {
             int length = face.Axis == EnumAxis.X ? sz : sx;
             (int From, int To)? best = null;
@@ -463,51 +474,62 @@ public class BlueprintLibrary
                     bool empty = i < length && Empty(x, y, z);
                     if (empty && start < 0) start = i;
                     if (empty || start < 0) continue;
-                    var run = (start, i - 1);
+                    if (best is not { } b || i - 1 - start > b.To - b.From) best = (start, i - 1);
                     start = -1;
-                    if (near != int.MinValue)
-                    {
-                        // The gap nearest the waypoint.
-                        int d = Math.Max(0, Math.Max(run.start - near, near - run.Item2));
-                        int bestD = best is { } k ? Math.Max(0, Math.Max(k.From - near, near - k.To)) : int.MaxValue;
-                        if (d < bestD || d == bestD && best is { } e && run.Item2 - run.start > e.To - e.From) best = run;
-                    }
-                    else if (best is not { } b || run.Item2 - run.start > b.To - b.From) best = run;
                 }
             }
             return best;
         }
-        var open = new List<(BlockFacing, int, int)>();
-        void AddOpen(BlockFacing face, (int From, int To) gap)
+        var open = new List<(BlockFacing, int, int, int)>();
+        void AddOpen(BlockFacing face, (int From, int To) run, int y)
         {
-            int mid = (gap.From + gap.To) / 2;
+            int mid = (run.From + run.To) / 2;
             int x = face == BlockFacing.EAST ? sx - 1 : face == BlockFacing.WEST ? 0 : mid;
             int z = face == BlockFacing.SOUTH ? sz - 1 : face == BlockFacing.NORTH ? 0 : mid;
-            if (!open.Any(o => o.Item1 == face)) open.Add((face, x - ax, z - az));
+            open.Add((face, x - ax, y - ay, z - az));
         }
         if (entrance)
         {
-            foreach (var ((x, y, z), b) in blocks)
+            // Where tunnels start off the entrance's stairs: a row of two or more Mine waypoints along an edge, at
+            // or under the ground layer, in place of the landing's floor. The tunnel's floor goes level with them.
+            foreach (var face in BlockFacing.HORIZONTALS)
             {
-                if (y >= 4 || !IsWaypoint(b)) continue;
-                var face = x == sx - 1 ? BlockFacing.EAST : x == 0 ? BlockFacing.WEST : z == sz - 1 ? BlockFacing.SOUTH : z == 0 ? BlockFacing.NORTH : null;
-                if (face == null) continue;
-                int along = face.Axis == EnumAxis.X ? z : x;
-                AddOpen(face, Gap(face, along) ?? (along, along));
+                int length = face.Axis == EnumAxis.X ? sz : sx;
+                for (int y = 0; y <= ground; y++)
+                {
+                    int start = -1;
+                    for (int i = 0; i <= length; i++)
+                    {
+                        int x = face == BlockFacing.EAST ? sx - 1 : face == BlockFacing.WEST ? 0 : i;
+                        int z = face == BlockFacing.SOUTH ? sz - 1 : face == BlockFacing.NORTH ? 0 : i;
+                        bool mark = i < length && blocks.TryGetValue((x, y, z), out var b) && IsWaypoint(b);
+                        if (mark && start < 0) start = i;
+                        if (mark || start < 0) continue;
+                        if (i - start >= 2) AddOpen(face, (start, i - 1), y);
+                        start = -1;
+                    }
+                }
+            }
+            // Without waypoints: one tunnel off the widest gap at its bottom.
+            if (open.Count == 0)
+            {
+                var widest = BlockFacing.HORIZONTALS.Select(f => (Face: f, Gap: Gap(f))).Where(g => g.Gap != null)
+                    .OrderByDescending(g => g.Gap!.Value.To - g.Gap.Value.From).FirstOrDefault();
+                if (widest.Face != null) AddOpen(widest.Face, widest.Gap!.Value, 0);
             }
         }
-        if (open.Count == 0)
+        else
         {
-            // Without a waypoint the entrance has one way out, its widest gap; a section has every gap.
-            var gaps = BlockFacing.HORIZONTALS.Select(f => (Face: f, Gap: Gap(f))).Where(g => g.Gap != null).ToList();
-            if (entrance) gaps = gaps.OrderByDescending(g => g.Gap!.Value.To - g.Gap.Value.From).Take(1).ToList();
-            foreach (var (face, gap) in gaps) AddOpen(face, gap!.Value);
+            foreach (var face in BlockFacing.HORIZONTALS)
+            {
+                if (Gap(face) is { } gap) AddOpen(face, gap, 0);
+            }
         }
         return new MinePiece
         {
             Name = name, Steps = digs.Concat(solid).Concat(decor).ToList(), Open = open,
             Min = (-ax, -ay, -az), Max = (sx - 1 - ax, sy - 1 - ay, sz - 1 - az),
-            Period = entrance ? ground + 1 : 0
+            Period = entrance ? ground : 0
         };
     }
 

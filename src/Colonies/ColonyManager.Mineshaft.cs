@@ -323,12 +323,12 @@ public partial class ColonyManager
             pieces.Any(p => min.X <= p.Max.X && max.X >= p.Min.X && min.Y <= p.Max.Y && max.Y >= p.Min.Y && min.Z <= p.Max.Z && max.Z >= p.Min.Z)
             || others.Any(o => min.X <= o.Max.X && max.X >= o.Min.X && min.Y <= o.Max.Y && max.Y >= o.Min.Y && min.Z <= o.Max.Z && max.Z >= o.Min.Z);
 
-        foreach (var piece in pieces)
-        foreach (var (face, ex, ez) in piece.Piece.Open)
+        // Every open side with nothing beyond it yet, in a random order, so the mine branches out as a maze.
+        var sides = pieces.SelectMany(piece => piece.Piece.Open.Select(o => (piece, o.Face, Out: piece.Origin.AddCopy(o.X + o.Face.Normali.X, o.Y, o.Z + o.Face.Normali.Z))))
+            .Where(s => !pieces.Any(p => s.Out.X >= p.Min.X && s.Out.X <= p.Max.X && s.Out.Y >= p.Min.Y && s.Out.Y <= p.Max.Y && s.Out.Z >= p.Min.Z && s.Out.Z <= p.Max.Z))
+            .OrderBy(_ => rand.Next()).ToList();
+        foreach (var (_, face, outside) in sides)
         {
-            // The spot just outside the open side, on the piece's bottom layer.
-            var outside = piece.Origin.AddCopy(ex + face.Normali.X, piece.Piece.Min.Y, ez + face.Normali.Z);
-            if (pieces.Any(p => outside.X >= p.Min.X && outside.X <= p.Max.X && outside.Y >= p.Min.Y && outside.Y <= p.Max.Y && outside.Z >= p.Min.Z && outside.Z <= p.Max.Z)) continue;
             var choices = BlueprintLibrary.MineSections.SelectMany(name => new[] { 0, 90, 180, 270 }.Select(turn => (name, turn)))
                 .OrderBy(_ => rand.Next()).ToList();
             foreach (var (name, turn) in choices)
@@ -336,10 +336,11 @@ public partial class ColonyManager
                 if (Blueprints.GetMinePiece(style, name, turn) is not { } next) continue;
                 var back = next.Open.FirstOrDefault(o => o.Face == face.Opposite);
                 if (back.Face == null) continue;
-                // Its open side towards this one goes on the spot outside, bottoms level.
-                var origin = new BlockPos(outside.X - back.X, outside.Y - next.Min.Y, outside.Z - back.Z);
+                // Its open side towards this one goes on the spot outside, floors level.
+                var origin = new BlockPos(outside.X - back.X, outside.Y - back.Y, outside.Z - back.Z);
                 var placed = new PlacedPiece(next, origin);
-                if (placed.Min.Y <= 3 || Overlaps(placed.Min, placed.Max) || !CanWorkAt(colony, origin)) continue;
+                // Sections stay under the entrance's ground layer, so none breaks out at the surface.
+                if (placed.Min.Y <= 3 || placed.Max.Y >= pieces[0].Origin.Y || Overlaps(placed.Min, placed.Max) || !CanWorkAt(colony, origin)) continue;
                 hut.Sections.Add(new MineSection { Name = name, Rotation = turn, Origin = origin });
                 AddStat(hut, "mine-sections");
                 MarkDirty(colony);
