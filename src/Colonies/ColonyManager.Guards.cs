@@ -153,15 +153,21 @@ public partial class ColonyManager
     public readonly HashSet<long> GuardsRetreating = new();
     readonly Dictionary<long, (long Until, bool Called)> guardCalledCache = new();
 
-    /// <summary>A monster hurt a settler: if it happened in or near the colony, guards are called.</summary>
+    /// <summary>A monster hurt a settler: if it happened in or near the colony, or near one of its guards, guards are called.</summary>
     void RaiseAlarm(Colony colony, Entity attacker, Vec3d where)
     {
         // Anywhere on the colony's land (every building's square), or a little past its edge.
         int margin = Config.GuardAlarmMargin;
-        if (!ClaimAreas(colony).Any(a => where.X >= a.X1 - margin && where.X <= a.X2 + margin && where.Z >= a.Z1 - margin && where.Z <= a.Z2 + margin)) return;
+        if (!ClaimAreas(colony).Any(a => where.X >= a.X1 - margin && where.X <= a.X2 + margin && where.Z >= a.Z1 - margin && where.Z <= a.Z2 + margin)
+            && !GuardNear(colony, where, Config.FleeGuardRadius)) return;
         if (!alarms.TryGetValue(colony.ColonyId, out var list)) alarms[colony.ColonyId] = list = new();
         list[attacker.EntityId] = sapi.World.ElapsedMilliseconds + (long)(Config.GuardAlarmSeconds * 1000);
     }
+
+    /// <summary>True when one of the colony's guards, up and about, is within the radius of a spot (out with a worker, say).</summary>
+    bool GuardNear(Colony colony, Vec3d where, double radius) => colony.Citizens.Any(c =>
+        c.Alive && !c.IsDowned && c.JobCode == Jobs.Guard
+        && sapi.World.GetEntityById(c.EntityId) is EntityAgent { Alive: true } e && e.Pos.SquareDistanceTo(where) <= radius * radius);
 
     /// <summary>Living monsters the colony's alarm is out for.</summary>
     IEnumerable<Entity> AlarmThreats(Colony colony)
@@ -229,6 +235,7 @@ public partial class ColonyManager
 
         var attacker = source.CauseEntity ?? source.SourceEntity;
         if (attacker != null && IsThreat(attacker)) RaiseAlarm(colony, attacker, settler.Pos.XYZ);
+        if (IsAttackerToFlee(attacker) && FleesWhenHurt(citizen)) StartFleeing(colony, citizen, settler, attacker!);
 
         damage = ArmorAbsorb(colony, citizen, settler, source, damage);
         if (citizen.JobCode == Jobs.Guard && TowerOf(colony, citizen) is { } tower && damage > 0)

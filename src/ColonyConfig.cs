@@ -138,6 +138,10 @@ public class ColonyConfig
     public int MinerLevelsPerHutLevel = 2;
     /// <summary>How long, in blocks, each tunnel out from a level of the shaft is.</summary>
     public int MinerTunnelLength = 12;
+    /// <summary>A miner puts a torch down where it works when the light there is below this (0 to 24; monsters can spawn at 7 and below). 0 turns torches off.</summary>
+    public int MinerTorchLight = 8;
+    /// <summary>How many torches a miner takes from the hut's storage, and asks couriers for when there are none.</summary>
+    public int MinerTorchesCarried = 8;
 
     // Quarry
     /// <summary>The pit beside the Quarry goes this many blocks out from its middle at hut level 1 (2 makes a 5 by 5 pit)...</summary>
@@ -246,6 +250,16 @@ public class ColonyConfig
     public float GuardAlarmSeconds = 30f;
     /// <summary>Guards put on the best armor from the tower storage and the warehouse.</summary>
     public bool GuardsWearArmor = true;
+
+    // Running away
+    /// <summary>Settlers who are not guards run home, or to a guard, when a creature hurts them.</summary>
+    public bool FleeWhenAttacked = true;
+    /// <summary>A hurt settler keeps running (or hiding) this many seconds after the last blow, unless the attacker dies first.</summary>
+    public float FleeSeconds = 30f;
+    /// <summary>A hurt settler runs to a guard within this many blocks, if that is better than going home; a guard this close also answers the alarm outside the colony.</summary>
+    public float FleeGuardRadius = 48f;
+    /// <summary>Once safe, a settler stops running when its attacker is further away than this.</summary>
+    public float FleeSafeDistance = 24f;
 
     // Potter
     /// <summary>Seconds a potter takes to shape one layer of clay on the clay forming block.</summary>

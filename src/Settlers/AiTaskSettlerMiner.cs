@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using CreateAColony.Colonies;
 using Vintagestory.API.Common;
 using Vintagestory.API.Config;
@@ -32,12 +33,32 @@ public class AiTaskSettlerMiner : AiTaskSettlerDigger
     protected override bool PlanWork(Colony colony, CitizenRecord citizen, Building hut, List<BlockEntityContainer> storage)
     {
         if (FetchBetterPick(citizen, storage)) return true;
+        if (FetchTorches(colony, citizen, hut, storage)) return true;
         var at = new BlockPos((int)Math.Floor(entity.Pos.X), (int)Math.Round(entity.Pos.Y), (int)Math.Floor(entity.Pos.Z));
         var next = manager!.NextMineJob(colony, hut, at, IsUnreachable, out string status);
         SetStatus(status);
         if (next is not { } found) return false;
         job = found;
         return GoWork(found.Block);
+    }
+
+    /// <summary>The miner keeps its torches, too.</summary>
+    protected override bool AlsoKeeps(ItemStack stack) => base.AlsoKeeps(stack) || ColonyManager.IsTorchStack(stack);
+
+    /// <summary>
+    /// Tops up the miner's torches from the hut's storage when it is down to its last two, and asks
+    /// couriers for some when it has none and the storage has none either.
+    /// </summary>
+    bool FetchTorches(Colony colony, CitizenRecord citizen, Building hut, List<BlockEntityContainer> storage)
+    {
+        int want = manager!.Config.MinerTorchesCarried;
+        if (manager.Config.MinerTorchLight <= 0 || want <= 0) return false;
+        int have = manager.PackCount(citizen, ColonyManager.IsTorchStack);
+        if (have > 2) return false;
+        var chest = storage.FirstOrDefault(c => c.Inventory.Any(slot => ColonyManager.IsTorchStack(slot.Itemstack)));
+        if (chest != null) return FetchSupplies(chest.Pos, ColonyManager.IsTorchStack, want - have);
+        if (have == 0) manager.EnsureTorchRequest(colony, hut);
+        return false;
     }
 
     protected override Vec3d WalkGoal() => job.Stand.ToVec3d().Add(0.5, 0, 0.5);
@@ -51,6 +72,8 @@ public class AiTaskSettlerMiner : AiTaskSettlerDigger
         if (job.Kind != ColonyManager.MineWork.Dig) return;
         // Too hard for the pick: other ore is tried while a better pick is on its way.
         if (!Dig(colony, citizen, hut)) manager!.BlockOre(hut, hut.MineTarget ?? target);
+        // Light the way where it has got dark.
+        manager!.PlaceTorchIfDark(colony, citizen, job.Stand);
     }
 
     protected override string DescribeWork() => Lang.Get(job.Kind == ColonyManager.MineWork.Travel ? "createacolony:activity-miner-travel"

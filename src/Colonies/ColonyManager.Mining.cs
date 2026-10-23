@@ -41,11 +41,11 @@ public partial class ColonyManager
         return block.Variant["type"] == ore || path.Contains("-" + ore + "-") || path.EndsWith("-" + ore);
     }
 
-    /// <summary>Air, or something a settler walks through (grass, snow, plants).</summary>
+    /// <summary>Air, or something a settler walks through (grass, snow, plants, a torch a miner put down).</summary>
     bool IsClear(BlockPos pos)
     {
         var block = sapi.World.BlockAccessor.GetBlock(pos);
-        return block.Id == 0 || block.Replaceable >= 6000;
+        return block.Id == 0 || block.Replaceable >= 6000 || IsTorch(block);
     }
 
     /// <summary>True when water or lava is in or next to the block, so digging it would flood the way.</summary>
@@ -111,7 +111,7 @@ public partial class ColonyManager
     {
         var ba = sapi.World.BlockAccessor;
         var block = ba.GetBlock(pos);
-        if (block.Id == 0 || block.Code?.Path == "mantle" || block.Resistance > 100) return false;
+        if (block.Id == 0 || block.Code?.Path == "mantle" || block.Resistance > 100 || IsTorch(block)) return false;
         if (ba.GetBlockEntity(pos) != null) return false;
         if (pos.Y <= 1 || Inside(pos, boxes) || !CanWorkAt(colony, pos)) return false;
         return !NearLiquid(pos);
@@ -136,6 +136,50 @@ public partial class ColonyManager
 
     /// <summary>Seconds to dig a block: ore takes half as long again as rock.</summary>
     public float DigSeconds(BlockPos pos, float perBlock) => IsOre(sapi.World.BlockAccessor.GetBlock(pos)) ? perBlock * 1.5f : perBlock;
+
+    // ---- Torches -------------------------------------------------------------------------------
+
+    /// <summary>A torch a miner can put down: lit or gone out, not burned out.</summary>
+    public static bool IsTorchStack(ItemStack? stack) => stack?.Block is { } block && IsTorch(block) && !block.Code.Path.Contains("-burnedout-");
+
+    /// <summary>Asks couriers to bring torches to the Miner's Hut, once at a time.</summary>
+    public void EnsureTorchRequest(Colony colony, Building hut)
+    {
+        var chest = HutStorage(colony, hut).FirstOrDefault();
+        if (chest == null) return;
+        const string code = "game:torch-*";
+        string tag = RequestTag(hut);
+        if (!colony.Requests.Any(r => r.RequestedBy == tag && r.ItemCode == code)) AddRequest(colony, code, Math.Max(1, Config.MinerTorchesCarried), chest.Pos, tag);
+    }
+
+    /// <summary>
+    /// Puts a torch from the worker's inventory down where it stands when it is too dark there (light
+    /// below MinerTorchLight): on the floor, lit, as a player would. The torch burns out in time like any
+    /// other. True if one went down.
+    /// </summary>
+    public bool PlaceTorchIfDark(Colony colony, CitizenRecord worker, BlockPos at)
+    {
+        if (Config.MinerTorchLight <= 0) return false;
+        var ba = sapi.World.BlockAccessor;
+        if (ba.GetChunkAtBlockPos(at) == null || ba.GetLightLevel(at, EnumLightLevelType.MaxLight) >= Config.MinerTorchLight) return false;
+        if (ba.GetBlock(at).Id != 0 || ba.GetBlock(at, BlockLayersAccess.Fluid).Id != 0) return false;
+        if (!ba.GetBlock(at.DownCopy()).SideSolid[BlockFacing.UP.Index]) return false;
+        if (!CanWorkAt(colony, at) || PackCount(worker, IsTorchStack) == 0) return false;
+
+        var torch = TakeFromPack(colony, worker, IsTorchStack, 1);
+        if (torch?.Block is not { } held) return false;
+        var code = LitTorch(held.Variant.ContainsKey("orientation") ? held.CodeWithVariant("orientation", "up") : held.Code);
+        if (sapi.World.GetBlock(code) is not { } lit)
+        {
+            AddToPack(colony, worker, torch);
+            return false;
+        }
+        var stack = new ItemStack(lit);
+        ba.SetBlock(lit.Id, at, stack);
+        ba.TriggerNeighbourBlockUpdate(at);
+        if (lit.Sounds?.Place != null) sapi.World.PlaySoundAt(lit.Sounds.Place, at, 0);
+        return true;
+    }
 
     // ---- Choosing where to mine -----------------------------------------------------------
 
