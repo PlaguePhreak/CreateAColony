@@ -798,7 +798,7 @@ public partial class ColonyNetwork : ModSystem
                     Keep = Manager.MealKeep(building, recipe),
                     Have = Manager.MealStock(colony, building, recipe, cook),
                     NeedsLevel = needs,
-                    CookLevel = Math.Max(0, cookLevel),
+                    CookLevel = System.Math.Max(0, cookLevel),
                     Locked = cook != null && needs > cookLevel
                 });
             }

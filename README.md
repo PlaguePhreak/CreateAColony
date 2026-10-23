@@ -540,3 +540,49 @@ of the level below (75, 150, 225... 4,125 in all).
   shows each candidate's level in that hut's skill and sorts the best first.
 - Level 5 and level 10 go in the Town Hall event log. `/colony skills <name> [skill] [level]` shows or sets
   skills (admin). `Skills: false` turns the whole thing off; `SkillXpMultiplier` speeds it up or down.
+
+### Traits, the population cap and meal levels (0.45.0)
+
+**Traits** are what a settler is born with (`src/Colonies/ColonyManager.Traits.cs`, listed in
+`config/traits.json`). Every settler has 2 to 10 of them, always at least one good (points above 0) and
+one bad (points below 0); quirks have 0 points. Each trait has a level from 0 to 20: a good trait's effect
+grows 5% a level, a bad trait's penalty shrinks 4% a level, so a higher level is always better for the
+settler. Traits gain 1 XP every in-game day (3 while in use) and level L to L+1 costs (L+1) x 3 XP.
+
+- **General**: Hard Worker / Lazy (work speed), Tough / Frail (max health), Light Eater / Glutton
+  (hunger), Fleet-footed / Sluggish (walking), Fast Healer / Slow Healer (time knocked out, healing),
+  Careful / Clumsy (tool wear), Iron Stomach / Picky Eater (how much they mind eating the same food),
+  Patient / Reckless (Willpower), Heavy Sleeper, Early Riser, Night Owl (sleep hours), Charming, Fertile,
+  Loner (families), Cowardly (retreats early, runs from monsters).
+- **Job traits** only work in their job and a settler has at most one: Master Mason (builder, some blocks
+  cost nothing), Green Thumb, Lumberjack, Steady Hands, Good Cook (cooks a level above their skill),
+  Pack Mule (bigger pack), Prospector's Eye, Hard Rock, Sharp-eyed (guard range), Brave (retreats late).
+  A job trait also starts its skill two levels higher and makes it grow half again as fast.
+- **Earned**: a guard with 25 kills becomes a Veteran for life (+1 damage, swings faster). Anyone knocked
+  out three times in ten days is Shaken for ten quiet days (slower, cowardly; Brave is suppressed).
+- **Children** inherit: a trait both parents have passes on 75% of the time at the average of their
+  levels, one parent's 35% of the time at half its level, plus one new random trait. Clashing traits
+  (Tough and Frail) go to the shared or higher one. Children can end up with more than 10.
+- **Tavern** offers show each recruit's traits; the price adds one gear per trait point and one more per
+  10 levels of good traits. The settler window's Traits & Skills tab lists traits (green good, orange bad,
+  grey when idle) with a hover for what each does at its level; the Town Hall list shows them on hover.
+  The hut's Manage workers list marks a matching job trait with a star and sorts those first.
+- Effects stack with skills inside the same 50% to 200% cap. `/colony traits <name> [add|remove|level
+  <trait> <n>]` for testing (admin). `Traits: false` turns them off; `TraitsMin/Max`, `TraitLevelMax`,
+  `TraitXpPerLevel`, `TraitVeteranKills`, `TraitShakenCount/Days`, the inherit chances and
+  `TraitGearsPerPoint` are in the config. Settlers from older saves roll theirs once.
+
+**Population cap** (`ColonyManager.Population.cs`): `PopulationBase` (20) plus `PopulationPerTownHallLevel`
+(5) for each level the Town Hall has been built to; a freshly placed Town Hall is level 0, so 20, and 25
+at level 1. When full: no hiring at the Tavern, visitors cannot be welcomed, wanderers stop coming and
+couples have no children. The Town Hall shows "Settlers 18 / 20" (orange when full) and the Tavern says
+how much room is left. `PopulationBase: 0` removes the limit.
+
+**Meal levels** (`ColonyManager.Cooking.cs`, `config/cooking.json`): every pot recipe takes a Cooking
+level: porridge 2, scrambled eggs and soup 3, vegetable stew 4, meaty stew and jam 6. Recipes not listed
+(other mods') go by their number of ingredient types: 1 to 2 types level 2, 3 types level 4, 4 or more
+level 6; `cooking.json` already names the A Culinary Artillery and Expanded Foods meals for when the cook
+learns their stations. The cook makes only the meals at or under their *usable* Cooking level (so the
+Cook's Hut level caps the menu: level 1 allows up to 4) plus one with Good Cook. Grilling in the fire pit
+never needs a level. The Kitchen tab shows each meal's level and greys out what the cook cannot make yet
+("Needs Cooking 6 (cook has 4)"). A cook from an older save gets at least Cooking 4, so stew keeps coming.

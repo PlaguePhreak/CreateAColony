@@ -193,7 +193,7 @@ public class TraitView
     /// <summary>The job a job trait helps, empty for the rest.</summary>
     [ProtoMember(4)] public string Job = "";
     /// <summary>False for a job trait that does nothing in the settler's current job, and for a Brave guard while Shaken.</summary>
-    [ProtoMember(5)] public bool Active = true;
+    [ProtoMember(5, IsRequired = true)] public bool Active = true;
     /// <summary>What it does at this level, already in words, one line per effect.</summary>
     [ProtoMember(6)] public string Effects = "";
     /// <summary>An earned trait (Veteran, Shaken) rather than one they were born with.</summary>

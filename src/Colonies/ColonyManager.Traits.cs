@@ -140,7 +140,7 @@ public partial class ColonyManager
 
     // ---- Rolling --------------------------------------------------------------------------------
 
-    static T Weighted<T>(Random rand, IList<T> items, Func<T, int> weight)
+    static T Weighted<T>(Random rand, IList<T> items, System.Func<T, int> weight)
     {
         int total = items.Sum(i => Math.Max(0, weight(i)));
         int pick = rand.Next(Math.Max(1, total));
@@ -178,7 +178,7 @@ public partial class ColonyManager
         var counts = Enumerable.Range(min, max - min + 1).ToList();
         int count = Weighted(rand, counts, n => n - 2 >= 0 && n - 2 < TraitCountWeights.Length ? TraitCountWeights[n - 2] : 1);
 
-        void Add(Func<TraitDef, bool> filter)
+        void Add(System.Func<TraitDef, bool> filter)
         {
             var fits = pool.Where(t => filter(t) && FitsWith(t, result)).ToList();
             if (fits.Count == 0) return;
@@ -250,7 +250,7 @@ public partial class ColonyManager
         }
 
         var pool = TraitDefs().Where(t => !t.Earned && t.Weight > 0).ToList();
-        void AddNew(Func<TraitDef, bool> filter)
+        void AddNew(System.Func<TraitDef, bool> filter)
         {
             if (result.Count >= cap) return;
             var fits = pool.Where(t => filter(t) && FitsWith(t, result)).ToList();
@@ -357,6 +357,8 @@ public partial class ColonyManager
             if (c.TraitsRolled) continue;
             c.TraitsRolled = true;
             if (c.Alive && !c.IsChild && c.Traits.Count == 0) c.Traits = RollTraits();
+            // A cook from before meal levels keeps making stew: at least Cooking 4 (vegetable stew's level).
+            if (c.Alive && c.JobCode == Jobs.Cook && SkillLevel(c, "cooking") < 4) c.SkillXp["cooking"] = XpForLevel(4);
             changed = true;
         }
         if (changed) MarkDirty(colony);

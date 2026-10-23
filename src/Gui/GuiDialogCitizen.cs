@@ -215,7 +215,7 @@ public class GuiDialogCitizen : GuiDialog
             composer.AddStaticText(Lang.Get("createacolony:citizen-traits"), CairoFont.WhiteSmallishText(), ElementBounds.Fixed(x, y, width, 25));
             composer.Text(Lang.Get(snapshot.Child ? "createacolony:trait-child" : "createacolony:traits-off"), GuiKit.Muted(), x, y + 30, width);
         }
-        x += width + Gap;
+        x += width + 20;
         if (snapshot.Skills.Count > 0 || snapshot.Child) ComposeSkills(composer, x, y);
         else
         {
