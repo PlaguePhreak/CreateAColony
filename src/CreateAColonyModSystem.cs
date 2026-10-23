@@ -189,6 +189,19 @@ public class CreateAColonyModSystem : ModSystem
                     return TextCommandResult.Success(Lang.Get(manager.PathDebug ? "createacolony:pathdebug-on" : "createacolony:pathdebug-off"));
                 })
             .EndSubCommand()
+            .BeginSubCommand("handplace")
+                .WithDescription("Let the Town Hall, huts and the Warehouse be placed by hand anywhere, for making blueprints (on/off, saved in the config)")
+                .RequiresPrivilege(Privilege.controlserver)
+                .WithArgs(parsers.OptionalBool("on"))
+                .HandleWith(args =>
+                {
+                    var manager = sapi!.ModLoader.GetModSystem<ColonyManager>();
+                    manager.Config.PlaceHutsByHand = args.Parsers[0].IsMissing ? !manager.Config.PlaceHutsByHand : (bool)args[0];
+                    sapi.StoreModConfig(manager.Config, ColonyConfig.FileName);
+                    sapi.ModLoader.GetModSystem<Network.ColonyNetwork>().SendHandPlace();
+                    return TextCommandResult.Success(Lang.Get(manager.Config.PlaceHutsByHand ? "createacolony:handplace-on" : "createacolony:handplace-off"));
+                })
+            .EndSubCommand()
             .BeginSubCommand("claims")
                 .WithDescription("List the land each building of the colony you are standing in claims; 'show' marks the edge, 'hide' takes the marks away")
                 .WithArgs(parsers.OptionalWordRange("mode", "list", "show", "hide"))

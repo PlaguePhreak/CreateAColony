@@ -452,6 +452,8 @@
 	"stuck-trapped": "boxed in",
 	"pathdebug-on": "Path debug on: sparks over stuck settlers, Willpower and ladder lines in the server log.",
 	"pathdebug-off": "Path debug off.",
+	"handplace-on": "Hand placing on: the Town Hall, huts and the Warehouse go down by hand anywhere, like any block. They are only blocks for making blueprints: they found no colony and add no building. /colony handplace off turns it off.",
+	"handplace-off": "Hand placing off: buildings are placed with the Builder's Wand again.",
 	"overview-claim": "Land claimed: {0} blocks in {1} squares (Town Hall {2} by {2}). The Town Hall's square grows with each Town Hall level, and each finished hut adds a square around it that grows as the hut is upgraded. Type /colony claims to see them, /colony claims show to mark the edge.",
 	"claims-header": "{0} claims {1} blocks of land in {2} squares:",
 	"claims-line": "{0} at {1}: {2} by {2}",

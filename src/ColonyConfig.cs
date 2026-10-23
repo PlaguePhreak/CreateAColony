@@ -415,6 +415,12 @@ public class ColonyConfig
     /// <summary>Show Willpower in the game: sparks over stuck settlers (blue to red as it fills) and lines in the server log. /colony pathdebug switches it until restart.</summary>
     public bool PathDebug = false;
     /// <summary>
+    /// For making blueprints: the Town Hall, huts and the Warehouse go down by hand like any block, anywhere,
+    /// without the Builder's Wand or a colony. A block placed this way is only a block: it founds no colony and
+    /// adds no building. /colony handplace switches it and saves it here.
+    /// </summary>
+    public bool PlaceHutsByHand = false;
+    /// <summary>
     /// How the Builder's Wand shows a building before it is built: "ghost" draws the blueprint's real blocks
     /// see-through where the building would stand, as the WorldEdit import tool does, with blocks in the way
     /// marked red; "outline" is the old blue and red outline of the walls; "both" shows the two together. If

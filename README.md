@@ -337,6 +337,12 @@ for the size they grow to at their top level, and orange for any the new buildin
 placement window names the buildings it overlaps. `NearbyOutlineRange` (default 32 blocks, 0 = off) and
 `NearbyOutlineMax` (default 30) in the mod config change how far and how many.
 
+
+**Placing by hand for making blueprints (0.49.0).** An admin can type `/colony handplace on` (or set
+`PlaceHutsByHand` to true in `ModConfig/createacolony.json`) so the Town Hall, every hut and the Warehouse
+go down by hand like any block, anywhere, with no wand and no colony. They face you as the wand would. A
+block placed this way is only a block for building and exporting blueprints: it founds no colony, adds no
+building, and its window does not open. `/colony handplace off` brings the wand back. The setting is saved.
 ### Work area and guards
 
 Forester's and Farmer's Huts have a **Work area** tab in their window (officers change it):

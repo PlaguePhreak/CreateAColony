@@ -182,6 +182,12 @@ public class SettlerSlotPacket
     [ProtoMember(5)] public bool Right;
     [ProtoMember(6)] public bool Shift;
 }
+/// <summary>The server's PlaceHutsByHand setting, sent on joining and whenever it changes.</summary>
+[ProtoContract]
+public class HandPlacePacket
+{
+    [ProtoMember(1)] public bool On;
+}
 /// <summary>One trait of a settler for the windows.</summary>
 [ProtoContract]
 public class TraitView

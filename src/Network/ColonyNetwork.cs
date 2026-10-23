@@ -51,7 +51,8 @@ public partial class ColonyNetwork : ModSystem
             .RegisterMessageType<QuestBookOpenRequest>()
             .RegisterMessageType<QuestBookSnapshot>()
             .RegisterMessageType<QuestActionPacket>()
-            .RegisterMessageType<SettlerSlotPacket>();
+            .RegisterMessageType<SettlerSlotPacket>()
+            .RegisterMessageType<HandPlacePacket>();
     }
 
     // ---- Server ---------------------------------------------------------------------------
@@ -67,6 +68,7 @@ public partial class ColonyNetwork : ModSystem
             .SetMessageHandler<QuestActionPacket>(OnQuestAction)
             .SetMessageHandler<SettlerSlotPacket>(OnSettlerSlot);
         StartQuestsServer(api);
+        api.Event.PlayerNowPlaying += player => serverChannel!.SendPacket(new HandPlacePacket { On = Manager.Config.PlaceHutsByHand }, player);
         // Construction progress changes without anyone clicking, so open windows refresh on their own.
         api.Event.RegisterGameTickListener(_ =>
         {
@@ -93,6 +95,9 @@ public partial class ColonyNetwork : ModSystem
     }
 
     ColonyManager Manager => sapi!.ModLoader.GetModSystem<ColonyManager>();
+
+    /// <summary>Tells every player the PlaceHutsByHand setting after /colony handplace changes it.</summary>
+    public void SendHandPlace() => serverChannel!.BroadcastPacket(new HandPlacePacket { On = Manager.Config.PlaceHutsByHand });
 
     void OnOpenRequest(IServerPlayer player, TownHallOpenRequest req)
     {
@@ -857,7 +862,8 @@ public partial class ColonyNetwork : ModSystem
             .SetMessageHandler<PlacementSnapshot>(OnPlacementSnapshot)
             .SetMessageHandler<WandChooserSnapshot>(OnWandChooserSnapshot)
             .SetMessageHandler<GhostPreviewPacket>(OnGhostPreview)
-            .SetMessageHandler<QuestBookSnapshot>(OnQuestBookSnapshot);
+            .SetMessageHandler<QuestBookSnapshot>(OnQuestBookSnapshot)
+            .SetMessageHandler<HandPlacePacket>(p => WandOnly.ClientHandPlacing = p.On);
         StartQuestsClient(api);
     }
 
