@@ -6,6 +6,11 @@ namespace CreateAColony;
 public class ColonyConfig
 {
     public const string FileName = "createacolony.json";
+    /// <summary>Bumped when a default changes in a way old config files should pick up; see ColonyManager.UpgradeConfig.</summary>
+    public const int CurrentConfigVersion = 1;
+
+    /// <summary>Which defaults this file has been brought up to. Files from before 0.33.0 have none, so read as 0.</summary>
+    public int ConfigVersion;
 
     /// <summary>The mod is designed around permadeath. When false, a killed settler is
     /// knocked out instead and returns to the Town Hall after DownedRecoveryDays.
@@ -150,10 +155,14 @@ public class ColonyConfig
 
     // Land claim
     /// <summary>
-    /// The square of land, in blocks along each side, the Town Hall claims around itself when the colony is founded.
-    /// 100 claims a 100 by 100 square.
+    /// The square of land, in blocks along each side, the Town Hall claims around itself when the colony is founded
+    /// and while it is at level 1. 250 claims a 250 by 250 square.
     /// </summary>
-    public int TownHallClaimSize = 100;
+    public int TownHallClaimSize = 250;
+    /// <summary>How many blocks each side of the Town Hall's square grows for every Town Hall level above 1.</summary>
+    public int TownHallClaimPerLevel = 50;
+    /// <summary>The Town Hall's square never grows past this, whatever its level. ClaimSizeMax does not apply to it.</summary>
+    public int TownHallClaimSizeMax = 500;
     /// <summary>
     /// The square, in blocks along each side, each finished hut adds to the colony's claim around its hut block,
     /// by building type. Types not listed claim ClaimSizeMin, or MilitaryClaimSize when they are on the Builder's
@@ -173,6 +182,11 @@ public class ColonyConfig
         ["miner"] = 30,
         ["quarry"] = 40,
     };
+    /// <summary>
+    /// How many blocks each side of a hut's square grows for every hut level above 1, so a hut near the edge of the
+    /// colony pushes the border further out as it is upgraded. Still kept under ClaimSizeMax.
+    /// </summary>
+    public int HutClaimPerLevel = 10;
     /// <summary>The claim of a military building (Builder's Wand Military tab) that has no entry of its own in HutClaimSizes.</summary>
     public int MilitaryClaimSize = 200;
     public int ClaimSizeMin = 30;
@@ -339,6 +353,11 @@ public class ColonyConfig
     public bool LadderClimbing = true;
     /// <summary>How far around itself, in blocks, a settler looks for a ladder to climb.</summary>
     public int LadderSearchRadius = 8;
+    /// <summary>
+    /// The deepest drop, in blocks, a settler's path may walk down. Anything deeper (a hole, a cliff edge, a pit
+    /// kiln shaft) is planned around, or climbed by ladder. The game's own limit for creatures is 4.
+    /// </summary>
+    public int MaxDropHeight = 2;
 
     // Getting stuck: Willpower
     /// <summary>

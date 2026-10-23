@@ -38,11 +38,6 @@ public partial class ColonyManager : ModSystem
 
     public IReadOnlyCollection<Colony> All => colonies.Values;
 
-    int? supplyDeliveriesTotal;
-
-    /// <summary>How many bundles a colony's supply camp hands out in total (from config/supplycamp.json).</summary>
-    public int SupplyDeliveriesTotal => supplyDeliveriesTotal ??= SupplyCampLoot.Load(sapi).Deliveries;
-
     public override bool ShouldLoad(EnumAppSide forSide) => forSide == EnumAppSide.Server;
 
     public override void StartServerSide(ICoreServerAPI api)
@@ -56,6 +51,7 @@ public partial class ColonyManager : ModSystem
         {
             Mod.Logger.Error("Bad {0}, using defaults: {1}", ColonyConfig.FileName, e.Message);
         }
+        UpgradeConfig(Config);
         api.StoreModConfig(Config, ColonyConfig.FileName);
         PathDebug = Config.PathDebug;
 
@@ -70,6 +66,20 @@ public partial class ColonyManager : ModSystem
     }
 
     const int ColonyTickMs = 10_000;
+
+    /// <summary>
+    /// Brings a config file from an older version up to the new defaults, but only for values the player left
+    /// at the old default, so their own changes stay.
+    /// </summary>
+    static void UpgradeConfig(ColonyConfig config)
+    {
+        if (config.ConfigVersion < 1)
+        {
+            // 0.33.0: the Town Hall starts with a bigger square (100 -> 250).
+            if (config.TownHallClaimSize == 100) config.TownHallClaimSize = new ColonyConfig().TownHallClaimSize;
+        }
+        config.ConfigVersion = ColonyConfig.CurrentConfigVersion;
+    }
 
     public CitizenRecord? FindCitizen(string? colonyId, int citizenId)
     {

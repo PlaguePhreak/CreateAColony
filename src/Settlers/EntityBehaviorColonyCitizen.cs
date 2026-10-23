@@ -120,6 +120,7 @@ public class EntityBehaviorColonyCitizen : EntityBehavior
             else if (colony != null && manager.Permadeath(colony))
             {
                 record.Alive = false;
+                record.DiedTotalDays = entity.World.Calendar.TotalDays;
                 manager.LogEvent(colony, "event-died", record.Name);
             }
             else

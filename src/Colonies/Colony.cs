@@ -67,6 +67,10 @@ public class CitizenRecord
     [ProtoMember(24)] public double GrowsUpTotalDays;
     /// <summary>When this couple last had a child, so the next one waits a while.</summary>
     [ProtoMember(25)] public double LastChildTotalDays;
+    /// <summary>When a settler died for good (permadeath); 0 if alive, or dead before 0.33.0 recorded it.</summary>
+    [ProtoMember(26)] public double DiedTotalDays;
+    /// <summary>Whether a dead settler has been buried. Nothing sets it yet: burial and mourning are coming later.</summary>
+    [ProtoMember(27)] public bool Buried;
 
     public bool IsDowned => DownedUntilTotalDays > 0;
     public bool IsChild => GrowsUpTotalDays > 0;
@@ -291,11 +295,8 @@ public class Colony
     [ProtoMember(8)] public List<CitizenRecord> Citizens = new();
     [ProtoMember(9, IsRequired = true)] public int NextCitizenId = 1;
     [ProtoMember(10)] public double FoundedTotalDays;
-    /// <summary>Position of the colony's single supply camp, or null if none is placed.</summary>
-    [ProtoMember(11)] public BlockPos? SupplyCampPos;
-    /// <summary>Kept on the colony, not the block, so breaking and re-placing the camp cannot reset it.</summary>
-    [ProtoMember(12)] public int SupplyDeliveriesTaken;
-    [ProtoMember(13, IsRequired = true)] public int LastSupplyDay = -1;
+    // 11 to 13 held the old supply camp's daily deliveries (up to 0.31). The camp no longer belongs to a
+    // colony; the numbers stay taken so old saves still load.
 
     /// <summary>Position of the colony's warehouse marker; chests around it form the warehouse.</summary>
     [ProtoMember(14)] public BlockPos? WarehousePos;

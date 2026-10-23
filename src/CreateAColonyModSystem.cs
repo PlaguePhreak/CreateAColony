@@ -57,6 +57,7 @@ public class CreateAColonyModSystem : ModSystem
         api.RegisterBlockClass("BlockFieldMarker", typeof(BlockFieldMarker));
         api.RegisterItemClass("ItemBuildersWand", typeof(Items.ItemBuildersWand));
         api.RegisterItemClass("ItemGuardScepter", typeof(Items.ItemGuardScepter));
+        api.RegisterItemClass("ItemColonyLedger", typeof(Items.ItemColonyLedger));
 
         AiTaskRegistry.Register<AiTaskSettlerShelter>("settlershelter");
         AiTaskRegistry.Register<AiTaskSettlerSleep>("settlersleep");

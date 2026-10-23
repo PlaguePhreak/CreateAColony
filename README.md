@@ -10,11 +10,11 @@ land claim, recruit settlers that persist with the save. Compiles cleanly agains
    game's `Mods` folder.
 
 ## Try it
-- Craft a **Builder's Wand** (flint on a stick), then a **Town Hall** (8 planks of any wood around the Builder's Wand; craft a second wand to keep one), or take them from the creative inventory. See "Crafting recipes" for every recipe. Right-click the ground with the wand, pick Town Hall and press Accept: this founds the colony, claims a 100x100 area, and 3 to 4 settlers arrive. Finished huts grow the claim (see "Growing the colony's land").
+- Start with a **Supply Camp** (3 firewood over 2 sticks): place it anywhere, no colony needed. Your first camp in a world gives you a Town Hall, a Builder's Hut, a Builder's Wand and a **Colony Ledger**, and right-clicking the camp opens its storage with one set of starting materials. See "The supply camp and the Colony Ledger".
+- Or craft a **Builder's Wand** (flint on a stick), then a **Town Hall** (8 planks of any wood around the Builder's Wand; craft a second wand to keep one), or take them from the creative inventory. See "Crafting recipes" for every recipe. Right-click the ground with the wand, pick Town Hall and press Accept: this founds the colony, claims a 250x250 area, and 3 to 4 settlers arrive. Finished huts grow the claim (see "Growing the colony's land").
 - `/colony info` inside the claim shows the colony.
 - `/colony invite <player>`, then that player types `/colony join`. `/colony leave` leaves the colony you stand in.
 - `/colony recruit [name]` (needs controlserver) spawns one more settler, for testing.
-- Craft a **Supply Camp** (3 firewood over 2 sticks) and place it inside your colony. Right-click once per in-game day for starter materials, 5 deliveries per colony. Edit `assets/createacolony/config/supplycamp.json` to change the bundle.
 - Settlers get hungry and take food from any chest, shelf or crock inside the colony claim. Keep bread, fruit,
   bowls of stew, pots of meals or pies near the Town Hall. With no food they slowly starve. See "Food and meals".
 - At night (21:00 to 06:00) each settler claims a free bed inside the claim and sleeps there. Without a bed they
@@ -26,7 +26,7 @@ land claim, recruit settlers that persist with the save. Compiles cleanly agains
 - Breaking the Town Hall disbands the colony and removes the claim.
 - The mod refuses to start if VS Village is installed.
 
-## Crafting recipes (0.31.3)
+## Crafting recipes (0.32.0)
 Every building needs planks, and planks need a saw, so a colony is a mid game goal (copper age). Huts all use
 the same shape: two of the hut's own item in the middle column (top middle and center), the other 7 slots
 planks of any wood.
@@ -48,8 +48,17 @@ planks of any wood.
 | Miner's Hut | 2 torches + 7 planks |
 | Quarry | 2 rock blocks (any) + 7 planks |
 | Supply Camp | 3 firewood over 2 sticks (unchanged) |
+| Colony Ledger | 4 paper (any), 2 leather, 2 charcoal: paper, leather, paper / charcoal, paper, charcoal / paper, leather, paper |
 | Drop-off | stick over a plank (unchanged) |
 | Field Marker | dry grass over 2 sticks (unchanged) |
+
+## The supply camp and the Colony Ledger (0.32.0)
+- The **Supply Camp** goes down anywhere, inside a colony or not. The first camp each player places in a world hands them the colony charter: a Town Hall, a Builder's Hut, a Builder's Wand and a Colony Ledger (anything that does not fit drops on the camp). The camp itself starts with one set of materials in its own storage; right-click it to open it like a chest.
+- This happens **once per player per world**, saved on the world, so it holds before you have a colony and also for players who join someone else's colony. Breaking the camp and placing it again, or crafting another, only gives an empty camp (still useful as storage). Breaking a camp drops what is inside.
+- The daily deliveries are gone, and so is the "Supply bundles left" line in the Town Hall window.
+- What the camp gives is in `assets/createacolony/config/supplycamp.json`: `playerItems` go to the player, `items` (up to 16 stacks) go into the camp.
+- **Camp buildings**: put a WorldEdit export at `ModConfig/createacolony/blueprints/supplycamp/level1.json` (or `assets/createacolony/config/blueprints/supplycamp/level1.json`). The first camp then puts that building up around itself at once, turned to face you. Put a Supply Camp block in the export where the camp should sit; without one the camp sits at the bottom centre. If any of it would land on land you may not build on, none of it is built.
+- The **Colony Ledger** opens your colony's Town Hall window from anywhere when you right-click with it. Quests and the colony's history will live in it later. A replacement is expensive on purpose (4 paper, 2 leather, 2 charcoal); the first one is free.
 
 ## Mining: Prospector, Miner and Quarry (0.31.3)
 All three are on the new Mining tab of the Builder's Wand and use placeholder blueprints for now.
@@ -360,7 +369,9 @@ before shipping converted blueprints.
   red) and logs to the server log. Config `PathDebug` turns it on at start.
 
 ### Growing the colony's land (0.22.0)
-- The Town Hall claims a `TownHallClaimSize` (100) by 100 square centred on its block. Every hut, once its first
+- The Town Hall claims a `TownHallClaimSize` (250) by 250 square centred on its block (100 before 0.33.0), and
+  the square grows `TownHallClaimPerLevel` (50) blocks a side for each Town Hall level above 1, up to
+  `TownHallClaimSizeMax` (500). Every hut, once its first
   level is finished, adds a square centred on its hut block; buildings with nothing to build (the Warehouse)
   claim as soon as they are placed. The colony's land is all those squares together, kept as the areas of the
   colony's one vanilla land claim, so hut placement, field markers, beds, food, chests and the /land tools all
@@ -368,7 +379,9 @@ before shipping converted blueprints.
   over its hut block.
 - Square sizes (blocks along a side, config `HutClaimSizes`): Builder 40, Warehouse 40, Tavern 50, Farmer 60,
   Forester 60, Potter 30, Cook 30. Buildings not listed claim `ClaimSizeMin` (30), or `MilitaryClaimSize` (200)
-  if they are on the Builder's Wand Military tab. Every size is kept between `ClaimSizeMin` and `ClaimSizeMax`.
+  if they are on the Builder's Wand Military tab. Each hut level above 1 adds `HutClaimPerLevel` (10) blocks a
+  side (0.33.0), so a hut near the border pushes it further out as it is upgraded. Every hut size is kept between
+  `ClaimSizeMin` and `ClaimSizeMax`.
 - A square never covers someone else's land claim: it shrinks two blocks at a time until it fits, down to
   `ClaimSizeMin`, and claims nothing if even that does not fit. Breaking a hut gives its square back.
 - Builders build a blueprint's blocks in the colony's land and in unclaimed land around it (a hut only claims
@@ -409,14 +422,18 @@ The Town Hall window is laid out like MineColonies', with eight tabs down the le
   is not loaded), the colony's land is tinted with a gold edge, and each building's ground is a box (gold Town
   Hall, blue huts, dashed orange while being built). Settlers are green dots (wanderers yellow, knocked out red)
   and you are white. Point at a building for its name and level; **Redraw map** draws the ground again after
-  you walked around. Large colonies get one pixel per few blocks (at most 220 pixels a side).
+  you walked around. Large colonies get one pixel per few blocks (at most 320 pixels a side). Since 0.33.0 the
+  mouse wheel (or the **+** and **−** buttons) zooms in up to 10x around the pointer, holding the left button
+  and dragging moves the map, and **Fit** shows the whole colony again.
 - **Banners**: the colony banner, see Colony banners below.
 - **Information**: **Events**, a log of the last 100 things that happened (the colony founded, settlers
   hired, wanderers arriving, welcomed, turned away or leaving, settlers knocked out, recovering or dying,
   buildings placed, finished or taken down), newest first; and **Work orders**, every building waiting for a
   builder in the order builders take them, with Cancel for officers.
-- **Citizens**: every settler with food, bed and job. Officers pick jobs, **Recall** a stuck settler straight
-  to the Town Hall (only while it is in loaded land), and welcome or turn away wanderers.
+- **Citizens**: two pages (0.33.0). **Current Citizens**: every living settler with food, bed and job. Officers
+  pick jobs, **Recall** a stuck settler straight to the Town Hall (only while it is in loaded land), and welcome
+  or turn away wanderers. **Dead Citizens**: everyone who died for good, with their job, when they died and a
+  Buried / Not buried marker. Burial and mourning are coming later, so for now everyone shows Not buried.
 - **Statistics**: **Colony** shows settlers against beds, settlers lost for good, buildings, the colony's age,
   and each job's settlers against the places its huts offer; **Work done** adds up every hut's Statistics for
   today, yesterday, the last week, the last 100 days or all time.

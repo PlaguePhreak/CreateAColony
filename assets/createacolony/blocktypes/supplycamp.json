@@ -1,6 +1,15 @@
 {
 	"code": "supplycamp",
 	"class": "BlockSupplyCamp",
+	"entityClass": "GenericTypedContainer",
+	"attributes": {
+		// The camp's own storage, opened with right-click like a chest.
+		"defaultType": "camp",
+		"inventoryClassName": "supplycamp",
+		"quantitySlots": { "camp": 16 },
+		"quantityColumns": { "camp": 4 },
+		"dialogTitleLangCode": { "camp": "createacolony:supplycamp-storage" }
+	},
 	"creativeinventory": { "general": ["*"] },
 	"blockmaterial": "Wood",
 	"drawtype": "cube",
