@@ -247,6 +247,16 @@ public class ColonyConfig
     /// <summary>Guards put on the best armor from the tower storage and the warehouse.</summary>
     public bool GuardsWearArmor = true;
 
+    // Running away
+    /// <summary>Settlers who are not guards run home, or to a guard, when a creature hurts them.</summary>
+    public bool FleeWhenAttacked = true;
+    /// <summary>A hurt settler keeps running (or hiding) this many seconds after the last blow, unless the attacker dies first.</summary>
+    public float FleeSeconds = 30f;
+    /// <summary>A hurt settler runs to a guard within this many blocks, if that is better than going home; a guard this close also answers the alarm outside the colony.</summary>
+    public float FleeGuardRadius = 48f;
+    /// <summary>Once safe, a settler stops running when its attacker is further away than this.</summary>
+    public float FleeSafeDistance = 24f;
+
     // Potter
     /// <summary>Seconds a potter takes to shape one layer of clay on the clay forming block.</summary>
     public float PotterSecondsPerLayer = 2.5f;

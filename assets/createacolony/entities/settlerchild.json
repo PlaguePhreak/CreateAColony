@@ -46,6 +46,8 @@
 				"code": "taskai",
 				"aitasks": [
 					// Highest priority wins. Children have no job: they shelter, sleep, eat and play near home.
+					// Runs from a creature that hurt it (not guards): home or to a guard, see AiTaskSettlerFlee.
+					{ "code": "settlerflee", "animation": "walk", "animationSpeed": 1.6, "priority": 3.5, "movespeed": 0.034 },
 					{ "code": "settlershelter", "animation": "walk", "priority": 3.0, "movespeed": 0.025 },
 					{ "code": "settlersleep", "animation": "walk", "priority": 2.0, "movespeed": 0.018 },
 					{ "code": "settlereat", "animation": "walk", "priority": 1.5, "movespeed": 0.02 },
