@@ -10,7 +10,7 @@ land claim, recruit settlers that persist with the save. Compiles cleanly agains
    game's `Mods` folder.
 
 ## Try it
-- Craft a **Town Hall** (5 planks of any wood in a U shape: top row full, middle row left and right) or take it from the creative inventory, and a **Builder's Wand** (flint on a stick). Right-click the ground with the wand, pick Town Hall and press Accept: this founds the colony, claims a 100x100 area, and 3 to 4 settlers arrive. Finished huts grow the claim (see "Growing the colony's land").
+- Craft a **Builder's Wand** (flint on a stick), then a **Town Hall** (8 planks of any wood around the Builder's Wand; craft a second wand to keep one), or take them from the creative inventory. See "Crafting recipes" for every recipe. Right-click the ground with the wand, pick Town Hall and press Accept: this founds the colony, claims a 100x100 area, and 3 to 4 settlers arrive. Finished huts grow the claim (see "Growing the colony's land").
 - `/colony info` inside the claim shows the colony.
 - `/colony invite <player>`, then that player types `/colony join`. `/colony leave` leaves the colony you stand in.
 - `/colony recruit [name]` (needs controlserver) spawns one more settler, for testing.
@@ -25,6 +25,28 @@ land claim, recruit settlers that persist with the save. Compiles cleanly agains
   Permadeath off, a killed settler returns after `DownedRecoveryDays`.
 - Breaking the Town Hall disbands the colony and removes the claim.
 - The mod refuses to start if VS Village is installed.
+
+## Crafting recipes (0.29.0)
+Every building needs planks, and planks need a saw, so a colony is a mid game goal (copper age). Huts all use
+the same shape: two of the hut's own item in the middle column (top middle and center), the other 7 slots
+planks of any wood.
+
+| Block | Recipe |
+| --- | --- |
+| Builder's Wand | flint on a stick (1x2) |
+| Town Hall | 8 planks around a Builder's Wand (the wand is used up) |
+| Builder's Hut | 2 rope + 7 planks |
+| Farmer's Hut | 2 seeds (any) + 7 planks |
+| Forester's Hut | 2 firewood + 7 planks |
+| Potter's Hut | 2 clay (any) + 7 planks |
+| Cook's Hut | 2 bread (any) + 7 planks |
+| Residence | 2 dry grass + 7 planks |
+| Guard Tower | 2 spears (any) + 7 planks |
+| Tavern | 2 rusty gears + 7 planks |
+| Warehouse | 2 chests + 7 planks |
+| Supply Camp | 3 firewood over 2 sticks (unchanged) |
+| Drop-off | stick over a plank (unchanged) |
+| Field Marker | dry grass over 2 sticks (unchanged) |
 
 ## Config (`ModConfig/createacolony.json`)
 - `Permadeath` (default `true`): settlers who die are gone. Set `false` to have them knocked out and recover after `DownedRecoveryDays`.
@@ -268,7 +290,7 @@ Forester's and Farmer's Huts have a **Work area** tab in their window (officers 
   being made in them.
 
 ### The cook
-- Craft a **Cook's Hut** (stick, firewood, stick over 3 planks), place it with the Builder's Wand and order
+- Craft a **Cook's Hut** (2 bread and 7 planks, see "Crafting recipes"), place it with the Builder's Wand and order
   level 1. Its blueprint has a fire pit; any finished fire pit within `CookFirepitRadius` (8) blocks works too.
 - Give a settler the Cook job. The cook puts raw food (anything the game cooks in a fire pit into food, such
   as raw meat, fish or dough, from any mod) in the fire pit, adds firewood, lights it and takes the cooked food
@@ -346,7 +368,7 @@ before shipping converted blueprints.
   `/colony claims show` marks the edge of the colony's land in blue, `/colony claims hide` clears it.
 
 ### Guard Tower and the military (0.23.0)
-- **Guard Tower** (Military tab of the Builder's Wand; recipe: two sticks, a spear and three planks). Settlers with the
+- **Guard Tower** (Military tab of the Builder's Wand; recipe: see "Crafting recipes"). Settlers with the
   Guard job move in by themselves, one per tower level (one while only the tower block stands). Guards without a
   tower still escort workers (Escort by guard) or watch the Town Hall.
 - **Tower tasks**: Guard (stay at the tower or the spot set with the Guard Scepter, fighting within

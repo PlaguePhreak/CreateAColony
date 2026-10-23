@@ -1,9 +1,10 @@
 {
-	"ingredientPattern": "PPP,P_P",
+	"ingredientPattern": "PPP,PWP,PPP",
 	"ingredients": {
-		"P": { "type": "item", "code": "game:plank-*" }
+		"P": { "type": "item", "code": "game:plank-*" },
+		"W": { "type": "item", "code": "createacolony:builderswand" }
 	},
 	"width": 3,
-	"height": 2,
+	"height": 3,
 	"output": { "type": "block", "code": "createacolony:townhall" }
 }

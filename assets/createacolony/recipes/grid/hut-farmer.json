@@ -1,11 +1,10 @@
 {
-	"ingredientPattern": "SDS,PPP",
+	"ingredientPattern": "PXP,PXP,PPP",
 	"ingredients": {
 		"P": { "type": "item", "code": "game:plank-*" },
-		"S": { "type": "item", "code": "game:stick" },
-		"D": { "type": "item", "code": "game:seeds-*" }
+		"X": { "type": "item", "code": "game:seeds-*" }
 	},
 	"width": 3,
-	"height": 2,
+	"height": 3,
 	"output": { "type": "block", "code": "createacolony:hut-farmer" }
 }

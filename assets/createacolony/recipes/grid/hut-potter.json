@@ -1,11 +1,10 @@
 {
-	"ingredientPattern": "SCS,PPP",
+	"ingredientPattern": "PXP,PXP,PPP",
 	"ingredients": {
 		"P": { "type": "item", "code": "game:plank-*" },
-		"S": { "type": "item", "code": "game:stick" },
-		"C": { "type": "item", "code": "game:clay-*" }
+		"X": { "type": "item", "code": "game:clay-*" }
 	},
 	"width": 3,
-	"height": 2,
+	"height": 3,
 	"output": { "type": "block", "code": "createacolony:hut-potter" }
 }
