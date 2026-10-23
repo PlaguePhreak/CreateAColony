@@ -754,7 +754,16 @@ public partial class ColonyNetwork : ModSystem
                 }).ToList() : new(),
             Traits = Manager.Config.Traits ? TraitViews(citizen) : new(),
             TraitScore = Manager.TraitScore(citizen),
-            SkillDailyCap = Manager.Config.SkillDailyCap
+            SkillDailyCap = Manager.Config.SkillDailyCap,
+            // The player-style Stats page: food groups, satiety, the air where they stand, and their healing and hunger rates.
+            Nutrition = Enumerable.Range(0, ColonyManager.FoodGroups)
+                .Select(i => i < citizen.Nutrition.Count ? System.Math.Clamp(citizen.Nutrition[i] / config.SaturationMax, 0f, 1f) : 0f).ToList(),
+            Saturation = citizen.Saturation < 0 ? config.SaturationMax : citizen.Saturation,
+            SaturationMax = config.SaturationMax,
+            Temperature = entity != null ? sapi.World.BlockAccessor.GetClimateAt(entity.Pos.AsBlockPos, EnumGetClimateMode.NowValues)?.Temperature ?? float.NaN : float.NaN,
+            Wetness = entity?.WatchedAttributes.GetFloat(Settlers.EntityBehaviorSettlerNeeds.WetnessAttr) ?? 0,
+            HealingRate = Manager.TraitMult(citizen, "regen"),
+            HungerRate = Manager.TraitMult(citizen, "hunger") * Manager.HungerPerkFor(colony.ColonyId, citizen)
         };
         if (Manager.Config.Happiness && citizen.Alive && !citizen.IsChild && !citizen.Visitor)
         {

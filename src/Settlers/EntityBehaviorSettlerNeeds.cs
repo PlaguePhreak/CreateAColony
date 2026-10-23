@@ -49,8 +49,12 @@ public class EntityBehaviorSettlerNeeds : EntityBehavior
         double hours = System.Math.Clamp(nowHours - lastHours, 0, 6);
 
         if (citizen.Saturation < 0) citizen.Saturation = config.SaturationMax;
-        citizen.Saturation = System.Math.Max(0, citizen.Saturation - (float)(config.HungerPerDay * manager.TraitMult(citizen, "hunger") * manager.HungerPerkFor(settler.ColonyId, citizen) / 24.0 * hours)); // Light Eater, Glutton, Fitness perk
+        float hunger = (float)(config.HungerPerDay * manager.TraitMult(citizen, "hunger") * manager.HungerPerkFor(settler.ColonyId, citizen) / 24.0 * hours); // Light Eater, Glutton, Fitness perk
+        citizen.Saturation = System.Math.Max(0, citizen.Saturation - hunger);
         entity.WatchedAttributes.SetFloat("createacolony:saturation", citizen.Saturation);
+        // The food groups drain with hunger too, as a player's nutrition bars do.
+        for (int i = 0; i < citizen.Nutrition.Count; i++) citizen.Nutrition[i] = System.Math.Max(0, citizen.Nutrition[i] - hunger);
+        UpdateWetness(hours);
 
         // Vanilla health regen ignores hunger for non-players, so slow it down ourselves the same way
         // players work: full speed above 75% food, tapering to nothing when starving.
@@ -79,5 +83,22 @@ public class EntityBehaviorSettlerNeeds : EntityBehavior
     public bool IsHungry(ColonyConfig config, CitizenRecord citizen)
     {
         return citizen.Saturation >= 0 && citizen.Saturation < config.SaturationMax * config.EatBelowFraction;
+    }
+
+    /// <summary>The settler's wetness, 0 (dry) to 1 (soaked), shown on the Stats tab like a player's.</summary>
+    public const string WetnessAttr = "createacolony:wetness";
+
+    /// <summary>Rain on a settler with nothing over its head soaks it; under a roof it dries off within a couple of hours.</summary>
+    void UpdateWetness(double hours)
+    {
+        if (hours <= 0) return;
+        var pos = entity.Pos.AsBlockPos;
+        var ba = entity.World.BlockAccessor;
+        float wet = entity.WatchedAttributes.GetFloat(WetnessAttr);
+        bool exposed = ba.GetRainMapHeightAt(pos.X, pos.Z) <= pos.Y;
+        float rain = exposed ? ba.GetClimateAt(pos, EnumGetClimateMode.NowValues)?.Rainfall ?? 0 : 0;
+        float next = rain > 0.05f ? wet + rain * (float)hours * 2 : wet - (float)hours * 0.5f;
+        next = System.Math.Clamp(next, 0, 1);
+        if (System.Math.Abs(next - wet) > 0.001f) entity.WatchedAttributes.SetFloat(WetnessAttr, next);
     }
 }

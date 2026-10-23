@@ -99,6 +99,7 @@ public partial class ColonyManager
         best.StackSize--;
         SaveLunch(colony, citizen, items);
         citizen.Saturation = Math.Min(Config.SaturationMax, citizen.Saturation + bestProps.Sum(p => p.Satiety));
+        AddNutrition(citizen, bestProps);
         float health = bestProps.Sum(p => p.Health);
         if (health > 0) eater.ReceiveDamage(new DamageSource { Source = EnumDamageSource.Internal, Type = EnumDamageType.Heal }, health);
         foreach (var cat in bestProps.Where(p => p.Satiety > 0).Select(p => (int)p.FoodCategory).Distinct()) citizen.RecentFood.Add(cat);

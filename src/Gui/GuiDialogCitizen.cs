@@ -106,6 +106,14 @@ public class GuiDialogCitizen : GuiDialog
         SingleComposer.GetHorizontalTabs("tabs").SetValue((int)lastTab, false);
         SingleComposer.GetStatbar("health")?.SetValues(snapshot.Health, 0, Math.Max(1, snapshot.MaxHealth));
         SingleComposer.GetStatbar("satiety")?.SetValues(snapshot.FoodPercent, 0, 100);
+        for (int i = 0; i < ColonyManager.FoodGroups; i++)
+        {
+            var bar = SingleComposer.GetStatbar("nut-" + i);
+            if (bar == null) continue;
+            // Like the player's bars, in tenths of a full belly of that food group.
+            bar.SetLineInterval(10);
+            bar.SetValues(100 * (i < snapshot.Nutrition.Count ? snapshot.Nutrition[i] : 0), 0, 100);
+        }
         SingleComposer.GetStatbar("happiness")?.SetValues(Math.Max(0, snapshot.Happiness), 0, 100);
         foreach (var s in snapshot.Skills)
         {
@@ -158,6 +166,13 @@ public class GuiDialogCitizen : GuiDialog
             Lang.Get("characterclass-" + snapshot.ClothesClass)), GuiKit.Muted(), x, y, width);
     }
 
+    /// <summary>The food groups in the order the player's own Stats page lists them, with their index in the snapshot.</summary>
+    static readonly (string code, int index)[] NutritionOrder =
+    {
+        ("fruit", (int)EnumFoodCategory.Fruit), ("vegetable", (int)EnumFoodCategory.Vegetable), ("grain", (int)EnumFoodCategory.Grain),
+        ("protein", (int)EnumFoodCategory.Protein), ("dairy", (int)EnumFoodCategory.Dairy)
+    };
+
     /// <summary>Width of each of the two columns the Stats and Traits &amp; Skills tabs are laid out in.</summary>
     static readonly double ColumnWidth = (BodyWidth - 30) / 2;
 
@@ -184,12 +199,22 @@ public class GuiDialogCitizen : GuiDialog
             return cy + 22;
         }
 
-        // Left column: body and mood.
+        // Left column: nutrition like the player's own Stats page, then body and mood.
+        y = Section(Lang.Get("createacolony:citizen-nutrition"), x, y);
+        for (int i = 0; i < NutritionOrder.Length; i++)
+        {
+            composer.AddStaticText(Lang.Get("createacolony:nutrition-" + NutritionOrder[i].code), label, ElementBounds.Fixed(x, y, 90, 20));
+            composer.AddStatbar(ElementBounds.Fixed(x + 90, y + 4, width - 90, 10), GuiStyle.FoodBarColor, "nut-" + NutritionOrder[i].index);
+            y += 22;
+        }
+        composer.AddHoverText(Lang.Get("createacolony:nutrition-hover"), CairoFont.WhiteDetailText(), 300, ElementBounds.Fixed(x, y - 22 * NutritionOrder.Length, width, 22 * NutritionOrder.Length));
+        y += 8;
+
         y = Section(Lang.Get("createacolony:citizen-physical"), x, y);
         y = Row(Lang.Get("createacolony:citizen-health-points"), $"{snapshot.Health:0.#} / {snapshot.MaxHealth:0.#}", x, y);
         composer.AddStatbar(ElementBounds.Fixed(x, y - 2, width, 10), GuiStyle.HealthBarColor, "health");
         y += 14;
-        y = Row(Lang.Get("createacolony:citizen-satiety"), snapshot.FoodPercent + "%", x, y);
+        y = Row(Lang.Get("createacolony:citizen-satiety"), snapshot.SaturationMax > 0 ? $"{snapshot.Saturation:0} / {snapshot.SaturationMax:0}" : snapshot.FoodPercent + "%", x, y);
         composer.AddStatbar(ElementBounds.Fixed(x, y - 2, width, 10), GuiStyle.FoodBarColor, "satiety");
         y += 14;
         if (snapshot.Happiness >= 0)
@@ -203,7 +228,15 @@ public class GuiDialogCitizen : GuiDialog
             composer.AddHoverText(Lang.Get("createacolony:mood-hover") + "\n" + thoughts, CairoFont.WhiteDetailText(), 300, ElementBounds.Fixed(x, moodTop, width, y - moodTop));
             if (snapshot.BreakdownHours > 0) y = composer.Text(Lang.Get("createacolony:mood-breakdown-now", snapshot.BreakdownHours), GuiKit.Detail().WithColor(GuiKit.WarnColor), x, y, width);
         }
+        if (!float.IsNaN(snapshot.Temperature)) y = Row(Lang.Get("createacolony:citizen-temperature"), Lang.Get("createacolony:citizen-temperature-value", (int)Math.Round(snapshot.Temperature)), x, y);
+        if (snapshot.Wetness > 0.1f)
+        {
+            string wet = snapshot.Wetness > 0.7f ? "soaking" : snapshot.Wetness > 0.4f ? "wet" : "slightly";
+            y = composer.Text(Lang.Get("createacolony:citizen-wetness-" + wet), GuiKit.Detail().WithColor(GuiKit.WarnColor), x, y, width);
+        }
         y = Row(Lang.Get("createacolony:citizen-walkspeed"), (int)Math.Round(snapshot.WalkSpeed * 100) + "%", x, y);
+        y = Row(Lang.Get("createacolony:citizen-healing"), (int)Math.Round(snapshot.HealingRate * 100) + "%", x, y);
+        y = Row(Lang.Get("createacolony:citizen-hunger-rate"), (int)Math.Round(snapshot.HungerRate * 100) + "%", x, y);
         y = Row(Lang.Get("createacolony:citizen-state"), Lang.Get("createacolony:state-" + snapshot.State), x, y);
         Row(Lang.Get("createacolony:citizen-bed"), Lang.Get(snapshot.HasBed ? "createacolony:has-bed" : "createacolony:no-bed"), x, y);
 

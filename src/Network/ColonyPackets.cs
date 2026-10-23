@@ -184,6 +184,17 @@ public class CitizenSnapshot
     [ProtoMember(53)] public int BreakdownHours;
     /// <summary>Full XP a skill gets per day before the soft cap; 0 = no cap.</summary>
     [ProtoMember(54)] public int SkillDailyCap;
+    /// <summary>The food groups (fruit, vegetable, protein, grain, dairy) as 0-1 of full; empty for an old save. 60-69 are the detailed stats.</summary>
+    [ProtoMember(60)] public List<float> Nutrition = new();
+    [ProtoMember(61)] public float Saturation;
+    [ProtoMember(62)] public float SaturationMax;
+    /// <summary>The air temperature where the settler stands, in °C; NaN when unknown.</summary>
+    [ProtoMember(63, IsRequired = true)] public float Temperature = float.NaN;
+    /// <summary>0 (dry) to 1 (soaked).</summary>
+    [ProtoMember(64)] public float Wetness;
+    /// <summary>How fast they heal and grow hungry, 1 = normal (traits and perks).</summary>
+    [ProtoMember(65, IsRequired = true)] public float HealingRate = 1;
+    [ProtoMember(66, IsRequired = true)] public float HungerRate = 1;
 }
 
 /// <summary>A click on a slot of the settler window: which settler, which area and slot, and how.</summary>

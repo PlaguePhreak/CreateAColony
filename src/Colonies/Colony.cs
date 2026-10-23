@@ -117,6 +117,11 @@ public class CitizenRecord
     [ProtoMember(60)] public int WorkRole;
     /// <summary>A prospector on Mine ore: its own trip to prospected ore, kept apart from its hut mate's.</summary>
     [ProtoMember(61)] public MineTrip Trip = new();
+    /// <summary>
+    /// How well fed the settler is in each food group (EnumFoodCategory: fruit, vegetable, protein, grain, dairy),
+    /// 0 to SaturationMax, as the player's nutrition bars: eating fills a group, and it drains with hunger.
+    /// </summary>
+    [ProtoMember(62)] public List<float> Nutrition = new();
 
     public bool IsDowned => DownedUntilTotalDays > 0;
     public bool IsChild => GrowsUpTotalDays > 0;

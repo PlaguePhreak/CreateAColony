@@ -226,6 +226,21 @@ public partial class ColonyManager
     /// pot behind, and gives the settler its saturation and health. Returns the food's name, or null if
     /// the food is gone or changed since it was picked.
     /// </summary>
+    /// <summary>The five food groups shown as nutrition bars (EnumFoodCategory 0-4).</summary>
+    public const int FoodGroups = 5;
+
+    /// <summary>Fills the settler's food groups with what they ate, as eating fills a player's nutrition bars.</summary>
+    public void AddNutrition(CitizenRecord citizen, IEnumerable<FoodNutritionProperties> props)
+    {
+        while (citizen.Nutrition.Count < FoodGroups) citizen.Nutrition.Add(0);
+        foreach (var p in props)
+        {
+            int group = (int)p.FoodCategory;
+            if (p.Satiety <= 0 || group < 0 || group >= FoodGroups) continue;
+            citizen.Nutrition[group] = Math.Min(Config.SaturationMax, citizen.Nutrition[group] + p.Satiety);
+        }
+    }
+
     public string? EatFood(Colony colony, CitizenRecord citizen, EntityAgent eater, BlockEntityContainer container)
     {
         var choice = FindFoodIn(container, citizen, eater);
@@ -237,6 +252,7 @@ public partial class ColonyManager
         if (!(choice.Placed != null ? TakePlacedServing(container, choice.Placed) : TakeServing(container, slot))) return null;
 
         citizen.Saturation = Math.Min(Config.SaturationMax, citizen.Saturation + choice.Satiety);
+        AddNutrition(citizen, choice.Props);
         if (cooked) AddThought(citizen, "meal");
         if (choice.Health > 0)
         {
