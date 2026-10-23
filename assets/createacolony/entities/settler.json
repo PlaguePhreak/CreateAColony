@@ -55,6 +55,8 @@
 					{ "code": "settlershelter", "animation": "walk", "priority": 3.0, "movespeed": 0.025 },
 					{ "code": "settlersleep", "animation": "walk", "priority": 2.0, "movespeed": 0.018 },
 					{ "code": "settlereat", "animation": "walk", "priority": 1.5, "movespeed": 0.02 },
+					// Settlers without a job: look after their home first, then help with hauling (settlercourier).
+					{ "code": "settlerchores", "animation": "walk", "priority": 1.25, "movespeed": 0.02 },
 					{ "code": "settlercourier", "animation": "walk", "priority": 1.2, "movespeed": 0.022 },
 					{ "code": "settlerbuilder", "animation": "walk", "priority": 1.2, "movespeed": 0.02 },
 					{ "code": "settlerforester", "animation": "walk", "priority": 1.2, "movespeed": 0.02 },

@@ -13,6 +13,8 @@ namespace CreateAColony.Settlers;
 /// warehouse, otherwise fill the Food Shelves shelves of a Cook's Hut with food from the warehouse. It carries
 /// as much as its inventory holds, and what it carries is saved on its record,
 /// so nothing is lost if the trip is interrupted by night, hunger or a storm; the next trip finishes it.
+/// Settlers without a job help out the same way when their home needs nothing (JoblessHelpHauling): they take
+/// deliveries to huts and builders, empty drop-off chests and clear huts out.
 /// </summary>
 public class AiTaskSettlerCourier : SettlerTaskBase
 {
@@ -44,7 +46,7 @@ public class AiTaskSettlerCourier : SettlerTaskBase
         // A settler whose courier job was taken away still puts its last load back first.
         // Builders, foresters and farmers carry their own tools and supplies, so their loads are left to them.
         if (citizen == null || colony == null || Jobs.CarriesOwnLoad(citizen.JobCode)) return false;
-        if (citizen.JobCode != Jobs.Courier && manager.PackEmpty(citizen))
+        if (citizen.JobCode != Jobs.Courier && !Helps(citizen) && manager.PackEmpty(citizen))
         {
             carryingSinceMs = -1;
             return false;
@@ -66,12 +68,20 @@ public class AiTaskSettlerCourier : SettlerTaskBase
     bool SavingUp(Colony colony, CitizenRecord citizen)
     {
         if (citizen.JobCode == Jobs.Courier || OwnHutChest(colony, citizen) != null) return false;
+        if (manager!.PackEmpty(citizen))
+        {
+            carryingSinceMs = -1; // a helper with empty hands goes straight to hauling
+            return false;
+        }
         if (colony.Requests.Exists(r => r.LeasedByCitizenId == citizen.CitizenId)) return false;
         long now = entity.World.ElapsedMilliseconds;
         if (carryingSinceMs < 0) carryingSinceMs = now;
         if (colony.WarehousePos == null) return true;
-        return !manager!.PackFull(citizen) && now - carryingSinceMs < manager.Config.LooseItemsDepositSeconds * 1000;
+        return !manager.PackFull(citizen) && now - carryingSinceMs < manager.Config.LooseItemsDepositSeconds * 1000;
     }
+
+    /// <summary>A settler without a job who helps the couriers.</summary>
+    bool Helps(CitizenRecord citizen) => manager!.Config.JoblessHelpHauling && ColonyManager.IsJobless(citizen);
 
     BlockPos? OwnHutChest(Colony colony, CitizenRecord citizen) =>
         citizen.WorkplacePos != null && manager!.GetBuilding(colony, citizen.WorkplacePos) is { } hut && ColonyManager.HasOwnStorage(hut.Type)
@@ -99,7 +109,7 @@ public class AiTaskSettlerCourier : SettlerTaskBase
             }
             return Go(Step.Deliver, manager.WarehouseContainers(colony).FirstOrDefault()?.Pos);
         }
-        if (citizen.JobCode != Jobs.Courier) return false;
+        if (citizen.JobCode != Jobs.Courier && !Helps(citizen)) return false;
 
         var request = manager.LeaseRequest(colony, citizen);
         if (request != null)

@@ -580,4 +580,16 @@ public class ColonyConfig
     public bool CarryTorches = true;
     /// <summary>Workers within this many blocks of their hut drop off what they do not need on their way past.</summary>
     public int DepositNearHut = 8;
+
+    // Jobless settlers (see ColonyManager.Zones.cs and AiTaskSettlerChores.cs)
+    /// <summary>
+    /// Settlers without a job look after their home: the building their bed is in. They tend the farmland inside
+    /// its footprint (harvest, pull weeds, sow, water, till), using seeds, hoes and watering cans from chests in
+    /// the home, else from the warehouse.
+    /// </summary>
+    public bool JoblessTendHome = true;
+    /// <summary>Settlers without a job help out with hauling: deliveries to huts and builders, drop-off chests, clearing huts.</summary>
+    public bool JoblessHelpHauling = true;
+    /// <summary>Seeds a settler takes along for its home plot at a time.</summary>
+    public int JoblessSeedTake = 8;
 }

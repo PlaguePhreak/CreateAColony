@@ -693,7 +693,7 @@
 	"tab-residents": "Residents",
 	"residence-beds": "Beds: {0}, free: {1}",
 	"residence-empty": "Nobody lives here yet. Settlers move in when they need a bed and this Residence has a free one; new couples move in together.",
-	"residence-hint": "Settlers who sleep in a bed inside this building live here. Couples share a double bed (W4RD0's Furniture) or beds side by side; children sleep near their parents. A child is only born while the colony has a free bed.",
+	"residence-hint": "Settlers who sleep in a bed inside this building live here. Couples share a double bed (W4RD0's Furniture) or beds side by side; children sleep near their parents. A child is only born while the colony has a free bed. Residents without a job look after the farmland inside the building: they harvest, weed, water, sow and till it, with seeds, a hoe and a watering can from a chest in the house or the warehouse, and keep the harvest in that chest.",
 	"residence-household": "The {0} household",
 	"residence-single": "{0} (on their own)",
 	"guide-residence": "<strong>Residence</strong><br>Where families live, like MineColonies' houses. Every settler who sleeps in a bed inside the building is one of its residents.<br><br><strong>Main</strong>: rename the Residence and order upgrades.<br><strong>Residents</strong>: each household living here (a couple and their children, or someone on their own), their jobs, children's time to grow up, and whether a couple can have a child right now.<br><br>Two single adults who have lived in the colony for a couple of days pair up and move in together. A couple who are not hungry may have a child when the colony has a free bed. Children grow up into settlers who can be given a job.",
@@ -1589,5 +1589,15 @@
 	"workstatus-sawmill-waiting-wood": "waiting for a courier to bring wood",
 	"workstatus-sawmill-needs-wood": "needs logs or other wood for what it keeps (put some in the hut storage or the warehouse)",
 	"activity-sawyer-saw": "Making {0}",
-	"activity-sawyer-idle": "Sawing"
+	"activity-sawyer-idle": "Sawing",
+	"activity-chores-fetch": "Fetching things for the home plot",
+	"activity-chores-store": "Putting the harvest away at home",
+	"activity-chores-harvest": "Harvesting the home plot",
+	"activity-chores-weed": "Weeding the home plot",
+	"activity-chores-water": "Watering the home plot",
+	"activity-chores-sow": "Sowing the home plot",
+	"activity-chores-till": "Tilling the home plot",
+	"activity-chores-refill": "Filling the watering can",
+	"activity-chores-none": "Looking after the home",
+	"activity-chores-pick": "Looking after the home"
 }

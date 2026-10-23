@@ -1,0 +1,342 @@
+using System.Collections.Generic;
+using System.Linq;
+using CreateAColony.Colonies;
+using Vintagestory.API.Common;
+using Vintagestory.API.Config;
+using Vintagestory.API.Datastructures;
+using Vintagestory.API.MathTools;
+using Vintagestory.GameContent;
+using ItemMatch = System.Func<Vintagestory.API.Common.ItemStack, bool>;
+
+namespace CreateAColony.Settlers;
+
+/// <summary>
+/// What a settler without a job does for its household: it looks after its home, the building its bed is in
+/// (ColonyManager.Zones.cs). For now that is the farmland inside the home: harvest ripe crops and sow again,
+/// pull weeds, water dry crops, sow bare farmland and till soil where the blueprint has farmland, most urgent
+/// first, like a farmer. Seeds, a hoe and a watering can come from a chest in the home, else the warehouse;
+/// when the plot needs nothing more, what the settler took and harvested goes into a chest in the home (with
+/// no chest, it takes it to the warehouse like anything else it picks up). With nothing to do at home it helps
+/// with hauling (AiTaskSettlerCourier) or idles.
+///
+/// New duties go in Plan, ahead of or after the plot work, each with its own Step for its work.
+/// </summary>
+public class AiTaskSettlerChores : SettlerTaskBase
+{
+    const long IdleRetryMs = 15_000;
+    const long UnreachableForgetMs = 300_000;
+    const float PlotReach = 2f;
+    const float WaterReach = 4.5f;
+
+    enum Step { Fetch, Work, Store }
+
+    Step step;
+    FieldWork work;
+    BlockPos target = new(0);
+    int homeId;
+    long nextSearchMs;
+    bool walking;
+    float workTime;
+    string? workAnim;
+    ItemMatch fetchMatch = _ => false;
+    int fetchWant;
+    readonly Dictionary<BlockPos, long> unreachable = new();
+    /// <summary>Codes of what the settler harvested or took for the plot, so it puts those away and nothing else (not its lunch).</summary>
+    readonly HashSet<string> gathered = new();
+
+    public AiTaskSettlerChores(EntityAgent entity, JsonObject taskConfig, JsonObject aiConfig) : base(entity, taskConfig, aiConfig) { }
+
+    static bool IsHoe(ItemStack? s) => s?.Collectible.Tool == EnumTool.Hoe;
+
+    public override bool ShouldExecute()
+    {
+        if (manager == null || entity.World.ElapsedMilliseconds < nextSearchMs) return false;
+        nextSearchMs = entity.World.ElapsedMilliseconds + IdleRetryMs;
+        return Plan();
+    }
+
+    bool Plan()
+    {
+        if (Colony is not { } colony || Citizen is not { } citizen || !ColonyManager.IsJobless(citizen)) return false;
+        if (!manager!.Config.JoblessTendHome) return false;
+        // Halfway through a delivery it is helping with: that comes first.
+        if (colony.Requests.Exists(r => r.LeasedByCitizenId == citizen.CitizenId)) return false;
+        if (manager.HomeOf(colony, citizen) is not { } home) return false;
+        homeId = home.BuildingId;
+        // Hands full: put the harvest away first.
+        if (manager.PackFull(citizen) && PlanStore(colony, citizen, home)) return true;
+        return PlanPlot(colony, citizen, home) || PlanStore(colony, citizen, home);
+    }
+
+    /// <summary>Picks the most urgent work on the home's crop plots, or what to fetch for it first.</summary>
+    bool PlanPlot(Colony colony, CitizenRecord citizen, Building home)
+    {
+        var m = manager!;
+        var plots = m.HomePlots(colony, home);
+        if (plots.Count == 0) return false;
+
+        bool hasSeed = m.PackCount(citizen, m.IsSowable) > 0;
+        bool hasHoe = IsHoe(Hand?.Itemstack) || m.PackCount(citizen, s => IsHoe(s)) > 0;
+        var (hasCan, water) = m.WaterCarried(citizen);
+        var here = entity.Pos.XYZ;
+        (FieldWork Work, BlockPos Pos)? best = null;
+        bool wantSeed = false, wantHoe = false, wantCan = false, thirsty = false;
+
+        foreach (var ground in plots)
+        {
+            if (IsUnreachable(ground)) continue;
+            var w = m.WorkAt(colony, ground);
+            switch (w)
+            {
+                case FieldWork.None:
+                    continue;
+                case FieldWork.Sow when !hasSeed:
+                    wantSeed = true;
+                    continue;
+                case FieldWork.Till when !hasHoe:
+                    wantHoe = true;
+                    continue;
+                case FieldWork.Water when !hasCan:
+                    wantCan = true;
+                    continue;
+                case FieldWork.Water when water <= 0:
+                    thirsty = true;
+                    continue;
+            }
+            if (best is { } b && (b.Work < w || (b.Work == w && b.Pos.DistanceSqTo(here.X, here.Y, here.Z) <= ground.DistanceSqTo(here.X, here.Y, here.Z)))) continue;
+            best = (w, ground);
+        }
+
+        // Fetch what the plot needs before the work that does not need it is done, so it is one trip.
+        if (best == null || best.Value.Work > FieldWork.Sow)
+        {
+            if (wantSeed && m.HomeSupply(colony, home, m.IsSowable) is { } seeds) return Fetch(seeds.Pos, m.IsSowable, m.Config.JoblessSeedTake);
+            if (wantCan && m.HomeSupply(colony, home, ColonyManager.IsWateringCan) is { } can) return Fetch(can.Pos, ColonyManager.IsWateringCan, 1);
+            if (wantHoe && m.HomeSupply(colony, home, s => IsHoe(s)) is { } hoe) return Fetch(hoe.Pos, s => IsHoe(s), 1);
+        }
+        if (thirsty && (best == null || best.Value.Work > FieldWork.Water) && m.FindWater(colony, home) is { } waterPos && !IsUnreachable(waterPos))
+        {
+            best = (FieldWork.Refill, waterPos);
+        }
+        if (best == null) return false;
+        work = best.Value.Work;
+        step = Step.Work;
+        target = best.Value.Pos.Copy();
+        return true;
+    }
+
+    /// <summary>The plot needs nothing more: put what was taken and harvested for it into a chest in the home.</summary>
+    bool PlanStore(Colony colony, CitizenRecord citizen, Building home)
+    {
+        if (gathered.Count == 0 || !manager!.PackItems(citizen).Any(Gathered)) return false;
+        var chest = manager.HomeChests(home).FirstOrDefault();
+        if (chest == null)
+        {
+            // No chest at home: it goes to the warehouse with whatever else the settler carries.
+            gathered.Clear();
+            return false;
+        }
+        step = Step.Store;
+        target = chest.Pos.Copy();
+        return true;
+    }
+
+    bool Gathered(ItemStack s) => gathered.Contains(s.Collectible.Code.ToString());
+
+    bool Fetch(BlockPos chest, ItemMatch match, int want)
+    {
+        step = Step.Fetch;
+        target = chest.Copy();
+        fetchMatch = match;
+        fetchWant = want;
+        return true;
+    }
+
+    bool IsUnreachable(BlockPos pos)
+    {
+        if (!unreachable.TryGetValue(pos, out long until)) return false;
+        if (entity.World.ElapsedMilliseconds < until) return true;
+        unreachable.Remove(pos);
+        return false;
+    }
+
+    float Reach => step == Step.Work ? (work == FieldWork.Refill ? WaterReach : PlotReach) : 1.5f;
+
+    public override void StartExecute()
+    {
+        base.StartExecute();
+        BeginStep();
+    }
+
+    void BeginStep()
+    {
+        workTime = 0;
+        walking = entity.Pos.XYZ.DistanceTo(target.ToVec3d().Add(0.5, 0.5, 0.5)) > Reach + 0.5;
+        if (walking) WalkTo(target.ToVec3d().Add(0.5, 0, 0.5), Reach);
+    }
+
+    public override bool ContinueExecute(float dt)
+    {
+        if (walking)
+        {
+            if (PathFailed)
+            {
+                unreachable[target.Copy()] = entity.World.ElapsedMilliseconds + UnreachableForgetMs;
+                return false;
+            }
+            if (!Arrived)
+            {
+                KeepWalking();
+                return true;
+            }
+            StopWalking();
+            walking = false;
+        }
+
+        if (Colony is not { } colony || Citizen is not { } citizen) return false;
+        var home = colony.Buildings.Find(b => b.BuildingId == homeId);
+        if (home == null) return false;
+
+        switch (step)
+        {
+            case Step.Fetch:
+                if (!Take(colony, citizen))
+                {
+                    // Nothing there after all, or no room to carry it: try again later.
+                    nextSearchMs = entity.World.ElapsedMilliseconds + IdleRetryMs;
+                    return false;
+                }
+                break;
+            case Step.Store:
+                manager!.UnloadPack(colony, citizen, manager.HomeChests(home), Gathered);
+                gathered.Clear();
+                break;
+            case Step.Work:
+                if (workAnim == null)
+                {
+                    PrepareHand(colony, citizen);
+                    workAnim = PlayShapeAnimation(WorkAnimation(), "build");
+                }
+                workTime += dt;
+                if (workTime < manager!.Config.FarmerSecondsPerBlock * manager.WorkTimeFactor(colony, citizen)) return true;
+                DoWork(colony, citizen, home);
+                StopWorkAnimation();
+                break;
+        }
+
+        // Straight on to the next chore; only walk if it is out of reach.
+        if (!Plan()) return false;
+        BeginStep();
+        return true;
+    }
+
+    /// <summary>Takes up to fetchWant matching items from the chest at the target. False if nothing moved.</summary>
+    bool Take(Colony colony, CitizenRecord citizen)
+    {
+        if (entity.World.BlockAccessor.GetBlockEntity(target) is not BlockEntityContainer chest) return false;
+        int moved = 0;
+        while (moved < fetchWant)
+        {
+            var part = manager!.TakeItems(new[] { chest }, fetchMatch, fetchWant - moved);
+            if (part == null) break;
+            gathered.Add(part.Collectible.Code.ToString());
+            moved += manager.AddToPack(colony, citizen, part);
+            if (part.StackSize > 0)
+            {
+                manager.PutItems(chest, part);
+                break;
+            }
+        }
+        return moved > 0;
+    }
+
+    void DoWork(Colony colony, CitizenRecord citizen, Building home)
+    {
+        var m = manager!;
+        if (work == FieldWork.Refill)
+        {
+            m.RefillCans(colony, citizen, target);
+            return;
+        }
+        if (m.WorkAt(colony, target) != work) return; // someone got here first, or it changed
+        var before = m.PackItems(citizen).Select(s => s.Collectible.Code.ToString()).ToHashSet();
+        switch (work)
+        {
+            case FieldWork.Harvest:
+                string? crop = m.HarvestAtHome(colony, home, citizen, target);
+                m.Sow(colony, citizen, entity, target, ColonyManager.AnyCropField, crop);
+                break;
+            case FieldWork.Weed:
+                m.WeedAtHome(colony, home, citizen, target);
+                break;
+            case FieldWork.Water:
+                m.Water(colony, citizen, target);
+                break;
+            case FieldWork.Sow:
+                m.Sow(colony, citizen, entity, target, ColonyManager.AnyCropField, null);
+                break;
+            case FieldWork.Till:
+                var hoe = Hand;
+                if (hoe == null || !IsHoe(hoe.Itemstack)) return;
+                m.TillAtHome(colony, home, citizen, entity, target, hoe);
+                SyncHand(); // a hoe that just broke must vanish from the model too
+                break;
+        }
+        // The harvest and the weeds pulled are the household's: they go into the home chest later.
+        foreach (var s in m.PackItems(citizen))
+        {
+            string code = s.Collectible.Code.ToString();
+            if (!before.Contains(code)) gathered.Add(code);
+        }
+        m.GainWorkXp(colony, citizen, Jobs.Farmer);
+    }
+
+    /// <summary>Holds the hoe for tilling and puts it away for work done by hand.</summary>
+    void PrepareHand(Colony colony, CitizenRecord citizen)
+    {
+        var hand = Hand;
+        if (hand == null) return;
+        if (work != FieldWork.Till)
+        {
+            PutAwayHand(colony, citizen);
+            return;
+        }
+        if (IsHoe(hand.Itemstack)) return;
+        var hoe = manager!.TakeFromPack(colony, citizen, s => IsHoe(s), 1);
+        if (hoe == null) return;
+        PutAwayHand(colony, citizen);
+        hand.Itemstack = hoe;
+        SyncHand();
+    }
+
+    string WorkAnimation()
+    {
+        var hand = Hand;
+        return work switch
+        {
+            FieldWork.Till => hand?.Itemstack?.Collectible.GetHeldTpUseAnimation(hand, entity) ?? "interactstatic",
+            FieldWork.Sow or FieldWork.Water or FieldWork.Refill => SettlerAnimations.PlayerAnimations.Contains("placeblock") ? "placeblock" : "interactstatic",
+            _ => "breakhand"
+        };
+    }
+
+    void StopWorkAnimation()
+    {
+        if (workAnim != null) StopAnimation(workAnim);
+        workAnim = null;
+    }
+
+    public override void FinishExecute(bool cancelled)
+    {
+        StopWorkAnimation();
+        if (Colony is { } colony && Citizen is { } citizen) PutAwayHand(colony, citizen);
+        base.FinishExecute(cancelled);
+    }
+
+    public override string Describe(Colony colony, CitizenRecord citizen) => step switch
+    {
+        Step.Fetch => Lang.Get("createacolony:activity-chores-fetch"),
+        Step.Store => Lang.Get("createacolony:activity-chores-store"),
+        _ => Lang.Get("createacolony:activity-chores-" + work.ToString().ToLowerInvariant())
+    };
+}

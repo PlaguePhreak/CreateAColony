@@ -602,6 +602,24 @@ Settlers have families, as MineColonies citizens do (`src/Colonies/ColonyManager
   real limits allow) and `/colony family grow <name>` are admin test commands. Names can be first names.
 - `Families: false` in the config stops new couples and children.
 
+### Settlers without a job: home upkeep and helping out (0.53.0)
+
+Settlers with no job no longer just stand about (`src/Colonies/ColonyManager.Zones.cs`,
+`src/Settlers/AiTaskSettlerChores.cs`).
+
+- **Zones.** Every building's zone is the ground its blueprint covers, one block wider all round. A
+  settler's **home** is the building whose zone holds its bed (a Residence first, else the smallest zone).
+- **Home upkeep.** A settler without a job looks after the farmland inside its home, like a farmer: it
+  harvests ripe crops and sows again, pulls weeds, waters dry crops, sows bare farmland, and tills soil
+  wherever the home's blueprint has farmland. Seeds (`JoblessSeedTake` at a time), a hoe and a watering can
+  come from a chest in the home, else from the warehouse. When the plot needs nothing more, the harvest
+  and what it took go into a chest in the home; with no chest, it takes them to the warehouse. Farmland that
+  is part of a farmer's Field marker square is left to the farmer.
+- **Helping out.** With nothing to do at home, it helps the couriers: deliveries to huts and builders, emptying
+  drop-off chests and clearing huts into the warehouse.
+- `JoblessTendHome` and `JoblessHelpHauling` in the config switch either off. More home duties (repairs,
+  tidying) can be added to `AiTaskSettlerChores.Plan`.
+
 ### Skills (0.37.0)
 
 Settlers learn by doing, Project Zomboid style (`src/Colonies/ColonyManager.Skills.cs`, skills listed in
