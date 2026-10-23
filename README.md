@@ -104,11 +104,15 @@ All three are on the new Mining tab of the Builder's Wand and use placeholder bl
 
 ### Making mineshaft pieces
 1. In a creative world, build each piece inside solid rock: dig out the way through and put in your posts, beams, ladders and torches. Natural rock, soil, gravel and sand in the export are left as the miner finds them; every empty spot is dug out; everything else is built.
-2. Make every section (cross, tee, straight) the same size, square from above and an odd number wide (7 by 7 works), with its floor on the bottom layer of the export.
-3. An open side is a side with an empty spot in the middle of its edge, in the bottom four layers. Put the way through in the middle of each open side, so the sections line up.
-4. The entrance: put a **Mine waypoint** where it meets the Miner's Hut's own Mine waypoint (the top of the way down). At the bottom, leave one side open in the middle, with its floor at the same height as the sections' floors.
+2. Sections (cross, tee, straight) can be any size; their floor is the bottom layer of the export. Pieces line up by their ways through, not their middles, so a way off-centre still meets the next piece's way.
+3. An open side is an edge with a gap (empty spots) in the bottom four layers; the middle of its widest gap is where the next piece joins.
+4. The entrance (0.63.0): built down from the surface. Its ground layer is the highest layer whose edge is mostly natural soil or rock; that layer goes at ground height on the land beside the Miner's Hut, with anything above it (a fence) built on top. The ground layer and everything under it repeat further down `MinerEntranceRepeatsPerHutLevel` (1) times per hut level, so the stairs round the opening keep going deeper. Sections join at its bottom: put a **Mine waypoint** on an edge in the bottom four layers to say where; without one the widest gap is used.
 5. Settlers walk steps one block high, and climb ladders.
 6. Select each piece with WorldEdit and `/we export entrance` (or `cross`, `tee`, `straight`), copy the files to `VintagestoryData/ModConfig/createacolony/blueprints/medievaloak/mineshaft/` (or your pack's folder) and run `/colony reloadblueprints`.
+
+## Aaron's mineshaft pieces and a relieving Quarry (0.63.0)
+- **Mineshaft**: Aaron's surface entrance, T section and straight section ship as the Medieval oak defaults (`assets/createacolony/config/blueprints/medievaloak/mineshaft/`); the cross is still a placeholder (`tools/blueprints/mineshaft_pieces.py`). The entrance goes on the ground beside the hut (saved as the hut's `MineshaftPos`), not under the hut's Mine waypoint, and goes deeper with each hut level. Sections join by their gaps, so their floors line up. Support beams keep their saved beams when built.
+- **Quarry**: its main work is now whole rock blocks, the game's relieving (a block broken with all six sides open drops itself). Inside the pit's staircase, rock in a 3D checkerboard is left standing (`IsReliefCell`), the rest is dug as before, and each rock that ends up free on all sides is broken out whole before more digging. A 5x5 pit at level 1 gives about 19 rock blocks; any settler digging rock that stands free gets the whole block too. Stat "Whole rock blocks quarried".
 
 ## Config (`ModConfig/createacolony.json`)
 - `Permadeath` (default `true`): settlers who die are gone. Set `false` to have them knocked out and recover after `DownedRecoveryDays`.

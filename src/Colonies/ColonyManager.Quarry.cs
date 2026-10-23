@@ -1,5 +1,6 @@
 using System;
 using System.Linq;
+using Vintagestory.API.Common;
 using Vintagestory.API.Config;
 using Vintagestory.API.MathTools;
 
@@ -10,7 +11,9 @@ namespace CreateAColony.Colonies;
 /// stone. The quarrier digs it out a layer at a time from the top, and a staircase is left standing
 /// around the pit's edge (each block of the edge one step lower than the last, going round clockwise
 /// from the north-west corner), so it can always walk down to the bottom and back out. Each hut level
-/// makes the pit wider and deeper.
+/// makes the pit wider and deeper. Its main work is whole rock blocks, by the game's relieving: a block
+/// broken while all six of its sides are open drops itself, so the quarrier digs round half the pit's
+/// rock in a checkerboard and then breaks each block it freed (0.63.0).
 /// </summary>
 public partial class ColonyManager
 {
@@ -66,7 +69,33 @@ public partial class ColonyManager
     }
 
     /// <summary>
-    /// The next block of the pit to dig: the highest layer not yet dug out, nearest the worker. Blocks that
+    /// True for a block of the pit the quarrier relieves rather than digs: one in a 3D checkerboard inside the
+    /// staircase, not on the bottom layer, whose six neighbours are all dug out. Every block next to it is
+    /// the other colour, so once those are dug it stands free, and breaking it gives the whole rock block.
+    /// </summary>
+    public static bool IsReliefCell(int i, int j, int layer, int r, int layers)
+    {
+        if (layer < 0 || layer >= layers - 1 || StairIndex(i, j, r) >= 0 || ((i + j + layer) & 1) != 0) return false;
+        foreach (var (di, dj) in new[] { (1, 0), (-1, 0), (0, 1), (0, -1) })
+        {
+            if (layer >= CellDepth(i + di, j + dj, r, layers)) return false;
+        }
+        return true;
+    }
+
+    /// <summary>Natural rock standing free, with open space on all six sides: breaking it gives the rock block itself (the game's relieving).</summary>
+    public bool IsRelievedRock(BlockPos pos)
+    {
+        var block = sapi.World.BlockAccessor.GetBlock(pos);
+        if (block.Code?.Domain != "game" || !block.Code.Path.StartsWith("rock-")) return false;
+        return BlockFacing.ALLFACES.All(face => IsClear(pos.AddCopy(face)));
+    }
+
+    /// <summary>
+    /// The next block of the pit to work on: first any rock standing free (relieved), nearest the worker;
+    /// otherwise the highest layer not yet dug out, nearest the worker. The pit's rock is quarried by
+    /// relieving: half the blocks inside the staircase (IsReliefCell) are left standing while everything
+    /// around them is dug, and once one stands free it is broken for the whole rock block. Blocks that
     /// cannot be dug (water beside them, a building, someone else's land) are left as they are, and so is
     /// whatever lies under them. Null when the pit is finished, with "done" set.
     /// </summary>
@@ -78,6 +107,23 @@ public partial class ColonyManager
         if (ba.GetChunkAtBlockPos(center) == null) return center; // walk there first
         var (boxes, keep) = DigLimits(colony, hut, marked);
         int r = QuarryRadius(hut), layers = QuarryLayers(hut), top = center.Y - 1;
+        bool Relief(int i, int j, int layer) => IsReliefCell(i, j, layer, r, layers) && IsRock(new BlockPos(center.X + i, top - layer, center.Z + j));
+
+        // Rock standing free comes out first, whole.
+        BlockPos? freed = null;
+        double freedDistance = double.MaxValue;
+        for (int layer = 0; layer < layers - 1; layer++)
+        for (int i = -r + 1; i < r; i++)
+        for (int j = -r + 1; j < r; j++)
+        {
+            if (!IsReliefCell(i, j, layer, r, layers)) continue;
+            var pos = new BlockPos(center.X + i, top - layer, center.Z + j);
+            if (!IsRelievedRock(pos) || keep.Contains(pos) || skip(pos) || !CanDig(colony, pos, boxes)) continue;
+            double d = pos.ToVec3d().Add(0.5, 1, 0.5).SquareDistanceTo(near);
+            if (d < freedDistance) (freed, freedDistance) = (pos, d);
+        }
+        if (freed != null) return freed;
+
         bool anyLeft = false;
         for (int layer = -Math.Max(0, Config.QuarryClearAbove); layer < layers; layer++)
         {
@@ -87,10 +133,11 @@ public partial class ColonyManager
             for (int j = -r; j <= r; j++)
             {
                 if (layer >= 0 && layer >= CellDepth(i, j, r, layers)) continue;
+                if (Relief(i, j, layer)) continue; // left standing until it is free
                 var pos = new BlockPos(center.X + i, top - layer, center.Z + j);
                 if (IsClear(pos)) continue;
-                // Under a block left standing, the column stays as it is.
-                if (!IsClear(pos.UpCopy()) && layer > -Config.QuarryClearAbove) continue;
+                // Under a block left standing, the column stays as it is; under rock being relieved it is dug.
+                if (!IsClear(pos.UpCopy()) && layer > -Config.QuarryClearAbove && !Relief(i, j, layer - 1)) continue;
                 if (keep.Contains(pos) || !CanDig(colony, pos, boxes)) continue;
                 anyLeft = true;
                 if (skip(pos)) continue;
@@ -103,6 +150,13 @@ public partial class ColonyManager
         }
         done = true;
         return null;
+    }
+
+    /// <summary>Natural rock (not ore, not built stone).</summary>
+    bool IsRock(BlockPos pos)
+    {
+        var code = sapi.World.BlockAccessor.GetBlock(pos).Code;
+        return code?.Domain == "game" && code.Path.StartsWith("rock-");
     }
 
     /// <summary>The Quarry window line: where the pit is, how big, and how deep it goes at this level.</summary>

@@ -126,11 +126,13 @@ public partial class ColonyManager
         var block = sapi.World.BlockAccessor.GetBlock(pos);
         if (block.Id == 0) return false;
         bool ore = IsOre(block);
-        var drops = DropsOf(block, pos);
+        // Rock with open space on all sides comes away whole, as when a player relieves it.
+        bool relieved = IsRelievedRock(pos);
+        var drops = relieved ? new[] { new ItemStack(block) } : DropsOf(block, pos);
         BreakQuietly(pos);
         if (hand?.Itemstack != null) WearTool(entity, hand);
         StoreHarvest(colony, hut, worker, drops, pos);
-        AddStat(hut, ore ? "ore-mined" : "blocks-dug");
+        AddStat(hut, relieved ? "rocks-relieved" : ore ? "ore-mined" : "blocks-dug");
         return true;
     }
 

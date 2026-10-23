@@ -10,7 +10,7 @@ namespace CreateAColony.Colonies;
 
 /// <summary>
 /// A Miner's Hut's mineshaft built from pieces, as MineColonies' miner does with its mine nodes. The style's
-/// mineshaft folder holds an entrance (the way down, lined up under the hut's Mine waypoint) and sections
+/// mineshaft folder holds an entrance (the way down) and sections
 /// (cross, tee, straight). The miner digs and builds the entrance, then grows the mine a section at a time:
 /// at an open side with nothing beyond it yet, it picks a section at random, turned so one of its open
 /// sides meets that one, and digs and builds it. Each hut level allows MinerSectionsPerHutLevel sections.
@@ -45,8 +45,16 @@ public partial class ColonyManager
     public List<PlacedPiece>? MineshaftPieces(Colony colony, Building hut)
     {
         if (MineshaftStyle(hut) is not { } style || Blueprints.GetMinePiece(style, BlueprintLibrary.MineEntrance, hut.Rotation) is not { } entrance) return null;
+        entrance = entrance.Deeper(Math.Max(0, Config.MinerEntranceRepeatsPerHutLevel) * Math.Max(1, hut.Level));
         int half = Math.Max(Math.Max(-entrance.Min.X, entrance.Max.X), Math.Max(-entrance.Min.Z, entrance.Max.Z));
-        if (ShaftFor(colony, hut, out _, half) is not { } anchor) return null;
+        if (hut.MineshaftPos == null)
+        {
+            hut.MineshaftPos = SpotBeside(colony, hut, half);
+            if (hut.MineshaftPos == null) return null;
+            MarkDirty(colony);
+        }
+        // The entrance's ground layer goes in the ground, just under where a settler stands.
+        var anchor = hut.MineshaftPos.DownCopy();
         var pieces = new List<PlacedPiece> { new(entrance, anchor) };
         foreach (var section in hut.Sections)
         {

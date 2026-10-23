@@ -1,13 +1,12 @@
 """
-Placeholder mineshaft pieces for the Miner's Hut (0.62.0): an entrance and the cross, tee and straight
-sections the miner grows its mine from. Written to assets/createacolony/config/blueprints/medievaloak/mineshaft/.
+The placeholder cross section for the Miner's Hut's mineshaft (0.62.0). The entrance, tee and straight in the
+same folder are Aaron's own exports (0.63.0). Written to assets/createacolony/config/blueprints/medievaloak/mineshaft/.
 Aaron's own pieces in ModConfig/createacolony/blueprints/<pack>/mineshaft/ take their place.
 
 The pieces are solid rock with the way through left empty: the miner leaves natural rock as it is, digs out
 every empty spot and builds the rest (the log posts and plank beams). Sections are 7 x 5 x 7: rock floor at
 y 0, a way 3 wide and 3 high at y 1 to 3, rock ceiling at y 4. Their open sides have an empty middle on the
-edge. The entrance is a spiral staircase (steps 3 high, as the old shaft) under the Mine waypoint at its top,
-coming out to the south at the bottom, at the sections' height.
+edge.
 
 Run: python3 tools/blueprints/mineshaft_pieces.py
 """
@@ -49,29 +48,10 @@ def section(ways):
     return b
 
 
-def entrance():
-    """A spiral staircase round a rock pillar under the Mine waypoint, 14 steps down, then a way out south."""
-    b = Build("mineshaft", 1)
-    top = 14
-    b.fill(0, 0, 0, 6, top, 6, ROCK)
-    ring = [(-1, -1), (0, -1), (1, -1), (1, 0), (1, 1), (0, 1), (-1, 1), (-1, 0)]
-    steps = 14
-    for k in range(steps):
-        dx, dz = ring[k % 8]
-        feet = top - k
-        for h in range(3):
-            if feet + h <= top:
-                b.rm(3 + dx, feet + h, 3 + dz)
-    # The last step is the middle of the south side (ring index 5): out from there to the edge.
-    assert ring[(steps - 1) % 8] == (0, 1) and top - (steps - 1) == 1
-    b.clear(2, 1, 5, 4, 3, 6)
-    b.put(3, top, 3, WAYPOINT)
-    return b
-
-
 def main():
     os.makedirs(OUT, exist_ok=True)
-    pieces = {"entrance": entrance(), "cross": section("nesw"), "tee": section("esw"), "straight": section("ns")}
+    # Aaron's own entrance, tee and straight ship beside it (0.63.0); the cross stays a placeholder until he makes one.
+    pieces = {"cross": section("nesw")}
     for name, build in pieces.items():
         with open(os.path.join(OUT, name + ".json"), "w") as f:
             json.dump(export(build), f, separators=(",", ":"))

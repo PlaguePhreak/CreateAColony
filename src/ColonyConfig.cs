@@ -152,6 +152,8 @@ public class ColonyConfig
     public int MinerFillDepth = 6;
     /// <summary>Mineshaft sections (cross, tee, straight) a Miner's Hut's mineshaft may grow per hut level, when the style has mineshaft pieces.</summary>
     public int MinerSectionsPerHutLevel = 4;
+    /// <summary>How many times a mineshaft entrance's stairs repeat further down for each level of the Miner's Hut.</summary>
+    public int MinerEntranceRepeatsPerHutLevel = 1;
     /// <summary>
     /// How far, in blocks, a miner's node search with its prospecting pick reaches, as the pick's node search
     /// mode does for a player. 0 goes by the world's own setting for the pick, or 8 when it has none.

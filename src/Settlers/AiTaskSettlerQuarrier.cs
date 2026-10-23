@@ -10,8 +10,9 @@ namespace CreateAColony.Settlers;
 
 /// <summary>
 /// A quarrier works from a Quarry: it digs out the square pit beside the Quarry a layer at a time with a
-/// pickaxe, leaving a staircase round the edge to walk down. The stone goes into its
-/// inventory and from there to the Quarry's storage.
+/// pickaxe, leaving a staircase round the edge to walk down. Half the rock inside is left standing until
+/// it is free on all sides, then broken for the whole rock block (ColonyManager.NextQuarryBlock). What it
+/// digs goes into its inventory and from there to the Quarry's storage.
 /// </summary>
 public class AiTaskSettlerQuarrier : AiTaskSettlerDigger
 {
@@ -35,7 +36,7 @@ public class AiTaskSettlerQuarrier : AiTaskSettlerDigger
             SetStatus(done ? "quarry-done" : "quarry-blocked");
             return false;
         }
-        SetStatus("quarrying");
+        SetStatus(manager.IsRelievedRock(next) ? "quarry-relieving" : "quarrying");
         return GoWork(next);
     }
 

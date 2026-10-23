@@ -238,7 +238,9 @@ public class Building
     [ProtoMember(48)] public MineTrip Trip = new();
     /// <summary>A Miner's Hut: the sections its mineshaft has grown so far, in the order they were dug, after its entrance.</summary>
     [ProtoMember(49)] public List<MineSection> Sections = new();
-    // 50-59 left free for other building fields.
+    /// <summary>A Miner's Hut: where its mineshaft's entrance comes up beside the hut, at the height a settler stands on the ground there.</summary>
+    [ProtoMember(50)] public BlockPos? MineshaftPos;
+    // 51-59 left free for other building fields.
     // 60 and 61 held the trip's entrances and the mines to fill in before 0.62.0.
     [ProtoMember(60)] List<BlockPos> oldSiteEntrances = new();
     [ProtoMember(61)] List<BlockPos> oldMineSeals = new();

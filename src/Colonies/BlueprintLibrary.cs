@@ -60,6 +60,27 @@ public class MinePiece
     public required List<BuildStep> Steps;
     public required List<(BlockFacing Face, int X, int Z)> Open;
     public (int X, int Y, int Z) Min, Max;
+    /// <summary>The entrance: how many layers, from its bottom up to its ground layer, repeat downwards to go deeper; 0 for a section.</summary>
+    public int Period;
+
+    readonly Dictionary<int, MinePiece> deeper = new();
+
+    /// <summary>
+    /// The entrance gone deeper: its ground layer and everything below it (the stairs round the opening) copied
+    /// this many times underneath, each copy Period layers lower. Its open sides move down to the bottom copy.
+    /// </summary>
+    public MinePiece Deeper(int repeats)
+    {
+        if (repeats <= 0 || Period <= 0) return this;
+        if (deeper.TryGetValue(repeats, out var piece)) return piece;
+        int ground = Min.Y + Period - 1; // the ground layer, as an offset (0 when the anchor is on it)
+        var band = Steps.Where(s => s.Dy <= ground).ToList();
+        var steps = new List<BuildStep>(Steps);
+        for (int k = 1; k <= repeats; k++) steps.AddRange(band.Select(s => s with { Dy = s.Dy - k * Period }));
+        piece = new MinePiece { Name = Name, Steps = steps, Open = Open, Min = (Min.X, Min.Y - repeats * Period, Min.Z), Max = Max, Period = Period };
+        deeper[repeats] = piece;
+        return piece;
+    }
 }
 
 /// <summary>
@@ -379,12 +400,30 @@ public class BlueprintLibrary
         }
 
         int sx = schematic.SizeX, sy = schematic.SizeY, sz = schematic.SizeZ;
-        var anchor = (sx / 2, 0, sz / 2);
-        if (name == MineEntrance)
+        bool entrance = name == MineEntrance;
+        bool Empty(int x, int y, int z) => !blocks.TryGetValue((x, y, z), out var b) || b.Id == 0;
+
+        // The entrance's ground layer: the highest layer whose edge is mostly natural ground. It goes at the
+        // height of the ground beside the hut, and it and everything below it repeat downwards to go deeper.
+        int ground = sy - 1;
+        if (entrance)
         {
-            anchor = (sx / 2, sy - 1, sz / 2);
-            foreach (var (at, b) in blocks) if (IsWaypoint(b) && (b.Variant["type"] ?? "") == "mine") anchor = at;
+            for (int y = sy - 1; y >= 0; y--)
+            {
+                int edge = 0, natural = 0;
+                for (int x = 0; x < sx; x++)
+                for (int z = 0; z < sz; z++)
+                {
+                    if (x != 0 && z != 0 && x != sx - 1 && z != sz - 1) continue;
+                    edge++;
+                    if (blocks.TryGetValue((x, y, z), out var b) && IsNaturalGround(b)) natural++;
+                }
+                if (natural * 2 < edge) continue;
+                ground = y;
+                break;
+            }
         }
+        var anchor = entrance ? (sx / 2, ground, sz / 2) : (sx / 2, 0, sz / 2);
         var (ax, ay, az) = anchor;
 
         var digs = new List<BuildStep>();
@@ -394,36 +433,81 @@ public class BlueprintLibrary
         for (int dx = 0; dx < sx; dx++)
         for (int dz = 0; dz < sz; dz++)
         {
-            if (!blocks.TryGetValue((dx, dy, dz), out var block) || IsWaypoint(block) || block.Id == 0
-                || block is BlockMultiblock || IsFurniturePart(block, saved.GetValueOrDefault((dx, dy, dz))))
+            blocks.TryGetValue((dx, dy, dz), out var block);
+            // Waypoints only mark spots: the ground there is left as it is.
+            if (block != null && (IsWaypoint(block) || IsMetaBlock(block) || IsNaturalGround(block))) continue;
+            if (block == null || block.Id == 0 || block is BlockMultiblock || IsFurniturePart(block, saved.GetValueOrDefault((dx, dy, dz))))
             {
                 digs.Add(new BuildStep(dx - ax, dy - ay, dz - az, 0));
                 continue;
             }
-            if (IsMetaBlock(block) || IsNaturalGround(block)) continue;
             var step = new BuildStep(dx - ax, dy - ay, dz - az, block.Id, saved.GetValueOrDefault((dx, dy, dz)));
             if (IsSolid(block)) solid.Add(step);
             else decor.Add(step);
         }
 
-        // An open side: an empty spot in the middle of that edge, low down where the way through is.
-        bool Empty(int x, int y, int z) => !blocks.TryGetValue((x, y, z), out var b) || b.Id == 0 || IsWaypoint(b);
-        var open = new List<(BlockFacing, int, int)>();
-        foreach (var face in BlockFacing.HORIZONTALS)
+        // The open sides, in the bottom four layers. Each one's middle is the middle of the widest gap along
+        // that edge, so pieces line up by their ways through whatever their size. In the entrance, a Mine
+        // waypoint on an edge down there marks the way out (the gap nearest it); without one, its widest gap.
+        (int From, int To)? Gap(BlockFacing face, int near = int.MinValue)
         {
-            int x = face == BlockFacing.EAST ? sx - 1 : face == BlockFacing.WEST ? 0 : sx / 2;
-            int z = face == BlockFacing.SOUTH ? sz - 1 : face == BlockFacing.NORTH ? 0 : sz / 2;
+            int length = face.Axis == EnumAxis.X ? sz : sx;
+            (int From, int To)? best = null;
             for (int y = 0; y < Math.Min(4, sy); y++)
             {
-                if (!Empty(x, y, z)) continue;
-                open.Add((face, x - ax, z - az));
-                break;
+                int start = -1;
+                for (int i = 0; i <= length; i++)
+                {
+                    int x = face == BlockFacing.EAST ? sx - 1 : face == BlockFacing.WEST ? 0 : i;
+                    int z = face == BlockFacing.SOUTH ? sz - 1 : face == BlockFacing.NORTH ? 0 : i;
+                    bool empty = i < length && Empty(x, y, z);
+                    if (empty && start < 0) start = i;
+                    if (empty || start < 0) continue;
+                    var run = (start, i - 1);
+                    start = -1;
+                    if (near != int.MinValue)
+                    {
+                        // The gap nearest the waypoint.
+                        int d = Math.Max(0, Math.Max(run.start - near, near - run.Item2));
+                        int bestD = best is { } k ? Math.Max(0, Math.Max(k.From - near, near - k.To)) : int.MaxValue;
+                        if (d < bestD || d == bestD && best is { } e && run.Item2 - run.start > e.To - e.From) best = run;
+                    }
+                    else if (best is not { } b || run.Item2 - run.start > b.To - b.From) best = run;
+                }
             }
+            return best;
+        }
+        var open = new List<(BlockFacing, int, int)>();
+        void AddOpen(BlockFacing face, (int From, int To) gap)
+        {
+            int mid = (gap.From + gap.To) / 2;
+            int x = face == BlockFacing.EAST ? sx - 1 : face == BlockFacing.WEST ? 0 : mid;
+            int z = face == BlockFacing.SOUTH ? sz - 1 : face == BlockFacing.NORTH ? 0 : mid;
+            if (!open.Any(o => o.Item1 == face)) open.Add((face, x - ax, z - az));
+        }
+        if (entrance)
+        {
+            foreach (var ((x, y, z), b) in blocks)
+            {
+                if (y >= 4 || !IsWaypoint(b)) continue;
+                var face = x == sx - 1 ? BlockFacing.EAST : x == 0 ? BlockFacing.WEST : z == sz - 1 ? BlockFacing.SOUTH : z == 0 ? BlockFacing.NORTH : null;
+                if (face == null) continue;
+                int along = face.Axis == EnumAxis.X ? z : x;
+                AddOpen(face, Gap(face, along) ?? (along, along));
+            }
+        }
+        if (open.Count == 0)
+        {
+            // Without a waypoint the entrance has one way out, its widest gap; a section has every gap.
+            var gaps = BlockFacing.HORIZONTALS.Select(f => (Face: f, Gap: Gap(f))).Where(g => g.Gap != null).ToList();
+            if (entrance) gaps = gaps.OrderByDescending(g => g.Gap!.Value.To - g.Gap.Value.From).Take(1).ToList();
+            foreach (var (face, gap) in gaps) AddOpen(face, gap!.Value);
         }
         return new MinePiece
         {
             Name = name, Steps = digs.Concat(solid).Concat(decor).ToList(), Open = open,
-            Min = (-ax, -ay, -az), Max = (sx - 1 - ax, sy - 1 - ay, sz - 1 - az)
+            Min = (-ax, -ay, -az), Max = (sx - 1 - ax, sy - 1 - ay, sz - 1 - az),
+            Period = entrance ? ground + 1 : 0
         };
     }
 
@@ -507,11 +591,11 @@ public class BlueprintLibrary
     static bool IsSolid(Block block) => block.SideSolid.Any;
 
     /// <summary>
-    /// Doors always keep theirs (which way they face); blocks placed from their item keep theirs to know which
+    /// Doors always keep theirs (which way they face), support beams theirs (where each beam runs); blocks placed from their item keep theirs to know which
     /// item (its wood and colours, a pole's banner); other blocks when the config lists them.
     /// </summary>
     bool KeepsDetails(Block block) =>
-        block.EntityClass != null && (IsDoor(block) || PlacedAsItem(block) || config.BlueprintBlockDetails.Any(p => WildcardUtil.Match(new AssetLocation(p), block.Code)));
+        block.EntityClass != null && (IsDoor(block) || block is BlockSupportBeam || PlacedAsItem(block) || config.BlueprintBlockDetails.Any(p => WildcardUtil.Match(new AssetLocation(p), block.Code)));
 
     /// <summary>
     /// True for blocks a builder places from their item, as a player does, so they set themselves up: the
