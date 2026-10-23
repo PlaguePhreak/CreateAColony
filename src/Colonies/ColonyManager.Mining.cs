@@ -17,7 +17,7 @@ namespace CreateAColony.Colonies;
 /// </summary>
 public partial class ColonyManager
 {
-    public enum MineWork { Travel, Dig }
+    public enum MineWork { Travel, Dig, Fill }
 
     /// <summary>What a miner does next: walk to Stand, then (for Dig) dig out Block from there.</summary>
     public readonly record struct MineJob(MineWork Kind, BlockPos Block, BlockPos Stand, bool Ore);
@@ -137,6 +137,106 @@ public partial class ColonyManager
     /// <summary>Seconds to dig a block: ore takes half as long again as rock.</summary>
     public float DigSeconds(BlockPos pos, float perBlock) => IsOre(sapi.World.BlockAccessor.GetBlock(pos)) ? perBlock * 1.5f : perBlock;
 
+    // ---- Filling finished mines in -----------------------------------------------------------
+
+    /// <summary>A block a miner fills a finished mine with: soil, or failing that gravel, sand or stone it dug.</summary>
+    public static bool IsFillStack(ItemStack? stack) => stack?.Block is { } block && block.SideSolid.All && block.EntityClass == null
+        && block.BlockMaterial is EnumBlockMaterial.Soil or EnumBlockMaterial.Gravel or EnumBlockMaterial.Sand or EnumBlockMaterial.Stone
+        && !IsOre(block);
+
+    /// <summary>Soil first: the miner covers its mines with dirt when it has any.</summary>
+    public static bool IsSoilStack(ItemStack? stack) => IsFillStack(stack) && stack!.Block!.BlockMaterial == EnumBlockMaterial.Soil;
+
+    /// <summary>
+    /// The open spaces of a finished mine to fill: everything dug out below the surface and joined to the
+    /// entrance, down MinerFillDepth blocks (the staircase and whatever opens off it that high up), lowest
+    /// first. A cave the mine broke into is filled only within that box, and buildings never.
+    /// </summary>
+    public List<BlockPos> FillCells(Colony colony, BlockPos entrance)
+    {
+        var ba = sapi.World.BlockAccessor;
+        var boxes = DigProtected(colony);
+        int depth = Math.Max(1, Config.MinerFillDepth), reach = depth * 2 + 2;
+        bool Open(BlockPos p) => ba.GetChunkAtBlockPos(p) != null && IsClear(p) && ba.GetBlock(p, BlockLayersAccess.Fluid).Id == 0 && !Inside(p, boxes);
+
+        // From the first steps down beside the entrance; never along the surface, so other holes nearby are left alone.
+        var seen = new HashSet<BlockPos>();
+        var open = new Queue<BlockPos>();
+        for (int dx = -1; dx <= 1; dx++)
+        for (int dz = -1; dz <= 1; dz++)
+        {
+            var start = entrance.AddCopy(dx, -1, dz);
+            if (Open(start) && seen.Add(start)) open.Enqueue(start);
+        }
+        while (open.Count > 0 && seen.Count < 2000)
+        {
+            var at = open.Dequeue();
+            foreach (var face in BlockFacing.ALLFACES)
+            {
+                var next = at.AddCopy(face);
+                if (next.Y >= entrance.Y || next.Y < entrance.Y - depth) continue;
+                if (Math.Abs(next.X - entrance.X) > reach || Math.Abs(next.Z - entrance.Z) > reach) continue;
+                if (seen.Contains(next) || !Open(next)) continue;
+                seen.Add(next);
+                open.Enqueue(next);
+            }
+        }
+        return seen.OrderBy(p => p.Y).ThenBy(p => Horizontal(p, entrance)).ToList();
+    }
+
+    /// <summary>
+    /// The miner's next job filling in a finished mine: walk to its entrance, then put a block in the
+    /// lowest open space. Status "mine-filling". Null when no mine is waiting, or no fill is at hand (then
+    /// the status says so and other work goes on).
+    /// </summary>
+    MineJob? NextFillJob(Colony colony, Building hut, System.Func<BlockPos, bool> skip, out string status)
+    {
+        status = "";
+        var ba = sapi.World.BlockAccessor;
+        while (hut.MineSeals.Count > 0)
+        {
+            var entrance = hut.MineSeals[0];
+            if (ba.GetChunkAtBlockPos(entrance) == null)
+            {
+                status = "mine-filling";
+                return new MineJob(MineWork.Travel, entrance, entrance, false);
+            }
+            var cell = FillCells(colony, entrance).FirstOrDefault(p => !skip(p) && CanWorkAt(colony, p));
+            if (cell == null)
+            {
+                hut.MineSeals.RemoveAt(0);
+                MarkDirty(colony);
+                continue;
+            }
+            status = "mine-filling";
+            return new MineJob(MineWork.Fill, cell, entrance.Copy(), false);
+        }
+        return null;
+    }
+
+    /// <summary>Asks couriers for soil to fill finished mines with, once at a time.</summary>
+    public void EnsureFillRequest(Colony colony, Building hut)
+    {
+        var chest = HutStorage(colony, hut).FirstOrDefault();
+        if (chest == null) return;
+        const string code = "game:soil-*";
+        string tag = RequestTag(hut);
+        if (!colony.Requests.Any(r => r.RequestedBy == tag && r.ItemCode == code)) AddRequest(colony, code, 32, chest.Pos, tag);
+    }
+
+    /// <summary>Puts a fill block from the worker's inventory into an open space of a finished mine. False when it has none.</summary>
+    public bool FillBlock(Colony colony, CitizenRecord worker, BlockPos pos)
+    {
+        var ba = sapi.World.BlockAccessor;
+        if (!IsClear(pos)) return true;
+        var stack = TakeFromPack(colony, worker, IsSoilStack, 1) ?? TakeFromPack(colony, worker, IsFillStack, 1);
+        if (stack?.Block is not { } block) return false;
+        ba.SetBlock(block.Id, pos);
+        ba.TriggerNeighbourBlockUpdate(pos);
+        if (block.Sounds?.Place != null) sapi.World.PlaySoundAt(block.Sounds.Place, pos, 0);
+        return true;
+    }
+
     // ---- Torches -------------------------------------------------------------------------------
 
     /// <summary>A torch a miner can put down: lit or gone out, not burned out.</summary>
@@ -183,9 +283,14 @@ public partial class ColonyManager
 
     // ---- Choosing where to mine -----------------------------------------------------------
 
-    /// <summary>Forgets the miner's site and tunnel, so it picks a new reading.</summary>
+    /// <summary>Forgets the miner's site and tunnel, so it picks a new reading. The staircases it dug there get filled back in.</summary>
     public void ClearMine(Colony colony, Building hut)
     {
+        foreach (var entrance in hut.SiteEntrances)
+        {
+            if (!hut.MineSeals.Any(s => s.Equals(entrance))) hut.MineSeals.Add(entrance);
+        }
+        hut.SiteEntrances.Clear();
         hut.MineSite = null;
         hut.MineSiteOre = "";
         hut.MineEntrance = null;
@@ -408,8 +513,9 @@ public partial class ColonyManager
     /// the prospectors found comes first; otherwise, or when there is none it can get to, the shaft. At is
     /// where the miner stands. Null when there is nothing to dig.
     /// </summary>
-    public MineJob? NextMineJob(Colony colony, Building hut, BlockPos at, System.Func<BlockPos, bool> skip, out string status)
+    public MineJob? NextMineJob(Colony colony, Building hut, BlockPos at, System.Func<BlockPos, bool> skip, bool canFill, out string status)
     {
+        if (canFill && NextFillJob(colony, hut, skip, out status) is { } fill) return fill;
         if (hut.MineProspected && NextSiteJob(colony, hut, skip, out status) is { } trip) return trip;
         return NextShaftJob(colony, hut, at, skip, out status);
     }
@@ -477,6 +583,7 @@ public partial class ColonyManager
                     continue;
                 }
                 hut.MineEntrance = entrance;
+                hut.SiteEntrances.Add(entrance.Copy());
                 hut.MineEnd = entrance.Copy();
                 MarkDirty(colony);
             }

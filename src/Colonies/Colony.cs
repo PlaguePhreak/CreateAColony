@@ -207,6 +207,11 @@ public class Building
     [ProtoMember(45, IsRequired = true)] public bool MineProspected = true;
     /// <summary>A Miner's Hut: the middle of its shaft beside the hut, at the height a settler stands on the ground there.</summary>
     [ProtoMember(46)] public BlockPos? ShaftPos;
+    // 47-59 left free for other building fields.
+    /// <summary>A Miner's Hut: the surface entrances of the staircases dug at the prospected ore it is working.</summary>
+    [ProtoMember(60)] public List<BlockPos> SiteEntrances = new();
+    /// <summary>A Miner's Hut: entrances of finished mines the miner still has to fill back in.</summary>
+    [ProtoMember(61)] public List<BlockPos> MineSeals = new();
 
     public bool HasWorkOrder => TargetLevel > Level;
 }
