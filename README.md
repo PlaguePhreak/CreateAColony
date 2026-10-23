@@ -457,6 +457,11 @@ Smithing skill grows with both jobs.
   The Smithing tab shows everything that can be made from the metals the colony has ingots of, with the
   ingots each takes; nothing is kept until an officer picks something.
 
+### Survival Handbook pages (0.59.0)
+- Seven guide pages in the game's Survival Handbook (Guides), titled "Vintage Colonies: 1 - Getting Started" to
+  "7 - Tips and Commands": getting started, settlers, building with the wand, the huts, storage and couriers,
+  guards, and tips. Files `config/handbook/vintagecolonies-*.json`, text `handbook-vc-*` in the lang file.
+
 ### Creative tab (0.58.0)
 - Every block and item of the mod is also on its own **Vintage Colonies** tab of the creative inventory
   (`"vintagecolonies"` in each `creativeinventory`; the tab name is `game:tabname-vintagecolonies` in the lang file).
