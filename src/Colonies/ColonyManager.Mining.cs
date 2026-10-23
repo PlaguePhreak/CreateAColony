@@ -22,10 +22,10 @@ public partial class ColonyManager
     /// <summary>What a miner does next: walk to Stand, then (for Dig) dig out Block from there.</summary>
     public readonly record struct MineJob(MineWork Kind, BlockPos Block, BlockPos Stand, bool Ore);
 
-    /// <summary>The ore blocks found around each Miner's Hut's site, so the ground is searched once per site.</summary>
-    readonly Dictionary<int, (BlockPos Site, string Ore, List<BlockPos> Blocks)> oreBlocks = new();
+    /// <summary>The ore blocks found around each trip's site, so the ground is searched once per site.</summary>
+    readonly Dictionary<MineTrip, (BlockPos Site, string Ore, List<BlockPos> Blocks)> oreBlocks = new();
     /// <summary>Ore blocks a miner could not get to (water next to the way, someone else's land, too hard for its pick), with when to try again.</summary>
-    readonly Dictionary<int, Dictionary<BlockPos, long>> blockedOre = new();
+    readonly Dictionary<MineTrip, Dictionary<BlockPos, long>> blockedOre = new();
     const long BlockedOreForgetMs = 600_000;
 
     static readonly BlockFacing[] Horizontals = BlockFacing.HORIZONTALS;
@@ -189,13 +189,13 @@ public partial class ColonyManager
     /// lowest open space. Status "mine-filling". Null when no mine is waiting, or no fill is at hand (then
     /// the status says so and other work goes on).
     /// </summary>
-    MineJob? NextFillJob(Colony colony, Building hut, System.Func<BlockPos, bool> skip, out string status)
+    public MineJob? NextFillJob(Colony colony, MineTrip trip, System.Func<BlockPos, bool> skip, out string status)
     {
         status = "";
         var ba = sapi.World.BlockAccessor;
-        while (hut.MineSeals.Count > 0)
+        while (trip.Seals.Count > 0)
         {
-            var entrance = hut.MineSeals[0];
+            var entrance = trip.Seals[0];
             if (ba.GetChunkAtBlockPos(entrance) == null)
             {
                 status = "mine-filling";
@@ -204,7 +204,7 @@ public partial class ColonyManager
             var cell = FillCells(colony, entrance).FirstOrDefault(p => !skip(p) && CanWorkAt(colony, p));
             if (cell == null)
             {
-                hut.MineSeals.RemoveAt(0);
+                trip.Seals.RemoveAt(0);
                 MarkDirty(colony);
                 continue;
             }
@@ -284,32 +284,44 @@ public partial class ColonyManager
     // ---- Choosing where to mine -----------------------------------------------------------
 
     /// <summary>Forgets the miner's site and tunnel, so it picks a new reading. The staircases it dug there get filled back in.</summary>
-    public void ClearMine(Colony colony, Building hut)
+    public void ClearMine(Colony colony, Building hut, MineTrip trip)
     {
-        var site = hut.MineSite;
-        foreach (var entrance in hut.SiteEntrances)
+        var site = trip.Site;
+        foreach (var entrance in trip.Entrances)
         {
-            if (!hut.MineSeals.Any(s => s.Equals(entrance))) hut.MineSeals.Add(entrance);
+            if (!trip.Seals.Any(s => s.Equals(entrance))) trip.Seals.Add(entrance);
         }
-        hut.SiteEntrances.Clear();
-        hut.MineSite = null;
-        hut.MineSiteOre = "";
-        hut.MineEntrance = null;
-        hut.MineEnd = null;
-        hut.MineTarget = null;
-        oreBlocks.Remove(hut.BuildingId);
-        blockedOre.Remove(hut.BuildingId);
-        if (nodeFinds.TryGetValue(hut.BuildingId, out var finds) && site != null) finds.Forget(site, Config.MinerOreSearchRadius + NodeSearchRadius());
+        trip.Entrances.Clear();
+        trip.Site = null;
+        trip.SiteOre = "";
+        trip.Entrance = null;
+        trip.End = null;
+        trip.Target = null;
+        oreBlocks.Remove(trip);
+        blockedOre.Remove(trip);
+        if (trip == hut.Trip && nodeFinds.TryGetValue(hut.BuildingId, out var finds) && site != null) finds.Forget(site, Config.MinerOreSearchRadius + NodeSearchRadius());
         MarkDirty(colony);
     }
 
-    /// <summary>The reading the Miner's Hut is working, or null (and the mine forgotten) when it no longer fits.</summary>
-    OreSite? CurrentMineSite(Colony colony, Building hut)
+    /// <summary>Forgets the trips of the hut's miner and of its prospectors on Mine ore, as when the ore to dig changes.</summary>
+    public void ClearMines(Colony colony, Building hut)
     {
-        if (hut.MineSite == null) return null;
-        var site = colony.OreSites.Find(s => s.Pos.Equals(hut.MineSite));
-        if (site != null && !site.MinedOut.Contains(hut.MineSiteOre) && (hut.MineOre.Length == 0 || hut.MineOre == hut.MineSiteOre)) return site;
-        ClearMine(colony, hut);
+        ClearMine(colony, hut, hut.Trip);
+        foreach (var worker in WorkersAt(colony, hut)) ClearMine(colony, hut, worker.Trip);
+    }
+
+    /// <summary>Every trip to prospected ore in the colony: each Miner's Hut's, and each prospector's on Mine ore.</summary>
+    IEnumerable<MineTrip> AllTrips(Colony colony) =>
+        colony.Buildings.Where(b => b.Type == BuildingTypes.Miner).Select(b => b.Trip)
+            .Concat(colony.Citizens.Where(c => c.Alive && c.JobCode == Jobs.Prospector && c.WorkRole == ProspectorRoles.Mine).Select(c => c.Trip));
+
+    /// <summary>The reading the Miner's Hut is working, or null (and the mine forgotten) when it no longer fits.</summary>
+    OreSite? CurrentMineSite(Colony colony, Building hut, MineTrip trip)
+    {
+        if (trip.Site == null) return null;
+        var site = colony.OreSites.Find(s => s.Pos.Equals(trip.Site));
+        if (site != null && !site.MinedOut.Contains(trip.SiteOre) && (hut.MineOre.Length == 0 || hut.MineOre == trip.SiteOre)) return site;
+        ClearMine(colony, hut, trip);
         return null;
     }
 
@@ -317,12 +329,12 @@ public partial class ColonyManager
     /// The strongest reading in the miner's range of the ore it is set to dig (any ore when none is set),
     /// left alone by the colony's other miners, or null.
     /// </summary>
-    OreSite? ChooseMineSite(Colony colony, Building hut)
+    OreSite? ChooseMineSite(Colony colony, Building hut, MineTrip trip)
     {
         int radius = GatherRadius(hut);
         // A trip away from the shaft is only worth it for good ore, unless an ore was chosen.
         double least = hut.MineOre.Length > 0 ? Config.MinerMinFactor : Math.Max(Config.MinerMinFactor, Config.MinerTripMinFactor);
-        var taken = colony.Buildings.Where(b => b != hut && b.Type == BuildingTypes.Miner && b.MineSite != null).Select(b => b.MineSite!).ToList();
+        var taken = AllTrips(colony).Where(t => t != trip && t.Site != null).Select(t => t.Site!).ToList();
         OreSite? bestSite = null;
         string bestOre = "";
         double bestScore = double.MinValue;
@@ -342,9 +354,9 @@ public partial class ColonyManager
             }
         }
         if (bestSite == null) return null;
-        hut.MineSite = bestSite.Pos.Copy();
-        hut.MineSiteOre = bestOre;
-        hut.MineEntrance = hut.MineEnd = hut.MineTarget = null;
+        trip.Site = bestSite.Pos.Copy();
+        trip.SiteOre = bestOre;
+        trip.Entrance = trip.End = trip.Target = null;
         MarkDirty(colony);
         return bestSite;
     }
@@ -353,9 +365,9 @@ public partial class ColonyManager
     /// Every block of the ore within MinerOreSearchRadius of the site, from the surface down. Null while
     /// some of that ground is not loaded, so it is not taken for dug out.
     /// </summary>
-    List<BlockPos>? OreBlocksAt(Building hut, OreSite site, string ore)
+    List<BlockPos>? OreBlocksAt(MineTrip trip, OreSite site, string ore)
     {
-        if (oreBlocks.TryGetValue(hut.BuildingId, out var cached) && cached.Site.Equals(site.Pos) && cached.Ore == ore) return cached.Blocks;
+        if (oreBlocks.TryGetValue(trip, out var cached) && cached.Site.Equals(site.Pos) && cached.Ore == ore) return cached.Blocks;
 
         var ba = sapi.World.BlockAccessor;
         int r = Math.Max(1, Config.MinerOreSearchRadius);
@@ -375,22 +387,22 @@ public partial class ColonyManager
                 if (IsOreOf(block, ore)) found.Add(pos.Copy());
             }
         }
-        oreBlocks[hut.BuildingId] = (site.Pos.Copy(), ore, found);
+        oreBlocks[trip] = (site.Pos.Copy(), ore, found);
         return found;
     }
 
-    bool IsBlockedOre(Building hut, BlockPos pos)
+    bool IsBlockedOre(MineTrip trip, BlockPos pos)
     {
-        if (!blockedOre.TryGetValue(hut.BuildingId, out var blocked) || !blocked.TryGetValue(pos, out long until)) return false;
+        if (!blockedOre.TryGetValue(trip, out var blocked) || !blocked.TryGetValue(pos, out long until)) return false;
         if (sapi.World.ElapsedMilliseconds < until) return true;
         blocked.Remove(pos);
         return false;
     }
 
     /// <summary>Leaves an ore block alone for a while: its way is flooded, in someone else's land, or too hard for the miner's pick.</summary>
-    public void BlockOre(Building hut, BlockPos pos)
+    public void BlockOre(MineTrip trip, BlockPos pos)
     {
-        if (!blockedOre.TryGetValue(hut.BuildingId, out var blocked)) blockedOre[hut.BuildingId] = blocked = new();
+        if (!blockedOre.TryGetValue(trip, out var blocked)) blockedOre[trip] = blocked = new();
         blocked[pos.Copy()] = sapi.World.ElapsedMilliseconds + BlockedOreForgetMs;
     }
 
@@ -401,19 +413,19 @@ public partial class ColonyManager
     /// The next ore block to tunnel to. From the end of the tunnel: the nearest one a staircase can reach
     /// (at least one step across for every step up or down). Without a tunnel: the shallowest, nearest the site.
     /// </summary>
-    BlockPos? NextOreBlock(Colony colony, Building hut, List<BlockPos> blocks, string ore, OreSite site, System.Func<BlockPos, bool> skip)
+    BlockPos? NextOreBlock(Colony colony, MineTrip trip, List<BlockPos> blocks, string ore, OreSite site, System.Func<BlockPos, bool> skip)
     {
         var ba = sapi.World.BlockAccessor;
         blocks.RemoveAll(p => !IsOreOf(ba.GetBlock(p), ore));
-        var open = blocks.Where(p => !skip(p) && !IsBlockedOre(hut, p) && CanWorkAt(colony, p)).ToList();
+        var open = blocks.Where(p => !skip(p) && !IsBlockedOre(trip, p) && CanWorkAt(colony, p)).ToList();
         if (open.Count == 0) return null;
-        if (hut.MineEnd is { } end)
+        if (trip.End is { } end)
         {
             var reachable = open.Where(p => Horizontal(end, p) >= Math.Abs(end.Y - p.Y) + 1)
                 .OrderBy(p => Horizontal(end, p) + Math.Abs(end.Y - p.Y)).FirstOrDefault();
             if (reachable != null) return reachable;
             // Nothing a staircase from here reaches: start a new one from the surface.
-            hut.MineEnd = null;
+            trip.End = null;
         }
         return open.OrderByDescending(p => p.Y).ThenBy(p => Horizontal(site.Pos, p)).First();
     }
@@ -487,7 +499,7 @@ public partial class ColonyManager
     /// An ore block within the miner's reach of where it stands with open air beside it, or null. Blocks in
     /// keep (the floors of the shaft and its tunnels) are left alone even when they are ore.
     /// </summary>
-    BlockPos? OreInReach(Colony colony, Building hut, BlockPos end, System.Func<Block, bool> isOre, System.Func<BlockPos, bool> skip,
+    BlockPos? OreInReach(Colony colony, MineTrip trip, BlockPos end, System.Func<Block, bool> isOre, System.Func<BlockPos, bool> skip,
         List<(BlockPos Min, BlockPos Max)> boxes, ISet<BlockPos>? keep = null)
     {
         var ba = sapi.World.BlockAccessor;
@@ -500,7 +512,7 @@ public partial class ColonyManager
         for (int z = -r; z <= r; z++)
         {
             var pos = end.AddCopy(x, y, z);
-            if (!isOre(ba.GetBlock(pos)) || skip(pos) || IsBlockedOre(hut, pos) || keep?.Contains(pos) == true) continue;
+            if (!isOre(ba.GetBlock(pos)) || skip(pos) || IsBlockedOre(trip, pos) || keep?.Contains(pos) == true) continue;
             double d = pos.DistanceTo(eye);
             if (d > r + 0.5 || d >= bestDistance) continue;
             if (!BlockFacing.ALLFACES.Any(f => IsClear(pos.AddCopy(f)))) continue;
@@ -517,9 +529,9 @@ public partial class ColonyManager
     /// </summary>
     public MineJob? NextMineJob(Colony colony, Building hut, BlockPos at, System.Func<BlockPos, bool> skip, bool canFill, bool canSearch, out string status)
     {
-        if (canFill && NextFillJob(colony, hut, skip, out status) is { } fill) return fill;
+        if (canFill && NextFillJob(colony, hut.Trip, skip, out status) is { } fill) return fill;
         if (NextNodeJob(colony, hut, skip, out status) is { } node) return node;
-        MineJob? job = hut.MineProspected && NextSiteJob(colony, hut, skip, out status) is { } trip ? trip : NextShaftJob(colony, hut, at, skip, out status);
+        MineJob? job = hut.MineProspected && NextSiteJob(colony, hut, hut.Trip, skip, out status) is { } trip ? trip : NextShaftJob(colony, hut, at, skip, out status);
         // Somewhere new in the mine: a node search there first, for ore close by.
         if (canSearch && job is { Kind: MineWork.Dig } dig && NeedsNodeSearch(hut, dig.Stand))
         {
@@ -533,41 +545,41 @@ public partial class ColonyManager
     /// The miner's next job at prospected ore: walk to the site, dig the next block of the tunnel, or dig
     /// out ore. Null when there is no site worth a trip, or none it can get to right now.
     /// </summary>
-    MineJob? NextSiteJob(Colony colony, Building hut, System.Func<BlockPos, bool> skip, out string status)
+    public MineJob? NextSiteJob(Colony colony, Building hut, MineTrip trip, System.Func<BlockPos, bool> skip, out string status)
     {
         var ba = sapi.World.BlockAccessor;
         var boxes = DigProtected(colony);
         for (int tries = 0; tries < 6; tries++)
         {
-            var site = CurrentMineSite(colony, hut) ?? ChooseMineSite(colony, hut);
+            var site = CurrentMineSite(colony, hut, trip) ?? ChooseMineSite(colony, hut, trip);
             if (site == null)
             {
                 status = colony.OreSites.Count == 0 ? "mine-no-readings" : hut.MineOre.Length > 0 ? "mine-no-site-ore" : "mine-no-site";
                 return null;
             }
-            string ore = hut.MineSiteOre;
+            string ore = trip.SiteOre;
 
             // The ground must be loaded to look for the ore: walk to the site first.
-            var blocks = OreBlocksAt(hut, site, ore);
+            var blocks = OreBlocksAt(trip, site, ore);
             if (blocks == null)
             {
                 status = "mine-travelling";
-                var stand = hut.MineEntrance ?? site.Pos.UpCopy();
+                var stand = trip.Entrance ?? site.Pos.UpCopy();
                 return new MineJob(MineWork.Travel, stand, stand, false);
             }
 
             // Ore around the end of the tunnel comes out first.
-            if (hut.MineEnd != null && OreInReach(colony, hut, hut.MineEnd, b => IsOreOf(b, ore), skip, boxes) is { } near)
+            if (trip.End != null && OreInReach(colony, trip, trip.End, b => IsOreOf(b, ore), skip, boxes) is { } near)
             {
                 status = "mine-ore";
-                return new MineJob(MineWork.Dig, near, hut.MineEnd.Copy(), true);
+                return new MineJob(MineWork.Dig, near, trip.End.Copy(), true);
             }
 
-            if (hut.MineTarget == null || !IsOreOf(ba.GetBlock(hut.MineTarget), ore) || skip(hut.MineTarget) || IsBlockedOre(hut, hut.MineTarget))
+            if (trip.Target == null || !IsOreOf(ba.GetBlock(trip.Target), ore) || skip(trip.Target) || IsBlockedOre(trip, trip.Target))
             {
-                hut.MineTarget = NextOreBlock(colony, hut, blocks, ore, site, skip);
+                trip.Target = NextOreBlock(colony, trip, blocks, ore, site, skip);
                 MarkDirty(colony);
-                if (hut.MineTarget == null)
+                if (trip.Target == null)
                 {
                     if (blocks.Count > 0)
                     {
@@ -577,31 +589,31 @@ public partial class ColonyManager
                     }
                     site.MinedOut.Add(ore);
                     LogEvent(colony, "event-mine-done", OreName(ore), DirectionFrom(hut.HutPos, site.Pos));
-                    ClearMine(colony, hut);
+                    ClearMine(colony, hut, trip);
                     continue;
                 }
             }
 
-            if (hut.MineEnd == null)
+            if (trip.End == null)
             {
-                var entrance = PlanEntrance(colony, hut, hut.MineTarget, boxes);
+                var entrance = PlanEntrance(colony, hut, trip.Target, boxes);
                 if (entrance == null)
                 {
-                    BlockOre(hut, hut.MineTarget);
-                    hut.MineTarget = null;
+                    BlockOre(trip, trip.Target);
+                    trip.Target = null;
                     continue;
                 }
-                hut.MineEntrance = entrance;
-                hut.SiteEntrances.Add(entrance.Copy());
-                hut.MineEnd = entrance.Copy();
+                trip.Entrance = entrance;
+                trip.Entrances.Add(entrance.Copy());
+                trip.End = entrance.Copy();
                 MarkDirty(colony);
             }
 
             // Follow the tunnel to the ore; the first block still in the way is the next to dig.
-            var target = hut.MineTarget;
-            var standAt = hut.MineEnd.Copy();
+            var target = trip.Target;
+            var standAt = trip.End.Copy();
             bool blocked = false;
-            foreach (var (feet, digs) in MineRoute(hut.MineEnd, target))
+            foreach (var (feet, digs) in MineRoute(trip.End, target))
             {
                 foreach (var dig in digs)
                 {
@@ -620,18 +632,18 @@ public partial class ColonyManager
             }
             if (blocked)
             {
-                BlockOre(hut, target);
-                hut.MineTarget = null;
+                BlockOre(trip, target);
+                trip.Target = null;
                 continue;
             }
 
             // The tunnel reaches the ore: dig it out from the tunnel's new end.
-            hut.MineEnd = standAt;
+            trip.End = standAt;
             MarkDirty(colony);
             if (!CanDig(colony, target, boxes))
             {
-                BlockOre(hut, target);
-                hut.MineTarget = null;
+                BlockOre(trip, target);
+                trip.Target = null;
                 continue;
             }
             status = "mine-ore";
@@ -771,7 +783,7 @@ public partial class ColonyManager
         floors.UnionWith(keep);
 
         // Ore in sight of the spot in the mine where the miner stands comes out first.
-        if (plan.Any(p => p.Feet.Equals(at)) && OreInReach(colony, hut, at, IsOre, skip, boxes, floors) is { } ore)
+        if (plan.Any(p => p.Feet.Equals(at)) && OreInReach(colony, hut.Trip, at, IsOre, skip, boxes, floors) is { } ore)
         {
             status = "mine-ore";
             return new MineJob(MineWork.Dig, ore, at.Copy(), true);
@@ -831,15 +843,20 @@ public partial class ColonyManager
 
         string choice = hut.MineOre.Length == 0 ? Lang.Get("createacolony:mine-any-ore") : OreName(hut.MineOre);
         line += "<br>" + Lang.Get("createacolony:mine-digs-for", choice);
-        if (hut.MineSite != null && hut.MineSiteOre.Length > 0)
+        if (TripInfo(colony, hut, hut.Trip) is { } trip) line += "<br>" + trip;
+        return line;
+    }
+
+    /// <summary>Where a trip to prospected ore digs now, and how deep its staircase goes; null when it has no site.</summary>
+    public string? TripInfo(Colony colony, Building hut, MineTrip trip)
+    {
+        if (trip.Site == null || trip.SiteOre.Length == 0) return null;
+        var site = colony.OreSites.Find(s => s.Pos.Equals(trip.Site));
+        var factor = site?.Ores.Find(o => o.Code == trip.SiteOre)?.Factor ?? 0;
+        string line = Lang.Get("createacolony:mine-site", OreName(trip.SiteOre), DensityName(factor), DirectionFrom(hut.HutPos, trip.Site));
+        if (trip.Entrance != null && trip.End != null)
         {
-            var site = colony.OreSites.Find(s => s.Pos.Equals(hut.MineSite));
-            var factor = site?.Ores.Find(o => o.Code == hut.MineSiteOre)?.Factor ?? 0;
-            line += "<br>" + Lang.Get("createacolony:mine-site", OreName(hut.MineSiteOre), DensityName(factor), DirectionFrom(hut.HutPos, hut.MineSite));
-            if (hut.MineEntrance != null && hut.MineEnd != null)
-            {
-                line += "<br>" + Lang.Get("createacolony:mine-depth", Math.Max(0, hut.MineEntrance.Y - hut.MineEnd.Y), hut.MineEntrance.X, hut.MineEntrance.Y, hut.MineEntrance.Z);
-            }
+            line += "<br>" + Lang.Get("createacolony:mine-depth", Math.Max(0, trip.Entrance.Y - trip.End.Y), trip.Entrance.X, trip.Entrance.Y, trip.Entrance.Z);
         }
         return line;
     }
@@ -957,10 +974,10 @@ public partial class ColonyManager
         for (int tries = 0; tries < 8 && finds.Ore.Count > 0; tries++)
         {
             var current = finds.Target;
-            if (current == null || !finds.Ore.Any(f => f.Ore.Equals(current)) || skip(current) || IsBlockedOre(hut, current))
+            if (current == null || !finds.Ore.Any(f => f.Ore.Equals(current)) || skip(current) || IsBlockedOre(hut.Trip, current))
             {
                 finds.Target = null;
-                var open = finds.Ore.Where(f => !skip(f.Ore) && !IsBlockedOre(hut, f.Ore)).ToList();
+                var open = finds.Ore.Where(f => !skip(f.Ore) && !IsBlockedOre(hut.Trip, f.Ore)).ToList();
                 if (open.Count == 0) return null;
                 if (finds.End is { } end && open.Where(f => Reaches(end, f.Ore)).OrderBy(f => end.DistanceTo(f.Ore)).FirstOrDefault() is { Ore: not null } next)
                 {
@@ -971,7 +988,7 @@ public partial class ColonyManager
                     finds.End = null;
                     // Ore no side tunnel from its search spot can reach (straight above or below it) is let go.
                     finds.Ore.RemoveAll(f => !Reaches(f.From, f.Ore));
-                    var first = finds.Ore.Where(f => !skip(f.Ore) && !IsBlockedOre(hut, f.Ore)).OrderBy(f => f.From.DistanceTo(f.Ore)).FirstOrDefault();
+                    var first = finds.Ore.Where(f => !skip(f.Ore) && !IsBlockedOre(hut.Trip, f.Ore)).OrderBy(f => f.From.DistanceTo(f.Ore)).FirstOrDefault();
                     if (first.Ore == null) return null;
                     finds.Target = first.Ore;
                     finds.End = first.From.Copy();

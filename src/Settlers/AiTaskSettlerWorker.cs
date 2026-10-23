@@ -64,6 +64,9 @@ public abstract class AiTaskSettlerWorker : SettlerTaskBase
     /// </summary>
     protected virtual bool PlanFirst(Colony colony, CitizenRecord citizen, Building hut) => false;
 
+    /// <summary>For a hut whose workers each have their own kind of work (a Prospector's Hut): true when this task is that work.</summary>
+    protected virtual bool ForRole(int role) => true;
+
     /// <summary>Other things the worker keeps in its inventory instead of taking them to the hut.</summary>
     protected virtual bool AlsoKeeps(ItemStack stack) => false;
 
@@ -103,7 +106,7 @@ public abstract class AiTaskSettlerWorker : SettlerTaskBase
     {
         var colony = Colony;
         var citizen = Citizen;
-        if (colony == null || citizen == null || citizen.JobCode != Job) return false;
+        if (colony == null || citizen == null || citizen.JobCode != Job || !ForRole(citizen.WorkRole)) return false;
         if (manager!.IsBrokenDown(citizen)) return false; // too unhappy to work
 
         var hut = manager!.EnsureWorkplace(colony, citizen, HutType);
@@ -154,6 +157,7 @@ public abstract class AiTaskSettlerWorker : SettlerTaskBase
     protected void SetStatus(string status)
     {
         if (hutId != 0) manager!.WorkStatus[hutId] = status;
+        if (Citizen is { } citizen) manager!.WorkerStatus[citizen.CitizenId] = status;
     }
 
     bool Go(Step next, BlockPos pos)
@@ -185,7 +189,8 @@ public abstract class AiTaskSettlerWorker : SettlerTaskBase
     /// <summary>Leaves a spot alone for a while, as if it could not be reached.</summary>
     protected void MarkUnreachable(BlockPos pos) => unreachable[pos.Copy()] = entity.World.ElapsedMilliseconds + UnreachableForgetMs;
 
-    bool IsMyTool(ItemStack s) => NeedsTool && (s.Collectible.Tool == Tool || IsToolStack(s));
+    // A prospecting pick counts as a pickaxe to the game, but only jobs that use one (IsToolStack) keep it as their tool.
+    bool IsMyTool(ItemStack s) => NeedsTool && (IsToolStack(s) || s.Collectible.Tool == Tool && !ColonyManager.IsProspectingPick(s));
 
     bool HasTool(CitizenRecord citizen) =>
         IsToolStack(Hand?.Itemstack) || manager!.PackCount(citizen, s => IsToolStack(s)) > 0;
@@ -267,7 +272,7 @@ public abstract class AiTaskSettlerWorker : SettlerTaskBase
                 // A skilled worker gets the same work done in less time (ColonyManager.Skills.cs).
                 if (workTime < WorkSeconds * manager!.WorkTimeFactor(colony, citizen)) return true;
                 DoWork(colony, citizen, hut);
-                manager.GainWorkXp(colony, citizen, Job);
+                manager.GainWorkXp(colony, citizen, Jobs.WorkJob(citizen));
                 StopWorkAnimation();
                 break;
         }

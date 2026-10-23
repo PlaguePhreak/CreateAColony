@@ -51,7 +51,26 @@ public partial class ColonyManager
     };
 
     /// <summary>How many settlers can work from this building at once.</summary>
-    public static int WorkerSlots(Building hut) => IsGuardPost(hut.Type) ? GuardSlots(hut) : JobOf(hut.Type) == null ? 0 : 1;
+    public static int WorkerSlots(Building hut) => IsGuardPost(hut.Type) ? GuardSlots(hut)
+        : hut.Type == BuildingTypes.Prospector ? ProspectorSlots : JobOf(hut.Type) == null ? 0 : 1;
+
+    /// <summary>A Prospector's Hut takes two prospectors, each finding ore or mining it (CitizenRecord.WorkRole).</summary>
+    public const int ProspectorSlots = 2;
+
+    /// <summary>
+    /// Sets what a hut's worker does, at a hut whose workers each pick their work: a prospector finds ore or
+    /// mines it. The settler goes back to the hut first, to swap its tools.
+    /// </summary>
+    public string? SetWorkRole(Colony colony, Building hut, CitizenRecord worker, int role)
+    {
+        if (hut.Type != BuildingTypes.Prospector || role is not (ProspectorRoles.Find or ProspectorRoles.Mine)) return "createacolony:bad-building";
+        if (!WorkersAt(colony, hut).Contains(worker)) return "createacolony:bad-citizen";
+        if (worker.WorkRole == role) return null;
+        worker.WorkRole = role;
+        LogEvent(colony, role == ProspectorRoles.Mine ? "event-prospector-mines" : "event-prospector-finds", worker.Name);
+        MarkDirty(colony);
+        return null;
+    }
 
     /// <summary>The living settlers working from this hut.</summary>
     public List<CitizenRecord> WorkersAt(Colony colony, Building hut)
@@ -66,6 +85,8 @@ public partial class ColonyManager
 
     /// <summary>What each forester's or farmer's hut is waiting on, for the hut window. Not saved: workers refresh it.</summary>
     public readonly Dictionary<int, string> WorkStatus = new();
+    /// <summary>The same for each worker, by citizen id, for huts with more than one (a Prospector's Hut).</summary>
+    public readonly Dictionary<int, string> WorkerStatus = new();
 
     /// <summary>How many seeds a job keeps on hand.</summary>
     public int SeedReserve(string job) => job switch
@@ -192,7 +213,20 @@ public partial class ColonyManager
         if (IsGuardPost(hut.Type)) return GuardTowerInfo(colony, hut);
         var lines = new List<string>();
         var worker = WorkerAt(colony, hut, job);
-        if (worker == null)
+        if (hut.Type == BuildingTypes.Prospector)
+        {
+            // Two prospectors, each with its own work and status.
+            var workers = WorkersAt(colony, hut);
+            if (workers.Count == 0) lines.Add(Lang.Get("createacolony:hut-no-worker", Lang.Get("createacolony:job-" + job)));
+            foreach (var w in workers)
+            {
+                string status = WorkerStatus.TryGetValue(w.CitizenId, out var ws) ? ws : "starting";
+                lines.Add(Lang.Get("createacolony:prospector-worker", w.Name, Lang.Get("createacolony:prospector-role-" + w.WorkRole),
+                    Lang.Get("createacolony:workstatus-" + status)));
+                if (w.WorkRole == ProspectorRoles.Mine && TripInfo(colony, hut, w.Trip) is { } trip) lines.Add(trip);
+            }
+        }
+        else if (worker == null)
         {
             lines.Add(Lang.Get("createacolony:hut-no-worker", Lang.Get("createacolony:job-" + job)));
         }

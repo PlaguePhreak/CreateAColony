@@ -212,7 +212,7 @@ public partial class ColonyManager
     /// <summary>Multiply a job's work time by this: 1 at level 0, smaller as the job's skill grows.</summary>
     public float WorkTimeFactor(Colony colony, CitizenRecord c)
     {
-        var skill = SkillForJob(c.JobCode);
+        var skill = SkillForJob(Jobs.WorkJob(c));
         float speed = Config.Skills && skill != null ? 1f + skill.WorkSpeedPerLevel * UsableLevel(colony, c, skill.Code) : 1f;
         speed *= TraitMult(c, "workSpeed"); // Hard Worker, Lazy, the job traits, Shaken
         speed *= SkillPerk(colony, c, "workSpeed"); // Prospecting's faster readings
@@ -503,7 +503,7 @@ public partial class ColonyManager
             int today = c.SkillXpDay == (int)sapi.World.Calendar.TotalDays ? c.SkillXpToday.GetValueOrDefault(s.Code) : 0;
             list.Add(new SkillInfo(s.Code, level, usable, xp, XpForLevel(level), next, incapable.Length > 0 ? "" : note, Passion(c, s.Code), incapable, DecayPerDay(level) > 0, today));
         }
-        var own = SkillForJob(c.JobCode);
+        var own = SkillForJob(Jobs.WorkJob(c));
         return own == null ? list : list.OrderByDescending(i => i.Code == own.Code).ToList();
     }
 

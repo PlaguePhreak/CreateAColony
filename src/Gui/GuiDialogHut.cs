@@ -315,9 +315,23 @@ public class GuiDialogHut : GuiDialog
 
         y = composer.Section(Lang.Get("createacolony:manage-here", snapshot.Workers.Count, snapshot.WorkerSlots), y, Width);
         if (snapshot.Workers.Count == 0) y = composer.Text(Lang.Get("createacolony:hut-workers-none", job), GuiKit.Detail(), 0, y, Width, 8);
+        bool roles = snapshot.Building.Type == BuildingTypes.Prospector;
         foreach (var w in snapshot.Workers)
         {
             int id = w.CitizenId;
+            if (roles)
+            {
+                // A prospector finds ore or mines it: the button shows what it does now and switches it.
+                int other = w.WorkRole == ProspectorRoles.Mine ? ProspectorRoles.Find : ProspectorRoles.Mine;
+                composer
+                    .AddStaticText(w.Name, GuiKit.Body(), ElementBounds.Fixed(10, y + 5, 160, 25))
+                    .AddStaticText(SkillText(w), GuiKit.Muted(), ElementBounds.Fixed(175, y + 8, 120, 22))
+                    .AddSmallButton(Lang.Get("createacolony:prospector-role-" + w.WorkRole), () => SendCitizenText(ColonyAction.SetWorkRole, id, other.ToString()), ElementBounds.Fixed(Width - 260, y, 120, 28))
+                    .AddHoverText(Lang.Get("createacolony:prospector-role-hint"), CairoFont.WhiteDetailText(), 300, ElementBounds.Fixed(Width - 260, y, 120, 28))
+                    .AddSmallButton(Lang.Get("createacolony:manage-remove"), () => SendCitizen(ColonyAction.UnassignWorker, id), ElementBounds.Fixed(Width - 130, y, 120, 28));
+                y += ListRowHeight;
+                continue;
+            }
             composer
                 .AddStaticText(w.Name, GuiKit.Body(), ElementBounds.Fixed(10, y + 5, 220, 25))
                 .AddStaticText(SkillText(w), GuiKit.Muted(), ElementBounds.Fixed(240, y + 8, 160, 22))
@@ -685,6 +699,12 @@ public class GuiDialogHut : GuiDialog
         return true;
     }
 
+    bool SendCitizenText(ColonyAction action, int citizenId, string text)
+    {
+        network.SendAction(new ColonyActionPacket { ColonyId = snapshot.ColonyId, Action = action, BuildingId = BuildingId, CitizenId = citizenId, Text = text });
+        return true;
+    }
+
     bool SendCitizen(ColonyAction action, int citizenId)
     {
         network.SendAction(new ColonyActionPacket { ColonyId = snapshot.ColonyId, Action = action, BuildingId = BuildingId, CitizenId = citizenId });
@@ -751,13 +771,15 @@ public class GuiDialogHut : GuiDialog
     void ComposeOre(GuiComposer composer)
     {
         bool miner = snapshot.Building.Type == BuildingTypes.Miner;
-        bool officer = Officer && miner;
+        // Both huts choose the ore they dig: the miner, and a Prospector's Hut's prospectors on Mine ore.
+        bool chooser = miner || snapshot.Building.Type == BuildingTypes.Prospector;
+        bool officer = Officer && chooser;
         double y = composer.Text(Lang.Get(miner ? "createacolony:ore-hint-miner" : "createacolony:ore-hint-prospector", snapshot.OreReadings), GuiKit.Muted(), 0, 30, Width, 10);
-        if (miner)
+        if (chooser)
         {
-            y = composer.Section(Lang.Get("createacolony:ore-trips"), y, Width);
-            y = AddSetting(composer, "mineprospected", ColonyAction.SetMineProspected, snapshot.MineProspected, y);
-            y = composer.Text(Lang.Get("createacolony:ore-trips-hint"), GuiKit.Muted(), 0, y, Width, 10);
+            y = composer.Section(Lang.Get(miner ? "createacolony:ore-trips" : "createacolony:ore-prospector-mining"), y, Width);
+            if (miner) y = AddSetting(composer, "mineprospected", ColonyAction.SetMineProspected, snapshot.MineProspected, y);
+            y = composer.Text(Lang.Get(miner ? "createacolony:ore-trips-hint" : "createacolony:ore-prospector-mining-hint"), GuiKit.Muted(), 0, y, Width, 10);
             string choice = snapshot.MineOre.Length == 0 ? Lang.Get("createacolony:mine-any-ore") : Lang.Get("ore-" + snapshot.MineOre);
             composer.AddStaticText(Lang.Get("createacolony:ore-digging-for", choice), GuiKit.Body(), ElementBounds.Fixed(0, y + 5, Width - 300, 25));
             if (officer)
@@ -774,8 +796,8 @@ public class GuiDialogHut : GuiDialog
             composer.Text(Lang.Get("createacolony:ore-none"), GuiKit.Body(), 0, y, Width);
             return;
         }
-        // The Miner's Hut has its settings above the list, so fewer rows fit.
-        int perPage = miner ? OreRowsPerPage - 2 : OreRowsPerPage;
+        // The ore choice is above the list, so fewer rows fit.
+        int perPage = chooser ? OreRowsPerPage - 2 : OreRowsPerPage;
         int pages = (snapshot.Ores.Count + perPage - 1) / perPage;
         page = Math.Clamp(page, 0, pages - 1);
         int shown = Math.Min(perPage, snapshot.Ores.Count - page * perPage);
@@ -784,7 +806,7 @@ public class GuiDialogHut : GuiDialog
         foreach (var ore in snapshot.Ores.Skip(page * perPage).Take(perPage))
         {
             string density = Lang.Get("propick-density-" + new[] { "verypoor", "poor", "decent", "high", "veryhigh", "ultrahigh" }[(int)GameMath.Clamp(ore.Best * 7.5, 0, 5)]);
-            bool chosen = miner && snapshot.MineOre == ore.Code;
+            bool chosen = chooser && snapshot.MineOre == ore.Code;
             var font = chosen ? CairoFont.WhiteSmallText().WithColor(GuiStyle.ActiveButtonTextColor) : CairoFont.WhiteSmallText();
             composer.AddStaticText(Lang.Get("ore-" + ore.Code), font, ElementBounds.Fixed(10, y + 4, 300, 20));
             string detail = Lang.Get("createacolony:ore-row", density, ore.Where, ore.Sites)

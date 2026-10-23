@@ -23,6 +23,8 @@ public class AiTaskSettlerProspector : AiTaskSettlerWorker
     protected override EnumTool Tool => EnumTool.Probe;
     protected override ItemMatch Stock => _ => false;
     protected override float WorkSeconds => manager!.Config.ProspectorSecondsPerReading;
+    /// <summary>Prospectors set to Mine ore dig instead (AiTaskSettlerProspectorMiner).</summary>
+    protected override bool ForRole(int role) => role != ProspectorRoles.Mine;
 
     protected override bool IsToolStack(ItemStack? stack) => ColonyManager.IsProspectingPick(stack);
 

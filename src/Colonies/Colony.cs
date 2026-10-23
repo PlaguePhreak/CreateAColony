@@ -112,6 +112,11 @@ public class CitizenRecord
     [ProtoMember(55)] public List<ThoughtRecord> Thoughts = new();
     /// <summary>While above the current time: too unhappy to work, sulking.</summary>
     [ProtoMember(56)] public double BreakdownUntilTotalDays;
+    // 60-69 are job settings.
+    /// <summary>What the settler does at a hut that has more than one kind of work: a Prospector's Hut's ProspectorRoles.</summary>
+    [ProtoMember(60)] public int WorkRole;
+    /// <summary>A prospector on Mine ore: its own trip to prospected ore, kept apart from its hut mate's.</summary>
+    [ProtoMember(61)] public MineTrip Trip = new();
 
     public bool IsDowned => DownedUntilTotalDays > 0;
     public bool IsChild => GrowsUpTotalDays > 0;
@@ -215,15 +220,12 @@ public class Building
     [ProtoMember(37)] public Dictionary<string, int> StatTotals = new();
     /// <summary>A Miner's Hut: the ore its miner digs for (a deposit code such as "nativecopper"); empty means the best the prospectors found.</summary>
     [ProtoMember(38)] public string MineOre = "";
-    /// <summary>A Miner's Hut: the prospecting reading (OreSite position) the miner is working, and the ore it digs there.</summary>
-    [ProtoMember(39)] public BlockPos? MineSite;
-    [ProtoMember(40)] public string MineSiteOre = "";
-    /// <summary>A Miner's Hut: where the mine's staircase starts at the surface (the spot to stand on).</summary>
-    [ProtoMember(41)] public BlockPos? MineEntrance;
-    /// <summary>A Miner's Hut: the far end of the tunnel dug so far (the spot to stand on); new tunnels start from here.</summary>
-    [ProtoMember(42)] public BlockPos? MineEnd;
-    /// <summary>A Miner's Hut: the ore block the miner is tunnelling towards.</summary>
-    [ProtoMember(43)] public BlockPos? MineTarget;
+    // 39-43 held the Miner's Hut's trip to prospected ore before 0.62.0; it is in Trip now (see AfterLoad).
+    [ProtoMember(39)] BlockPos? oldMineSite;
+    [ProtoMember(40)] string oldMineSiteOre = "";
+    [ProtoMember(41)] BlockPos? oldMineEntrance;
+    [ProtoMember(42)] BlockPos? oldMineEnd;
+    [ProtoMember(43)] BlockPos? oldMineTarget;
     /// <summary>A Quarry: the middle of its pit beside the hut, in the air just above the ground; the top layer of the pit is the ground under it.</summary>
     [ProtoMember(44)] public BlockPos? QuarryCenter;
     /// <summary>A Miner's Hut: the miner goes off to dig ore the colony's prospectors found before working its own shaft.</summary>
@@ -232,11 +234,12 @@ public class Building
     [ProtoMember(46)] public BlockPos? ShaftPos;
     /// <summary>Which of its type's variants the building is (a small or a medium house; see BlueprintLibrary.Variants); "" is the first.</summary>
     [ProtoMember(47)] public string Variant = "";
-    // 48-59 left free for other building fields.
-    /// <summary>A Miner's Hut: the surface entrances of the staircases dug at the prospected ore it is working.</summary>
-    [ProtoMember(60)] public List<BlockPos> SiteEntrances = new();
-    /// <summary>A Miner's Hut: entrances of finished mines the miner still has to fill back in.</summary>
-    [ProtoMember(61)] public List<BlockPos> MineSeals = new();
+    /// <summary>A Miner's Hut: its miner's trip to ore the colony's prospectors found. (Prospectors on Mine ore keep their own, on CitizenRecord.)</summary>
+    [ProtoMember(48)] public MineTrip Trip = new();
+    // 49-59 left free for other building fields.
+    // 60 and 61 held the trip's entrances and the mines to fill in before 0.62.0.
+    [ProtoMember(60)] List<BlockPos> oldSiteEntrances = new();
+    [ProtoMember(61)] List<BlockPos> oldMineSeals = new();
     // 70-79 for the crafter huts (Smelter, Blacksmith, Sawmill and the ones to come).
     /// <summary>A crafter hut: how many of each thing to keep in stock, by key (see ColonyManager.Crafting.cs).</summary>
     [ProtoMember(70)] public Dictionary<string, int> CraftKeep = new();
@@ -244,6 +247,59 @@ public class Building
     [ProtoMember(71)] public bool CraftChosen;
 
     public bool HasWorkOrder => TargetLevel > Level;
+
+    /// <summary>Moves a Miner's Hut's trip from where saves before 0.62.0 kept it into Trip.</summary>
+    [ProtoAfterDeserialization]
+    void AfterLoad()
+    {
+        Trip ??= new MineTrip();
+        if (oldMineSite != null || oldMineSeals.Count > 0 || oldSiteEntrances.Count > 0)
+        {
+            Trip.Site = oldMineSite;
+            Trip.SiteOre = oldMineSiteOre;
+            Trip.Entrance = oldMineEntrance;
+            Trip.End = oldMineEnd;
+            Trip.Target = oldMineTarget;
+            Trip.Entrances.AddRange(oldSiteEntrances);
+            Trip.Seals.AddRange(oldMineSeals);
+        }
+        oldMineSite = oldMineEntrance = oldMineEnd = oldMineTarget = null;
+        oldMineSiteOre = "";
+        oldSiteEntrances.Clear();
+        oldMineSeals.Clear();
+    }
+}
+
+/// <summary>
+/// A miner's trip to ore the colony's prospectors found: the reading it works and the ore it digs there,
+/// the staircase down to it, and the finished mines it still has to fill back in. A Miner's Hut keeps one
+/// for its miner, and every prospector on Mine ore keeps its own.
+/// </summary>
+[ProtoContract]
+public class MineTrip
+{
+    /// <summary>The prospecting reading (OreSite position) being worked, and the ore dug there.</summary>
+    [ProtoMember(1)] public BlockPos? Site;
+    [ProtoMember(2)] public string SiteOre = "";
+    /// <summary>Where the staircase starts at the surface (the spot to stand on).</summary>
+    [ProtoMember(3)] public BlockPos? Entrance;
+    /// <summary>The far end of the tunnel dug so far (the spot to stand on); new tunnels start from here.</summary>
+    [ProtoMember(4)] public BlockPos? End;
+    /// <summary>The ore block being tunnelled towards.</summary>
+    [ProtoMember(5)] public BlockPos? Target;
+    /// <summary>The surface entrances of the staircases dug at the site.</summary>
+    [ProtoMember(6)] public List<BlockPos> Entrances = new();
+    /// <summary>Entrances of finished mines still to be filled back in.</summary>
+    [ProtoMember(7)] public List<BlockPos> Seals = new();
+}
+
+/// <summary>What each of a Prospector's Hut's prospectors does (CitizenRecord.WorkRole).</summary>
+public static class ProspectorRoles
+{
+    /// <summary>Walks the land taking readings with the prospecting pick.</summary>
+    public const int Find = 0;
+    /// <summary>Goes to the best readings with a pickaxe and digs the ore out, as a Miner's Hut's miner does.</summary>
+    public const int Mine = 1;
 }
 
 /// <summary>What a Guard Tower's guards do.</summary>

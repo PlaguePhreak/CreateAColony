@@ -42,6 +42,8 @@ public class CitizenView
     /// <summary>In a hut's worker lists: their passion for the hut's job skill (0-2), and the trait that rules the job out, if any.</summary>
     [ProtoMember(19)] public int Passion;
     [ProtoMember(20)] public string Incapable = "";
+    /// <summary>What the worker does at a hut whose workers each pick their work (a prospector's ProspectorRoles).</summary>
+    [ProtoMember(21)] public int WorkRole;
 }
 
 /// <summary>One person in a family list: who, how they are related, and what they do.</summary>
@@ -645,7 +647,9 @@ public enum ColonyAction
     /// <summary>Text "-1" or "1" switches the building being placed to the type's previous or next variant (a small or a medium house).</summary>
     PlacementVariant = 55,
     /// <summary>Text "key|amount": how many of a thing the crafter hut (Smelter, Blacksmith, Sawmill) with BuildingId keeps in stock.</summary>
-    SetCraftKeep = 70
+    SetCraftKeep = 70,
+    /// <summary>Text is what the settler with CitizenId does at the Prospector's Hut with BuildingId (ProspectorRoles: 0 finds ore, 1 mines it).</summary>
+    SetWorkRole = 90
 }
 
 /// <summary>The Builder's Wand building list: each building type with how many of its blocks the player carries.</summary>

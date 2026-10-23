@@ -134,7 +134,8 @@ public partial class ColonyNetwork
                 Skill = skill?.Code ?? "", SkillLevel = skill == null ? 0 : Manager.SkillLevel(c, skill.Code),
                 JobTrait = Manager.JobTraitFor(c, snapshot.Job).Length > 0,
                 Passion = skill == null ? 0 : Manager.Passion(c, skill.Code),
-                Incapable = Manager.IncapableOfJob(c, snapshot.Job) ?? ""
+                Incapable = Manager.IncapableOfJob(c, snapshot.Job) ?? "",
+                WorkRole = c.WorkRole
             };
             snapshot.Workers = workers.Select(View).ToList();
             snapshot.Candidates = colony.Citizens.Where(c => c.Alive && !c.Visitor && !c.IsChild && !workers.Contains(c))

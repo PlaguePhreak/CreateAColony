@@ -65,6 +65,7 @@
 					{ "code": "settlercook", "animation": "walk", "priority": 1.2, "movespeed": 0.02 },
 					{ "code": "settlerprospector", "animation": "walk", "priority": 1.2, "movespeed": 0.02 },
 					{ "code": "settlerminer", "animation": "walk", "priority": 1.2, "movespeed": 0.02 },
+					{ "code": "settlerprospectorminer", "animation": "walk", "priority": 1.2, "movespeed": 0.02 },
 					{ "code": "settlerquarrier", "animation": "walk", "priority": 1.2, "movespeed": 0.02 },
 					{ "code": "settlersmelter", "animation": "walk", "priority": 1.2, "movespeed": 0.02 },
 					{ "code": "settlerblacksmith", "animation": "walk", "priority": 1.2, "movespeed": 0.02 },

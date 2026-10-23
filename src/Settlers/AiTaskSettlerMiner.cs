@@ -37,25 +37,39 @@ public class AiTaskSettlerMiner : AiTaskSettlerDigger
     {
         if (FetchBetterPick(citizen, storage)) return true;
         if (FetchTorches(colony, citizen, hut, storage)) return true;
-        bool canSearch = HasProspectingPick(colony, citizen, hut, storage, out bool fetchingPick);
-        if (fetchingPick) return true;
-        filling = hut.MineSeals.Count > 0;
+        bool canSearch = false;
+        if (NodeSearches)
+        {
+            canSearch = HasProspectingPick(colony, citizen, hut, storage, out bool fetchingPick);
+            if (fetchingPick) return true;
+        }
+        filling = TripOf(citizen, hut).Seals.Count > 0;
         bool fetching = false, canFill = filling && HasFill(colony, citizen, hut, storage, out fetching);
         if (fetching) return true;
         var at = new BlockPos((int)Math.Floor(entity.Pos.X), (int)Math.Round(entity.Pos.Y), (int)Math.Floor(entity.Pos.Z));
-        var next = manager!.NextMineJob(colony, hut, at, IsUnreachable, canFill, canSearch, out string status);
+        var next = NextJob(colony, citizen, hut, at, canFill, canSearch, out string status);
         SetStatus(status);
         if (next is not { } found) return false;
         job = found;
         return GoWork(found.Block);
     }
 
+    /// <summary>The trip to prospected ore this miner is on: the Miner's Hut's own.</summary>
+    protected virtual MineTrip TripOf(CitizenRecord citizen, Building hut) => hut.Trip;
+
+    /// <summary>The Miner's Hut's miner does node searches with a prospecting pick wherever it starts digging somewhere new.</summary>
+    protected virtual bool NodeSearches => true;
+
+    /// <summary>The next thing to dig or fill, and the status for the hut window.</summary>
+    protected virtual ColonyManager.MineJob? NextJob(Colony colony, CitizenRecord citizen, Building hut, BlockPos at, bool canFill, bool canSearch, out string status) =>
+        manager!.NextMineJob(colony, hut, at, IsUnreachable, canFill, canSearch, out status);
+
     /// <summary>True while a finished mine waits to be filled in, so the dirt and stone it carries stay with it.</summary>
     bool filling;
 
     /// <summary>The miner keeps its torches and prospecting pick, too, and dirt and stone while it has a mine to fill in.</summary>
     protected override bool AlsoKeeps(ItemStack stack) =>
-        base.AlsoKeeps(stack) || ColonyManager.IsTorchStack(stack) || ColonyManager.IsProspectingPick(stack) || filling && ColonyManager.IsFillStack(stack);
+        base.AlsoKeeps(stack) || ColonyManager.IsTorchStack(stack) || NodeSearches && ColonyManager.IsProspectingPick(stack) || filling && ColonyManager.IsFillStack(stack);
 
     /// <summary>
     /// True when the miner carries a prospecting pick for node searches. Otherwise it walks to fetch one
@@ -137,7 +151,7 @@ public class AiTaskSettlerMiner : AiTaskSettlerDigger
         }
         if (job.Kind != ColonyManager.MineWork.Dig) return;
         // Too hard for the pick: other ore is tried while a better pick is on its way.
-        if (!Dig(colony, citizen, hut)) manager!.BlockOre(hut, hut.MineTarget ?? target);
+        if (!Dig(colony, citizen, hut)) manager!.BlockOre(TripOf(citizen, hut), TripOf(citizen, hut).Target ?? target);
         // Light the way where it has got dark.
         manager!.PlaceTorchIfDark(colony, citizen, job.Stand);
     }

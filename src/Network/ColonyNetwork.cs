@@ -160,6 +160,7 @@ public partial class ColonyNetwork : ModSystem
             ColonyAction.SetKitchenKeep => KitchenAction(colony, role, packet),
             ColonyAction.SetCraftKeep => CraftAction(colony, role, packet),
             ColonyAction.SetMineOre or ColonyAction.SetMineProspected or ColonyAction.NewMine => MiningAction(colony, role, packet),
+            ColonyAction.SetWorkRole => WorkRoleAction(colony, role, packet),
             ColonyAction.WelcomeVisitor or ColonyAction.TurnAwayVisitor => VisitorAction(colony, role, packet),
             ColonyAction.RecallCitizen => RecallCitizen(colony, role, packet.CitizenId),
             ColonyAction.SetColonyBanner or ColonyAction.ReplaceBanners or ColonyAction.SetBannerOnNew => BannerAction(player, colony, role, packet),
@@ -319,7 +320,7 @@ public partial class ColonyNetwork : ModSystem
     {
         if (role < ColonyRole.Officer) return "createacolony:denied-officer";
         var building = colony.Buildings.Find(b => b.BuildingId == packet.BuildingId);
-        if (building == null || building.Type != BuildingTypes.Miner) return "createacolony:bad-building";
+        if (building == null || building.Type is not (BuildingTypes.Miner or BuildingTypes.Prospector)) return "createacolony:bad-building";
         if (packet.Action == ColonyAction.SetMineProspected)
         {
             building.MineProspected = packet.Text == "1";
@@ -330,8 +331,19 @@ public partial class ColonyNetwork : ModSystem
             if (packet.Text.Length > 0 && !colony.OreSites.Any(s => s.Ores.Any(o => o.Code == packet.Text))) return "createacolony:bad-building";
             building.MineOre = packet.Text;
         }
-        Manager.ClearMine(colony, building);
+        Manager.ClearMines(colony, building);
         return null;
+    }
+
+    /// <summary>Whether a prospector finds ore or mines it.</summary>
+    string? WorkRoleAction(Colony colony, ColonyRole role, ColonyActionPacket packet)
+    {
+        if (role < ColonyRole.Officer) return "createacolony:denied-officer";
+        var building = colony.Buildings.Find(b => b.BuildingId == packet.BuildingId);
+        var citizen = colony.Citizens.Find(c => c.CitizenId == packet.CitizenId);
+        if (building == null || !int.TryParse(packet.Text, out int work)) return "createacolony:bad-building";
+        if (citizen == null) return "createacolony:bad-citizen";
+        return Manager.SetWorkRole(colony, building, citizen, work);
     }
 
     /// <summary>How many of a kind of pottery a Potter's Hut keeps in stock.</summary>
