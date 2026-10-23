@@ -33,6 +33,9 @@ public class EntityBehaviorColonyCitizen : EntityBehavior
     float sinceDoorCheck;
     int stuckChecks;
     int willpowerLogTicks;
+    /// <summary>Where the settler stood at the last check and how far it has walked since its last Fitness XP.</summary>
+    Vec3d? lastStep;
+    float walked;
 
     /// <summary>How long this settler has been stuck, and when it relocates itself (see Willpower.cs). Server only.</summary>
     public Willpower Willpower { get; }
@@ -68,6 +71,7 @@ public class EntityBehaviorColonyCitizen : EntityBehavior
             sinceStuckCheck = 0;
             FreeIfInsideBlock();
             TickWillpower(StuckCheckSeconds);
+            CountSteps();
         }
         sinceSync += deltaTime;
         if (sinceSync < SyncIntervalSeconds) return;
@@ -95,6 +99,35 @@ public class EntityBehaviorColonyCitizen : EntityBehavior
 
         record.LastSeenPos = entity.Pos.XYZ.Clone();
         record.LastSeenTotalDays = entity.World.Calendar.TotalDays;
+        RefreshSkillEffects(record);
+    }
+
+    /// <summary>Walking speed and max health from the Fitness and Hauling skills, worked out every few seconds rather than every step.</summary>
+    void RefreshSkillEffects(CitizenRecord record)
+    {
+        if (entity is not EntitySettler settler || manager!.GetById(settler.ColonyId!) is not { } colony) return;
+        settler.SkillWalkFactor = manager.WalkFactor(colony, record, !manager.PackEmpty(record));
+        manager.ApplyHealthBonus(colony, record, entity);
+    }
+
+    /// <summary>Once a second: adds up the ground covered; every FitnessBlocksPerXp blocks is one Fitness XP.</summary>
+    void CountSteps()
+    {
+        var now = entity.Pos.XYZ;
+        if (lastStep != null)
+        {
+            // A teleport (Willpower, Recall) is not a walk.
+            double moved = lastStep.DistanceTo(now);
+            if (moved < 8) walked += (float)moved;
+        }
+        lastStep = now.Clone();
+        if (walked < ColonyManager.FitnessBlocksPerXp) return;
+        int xp = (int)(walked / ColonyManager.FitnessBlocksPerXp);
+        walked -= xp * ColonyManager.FitnessBlocksPerXp;
+        if (FindRecord() is { } record && entity is EntitySettler settler && manager!.GetById(settler.ColonyId!) is { } colony)
+        {
+            manager.AddSkillXp(colony, record, ColonyManager.Fitness, xp);
+        }
     }
 
     public override void OnEntityDeath(DamageSource damageSourceForDeath)

@@ -126,9 +126,17 @@ public partial class ColonyNetwork
         if (snapshot.Job.Length > 0)
         {
             var workers = Manager.WorkersAt(colony, building);
-            snapshot.Workers = workers.Select(c => new CitizenView { CitizenId = c.CitizenId, Name = c.Name, Job = c.JobCode ?? "" }).ToList();
-            snapshot.Candidates = colony.Citizens.Where(c => c.Alive && !c.Visitor && !c.IsChild && !workers.Contains(c)).OrderBy(c => c.JobCode != null).ThenBy(c => c.Name)
-                .Select(c => new CitizenView { CitizenId = c.CitizenId, Name = c.Name, Job = c.JobCode ?? "" }).ToList();
+            // The hut's job skill goes on every row, and the best candidates for it come first.
+            var skill = Manager.Config.Skills ? Manager.SkillForJob(snapshot.Job) : null;
+            CitizenView View(CitizenRecord c) => new()
+            {
+                CitizenId = c.CitizenId, Name = c.Name, Job = c.JobCode ?? "",
+                Skill = skill?.Code ?? "", SkillLevel = skill == null ? 0 : Manager.SkillLevel(c, skill.Code)
+            };
+            snapshot.Workers = workers.Select(View).ToList();
+            snapshot.Candidates = colony.Citizens.Where(c => c.Alive && !c.Visitor && !c.IsChild && !workers.Contains(c))
+                .OrderBy(c => c.JobCode != null).ThenByDescending(c => skill == null ? 0 : Manager.SkillLevel(c, skill.Code)).ThenBy(c => c.Name)
+                .Select(View).ToList();
         }
         if (snapshot.HasStorage)
         {

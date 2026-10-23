@@ -71,6 +71,10 @@ public class CitizenRecord
     [ProtoMember(26)] public double DiedTotalDays;
     /// <summary>Whether a dead settler has been buried. Nothing sets it yet: burial and mourning are coming later.</summary>
     [ProtoMember(27)] public bool Buried;
+    /// <summary>XP in each skill, by skill code (config/skills.json); the level follows from it. See ColonyManager.Skills.cs.</summary>
+    [ProtoMember(28)] public Dictionary<string, int> SkillXp = new();
+    /// <summary>Whether starting skills were rolled, so settlers from saves before skills get theirs once.</summary>
+    [ProtoMember(29)] public bool SkillsRolled;
 
     public bool IsDowned => DownedUntilTotalDays > 0;
     public bool IsChild => GrowsUpTotalDays > 0;
@@ -240,6 +244,8 @@ public class RecruitOffer
     [ProtoMember(1)] public string Name = "";
     [ProtoMember(2)] public string Sex = "male";
     [ProtoMember(3)] public int Cost;
+    /// <summary>The skills they would bring, rolled when the offer is made and shown before hiring.</summary>
+    [ProtoMember(4)] public Dictionary<string, int> SkillXp = new();
 }
 
 /// <summary>

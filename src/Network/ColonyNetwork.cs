@@ -628,7 +628,9 @@ public partial class ColonyNetwork : ModSystem
             GrowsUpHours = Manager.HoursToGrowUp(citizen),
             Home = citizen.HomeBedPos != null && Manager.ResidenceAt(colony, citizen.HomeBedPos) is { } home ? ColonyManager.BuildingName(home) : "",
             FamilyNote = FamilyNote(colony, citizen),
-            Surname = citizen.Surname
+            Surname = citizen.Surname,
+            Skills = Manager.Config.Skills ? Manager.SkillInfos(colony, citizen)
+                .Select(s => new SkillView { Code = s.Code, Level = s.Level, Usable = s.Usable, Xp = s.Xp, NextXp = s.NextXp, LevelXp = s.LevelXp, CapNote = s.CapNote }).ToList() : new()
         };
         serverChannel!.SendPacket(snapshot, player);
     }
@@ -672,6 +674,11 @@ public partial class ColonyNetwork : ModSystem
             snapshot.IsTavern = true;
             snapshot.Info = Manager.TavernInfo(colony, building);
             snapshot.Recruits = Manager.TavernRecruits(colony, building).ToList();
+            if (Manager.Config.Skills)
+            {
+                snapshot.RecruitSkills = snapshot.Recruits.Select(r => string.Join(", ",
+                    Manager.BestSkills(r.SkillXp).Select(s => Lang.Get("createacolony:skill-level", Lang.Get("createacolony:skill-" + s.Code), s.Level)))).ToList();
+            }
             if (sapi!.World.PlayerByUid(viewerUid) is { } viewer)
             {
                 snapshot.Gears = Manager.GearsFor(viewer, colony, building);

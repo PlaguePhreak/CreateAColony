@@ -94,7 +94,7 @@ public class AiTaskSettlerGuard : SettlerTaskBase
             }
         }
 
-        if (mode == Mode.Fight && threat != null && cooldown <= 0 && entity.Pos.DistanceTo(threat.Pos.XYZ) <= Reach) Strike(colony, threat);
+        if (mode == Mode.Fight && threat != null && cooldown <= 0 && entity.Pos.DistanceTo(threat.Pos.XYZ) <= Reach) Strike(colony, citizen, threat);
         return true;
     }
 
@@ -246,7 +246,7 @@ public class AiTaskSettlerGuard : SettlerTaskBase
         WalkTo(to, range);
     }
 
-    void Strike(Colony colony, Entity target)
+    void Strike(Colony colony, CitizenRecord citizen, Entity target)
     {
         StopWalking();
         walkingTo = null;
@@ -255,6 +255,7 @@ public class AiTaskSettlerGuard : SettlerTaskBase
         var hand = Hand;
         var weapon = hand?.Itemstack is { } held && ColonyManager.IsWeapon(held) ? held : null;
         float damage = weapon != null ? ColonyManager.WeaponDamage(weapon) : manager!.Config.GuardFistDamage;
+        damage *= manager!.DamageFactor(colony, citizen); // Fighting and Strength skills
         target.ReceiveDamage(new DamageSource
         {
             Source = EnumDamageSource.Entity,
@@ -264,6 +265,8 @@ public class AiTaskSettlerGuard : SettlerTaskBase
             DamageTier = weapon?.Collectible.ToolTier ?? 0
         }, damage);
         if (!target.Alive && colony.Buildings.Find(b => b.BuildingId == towerId) is { } tower) manager!.AddStat(tower, "kill:" + target.Code.Path);
+        // Fighting XP for the hit, four hits' worth more for the kill.
+        manager!.GainWorkXp(colony, citizen, Jobs.Guard, target.Alive ? 1 : 5);
         if (weapon != null && hand != null)
         {
             ColonyManager.WearTool(entity, hand);
@@ -273,7 +276,7 @@ public class AiTaskSettlerGuard : SettlerTaskBase
         if (swingAnim != null) StopAnimation(swingAnim);
         swingAnim = PlayShapeAnimation(hand?.Itemstack?.Collectible.GetHeldTpHitAnimation(hand, entity) ?? "breakhand", "breakhand");
         swingLeft = SwingSeconds;
-        cooldown = manager!.Config.GuardSecondsPerHit;
+        cooldown = manager!.Config.GuardSecondsPerHit * manager.WorkTimeFactor(colony, citizen); // Fighting skill swings faster
     }
 
     bool HasWeapon(CitizenRecord citizen) =>

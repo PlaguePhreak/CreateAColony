@@ -404,4 +404,22 @@ public class ColonyConfig
     public int NearbyOutlineRange = 32;
     /// <summary>At most this many nearby buildings get an outline, the nearest first.</summary>
     public int NearbyOutlineMax = 30;
+
+    // Skills (config/skills.json lists them; see ColonyManager.Skills.cs)
+    /// <summary>Settlers learn skills by doing their job and get faster at it. Off: no XP, no effects, no Skills panel.</summary>
+    public bool Skills = true;
+    /// <summary>The highest level a skill can reach.</summary>
+    public int SkillLevelMax = 10;
+    /// <summary>Level n costs this many XP times n on top of the level below: 75, 150, 225... (4,125 in all for level 10).</summary>
+    public int SkillXpPerLevel = 75;
+    /// <summary>Speeds up or slows down all skill XP, like Project Zomboid's sandbox XP multiplier.</summary>
+    public float SkillXpMultiplier = 1f;
+    /// <summary>
+    /// How much of a skill a settler can use at a building of level 1, 2, 3, 4 and up (the last entry covers
+    /// higher levels). A job skill is limited by the hut they work at, Strength and Fitness by the Residence
+    /// they sleep in; a settler with no such building uses the first entry. XP keeps growing past the cap.
+    /// </summary>
+    public int[] SkillCapByBuildingLevel = { 4, 6, 8, 10 };
+    /// <summary>No skill effect multiplies a number by more than this (or less than one over it).</summary>
+    public float SkillEffectMax = 2f;
 }

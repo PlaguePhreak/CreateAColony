@@ -486,3 +486,30 @@ Settlers have families, as MineColonies citizens do (`src/Colonies/ColonyManager
 - `/colony family couple <name> <name>`, `/colony family child <name>` (the couple has a child now, if the
   real limits allow) and `/colony family grow <name>` are admin test commands. Names can be first names.
 - `Families: false` in the config stops new couples and children.
+
+### Skills (0.37.0)
+
+Settlers learn by doing, Project Zomboid style (`src/Colonies/ColonyManager.Skills.cs`, skills listed in
+`config/skills.json`). Each skill goes from level 0 to 10; level n costs `SkillXpPerLevel` x n XP on top
+of the level below (75, 150, 225... 4,125 in all).
+
+- **Job skills**: Building, Farming, Woodcutting, Pottery, Cooking, Hauling, Fighting, Prospecting and
+  Mining (miner and quarrier), plus Smithing for a blacksmith job that doesn't exist yet. XP comes from the
+  work itself (a block built, a tree felled, a hit landed, a stack delivered); each usable level makes the
+  job's work 4% faster (Fighting: 2% faster swings and 3% more damage a level).
+- **Strength and Fitness** grow for everyone: Strength from felling trees, mining, fighting and full courier
+  loads (+3% guard damage a level); Fitness from walking, one XP every 50 blocks (+1.5% walking speed a
+  level, +1 max health every two levels).
+- **The building limits what counts.** A settler's *usable* level is the lower of their real level and the
+  cap of the hut they work at: `SkillCapByBuildingLevel` is 4, 6, 8, 10 for hut levels 1 to 4. Strength and
+  Fitness go by the Residence they sleep in. Skill is no use without the tools: a Fighting 10 guard at a
+  level 1 Guard Tower fights like a level 4 until the tower is upgraded. XP keeps growing past the cap.
+- **Starting skills**: recruits, wanderers and starting settlers roll 0 to 2 in every skill and one
+  background skill at 2 to 4. Tavern offers show their two best skills before you pay. Children start at
+  nothing and get a third of their parents' average when they grow up. Settlers from older saves roll
+  theirs once when the colony loads.
+- **Windows**: a Skills panel in the settler window (level, a bar to the next level, "10 (using 4)" in
+  orange when the building limits it, hover for XP and what to upgrade); the hut's Manage workers list
+  shows each candidate's level in that hut's skill and sorts the best first.
+- Level 5 and level 10 go in the Town Hall event log. `/colony skills <name> [skill] [level]` shows or sets
+  skills (admin). `Skills: false` turns the whole thing off; `SkillXpMultiplier` speeds it up or down.

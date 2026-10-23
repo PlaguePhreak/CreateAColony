@@ -34,10 +34,13 @@ public class EntitySettler : EntityDressedHumanoid
         return base.ReceiveDamage(damageSource, damage);
     }
 
-    /// <summary>Walking on a Pathblock (a road) is faster, by config PathSpeedMultiplier.</summary>
+    /// <summary>Walking speed from the Fitness and Hauling skills; EntityBehaviorColonyCitizen refreshes it every few seconds.</summary>
+    public float SkillWalkFactor = 1f;
+
+    /// <summary>Walking on a Pathblock (a road) is faster, by config PathSpeedMultiplier; fit settlers walk faster everywhere.</summary>
     public override double GetWalkSpeedMultiplier(double groundDragFactor = 0.3)
     {
-        double multiplier = base.GetWalkSpeedMultiplier(groundDragFactor);
+        double multiplier = base.GetWalkSpeedMultiplier(groundDragFactor) * SkillWalkFactor;
         return PathBlocks.SpeedMultiplier != 1f && PathBlocks.StandsOnPath(this) ? multiplier * PathBlocks.SpeedMultiplier : multiplier;
     }
 }
