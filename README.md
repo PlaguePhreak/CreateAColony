@@ -26,7 +26,7 @@ land claim, recruit settlers that persist with the save. Compiles cleanly agains
 - Breaking the Town Hall disbands the colony and removes the claim.
 - The mod refuses to start if VS Village is installed.
 
-## Crafting recipes (0.29.0)
+## Crafting recipes (0.31.0)
 Every building needs planks, and planks need a saw, so a colony is a mid game goal (copper age). Huts all use
 the same shape: two of the hut's own item in the middle column (top middle and center), the other 7 slots
 planks of any wood.
@@ -44,9 +44,19 @@ planks of any wood.
 | Guard Tower | 2 spears (any) + 7 planks |
 | Tavern | 2 rusty gears + 7 planks |
 | Warehouse | 2 chests + 7 planks |
+| Prospector's Hut | 2 stones (any rock) + 7 planks |
+| Miner's Hut | 2 torches + 7 planks |
+| Quarry | 2 rock blocks (any) + 7 planks |
+| Quarry Marker | a stone over 2 sticks (1x3) |
 | Supply Camp | 3 firewood over 2 sticks (unchanged) |
 | Drop-off | stick over a plank (unchanged) |
 | Field Marker | dry grass over 2 sticks (unchanged) |
+
+## Mining: Prospector, Miner and Quarry (0.31.0)
+All three are on the new Mining tab of the Builder's Wand and use placeholder blueprints for now.
+- **Prospector's Hut**: put a prospecting pick in its storage. The prospector walks a grid of spots (every `ProspectorSpacing` 24 blocks, out to `ProspectorRadius` 64, changeable on the Work area tab) and takes a density reading at each with the game's own prospecting pick code, wearing the pick 3 per reading. Readings appear on the hut's Ore tab and on every colony member's ore map layer (`ProspectorSharesOreMap`). Good finds go in the Town Hall event log.
+- **Miner's Hut**: put a pickaxe in its storage. The miner picks the strongest reading in range (`MinerRadius` 64), or the ore chosen on the Ore tab, finds that ore's blocks within `MinerOreSearchRadius` 12 of the reading, and digs a walkable staircase (1 wide, 3 high where it steps) down to them from the surface, then digs out the ore around the tunnel end. It never digs next to water or lava, into colony buildings or other people's land. Ore too hard for its pick waits for a better pickaxe in the hut storage. When a reading is dug out it moves to the next.
+- **Quarry**: put a pickaxe in its storage and place a Quarry Marker within 48 blocks. The quarrier clears up to 4 blocks above the ground, then digs a `QuarrySize` 9 x 9 pit `QuarryDepth` 12 layers deep around the marker, top layer first, leaving a staircase round the edge.
 
 ## Config (`ModConfig/createacolony.json`)
 - `Permadeath` (default `true`): settlers who die are gone. Set `false` to have them knocked out and recover after `DownedRecoveryDays`.
