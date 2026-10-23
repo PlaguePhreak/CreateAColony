@@ -32,6 +32,9 @@ public class CitizenView
     /// <summary>For the dead: when they died (0 if unknown) and whether they have been buried.</summary>
     [ProtoMember(13)] public double DiedTotalDays;
     [ProtoMember(14)] public bool Buried;
+    /// <summary>In a hut's worker lists: the settler's level in the hut's job skill, and the skill's code.</summary>
+    [ProtoMember(15)] public int SkillLevel;
+    [ProtoMember(16)] public string Skill = "";
 }
 
 /// <summary>One person in a family list: who, how they are related, and what they do.</summary>
@@ -144,6 +147,25 @@ public class CitizenSnapshot
     /// <summary>For a couple: whether a child may come, already in words.</summary>
     [ProtoMember(23)] public string FamilyNote = "";
     [ProtoMember(24)] public string Surname = "";
+    /// <summary>Every skill with its level and how much of it counts here; empty when skills are off.</summary>
+    [ProtoMember(25)] public List<SkillView> Skills = new();
+}
+
+/// <summary>One skill of a settler for the windows: real level, usable level and what limits it.</summary>
+[ProtoContract]
+public class SkillView
+{
+    [ProtoMember(1)] public string Code = "";
+    [ProtoMember(2)] public int Level;
+    /// <summary>The level that counts where the settler works or lives now (never above Level).</summary>
+    [ProtoMember(3)] public int Usable;
+    [ProtoMember(4)] public int Xp;
+    /// <summary>XP needed for the next level, 0 at the top.</summary>
+    [ProtoMember(5)] public int NextXp;
+    /// <summary>The building whose level limits the skill when Usable is below Level; "@key" is a lang key.</summary>
+    [ProtoMember(6)] public string CapNote = "";
+    /// <summary>XP at which the current level began, so the bar runs from it to NextXp.</summary>
+    [ProtoMember(7)] public int LevelXp;
 }
 
 /// <summary>Client asks to open the window of the hut block at Pos.</summary>
@@ -262,6 +284,8 @@ public class HutSnapshot
     /// <summary>A Quarry, whose window has a Quarry tab.</summary>
     [ProtoMember(60)] public bool IsQuarry;
     [ProtoMember(62)] public string PitInfo = "";
+    /// <summary>For the Recruits tab: each offer's two best skills as "{0} {1}" lines, in the order of Recruits (empty when skills are off).</summary>
+    [ProtoMember(63)] public List<string> RecruitSkills = new();
 }
 
 /// <summary>One line of a hut's chest list: an item, how many there are, and which containers hold it.</summary>

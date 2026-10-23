@@ -258,6 +258,7 @@ public partial class ColonyManager
     {
         child.GrowsUpTotalDays = 0;
         child.JoinedTotalDays = sapi.World.Calendar.TotalDays;
+        InheritSkills(colony, child);
         if (sapi.World.GetEntityById(child.EntityId) is { Alive: true } entity)
         {
             var at = entity.Pos.XYZ.Clone();

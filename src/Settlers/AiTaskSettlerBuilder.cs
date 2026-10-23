@@ -251,7 +251,7 @@ public class AiTaskSettlerBuilder : SettlerTaskBase
                     workAnim = PlayShapeAnimation(WorkAnimationCode(colony), "build");
                 }
                 workTime += dt;
-                if (workTime < manager!.Config.BuilderSecondsPerBlock) return true;
+                if (workTime < manager!.Config.BuilderSecondsPerBlock * manager.WorkTimeFactor(colony, citizen)) return true;
                 Work(colony, citizen);
                 StopWorkAnimation();
                 if (stepAsideTo != null)
@@ -389,6 +389,7 @@ public class AiTaskSettlerBuilder : SettlerTaskBase
             var hand = Hand;
             if (toolNeed != null && !ColonyManager.ToolFits(hand?.Itemstack, toolNeed.Value.Type, toolNeed.Value.Tier)) return;
             manager.BreakForBuild(colony, hut, target);
+            manager.GainWorkXp(colony, citizen, Jobs.Builder);
             // Every block cleared wears the tool down; a broken tool sends the builder back for another.
             if (toolNeed != null && hand?.Itemstack != null)
             {
@@ -432,6 +433,7 @@ public class AiTaskSettlerBuilder : SettlerTaskBase
         manager.PlaceForBuild(place.Id, target, placedFrom?.FirstOrDefault());
         manager.FinishPlacement(place, target);
         if (place.Id == buildStep.BlockId) manager.RestoreSavedDetails(buildStep, target, placedFrom);
+        manager.GainWorkXp(colony, citizen, Jobs.Builder);
     }
 
     /// <summary>What a player would play: the held tool's swing when clearing a block, the place motion when building.</summary>

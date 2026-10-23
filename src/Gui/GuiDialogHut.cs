@@ -313,7 +313,8 @@ public class GuiDialogHut : GuiDialog
         {
             int id = w.CitizenId;
             composer
-                .AddStaticText(w.Name, GuiKit.Body(), ElementBounds.Fixed(10, y + 5, Width - 150, 25))
+                .AddStaticText(w.Name, GuiKit.Body(), ElementBounds.Fixed(10, y + 5, 220, 25))
+                .AddStaticText(SkillText(w), GuiKit.Muted(), ElementBounds.Fixed(240, y + 8, 160, 22))
                 .AddSmallButton(Lang.Get("createacolony:manage-remove"), () => SendCitizen(ColonyAction.UnassignWorker, id), ElementBounds.Fixed(Width - 130, y, 120, 28));
             y += ListRowHeight;
         }
@@ -334,10 +335,13 @@ public class GuiDialogHut : GuiDialog
         foreach (var c in others.Skip(page * ListRowsPerPage).Take(ListRowsPerPage))
         {
             int id = c.CitizenId;
+            // Their job now, and how good they already are at this hut's job (green when they know it well).
             string now = Lang.Get("createacolony:job-" + (c.Job.Length == 0 ? "none" : c.Job));
+            string skill = SkillText(c);
             composer
-                .AddStaticText(c.Name, GuiKit.Body(), ElementBounds.Fixed(10, y + 6, 220, 25))
-                .AddStaticText(now, GuiKit.Muted(), ElementBounds.Fixed(240, y + 8, 160, 22));
+                .AddStaticText(c.Name, GuiKit.Body(), ElementBounds.Fixed(10, y + 6, 190, 25))
+                .AddStaticText(now, GuiKit.Muted(), ElementBounds.Fixed(200, y + 8, 125, 22));
+            if (skill.Length > 0) composer.AddStaticText(skill, c.SkillLevel >= 3 ? GuiKit.Detail().WithColor(GuiKit.GoodColor) : GuiKit.Muted(), ElementBounds.Fixed(325, y + 8, 100, 22));
             if (!full) composer.AddSmallButton(Lang.Get("createacolony:manage-assign"), () => SendCitizen(ColonyAction.AssignWorker, id), ElementBounds.Fixed(Width - 130, y + 3, 120, 28));
             y += ListRowHeight;
         }
@@ -886,6 +890,10 @@ public class GuiDialogHut : GuiDialog
 
     static string JobName(string job) => Lang.Get("createacolony:job-" + (job.Length == 0 ? "none" : job));
 
+    /// <summary>"Farming 3" for a worker list row, or nothing when skills are off.</summary>
+    static string SkillText(CitizenView c) =>
+        c.Skill.Length == 0 ? "" : Lang.Get("createacolony:skill-level", Lang.Get("createacolony:skill-" + c.Skill), c.SkillLevel);
+
     void ComposeRecruits(GuiComposer composer)
     {
         if (snapshot.Building.Level < 1)
@@ -916,15 +924,19 @@ public class GuiDialogHut : GuiDialog
         bool canHire = ViewerRole >= ColonyRole.Member;
         composer.AddInset(ElementBounds.Fixed(0, y, Width, snapshot.Recruits.Count * RecruitRowHeight + 8), 3, 0.8f);
         y += 4;
-        foreach (var r in snapshot.Recruits)
+        for (int i = 0; i < snapshot.Recruits.Count; i++)
         {
+            var r = snapshot.Recruits[i];
             bool afford = snapshot.Creative || snapshot.Gears >= r.Cost;
             var costFont = CairoFont.WhiteDetailText().WithColor(afford ? GuiKit.GoodColor : GuiKit.WarnColor);
+            // What they know comes after the price: "Farming 3, Strength 2".
+            string skills = i < snapshot.RecruitSkills.Count && snapshot.RecruitSkills[i].Length > 0 ? "   " + snapshot.RecruitSkills[i] : "";
             composer.AddRichtext(new RichTextComponentBase[]
             {
                 new RichTextComponent(capi, r.Name + "\n", GuiKit.Body()),
-                new RichTextComponent(capi, Lang.Get("createacolony:recruit-line", Lang.Get("createacolony:sex-" + r.Sex), r.Cost), costFont)
-            }, ElementBounds.Fixed(10, y + 2, 400, RecruitRowHeight));
+                new RichTextComponent(capi, Lang.Get("createacolony:recruit-line", Lang.Get("createacolony:sex-" + r.Sex), r.Cost), costFont),
+                new RichTextComponent(capi, skills, GuiKit.Muted())
+            }, ElementBounds.Fixed(10, y + 2, Width - 150, RecruitRowHeight));
             if (canHire)
             {
                 string name = r.Name;

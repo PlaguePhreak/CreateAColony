@@ -71,11 +71,18 @@ public class GuiDialogCitizen : GuiDialog
         double x = 0;
         x = ComposeCharacter(composer, x, top) + Gap;
         x = ComposeStats(composer, x, top) + Gap;
+        if (snapshot.Skills.Count > 0) x = ComposeSkills(composer, x, top) + Gap;
         ComposeInventory(composer, x, top);
 
         SingleComposer = composer.EndChildElements().Compose();
         SingleComposer.GetStatbar("health")?.SetValues(snapshot.Health, 0, Math.Max(1, snapshot.MaxHealth));
         SingleComposer.GetStatbar("satiety")?.SetValues(snapshot.FoodPercent, 0, 100);
+        foreach (var s in snapshot.Skills)
+        {
+            // From this level's XP to the next level's; a full bar at the top level.
+            bool atTop = s.NextXp <= 0;
+            SingleComposer.GetStatbar("skill-" + s.Code)?.SetValues(atTop ? 1 : s.Xp - s.LevelXp, 0, atTop ? 1 : Math.Max(1, s.NextXp - s.LevelXp));
+        }
     }
 
     /// <summary>The Character panel. Returns its right edge.</summary>
@@ -164,6 +171,48 @@ public class GuiDialogCitizen : GuiDialog
         }
         if (snapshot.FamilyNote.Length > 0) composer.Text(snapshot.FamilyNote, GuiKit.Muted(), x, y + 2, StatsWidth);
         return x + StatsWidth;
+    }
+
+    /// <summary>
+    /// The Skills panel: every skill with its level, a bar to the next level, and what the settler can use
+    /// of it here. "Fighting 10 (using 4)" means their Guard Tower only lets them fight like a level 4 until
+    /// it is upgraded; the hover text names the building. Returns its right edge.
+    /// </summary>
+    double ComposeSkills(GuiComposer composer, double x, double y)
+    {
+        const double width = 230;
+        var label = CairoFont.WhiteDetailText();
+        var value = CairoFont.WhiteDetailText().WithOrientation(EnumTextOrientation.Right);
+        var capped = value.Clone().WithColor(GuiKit.WarnColor);
+
+        composer.AddStaticText(Lang.Get("createacolony:citizen-tab-skills"), CairoFont.WhiteSmallishText(), ElementBounds.Fixed(x, y, width, 25));
+        y += 36;
+        if (snapshot.Child)
+        {
+            composer.Text(Lang.Get("createacolony:skills-child"), GuiKit.Muted(), x, y, width);
+            return x + width;
+        }
+        foreach (var s in snapshot.Skills)
+        {
+            bool limited = s.Usable < s.Level;
+            string text = limited ? Lang.Get("createacolony:skill-using", s.Level, s.Usable) : s.Level.ToString();
+            composer
+                .AddStaticText(Lang.Get("createacolony:skill-" + s.Code), label, ElementBounds.Fixed(x, y, width, 20))
+                .AddStaticText(text, limited ? capped : value, ElementBounds.Fixed(x, y, width, 20));
+            // The bar fills towards the next level; full at the top level.
+            var bar = ElementBounds.Fixed(x, y + 20, width, 6);
+            composer.AddStatbar(bar, limited ? GuiKit.WarnColor : GuiStyle.FoodBarColor, "skill-" + s.Code);
+            string hover = s.NextXp > 0 ? Lang.Get("createacolony:skill-xp", s.Xp, s.NextXp) : Lang.Get("createacolony:skill-max");
+            if (limited)
+            {
+                string by = s.CapNote.StartsWith('@') ? Lang.Get("createacolony:" + s.CapNote[1..]) : s.CapNote;
+                hover += "\n" + Lang.Get("createacolony:skill-capped-by", s.Usable, by);
+            }
+            composer.AddHoverText(hover, CairoFont.WhiteDetailText(), 260, ElementBounds.Fixed(x, y, width, 26));
+            y += 30;
+        }
+        composer.Text(Lang.Get("createacolony:skills-hint"), GuiKit.Muted(), x, y + 4, width);
+        return x + width;
     }
 
     /// <summary>The Inventory panel: bags and the held item on top, the pack below, as the player's.</summary>

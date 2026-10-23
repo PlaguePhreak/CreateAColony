@@ -1,0 +1,22 @@
+{
+	// The skills settlers learn by doing. Each goes from level 0 to 10 (config SkillLevelMax). Level n costs
+	// SkillXpPerLevel x n XP. A skill with a "job" grows from that job's work and makes it faster: each
+	// usable level cuts the work time by "workSpeedPerLevel". Skills without a job (strength, fitness)
+	// grow for everyone. How much of a skill counts ("usable") is limited by the level of the hut the
+	// settler works at, or of the Residence they sleep in for strength and fitness; see
+	// SkillCapByBuildingLevel in the config.
+	"skills": [
+		{ "code": "strength", "job": "", "xpPerWork": 0 },
+		{ "code": "fitness", "job": "", "xpPerWork": 0 },
+		{ "code": "building", "job": "builder", "xpPerWork": 1, "workSpeedPerLevel": 0.04 },
+		{ "code": "farming", "job": "farmer", "xpPerWork": 1, "workSpeedPerLevel": 0.04 },
+		{ "code": "woodcutting", "job": "forester", "xpPerWork": 10, "strengthPerWork": 3, "workSpeedPerLevel": 0.04 },
+		{ "code": "pottery", "job": "potter", "xpPerWork": 2, "workSpeedPerLevel": 0.04 },
+		{ "code": "smithing", "job": "blacksmith", "xpPerWork": 5, "workSpeedPerLevel": 0.04 },
+		{ "code": "cooking", "job": "cook", "xpPerWork": 3, "workSpeedPerLevel": 0.04 },
+		{ "code": "hauling", "job": "courier", "xpPerWork": 1, "workSpeedPerLevel": 0.04 },
+		{ "code": "fighting", "job": "guard", "xpPerWork": 5, "strengthPerWork": 1, "workSpeedPerLevel": 0.02 },
+		{ "code": "prospecting", "job": "prospector", "xpPerWork": 3, "workSpeedPerLevel": 0.04 },
+		{ "code": "mining", "job": "miner", "alsoJobs": ["quarrier"], "xpPerWork": 1, "strengthPerWork": 1, "workSpeedPerLevel": 0.04 }
+	]
+}

@@ -77,7 +77,7 @@ public partial class ColonyManager
         for (int i = 0; i < Math.Max(0, Config.TavernRecruits); i++)
         {
             string sex = RandomSex();
-            tavern.Recruits.Add(new RecruitOffer { Name = RandomName(colony, sex), Sex = sex, Cost = sapi.World.Rand.Next(min, max + 1) });
+            tavern.Recruits.Add(new RecruitOffer { Name = RandomName(colony, sex), Sex = sex, Cost = sapi.World.Rand.Next(min, max + 1), SkillXp = RollStartingSkills() });
         }
         MarkDirty(colony);
         return tavern.Recruits;
@@ -133,6 +133,8 @@ public partial class ColonyManager
         tavern.Recruits.Remove(offer);
         var record = SpawnSettler(colony, offer.Name, offer.Sex, Beside(tavern.HutPos));
         if (record == null) return "createacolony:recruit-failed";
+        // The skills the offer showed are the ones they bring.
+        if (offer.SkillXp.Count > 0) record.SkillXp = new Dictionary<string, int>(offer.SkillXp);
         TellMembers(colony, "createacolony:recruit-hired", record.Name, colony.Name, player.PlayerName);
         LogEvent(colony, "event-hired", record.Name, player.PlayerName);
         return null;
