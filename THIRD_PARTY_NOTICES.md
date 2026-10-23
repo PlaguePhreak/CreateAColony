@@ -27,4 +27,4 @@ SOFTWARE.
 
 Exception: DejFidOFF (including any aliases and associates) is not allowed to use or make use of modified versions of this code in any way shape or form for any projects, mods, or other. DejFidOFF may not copy or reuse any part of this code in any way.```
 
-assets/createacolony/config/blueprints/medievaloak/ and medievaloakalt/ are converted from the Medieval Oak style of MineColonies (https://github.com/ldtteam/minecolonies, by ldtteam), from the copy supplied by the mod's author. MineColonies is distributed under the GNU General Public License v3.0; check its terms before shipping these blueprints publicly.
+assets/createacolony/config/blueprints/medievaloak/ (with its alt/ types) is converted from the Medieval Oak style of MineColonies (https://github.com/ldtteam/minecolonies, by ldtteam), from the copy supplied by the mod's author. MineColonies is distributed under the GNU General Public License v3.0; check its terms before shipping these blueprints publicly.

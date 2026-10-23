@@ -470,12 +470,18 @@ public partial class ColonyManager : ModSystem
     /// Buildings may be in a pack that was removed: the Testing style (before 0.46.0), or 12th Century
     /// Inspired and KCD2 Inspired (0.46.0 and 0.47.0). Town Halls and Builder's Huts from Testing have been
     /// built from Dev's Builds since 0.26.1, so they stay with it; everything else moves to the default
-    /// pack, which has every building.
+    /// pack, which has every building. Medieval Oak (Alt) became the "alt" type in Medieval Oak (0.66.0).
     /// </summary>
     static void MoveOffOldStyles(Colony colony)
     {
         foreach (var building in colony.Buildings)
         {
+            if (building.Style == BlueprintStyles.OldMedievalOakAlt)
+            {
+                building.Style = BlueprintStyles.MedievalOak;
+                if (string.IsNullOrEmpty(building.Variant)) building.Variant = BlueprintStyles.AltVariant;
+                continue;
+            }
             if (BlueprintStyles.Exists(building.Style)) continue;
             bool fromTesting = building.Style is null or "" or BlueprintStyles.OldTesting;
             bool devs = fromTesting && building.Type is BuildingTypes.TownHall or BuildingTypes.Builder;

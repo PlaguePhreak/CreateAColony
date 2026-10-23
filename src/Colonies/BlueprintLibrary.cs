@@ -192,16 +192,12 @@ public class BlueprintLibrary
     /// <summary>
     /// The style a building's blueprints come from: always its own asset pack. When that pack has no design for
     /// the type, the building has no blueprints (only its hut block is placed), so players can build their own
-    /// around it; it never borrows another pack's design (only Medieval Oak (Alt) uses Medieval Oak's, being part of it).
+    /// around it; it never borrows another pack's design.
     /// </summary>
     public string StyleFor(Building building) => StyleFor(building.Style, building.Type);
 
-    /// <summary>The pack itself, or the pack it is part of when only that one has the type (see BlueprintStyles.BaseOf).</summary>
-    public string StyleFor(string? style, string type)
-    {
-        string own = BlueprintStyles.Normalize(style);
-        return MaxLevel(own, type) == 0 && BlueprintStyles.BaseOf(own) is { } basePack && MaxLevel(basePack, type) > 0 ? basePack : own;
-    }
+    /// <summary>The pack the type's blueprints are looked up in: the pack itself, never another one.</summary>
+    public string StyleFor(string? style, string type) => BlueprintStyles.Normalize(style);
 
     public Blueprint? Get(string style, string type, int level, int rotation, string variant = "")
     {

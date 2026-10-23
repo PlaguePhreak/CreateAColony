@@ -138,7 +138,7 @@ Buildings grow from blueprints, which are ordinary WorldEdit exports. Build the 
 creative world with its hut block where the hut should stand, select it with WorldEdit, and run
 `/we export <name>`. Copy the file from `VintagestoryData/WorldEdit/` to
 `VintagestoryData/ModConfig/createacolony/blueprints/<pack>/<type>/level<N>.json`, where `<pack>` is
-`medievaloak`, `medievaloakalt` or `devsbuilds`, `<type>` is the building (`townhall`, `builder`, `farmer`, `forester`,
+`medievaloak` or `devsbuilds`, `<type>` is the building (`townhall`, `builder`, `farmer`, `forester`,
 `cook`, `potter`, `residence`, `guardtower`, `tavern`, `warehouse`, `prospector`, `miner`, `quarry`) and
 `<N>` is 1 to 5. `/colony reloadblueprints` picks up changes without a restart. Blueprints in ModConfig
 override the ones shipped in `assets/createacolony/config/blueprints/`.
@@ -162,9 +162,11 @@ placed in for every level, also after you change packs. Your choice is saved wit
   they are placed the way they were drawn. The Warehouse's storage racks become chests, but only those
   within the warehouse block's reach (`WarehouseRadius` 5, `WarehouseHeight` 3) count: 10 to 24 of them.
   Pictures of every level are in `tools/blueprints/previews/medievaloak/`.
-- **Medieval Oak (Alt)** (`blueprints/medievaloakalt/`): MineColonies' alternative Medieval Oak
-  buildings for the Town Hall, Builder, Farmer, Forester (Lumberjack), Cook, Residence, Guard Tower,
-  Warehouse and Miner; the other buildings are the same as in Medieval Oak.
+  Since 0.66.0 MineColonies' alternative Medieval Oak buildings are part of this pack too, as the
+  **Alternative** type (`blueprints/medievaloak/<type>/alt/`) of the Town Hall, Builder, Farmer, Forester
+  (Lumberjack), Cook, Residence, Guard Tower, Warehouse and Miner: pick it with Previous/Next type in the
+  placement window, as with the Small and Medium houses. Buildings and players that were on the old
+  Medieval Oak (Alt) pack move to Medieval Oak, with the Alternative type.
 - **Dev's Builds** (`blueprints/devsbuilds/`): Aaron's own buildings: Town Hall 1 to 4, Builder's Hut 1
   to 4, Guard Tower 1 to 5, Cook's Hut 1 and 2 (new ones in 0.60.0) and Residence 1 in two types:
   Medium and Small (0.60.0; the older Standard house was removed in 0.60.1). Other buildings have no blueprint in this pack yet, and the list
@@ -172,8 +174,7 @@ placed in for every level, also after you change packs. Your choice is saved wit
 
 Since 0.64.0 a pack never borrows another pack's design: when your pack has no design for a building, the
 wand places just its block (no preview, no build order), so you can build your own building around it. The
-hut works at level 0 like any other. Medieval Oak (Alt) is the one exception: it is part of Medieval Oak and
-uses its buildings where it has no alternative of its own.
+hut works at level 0 like any other.
 
 The old **Testing** style and its sample blueprints were removed in 0.46.0. Buildings that were placed
 in it keep working: Town Halls and Builder's Huts (built from Dev's Builds since 0.26.1) move to Dev's

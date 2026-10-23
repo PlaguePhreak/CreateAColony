@@ -16,7 +16,9 @@ public partial class ColonyManager
     /// theirs was removed). Kept on the world, like the starter kits, so it holds before a colony exists.
     /// </summary>
     public string PackOf(string playerUid) =>
-        Packs.TryGetValue(playerUid, out var pack) && BlueprintStyles.Exists(pack) ? pack : "";
+        !Packs.TryGetValue(playerUid, out var pack) ? ""
+        : pack == BlueprintStyles.OldMedievalOakAlt ? BlueprintStyles.MedievalOak
+        : BlueprintStyles.Exists(pack) ? pack : "";
 
     public void SetPack(string playerUid, string pack)
     {

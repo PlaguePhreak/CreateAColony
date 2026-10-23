@@ -45,10 +45,14 @@ MAIN = {
 ALT = {"townhall": "alttownhall", "builder": "altbuilder", "farmer": "altfarmer", "forester": "altlumberjack",
        "cook": "altcook", "residence": "altresidence", "guardtower": "altguardtower", "warehouse": "altwarehouse",
        "miner": "altminer"}
+# The alternative buildings are the "alt" type of each building in Medieval Oak (0.66.0):
+# blueprints/medievaloak/<type>/alt/levelN.json.
 PACKS = {
     "medievaloak": ("Medieval Oak", MAIN),
-    "medievaloakalt": ("Medieval Oak (Alt)", {**MAIN, **ALT}),
+    "medievaloakalt": ("Medieval Oak, Alternative", ALT),
 }
+# Where a pack's blueprints go: (pack folder, type subfolder or "").
+FOLDERS = {"medievaloak": ("medievaloak", ""), "medievaloakalt": ("medievaloak", "alt")}
 SUPPLYCAMP = "supplycamp"
 NAMES = {"townhall": "Town Hall", "builder": "Builder's Hut", "farmer": "Farmer's Hut", "forester": "Forester's Hut",
          "cook": "Cook's Hut", "potter": "Potter's Hut", "residence": "Residence", "guardtower": "Guard Tower",
@@ -508,10 +512,11 @@ def warehouse_reach(rel_blocks):
 def make_pack(pack, style, report):
     title, mapping = PACKS[pack]
     found = index(style)
-    out, previews = os.path.join(BLUEPRINTS, pack), os.path.join(HERE, "previews", pack)
+    folder, variant = FOLDERS[pack]
+    out, previews = os.path.join(BLUEPRINTS, folder), os.path.join(HERE, "previews", folder, variant)
     os.makedirs(previews, exist_ok=True)
     failed = False
-    jobs = list(mapping.items()) + [("supplycamp", SUPPLYCAMP)]
+    jobs = list(mapping.items()) + ([] if variant else [("supplycamp", SUPPLYCAMP)])
     for type, building in jobs:
         levels = found.get(building, {})
         pictures, lines = [], []
@@ -553,8 +558,8 @@ def make_pack(pack, style, report):
             print(line)
             for n in notes + [f"{k}: {v}" for k, v in fixes.items()]:
                 print("    " + n)
-            os.makedirs(os.path.join(out, type), exist_ok=True)
-            with open(os.path.join(out, type, f"level{level}.json"), "w") as f:
+            os.makedirs(os.path.join(out, type, variant), exist_ok=True)
+            with open(os.path.join(out, type, variant, f"level{level}.json"), "w") as f:
                 json.dump(bp, f, separators=(",", ":"))
             pictures.append(relb)
             lines.append(line)

@@ -29,13 +29,18 @@ public static class BlueprintStyles
 {
     /// <summary>MineColonies' Medieval Oak style, converted (0.48.0).</summary>
     public const string MedievalOak = "medievaloak";
-    /// <summary>Medieval Oak's alternative buildings ("alt" in MineColonies), the others as in Medieval Oak.</summary>
-    public const string MedievalOakAlt = "medievaloakalt";
+    /// <summary>
+    /// The old Medieval Oak (Alt) pack, MineColonies' alternative buildings. Since 0.66.0 they are the "alt" type
+    /// of each building in Medieval Oak; buildings and players saved with it move there.
+    /// </summary>
+    public const string OldMedievalOakAlt = "medievaloakalt";
+    /// <summary>The type (variant) Medieval Oak's alternative buildings are under.</summary>
+    public const string AltVariant = "alt";
     public const string DevsBuilds = "devsbuilds";
     /// <summary>The old Testing style (blueprints/&lt;type&gt;/), removed in 0.46.0. Buildings saved with it move to a pack that still exists.</summary>
     public const string OldTesting = "testing";
 
-    public static readonly string[] All = { MedievalOak, MedievalOakAlt, DevsBuilds };
+    public static readonly string[] All = { MedievalOak, DevsBuilds };
 
     /// <summary>The pack for buildings and players with none (or one that no longer exists).</summary>
     public const string Default = MedievalOak;
@@ -43,12 +48,6 @@ public static class BlueprintStyles
     public static bool Exists(string? style) => style != null && System.Array.IndexOf(All, style) >= 0;
 
     public static string Normalize(string? style) => Exists(style) ? style! : Default;
-
-    /// <summary>
-    /// The pack a pack is part of, for buildings it has no design of its own for: Medieval Oak (Alt) only holds
-    /// MineColonies' alternative buildings and uses Medieval Oak's for the rest. Null for a pack that stands alone.
-    /// </summary>
-    public static string? BaseOf(string style) => style == MedievalOakAlt ? MedievalOak : null;
 
     /// <summary>The style's folder under blueprints/.</summary>
     public static string Folder(string style) => Normalize(style);

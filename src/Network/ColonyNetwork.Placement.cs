@@ -253,16 +253,35 @@ public partial class ColonyNetwork
     {
         if (shownOutline is not { } shown) return false;
         if (placementDialog != null && placementDialog.IsOpened()) return true;
+        long now = capi!.ElapsedMilliseconds;
+        // The last ask went unanswered: the server has nothing for that outline any more (the building was
+        // placed, taken away or broken), so the wand plans a new building instead of asking again forever.
+        if (reopenAskedMs >= 0 && now - reopenAskedMs > ReopenTimeoutMs)
+        {
+            reopenAskedMs = -1;
+            shownOutline = null;
+            return false;
+        }
+        if (reopenAskedMs < 0) reopenAskedMs = now;
         SendAction(new ColonyActionPacket { ColonyId = shown.ColonyId, Action = ColonyAction.ReopenPlacement, BuildingId = shown.BuildingId });
         return true;
     }
 
+    /// <summary>When the wand last asked for the outline's window back without an answer, or -1.</summary>
+    long reopenAskedMs = -1;
+    const long ReopenTimeoutMs = 1500;
+
     /// <summary>Called by the placement window when its outline is cleared (built, taken back or hidden).</summary>
-    public void OutlineCleared() => shownOutline = null;
+    public void OutlineCleared()
+    {
+        shownOutline = null;
+        reopenAskedMs = -1;
+    }
 
     void OnPlacementSnapshot(PlacementSnapshot snapshot)
     {
         shownOutline = (snapshot.ColonyId, snapshot.BuildingId);
+        reopenAskedMs = -1;
         if (placementDialog != null && placementDialog.IsOpened() && placementDialog.BuildingId == snapshot.BuildingId)
         {
             placementDialog.Update(snapshot);

@@ -515,20 +515,29 @@ public class GuiDialogTownHall : GuiDialog
         foreach (var e in events.Skip(page * EventsPerPage).Take(EventsPerPage))
         {
             composer
-                .AddStaticText(When(e.TotalDays), GuiKit.Muted(), ElementBounds.Fixed(10, y + 5, 110, 20))
-                .AddStaticText(EventText(e), GuiKit.Detail(), ElementBounds.Fixed(125, y + 4, Width - 135, 20));
+                .AddStaticText(When(e.TotalDays), GuiKit.Muted(), ElementBounds.Fixed(10, y + 5, 140, 20))
+                .AddStaticText(EventText(e), GuiKit.Detail(), ElementBounds.Fixed(155, y + 4, Width - 165, 20));
             y += EventRowHeight;
         }
         composer.Pager(page, pages, y + 12, Width, p => { page = p; Compose(); });
     }
 
-    /// <summary>"Day 3, 14:00" for a moment in in-game days.</summary>
+    /// <summary>A moment in in-game days as the game's own calendar shows it: "1 May, 14:00", or "1 May, Year 2" in another year.</summary>
     string When(double totalDays)
     {
-        double hours = (totalDays - Math.Floor(totalDays)) * capi.World.Calendar.HoursPerDay;
+        var calendar = capi.World.Calendar;
+        int daysPerMonth = Math.Max(1, calendar.DaysPerMonth);
+        int daysPerYear = Math.Max(1, calendar.DaysPerYear);
+        int year = (int)(totalDays / daysPerYear);
+        int dayOfYear = (int)(totalDays - (double)year * daysPerYear);
+        int month = Math.Clamp(dayOfYear / daysPerMonth, 0, 11);
+        int day = dayOfYear % daysPerMonth + 1;
+        string monthName = Lang.Get("month-" + (EnumMonth)(month + 1));
+        if (year != (int)(calendar.TotalDays / daysPerYear)) return Lang.Get("createacolony:townhall-event-date-year", day, monthName, year);
+        double hours = (totalDays - Math.Floor(totalDays)) * calendar.HoursPerDay;
         int hour = (int)hours;
         int minute = (int)((hours - hour) * 60);
-        return Lang.Get("createacolony:townhall-event-time", (int)Math.Floor(totalDays) + 1, hour.ToString("00"), minute.ToString("00"));
+        return Lang.Get("createacolony:townhall-event-time", day, monthName, hour.ToString("00"), minute.ToString("00"));
     }
 
     static string EventText(EventView e)
