@@ -38,6 +38,15 @@ public partial class ColonyNetwork
     /// <summary>One level up or down from the shown one, kept between 1 and the highest.</summary>
     static int StepLevel(int shown, int max, string way) => GameMath.Clamp(shown + (way == "-1" ? -1 : 1), 1, System.Math.Max(1, max));
 
+    /// <summary>The type's variant before or after this one, going round.</summary>
+    string StepVariant(string style, string type, string variant, string way)
+    {
+        var variants = Manager.Blueprints.Variants(style, type);
+        if (variants.Count == 0) return variant;
+        int at = variants.IndexOf(Manager.Blueprints.VariantFor(style, type, variant));
+        return variants[GameMath.Mod(at + (way == "-1" ? -1 : 1), variants.Count)];
+    }
+
     public void OpenPlacement(IServerPlayer player, Colony colony, Building building) => SendPlacement(player, colony, building, true);
 
     void SendPlacement(IServerPlayer player, Colony colony, Building building, bool openWindow)
@@ -70,7 +79,9 @@ public partial class ColonyNetwork
             CanAdjust = role >= ColonyRole.Member && building.Level == 0 && !building.HasWorkOrder,
             CanOrder = role >= ColonyRole.Officer && !building.HasWorkOrder && building.Level < max,
             OpenWindow = openWindow,
-            Style = Manager.Blueprints.StyleFor(building)
+            Style = Manager.Blueprints.StyleFor(building),
+            Variant = Manager.Blueprints.VariantFor(Manager.Blueprints.StyleFor(building), building.Type, building.Variant),
+            Variants = Manager.Blueprints.Variants(Manager.Blueprints.StyleFor(building), building.Type)
         }, player);
     }
 
@@ -146,6 +157,14 @@ public partial class ColonyNetwork
             case ColonyAction.PlacementNudge:
                 if (!unbuilt) error = "createacolony:placement-built";
                 else Nudge(player, building, packet.Text);
+                break;
+            case ColonyAction.PlacementVariant:
+                if (!unbuilt) error = "createacolony:placement-built";
+                else
+                {
+                    building.Variant = StepVariant(Manager.Blueprints.StyleFor(building), building.Type, building.Variant, packet.Text);
+                    placementLevels.Remove(player.PlayerUID);
+                }
                 break;
             case ColonyAction.PlacementConfirm:
                 error = role < ColonyRole.Officer ? "createacolony:denied-officer" : Manager.StartWorkOrder(colony, building);

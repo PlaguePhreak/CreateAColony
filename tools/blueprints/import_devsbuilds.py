@@ -4,9 +4,11 @@ Copies Aaron's WorldEdit exports into the Dev's Builds asset pack, after checkin
 Run:  python3 tools/blueprints/import_devsbuilds.py <folder with the exports>
 
 Files are matched by name (TownHallLevel1.json, BuildersHutLevel3.json, GuardTowerLevel5.json,
-ChefLevel1.json, Home01Level1.json, ...; anything before the name, like an upload id, is ignored) and
+CooksHutLevel2.json, HouseLevel1Small.json, ...; anything before the name, like an upload id, is ignored) and
 written to assets/createacolony/config/blueprints/devsbuilds/<type>/level<N>.json unchanged, apart
-from a missing hut block (see HUT_SPOTS).
+from a missing hut block (see HUT_SPOTS). A word after the level number names a variant, one of
+several buildings of the same type that players pick between on the wand (HouseLevel1Small.json goes
+to residence/small/level1.json).
 
 Checks, each printed: exactly one hut block of the right type, every door has its saved direction and
 its top half, every VS Roofing block has its roof data, the hut block stands on something and is not
@@ -23,10 +25,10 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 OUT = os.path.normpath(os.path.join(HERE, "..", "..", "assets", "createacolony", "config", "blueprints", "devsbuilds"))
 
 NAMES = {"townhall": "townhall", "buildershut": "builder", "guardtower": "guardtower", "chef": "cook",
-         "cook": "cook", "home01": "residence", "residence": "residence"}
+         "cook": "cook", "cookshut": "cook", "home01": "residence", "residence": "residence", "house": "residence"}
 
 # Exports saved without their hut block get one here: (type, level) -> spot inside the export.
-HUT_SPOTS = {("cook", 1): (3, 1, 7)}  # inside, in the corner beside the doorway, on the rammed earth floor
+HUT_SPOTS = {}  # e.g. {("cook", "", 1): (3, 1, 7)}: inside, in the corner beside the doorway
 
 
 def hut_code(type):
@@ -102,19 +104,19 @@ def main():
     src = sys.argv[1]
     found = {}
     for name in sorted(os.listdir(src)):
-        m = re.search(r"([A-Za-z0-9]+?)Level(\d+)\.json$", name)
+        m = re.search(r"([A-Za-z0-9]+?)Level(\d+)([A-Za-z0-9]*)\.json$", name)
         if not m or m.group(1).lower() not in NAMES:
             continue
-        found[(NAMES[m.group(1).lower()], int(m.group(2)))] = os.path.join(src, name)
+        found[(NAMES[m.group(1).lower()], m.group(3).lower(), int(m.group(2)))] = os.path.join(src, name)
     failed = False
     previous = {}
-    for (type, level), path in sorted(found.items()):
+    for (type, variant, level), path in sorted(found.items()):
         with open(path) as f:
             bp = json.load(f)
-        if (type, level) in HUT_SPOTS:
-            add_hut(bp, type, HUT_SPOTS[(type, level)])
+        if (type, variant, level) in HUT_SPOTS:
+            add_hut(bp, type, HUT_SPOTS[(type, variant, level)])
         problems = check(bp, type)
-        label = f"{type} level {level} ({os.path.basename(path)})"
+        label = f"{type}{' ' + variant if variant else ''} level {level} ({os.path.basename(path)})"
         if problems:
             failed = True
             print(f"{label}: NOT written")
@@ -123,17 +125,18 @@ def main():
             continue
         rel = relative(bp, type)
         line = f"{label}: {bp['SizeX']}x{bp['SizeY']}x{bp['SizeZ']}, {len(rel)} blocks"
-        if (type, level - 1) in previous:
-            lower = previous[(type, level - 1)]
+        if (type, variant, level - 1) in previous:
+            lower = previous[(type, variant, level - 1)]
             at0 = match(lower, rel, (0, 0, 0))
             best = max((match(lower, rel, (x, y, z)), (x, y, z)) for x in range(-6, 7) for y in range(-3, 4) for z in range(-6, 7))
             line += f"; keeps {at0:.0%} of level {level - 1} in place"
             if best[0] > at0 + 0.05:
                 line += f" (WARNING: {best[0]:.0%} if moved by {best[1]}, check the hut block)"
         print(line)
-        previous[(type, level)] = rel
-        os.makedirs(os.path.join(OUT, type), exist_ok=True)
-        with open(os.path.join(OUT, type, f"level{level}.json"), "w") as f:
+        previous[(type, variant, level)] = rel
+        folder = os.path.join(OUT, type, variant) if variant else os.path.join(OUT, type)
+        os.makedirs(folder, exist_ok=True)
+        with open(os.path.join(folder, f"level{level}.json"), "w") as f:
             json.dump(bp, f, separators=(",", ":"))
     sys.exit(1 if failed else 0)
 

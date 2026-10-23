@@ -24,6 +24,17 @@ public static class GuiKit
     /// <summary>Hints, greyed a little so they read as background.</summary>
     public static CairoFont Muted() => CairoFont.WhiteDetailText().WithColor(MutedColor);
 
+    /// <summary>
+    /// A building variant's name: its lang entry (createacolony:variant-small) if there is one, else the
+    /// folder name with a capital, so a new variant folder needs no lang entry. "" is the Standard one.
+    /// </summary>
+    public static string VariantName(string variant)
+    {
+        string key = "createacolony:variant-" + (variant == "" ? "default" : variant);
+        if (Lang.HasTranslation(key, false, false)) return Lang.Get(key);
+        return variant.Length == 0 ? "" : char.ToUpperInvariant(variant[0]) + variant.Substring(1);
+    }
+
     /// <summary>The unscaled height plain text takes when wrapped to this width.</summary>
     public static double TextHeight(ICoreClientAPI capi, CairoFont font, string text, double width)
     {

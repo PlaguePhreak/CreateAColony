@@ -150,8 +150,9 @@ placed in for every level, also after you change packs. Your choice is saved wit
   buildings for the Town Hall, Builder, Farmer, Forester (Lumberjack), Cook, Residence, Guard Tower,
   Warehouse and Miner; the other buildings are the same as in Medieval Oak.
 - **Dev's Builds** (`blueprints/devsbuilds/`): Aaron's own buildings: Town Hall 1 to 4, Builder's Hut 1
-  to 4, Guard Tower 1 to 5, Cook's Hut 1 and Residence 1 (since 0.46.0). Other buildings have no
-  blueprint in this pack yet, and the list says so.
+  to 4, Guard Tower 1 to 5, Cook's Hut 1 and 2 (new ones in 0.60.0) and Residence 1 in three types:
+  Standard, Medium and Small (0.60.0). Other buildings have no blueprint in this pack yet, and the list
+  says so.
 
 The old **Testing** style and its sample blueprints were removed in 0.46.0. Buildings that were placed
 in it keep working: Town Halls and Builder's Huts (built from Dev's Builds since 0.26.1) move to Dev's
@@ -162,6 +163,16 @@ has levels too, it still works as soon as it is placed, and keeps its land claim
 
 The placement window's **Level down** and **Level up** buttons flip the preview through every level
 of the building, so you can see how big level 4 gets before you place level 1.
+
+**Building types (0.60.0).** A building can come in several types at the same level, such as a small
+or a medium house. Each type is a folder inside the building's folder
+(`blueprints/<pack>/<type>/<variant>/level<N>.json`, for example `devsbuilds/residence/small/level1.json`);
+the files right in the building's folder are the Standard type. The building list says how many types a
+building has, and the placement window shows the type with **< Previous type** and **Next type >** to
+switch between them, the outline changing as you go. The type can be changed until the building is
+ordered, and it keeps its type for all its levels (a type with only level 1 stops at level 1). A new
+type folder needs no code: its name is shown with a capital (`large` shows as "Large"), or from the lang
+entry `variant-<name>` when there is one. Folder names are lower-case letters and numbers only.
 
 Doors in a blueprint are hung the way they were in the export, top half included. The first door
 also marks the building's front: when you place the hut, the building is turned so that side faces
@@ -211,8 +222,9 @@ The in-game `/colony importmc` (below) does the same for one file, matching each
 installed game instead, so it can use other woods and rocks.
 
 `tools/blueprints/import_devsbuilds.py <folder>` copies Aaron's exports into Dev's Builds (files named
-like `TownHallLevel1.json`, `GuardTowerLevel5.json`). It checks the same things, adds a hut block where
-an export has none (the Cook's Hut), and warns when a level would line up better a few blocks off, which
+like `TownHallLevel1.json`, `GuardTowerLevel5.json`, `CooksHutLevel2.json`; a word after the level number
+is a building type, so `HouseLevel1Small.json` goes to `residence/small/level1.json`). It checks the same
+things, can add a hut block where an export has none (`HUT_SPOTS`), and warns when a level would line up better a few blocks off, which
 is how an export with the hut block in the wrong place shows up.
 
 ### VS Roofing roofs
@@ -456,6 +468,11 @@ Smithing skill grows with both jobs.
   can be made comes from the game's smithing recipes; the anvil's tier must be high enough for the metal.
   The Smithing tab shows everything that can be made from the metals the colony has ingots of, with the
   ingots each takes; nothing is kept until an officer picks something.
+
+### Building types and new Dev's Builds (0.60.0)
+- Buildings can have several types per level, picked in the placement window (see "Building types" above).
+- Dev's Builds: new Cook's Hut levels 1 and 2 (replacing the old level 1), and Small and Medium houses for
+  the Residence level 1 beside the Standard one.
 
 ### Survival Handbook pages (0.59.0)
 - Seven guide pages in the game's Survival Handbook (Guides), titled "Vintage Colonies: 1 - Getting Started" to

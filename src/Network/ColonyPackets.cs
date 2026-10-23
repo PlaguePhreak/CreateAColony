@@ -96,6 +96,8 @@ public class BuildingView
     [ProtoMember(10)] public string Style = "";
     /// <summary>The name players gave it, or its type's name.</summary>
     [ProtoMember(11)] public string Name = "";
+    /// <summary>Which of its type's variants it is; "" when the type has only one.</summary>
+    [ProtoMember(12)] public string Variant = "";
 }
 
 /// <summary>One line of the Town Hall's event log; the window fills the lang key in.</summary>
@@ -617,6 +619,8 @@ public enum ColonyAction
     NewMine = 53,
     /// <summary>Text is the asset pack (blueprint style) the player builds with from now on; opens the building list again.</summary>
     WandPack = 54,
+    /// <summary>Text "-1" or "1" switches the building being placed to the type's previous or next variant (a small or a medium house).</summary>
+    PlacementVariant = 55,
     /// <summary>Text "key|amount": how many of a thing the crafter hut (Smelter, Blacksmith, Sawmill) with BuildingId keeps in stock.</summary>
     SetCraftKeep = 70
 }
@@ -633,6 +637,8 @@ public class WandChooserSnapshot
     [ProtoMember(4)] public string Style = "";
     /// <summary>The asset pack the player builds with; empty until they pick one, which the list asks for first.</summary>
     [ProtoMember(5)] public string Pack = "";
+    /// <summary>"type|style|count" for each building type with more than one variant in that style.</summary>
+    [ProtoMember(6)] public List<string> VariantCounts = new();
 }
 
 /// <summary>
@@ -683,6 +689,9 @@ public class PlacementSnapshot
     [ProtoMember(19)] public List<string> OverlapsLater = new();
     /// <summary>How many buildings nearby have their outlines shown.</summary>
     [ProtoMember(20)] public int Nearby;
+    /// <summary>The variant shown (see BlueprintLibrary.Variants), and all the type's variants in this style, in order.</summary>
+    [ProtoMember(21)] public string Variant = "";
+    [ProtoMember(22)] public List<string> Variants = new();
 }
 
 /// <summary>A change requested from the Town Hall window. The server checks permissions before applying it.</summary>

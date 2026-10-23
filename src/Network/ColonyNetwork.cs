@@ -118,7 +118,7 @@ public partial class ColonyNetwork : ModSystem
     void OnAction(IServerPlayer player, ColonyActionPacket packet)
     {
         // A building planned with the wand has no colony or building yet.
-        if (packet.BuildingId == 0 && packet.Action is >= ColonyAction.OpenPlacement and <= ColonyAction.WandChange or ColonyAction.PlacementLevel or ColonyAction.WandPack)
+        if (packet.BuildingId == 0 && packet.Action is >= ColonyAction.OpenPlacement and <= ColonyAction.WandChange or ColonyAction.PlacementLevel or ColonyAction.WandPack or ColonyAction.PlacementVariant)
         {
             PlannedAction(player, packet);
             return;
@@ -133,7 +133,7 @@ public partial class ColonyNetwork : ModSystem
             return;
         }
 
-        if (packet.Action is >= ColonyAction.OpenPlacement and <= ColonyAction.ReopenPlacement or ColonyAction.PlacementLevel)
+        if (packet.Action is >= ColonyAction.OpenPlacement and <= ColonyAction.ReopenPlacement or ColonyAction.PlacementLevel or ColonyAction.PlacementVariant)
         {
             PlacementAction(player, colony, role, packet);
             return;
@@ -594,7 +594,7 @@ public partial class ColonyNetwork : ModSystem
     (int X1, int Z1, int X2, int Z2) Footprint(Building b)
     {
         int level = b.Level > 0 ? b.Level : System.Math.Max(1, b.TargetLevel);
-        string key = $"{b.BuildingId}|{b.Type}|{b.Style}|{level}|{b.Rotation}|{b.HutPos}|{b.XOffset}|{b.ZOffset}";
+        string key = $"{b.BuildingId}|{b.Type}|{b.Style}|{b.Variant}|{level}|{b.Rotation}|{b.HutPos}|{b.XOffset}|{b.ZOffset}";
         if (footprints.TryGetValue(key, out var cached)) return cached;
 
         var p = b.HutPos;
@@ -628,6 +628,7 @@ public partial class ColonyNetwork : ModSystem
             TargetLevel = b.HasWorkOrder ? b.TargetLevel : 0,
             Rotation = b.Rotation,
             Style = BlueprintStyles.Normalize(b.Style),
+            Variant = Manager.Blueprints.Variants(Manager.Blueprints.StyleFor(b), b.Type).Count > 1 ? Manager.Blueprints.VariantFor(Manager.Blueprints.StyleFor(b), b.Type, b.Variant) : "",
             Name = ColonyManager.BuildingName(b),
             Status = b.HasWorkOrder ? Manager.BuildStatus.GetValueOrDefault(b.BuildingId, "queued") : ""
         };

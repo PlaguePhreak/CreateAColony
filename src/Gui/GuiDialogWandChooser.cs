@@ -103,7 +103,11 @@ public class GuiDialogWandChooser : GuiDialog
             double info = 6 + ButtonWidth + 12;
             composer.AddStaticText(Lang.Get("createacolony:wand-row-have", have),
                 GuiKit.Detail().WithColor(have > 0 ? GuiKit.GoodColor : GuiStyle.DialogDefaultTextColor), ElementBounds.Fixed(info, row + 1, Width - info - 6, 17));
-            composer.AddStaticText(Lang.Get(hasBlueprint ? "createacolony:wand-row-blueprint" : "createacolony:wand-row-no-blueprint"),
+            string? variants = snapshot.VariantCounts.FirstOrDefault(v => v.StartsWith(type + "|" + style + "|"));
+            string blueprintText = !hasBlueprint ? Lang.Get("createacolony:wand-row-no-blueprint")
+                : variants != null ? Lang.Get("createacolony:wand-row-variants", variants.Split('|')[2])
+                : Lang.Get("createacolony:wand-row-blueprint");
+            composer.AddStaticText(blueprintText,
                 hasBlueprint ? GuiKit.Muted() : GuiKit.Detail().WithColor(GuiKit.WarnColor), ElementBounds.Fixed(info, row + 18, Width - info - 6, 17));
             row += RowHeight;
         }

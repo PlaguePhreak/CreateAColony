@@ -82,6 +82,19 @@ public class GuiDialogPlacement : GuiDialog
         }
         if (snapshot.Overlaps.Count + snapshot.OverlapsLater.Count + snapshot.Nearby > 0) y += 6;
 
+        // A type with several buildings (a small or a medium house): pick which one, while unbuilt.
+        if (snapshot.Variants.Count > 1)
+        {
+            int at = System.Math.Max(0, snapshot.Variants.IndexOf(snapshot.Variant));
+            y = composer.Text(Lang.Get("createacolony:placement-variant", GuiKit.VariantName(snapshot.Variant), at + 1, snapshot.Variants.Count), GuiKit.Body(), 0, y, Width, 4);
+            if (snapshot.CanAdjust)
+            {
+                AddPair(composer, "variant-prev", ColonyAction.PlacementVariant, "-1", "variant-next", ColonyAction.PlacementVariant, "1", y);
+                y += 34;
+            }
+            y += 4;
+        }
+
         // Flip through the building's levels to see each one where it would stand.
         if (snapshot.MaxLevel > 1)
         {

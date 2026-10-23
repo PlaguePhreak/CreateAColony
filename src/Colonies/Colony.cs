@@ -217,7 +217,9 @@ public class Building
     [ProtoMember(45, IsRequired = true)] public bool MineProspected = true;
     /// <summary>A Miner's Hut: the middle of its shaft beside the hut, at the height a settler stands on the ground there.</summary>
     [ProtoMember(46)] public BlockPos? ShaftPos;
-    // 47-59 left free for other building fields.
+    /// <summary>Which of its type's variants the building is (a small or a medium house; see BlueprintLibrary.Variants); "" is the first.</summary>
+    [ProtoMember(47)] public string Variant = "";
+    // 48-59 left free for other building fields.
     /// <summary>A Miner's Hut: the surface entrances of the staircases dug at the prospected ore it is working.</summary>
     [ProtoMember(60)] public List<BlockPos> SiteEntrances = new();
     /// <summary>A Miner's Hut: entrances of finished mines the miner still has to fill back in.</summary>

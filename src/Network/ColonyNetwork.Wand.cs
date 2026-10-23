@@ -22,8 +22,8 @@ public partial class ColonyNetwork
     /// <summary>Building types put down with the wand, tab by tab.</summary>
     static readonly string[] WandTypes = BuildingCategories.All.SelectMany(c => c.Types).ToArray();
 
-    /// <summary>A building being planned; Level is the one previewed (0 = the highest).</summary>
-    record Planned(string Type, BlockPos Pos, int Rotation, string Style, int Level = 0);
+    /// <summary>A building being planned; Level is the one previewed (0 = the highest), Variant which of the type's buildings.</summary>
+    record Planned(string Type, BlockPos Pos, int Rotation, string Style, int Level = 0, string Variant = "");
 
     readonly Dictionary<string, Planned> planned = new();
     /// <summary>Where a player started planning, while they pick from the list.</summary>
@@ -54,7 +54,9 @@ public partial class ColonyNetwork
                 string type = chosen[0], pack = Manager.PackOf(uid);
                 string style = BlueprintStyles.Normalize(pack != "" ? pack : chosen.Length > 1 ? chosen[1] : null);
                 if (!WandTypes.Contains(type) || !wandSpots.TryGetValue(uid, out var at)) return;
-                plan = new Planned(type, at, plan?.Rotation ?? Manager.RotationFor(player, type, style), style);
+                // Change building keeps the variant when the same type is picked again.
+                string variant = Manager.Blueprints.VariantFor(style, type, plan?.Type == type ? plan.Variant : "");
+                plan = new Planned(type, at, plan?.Rotation ?? Manager.RotationFor(player, type, style, variant), style, 0, variant);
                 planned[uid] = plan;
                 SendPlanned(player, plan, true);
                 return;
@@ -81,9 +83,12 @@ public partial class ColonyNetwork
                 plan = plan with { Pos = plan.Pos.UpCopy(packet.Text == "-1" ? -1 : 1) };
                 break;
             case ColonyAction.PlacementLevel:
-                var forLevels = new Building { Type = plan.Type, Style = plan.Style };
+                var forLevels = new Building { Type = plan.Type, Style = plan.Style, Variant = plan.Variant };
                 int max = Manager.Blueprints.MaxLevel(forLevels);
                 plan = plan with { Level = StepLevel(PreviewLevel(plan.Level, max), max, packet.Text) };
+                break;
+            case ColonyAction.PlacementVariant:
+                plan = plan with { Variant = StepVariant(plan.Style, plan.Type, plan.Variant, packet.Text), Level = 0 };
                 break;
             case ColonyAction.PlacementNudge:
                 var moved = new Building { HutPos = plan.Pos.Copy() };
@@ -119,6 +124,7 @@ public partial class ColonyNetwork
         if (Manager.GetAt(plan.Pos) is { } colony && Manager.GetBuilding(colony, plan.Pos) is { } building)
         {
             building.Style = plan.Style;
+            building.Variant = plan.Variant;
             Manager.MarkDirty(colony);
         }
         if (slot != null && player.WorldData.CurrentGameMode != EnumGameMode.Creative)
@@ -161,6 +167,8 @@ public partial class ColonyNetwork
             foreach (var style in BlueprintStyles.All)
             {
                 if (Manager.Blueprints.MaxLevel(style, type) > 0) snapshot.WithBlueprints.Add(type + "|" + style);
+                int variants = Manager.Blueprints.Variants(style, type).Count;
+                if (variants > 1) snapshot.VariantCounts.Add($"{type}|{style}|{variants}");
             }
         }
         serverChannel!.SendPacket(snapshot, player);
@@ -168,7 +176,7 @@ public partial class ColonyNetwork
 
     void SendPlanned(IServerPlayer player, Planned plan, bool openWindow)
     {
-        var building = new Building { Type = plan.Type, HutPos = plan.Pos.Copy(), Rotation = plan.Rotation, Style = plan.Style };
+        var building = new Building { Type = plan.Type, HutPos = plan.Pos.Copy(), Rotation = plan.Rotation, Style = plan.Style, Variant = plan.Variant };
         int max = Manager.Blueprints.MaxLevel(building);
         int level = PreviewLevel(plan.Level, max);
         var blueprint = level > 0 ? Manager.Blueprints.Get(building, level) : null;
@@ -193,6 +201,8 @@ public partial class ColonyNetwork
             CanOrder = true,
             Planned = true,
             Style = plan.Style,
+            Variant = Manager.Blueprints.VariantFor(plan.Style, plan.Type, plan.Variant),
+            Variants = Manager.Blueprints.Variants(plan.Style, plan.Type),
             Have = HutCount(player, plan.Type),
             OpenWindow = openWindow
         }, player);

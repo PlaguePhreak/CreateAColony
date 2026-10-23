@@ -199,7 +199,9 @@ public class GuiDialogHut : GuiDialog
         }
         composer
             .AddStaticText(LevelText(b), GuiKit.Detail(), ElementBounds.Fixed(10, y + 36, Width / 2, 20))
-            .AddStaticText(Lang.Get("createacolony:placement-style", Lang.Get("createacolony:style-" + BlueprintStyles.Normalize(b.Style))),
+            .AddStaticText(b.Variant == ""
+                    ? Lang.Get("createacolony:placement-style", Lang.Get("createacolony:style-" + BlueprintStyles.Normalize(b.Style)))
+                    : Lang.Get("createacolony:placement-style-variant", Lang.Get("createacolony:style-" + BlueprintStyles.Normalize(b.Style)), GuiKit.VariantName(b.Variant)),
                 GuiKit.Detail().WithOrientation(EnumTextOrientation.Right), ElementBounds.Fixed(Width / 2, y + 36, Width / 2 - 10, 20));
         if (b.TargetLevel > 0)
         {

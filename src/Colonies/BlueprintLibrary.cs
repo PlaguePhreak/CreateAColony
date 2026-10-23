@@ -56,6 +56,9 @@ public class Blueprint
 /// ModConfig/createacolony/ (so players can add their own without rebuilding the mod), then in the
 /// mod's own assets. If the export contains the building's hut block, that is where the hut sits;
 /// otherwise the hut goes at the bottom centre of the blueprint.
+/// A type can have variants, other buildings of the same type that players pick between when placing
+/// one (a small or a medium house): blueprints/&lt;style&gt;/&lt;type&gt;/&lt;variant&gt;/level&lt;N&gt;.json. The
+/// files right in the type's folder are the variant named "" and come first.
 /// </summary>
 public class BlueprintLibrary
 {
@@ -63,8 +66,9 @@ public class BlueprintLibrary
 
     readonly ICoreServerAPI sapi;
     readonly ColonyConfig config;
-    readonly Dictionary<(string, string, int, int), Blueprint?> cache = new();
-    readonly Dictionary<(string Style, string Type), int> maxLevels = new();
+    readonly Dictionary<(string, string, string, int, int), Blueprint?> cache = new();
+    readonly Dictionary<(string Style, string Type, string Variant), int> maxLevels = new();
+    readonly Dictionary<(string Style, string Type), List<string>> variants = new();
 
     public BlueprintLibrary(ICoreServerAPI sapi, ColonyConfig config)
     {
@@ -74,19 +78,58 @@ public class BlueprintLibrary
 
     public static string UserFolder => Path.Combine(GamePaths.ModConfig, "createacolony", "blueprints");
 
-    /// <summary>The highest level that has a blueprint in this style, 0 if none.</summary>
-    public int MaxLevel(string style, string type)
+    /// <summary>The highest level that has a blueprint in this style and variant (the first variant when it has none of that name), 0 if none.</summary>
+    public int MaxLevel(string style, string type, string variant = "")
     {
         style = BlueprintStyles.Normalize(style);
-        if (maxLevels.TryGetValue((style, type), out int known)) return known;
+        variant = VariantFor(style, type, variant);
+        if (maxLevels.TryGetValue((style, type, variant), out int known)) return known;
         int max = 0;
         for (int level = 1; level <= MaxLevels; level++)
         {
-            if (FindJson(style, type, level) != null) max = level;
+            if (FindJson(style, type, variant, level) != null) max = level;
             else break;
         }
-        maxLevels[(style, type)] = max;
+        maxLevels[(style, type, variant)] = max;
         return max;
+    }
+
+    /// <summary>
+    /// The variants of a type in this style that have a level 1: "" (the files right in the type's folder)
+    /// first, then its subfolders in alphabetical order. Empty when the type has no blueprints here.
+    /// </summary>
+    public List<string> Variants(string style, string type)
+    {
+        style = BlueprintStyles.Normalize(style);
+        if (variants.TryGetValue((style, type), out var known)) return known;
+        string folder = BlueprintStyles.Folder(style);
+        var names = new SortedSet<string>(StringComparer.Ordinal);
+        string userType = Path.Combine(UserFolder, folder, type);
+        if (Directory.Exists(userType))
+        {
+            foreach (var dir in Directory.GetDirectories(userType)) names.Add(Path.GetFileName(dir));
+        }
+        string prefix = $"config/blueprints/{folder}/{type}/";
+        foreach (var asset in sapi.Assets.GetMany(prefix, CreateAColonyModSystem.ModId, false))
+        {
+            var rest = asset.Location.Path.Substring(prefix.Length).Split('/');
+            if (rest.Length == 2) names.Add(rest[0]);
+        }
+        var list = new List<string>();
+        if (FindJson(style, type, "", 1) != null) list.Add("");
+        list.AddRange(names.Where(n => IsVariantName(n) && FindJson(style, type, n, 1) != null));
+        variants[(style, type)] = list;
+        return list;
+    }
+
+    /// <summary>Variant names are plain lower-case words and numbers, so they are safe in file paths and messages.</summary>
+    public static bool IsVariantName(string name) => name.Length > 0 && name.All(c => c is >= 'a' and <= 'z' or >= '0' and <= '9');
+
+    /// <summary>The variant itself when the type has it in this style, otherwise its first one ("" when it has none).</summary>
+    public string VariantFor(string style, string type, string? variant)
+    {
+        var list = Variants(style, type);
+        return variant != null && list.Contains(variant) ? variant : list.FirstOrDefault() ?? "";
     }
 
     /// <summary>Forgets loaded blueprints, so edited files are picked up without a restart.</summary>
@@ -94,9 +137,10 @@ public class BlueprintLibrary
     {
         cache.Clear();
         maxLevels.Clear();
+        variants.Clear();
     }
 
-    public int MaxLevel(Building building) => MaxLevel(StyleFor(building), building.Type);
+    public int MaxLevel(Building building) => MaxLevel(StyleFor(building), building.Type, building.Variant);
 
     /// <summary>
     /// The style a building's blueprints come from: its own, or, when that style has none for its type (a
@@ -109,33 +153,36 @@ public class BlueprintLibrary
         return BlueprintStyles.All.FirstOrDefault(style => MaxLevel(style, building.Type) > 0) ?? own;
     }
 
-    public Blueprint? Get(string style, string type, int level, int rotation)
+    public Blueprint? Get(string style, string type, int level, int rotation, string variant = "")
     {
         style = BlueprintStyles.Normalize(style);
-        var key = (style, type, level, rotation);
+        variant = VariantFor(style, type, variant);
+        var key = (style, type, variant, level, rotation);
         if (!cache.TryGetValue(key, out var blueprint))
         {
-            blueprint = Load(style, type, level, rotation);
+            blueprint = Load(style, type, variant, level, rotation);
             cache[key] = blueprint;
         }
         return blueprint;
     }
 
-    /// <summary>The building's blueprint for a level, in its own style and turn.</summary>
-    public Blueprint? Get(Building building, int level) => Get(StyleFor(building), building.Type, level, building.Rotation);
+    /// <summary>The building's blueprint for a level, in its own style, variant and turn.</summary>
+    public Blueprint? Get(Building building, int level) => Get(StyleFor(building), building.Type, level, building.Rotation, building.Variant);
 
-    string? FindJson(string style, string type, int level)
+    string? FindJson(string style, string type, string variant, int level)
     {
         string folder = BlueprintStyles.Folder(style);
-        string file = Path.Combine(folder == "" ? UserFolder : Path.Combine(UserFolder, folder), type, $"level{level}.json");
+        string typeFolder = variant == "" ? type : $"{type}/{variant}";
+        string file = Path.Combine(folder == "" ? UserFolder : Path.Combine(UserFolder, folder), typeFolder, $"level{level}.json");
         if (File.Exists(file)) return File.ReadAllText(file);
-        string asset = folder == "" ? $"config/blueprints/{type}/level{level}.json" : $"config/blueprints/{folder}/{type}/level{level}.json";
+        string asset = folder == "" ? $"config/blueprints/{typeFolder}/level{level}.json" : $"config/blueprints/{folder}/{typeFolder}/level{level}.json";
         return sapi.Assets.TryGet(new AssetLocation(CreateAColonyModSystem.ModId, asset))?.ToText();
     }
 
-    Blueprint? Load(string style, string type, int level, int rotation)
+    Blueprint? Load(string style, string type, string variant, int level, int rotation)
     {
-        string? json = FindJson(style, type, level);
+        string? json = FindJson(style, type, variant, level);
+        if (variant != "") style += "/" + variant;
         if (json == null) return null;
 
         string error = "";
