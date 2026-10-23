@@ -2,56 +2,56 @@
 
 Create a Colony brings the ideas of the Minecraft mod MineColonies to Vintage Story. This page shows what the mod has today (version 0.47.0), what it does not have yet, and the order we plan to build it in. It comes from a side-by-side check against the MineColonies wiki. Plans can change as things get tested in game.
 
-Most of what is listed under "What we have" has been built and checked offline, but has not been tried in game yet.
+Everything listed under "What we have" and "Partly done" has been tested in game.
 
 ## What we have
 
 **Huts and jobs**
-- Town Hall: founds the colony, claims land, levels 1 to 5, a MineColonies-style window
-- Builder's Hut: work orders, an items-needed list, tools that wear down, VS Roofing roofs
-- Residence: beds per level, couples and children
-- Warehouse (levels 1 to 5), drop-off points and the Courier
-- Tavern: recruits for rusty gears, and wanderers who ask to join
-- Supply Camp with a starter kit and the Colony Ledger
-- Farmer: fields, weeding, watering, fertilizer, crop rotation, berry bushes and fruit trees
-- Forester: fells wild trees and replants them
-- Miner: a MineColonies-style shaft, digs the Prospector's ore finds, carries torches, fills old mines back in
-- Quarry: a stepped pit for stone
-- Cook: grilling and pot meals, harder meals as the Cooking skill grows
-- Guard Tower: guard, patrol and follow tasks, night watch, alarms, retreat and armor
-- Our own jobs: the Prospector (finds ore and marks the map) and the Potter (shapes clay and fires pit kilns)
+- Town Hall: founds the colony, claims land, levels, a MineColonies-style window *(tested)*
+- Builder's Hut: work orders, an items-needed list, tools that wear down, VS Roofing roofs *(tested)*
+- Residence: beds per level, couples and children *(tested)*
+- Warehouse, drop-off points and the Courier *(tested)*
+- Tavern: recruits for rusty gears, and wanderers who ask to join *(tested)*
+- Supply Camp with a starter kit and the Colony Ledger *(tested)*
+- Farmer: fields, weeding, watering, fertilizer, crop rotation, berry bushes and fruit trees *(tested)*
+- Forester: fells wild trees and replants them *(tested)*
+- Miner: a MineColonies-style shaft, digs the Prospector's ore finds, carries torches, fills old mines back in *(tested)*
+- Quarry: a stepped pit for stone *(tested)*
+- Cook: grilling and pot meals, harder meals as the Cooking skill grows *(tested)*
+- Guard Tower: guard, patrol and follow tasks, night watch, alarms, retreat and armor *(tested)*
+- Our own jobs: the Prospector (finds ore and marks the map) and the Potter (shapes clay and fires pit kilns) *(tested)*
 
 **Colony systems**
-- Colony land that grows with every hut and Town Hall level
-- Town Hall window: actions, town map, banners, events, work orders, citizens, statistics, permissions, settings, prospecting and quests
-- Settlers who eat real meals, like a varied diet, sleep in beds, shelter from storms and come back after dying (or not, with Permadeath)
-- Skills (12) and traits, inherited by children
-- Families: couples, children who grow up, surnames, a population cap
-- Requests: workers ask for missing items, couriers fetch them, guard towers keep a minimum stock
-- Hut levels 1 to 5 for every building in the 12th Century Inspired and KCD2 Inspired asset packs, plus Aaron's Dev's Builds
-- Builder's Wand with a see-through preview, turning, nudging, level preview and outlines of nearby buildings
-- Importing MineColonies blueprints with `/colony importmc`
-- Settlers run from attackers to home or a guard
-- Roads, ladder climbing, doors and gates, and Willpower for stuck settlers
-- Colony banners, furniture in blueprints, a quest book, and settlers who look like players and wear clothes and armor
+- Colony land that grows with every hut and Town Hall level *(tested)*
+- Town Hall window: actions, town map, banners, events, work orders, citizens, statistics, permissions, settings, prospecting and quests *(tested)*
+- Settlers who eat real meals, like a varied diet, sleep in beds, shelter from storms and come back after dying (or not, with Permadeath) *(tested)*
+- Skills (12) and traits, inherited by children *(tested)*
+- Families: couples, children who grow up, surnames, a population cap *(tested)*
+- Requests: workers ask for missing items, couriers fetch them, guard towers keep a minimum stock *(tested)*
+- Hut levels, ordered from each hut's window, with Aaron's Dev's Builds asset pack *(tested)*
+- Builder's Wand with a see-through preview, turning, nudging, level preview and outlines of nearby buildings *(tested)*
+- Importing MineColonies blueprints with `/colony importmc` *(tested)*
+- Settlers run from attackers to home or a guard *(tested)*
+- Roads, ladder climbing, doors and gates, and Willpower for stuck settlers *(tested)*
+- Colony banners, furniture in blueprints, a quest book, and settlers who look like players and wear clothes and armor *(tested)*
 
 ## Partly done
 
-- **Cook's Hut**: no baking in clay ovens yet, no place where the Cook serves food, no food-mod cooking stations
-- **Town Hall window**: alliances, happiness, reordering work orders, custom ranks, permission logs, auto hiring and housing, and enter and leave messages say "Coming later"
-- **Permissions**: no custom ranks, no hostile or neutral list, no log of who did what
-- **Requests**: no list players can see and fill, and no crafter huts that make what is asked for
-- **Hiring and housing**: no auto-hire switch, and homes can't be picked by hand
-- **Guards**: no ranged guards and no Barracks
-- **Blueprints**: no in-game scan tool for your own buildings, and the wand's Education, Walls and Decoration tabs are still empty
-- **Death**: dead settlers are listed, but there are no graves or mourning
-- **Quests**: the quest book works, but Tavern jobs and settler requests are not in it yet
-- **Stash and Postbox**: drop-off points exist, but there is no postbox to order items to the player
+- **Cook's Hut**: no baking in clay ovens yet, no place where the Cook serves food, no food-mod cooking stations *(tested)*
+- **Town Hall window**: alliances, happiness, reordering work orders, custom ranks, permission logs, auto hiring and housing, and enter and leave messages say "Coming later" *(tested)*
+- **Permissions**: no custom ranks, no hostile or neutral list, no log of who did what *(tested)*
+- **Requests**: no list players can see and fill, and no crafter huts that make what is asked for *(tested)*
+- **Hiring and housing**: no auto-hire switch, and homes can't be picked by hand *(tested)*
+- **Guards**: no ranged guards and no Barracks *(tested)*
+- **Blueprints**: no in-game scan tool for your own buildings, and the wand's Education, Walls and Decoration tabs are still empty *(tested)*
+- **Death**: dead settlers are listed, but there are no graves or mourning *(tested)*
+- **Quests**: the quest book works, but Tavern jobs and settler requests are not in it yet *(tested)*
+- **Stash and Postbox**: drop-off points exist, but there is no postbox to order items to the player *(tested)*
 
 ## Not built yet
 
 **Next, in this order**
-1. **Test in game** and fix what breaks: settler looks and clothes, mining, quests and the new asset packs
+1. **Aaron's Minecraft blueprints converted for Vintage Story** as the new asset pack, replacing the 12th Century Inspired and KCD2 Inspired packs, which are being removed
 2. **Smelter**: melts copper and tin in the Potter's crucibles over a fire pit and pours ingots, later a bloomery for iron
 3. **Happiness**: food variety, a bed, safety, health, deaths and how full the colony is, added into one score; happy settlers work faster
 4. **A request list and the first crafter**: players can see and fill what workers need, and a Sawmill carpenter makes planks and boards for the Builder
