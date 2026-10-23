@@ -24,9 +24,21 @@ public partial class ColonyManager
     /// <summary>How many layers the pit goes down at the Quarry's level; the staircase round the edge sets the limit.</summary>
     int QuarryLayers(Building hut) => Math.Clamp(Config.QuarryDepthPerLevel * Math.Max(1, hut.Level), 1, 8 * QuarryRadius(hut) - 1);
 
-    /// <summary>The middle of the Quarry's pit, chosen the first time it is needed; null when there is no room beside the hut.</summary>
-    public BlockPos? QuarryPit(Colony colony, Building hut)
+    /// <summary>
+    /// The middle of the Quarry's pit: the Quarry waypoint in its blueprint, or else a spot beside the hut
+    /// chosen the first time it is needed; null when there is no room beside the hut.
+    /// </summary>
+    public BlockPos? QuarryPit(Colony colony, Building hut) => QuarryPit(colony, hut, out _);
+
+    BlockPos? QuarryPit(Colony colony, Building hut, out bool marked)
     {
+        var mark = WaypointOf(hut, "quarry");
+        marked = mark != null;
+        if (mark != null)
+        {
+            if (!mark.Equals(hut.QuarryCenter)) { hut.QuarryCenter = mark; MarkDirty(colony); }
+            return mark;
+        }
         if (hut.QuarryCenter != null) return hut.QuarryCenter;
         hut.QuarryCenter = SpotBeside(colony, hut, QuarryMaxRadius);
         if (hut.QuarryCenter != null) MarkDirty(colony);
@@ -61,10 +73,10 @@ public partial class ColonyManager
     public BlockPos? NextQuarryBlock(Colony colony, Building hut, Vec3d near, System.Func<BlockPos, bool> skip, out bool done)
     {
         done = false;
-        if (QuarryPit(colony, hut) is not { } center) return null;
+        if (QuarryPit(colony, hut, out bool marked) is not { } center) return null;
         var ba = sapi.World.BlockAccessor;
         if (ba.GetChunkAtBlockPos(center) == null) return center; // walk there first
-        var boxes = DigProtected(colony);
+        var (boxes, keep) = DigLimits(colony, hut, marked);
         int r = QuarryRadius(hut), layers = QuarryLayers(hut), top = center.Y - 1;
         bool anyLeft = false;
         for (int layer = -Math.Max(0, Config.QuarryClearAbove); layer < layers; layer++)
@@ -79,7 +91,7 @@ public partial class ColonyManager
                 if (IsClear(pos)) continue;
                 // Under a block left standing, the column stays as it is.
                 if (!IsClear(pos.UpCopy()) && layer > -Config.QuarryClearAbove) continue;
-                if (!CanDig(colony, pos, boxes)) continue;
+                if (keep.Contains(pos) || !CanDig(colony, pos, boxes)) continue;
                 anyLeft = true;
                 if (skip(pos)) continue;
                 double d = pos.ToVec3d().Add(0.5, 1, 0.5).SquareDistanceTo(near);
