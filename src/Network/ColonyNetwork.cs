@@ -47,7 +47,11 @@ public partial class ColonyNetwork : ModSystem
             .RegisterMessageType<CitizenSnapshot>()
             .RegisterMessageType<PlacementSnapshot>()
             .RegisterMessageType<WandChooserSnapshot>()
-            .RegisterMessageType<GhostPreviewPacket>();
+            .RegisterMessageType<GhostPreviewPacket>()
+            .RegisterMessageType<QuestBookOpenRequest>()
+            .RegisterMessageType<QuestBookSnapshot>()
+            .RegisterMessageType<QuestActionPacket>()
+            .RegisterMessageType<SettlerSlotPacket>();
     }
 
     // ---- Server ---------------------------------------------------------------------------
@@ -58,7 +62,11 @@ public partial class ColonyNetwork : ModSystem
         serverChannel = api.Network.GetChannel(ChannelName)
             .SetMessageHandler<TownHallOpenRequest>(OnOpenRequest)
             .SetMessageHandler<ColonyActionPacket>(OnAction)
-            .SetMessageHandler<HutOpenRequest>(OnHutOpenRequest);
+            .SetMessageHandler<HutOpenRequest>(OnHutOpenRequest)
+            .SetMessageHandler<QuestBookOpenRequest>(OnQuestBookOpen)
+            .SetMessageHandler<QuestActionPacket>(OnQuestAction)
+            .SetMessageHandler<SettlerSlotPacket>(OnSettlerSlot);
+        StartQuestsServer(api);
         // Construction progress changes without anyone clicking, so open windows refresh on their own.
         api.Event.RegisterGameTickListener(_ =>
         {
@@ -80,6 +88,7 @@ public partial class ColonyNetwork : ModSystem
             planned.Remove(player.PlayerUID);
             wandSpots.Remove(player.PlayerUID);
             citizenViewers.Remove(player.PlayerUID);
+            questViewers.Remove(player.PlayerUID);
         };
     }
 
@@ -434,7 +443,8 @@ public partial class ColonyNetwork : ModSystem
             Events = colony.Events.Select(e => new EventView { TotalDays = e.TotalDays, Key = e.Key, Args = e.Args.ToList() }).ToList(),
             WorkOrders = colony.Buildings.Where(b => b.HasWorkOrder).OrderBy(b => b.BuildingId).Select(b => BuildingViewFor(colony, b)).ToList(),
             Jobs = Manager.JobCounts(colony).Select(j => new JobView { Job = j.Job, Workers = j.Workers, Places = j.Places }).ToList(),
-            Stats = Manager.ColonyStatSummary(colony).Select(r => new StatView { Key = r.Key, Counts = r.Counts }).ToList()
+            Stats = Manager.ColonyStatSummary(colony).Select(r => new StatView { Key = r.Key, Counts = r.Counts }).ToList(),
+            Quests = sapi!.World.PlayerByUid(viewerUid) is IServerPlayer viewer ? QuestStates(viewer, colony) : new()
         };
 
         snapshot.OreReadings = colony.OreSites.Count;
@@ -568,6 +578,17 @@ public partial class ColonyNetwork : ModSystem
         serverChannel!.SendPacket(BuildHutSnapshot(colony, building, player.PlayerUID, openWindow: true), player);
     }
 
+    /// <summary>A member moving items in or out of a settler's slots; the settler window refreshes straight away.</summary>
+    void OnSettlerSlot(IServerPlayer player, SettlerSlotPacket packet)
+    {
+        var colony = Manager.GetById(packet.ColonyId);
+        var citizen = colony?.Citizens.Find(c => c.CitizenId == packet.CitizenId);
+        if (colony == null || citizen == null) return;
+        string? message = Manager.ClickSettlerSlot(colony, citizen, player, packet.Area, packet.Index, packet.Right, packet.Shift);
+        if (message != null) player.SendMessage(0, message, EnumChatType.Notification);
+        SendCitizenWindow(player.PlayerUID, colony.ColonyId, citizen.CitizenId, openWindow: false);
+    }
+
     /// <summary>Opens (or refreshes) the settler window for a player. Called when a player right-clicks a settler.</summary>
     public void OpenCitizenWindow(IServerPlayer player, Colony colony, CitizenRecord citizen)
     {
@@ -631,6 +652,11 @@ public partial class ColonyNetwork : ModSystem
             Home = citizen.HomeBedPos != null && Manager.ResidenceAt(colony, citizen.HomeBedPos) is { } home ? ColonyManager.BuildingName(home) : "",
             FamilyNote = FamilyNote(colony, citizen),
             Surname = citizen.Surname,
+            ToolBar = Manager.ToolBarItems(citizen).Select(st => st?.ToBytes() ?? System.Array.Empty<byte>()).ToList(),
+            Clothes = Manager.WornClothes(citizen).Select(st => st?.ToBytes() ?? System.Array.Empty<byte>()).ToList(),
+            Lunch = Manager.LunchItems(citizen).Select(st => st.ToBytes()).ToList(),
+            CanEdit = colony.RoleOf(uid) >= ColonyRole.Member && citizen.Alive,
+            ClothesClass = config.SettlerClothesClass,
             Skills = Manager.Config.Skills ? Manager.SkillInfos(colony, citizen)
                 .Select(s => new SkillView { Code = s.Code, Level = s.Level, Usable = s.Usable, Xp = s.Xp, NextXp = s.NextXp, LevelXp = s.LevelXp, CapNote = s.CapNote }).ToList() : new(),
             Traits = Manager.Config.Traits ? TraitViews(citizen) : new(),
@@ -830,7 +856,9 @@ public partial class ColonyNetwork : ModSystem
             .SetMessageHandler<CitizenSnapshot>(OnCitizenSnapshot)
             .SetMessageHandler<PlacementSnapshot>(OnPlacementSnapshot)
             .SetMessageHandler<WandChooserSnapshot>(OnWandChooserSnapshot)
-            .SetMessageHandler<GhostPreviewPacket>(OnGhostPreview);
+            .SetMessageHandler<GhostPreviewPacket>(OnGhostPreview)
+            .SetMessageHandler<QuestBookSnapshot>(OnQuestBookSnapshot);
+        StartQuestsClient(api);
     }
 
     /// <summary>Called by the Town Hall block when a player right-clicks it.</summary>
@@ -840,6 +868,8 @@ public partial class ColonyNetwork : ModSystem
     }
 
     public void SendAction(ColonyActionPacket packet) => clientChannel?.SendPacket(packet);
+
+    public void SendSettlerSlot(SettlerSlotPacket packet) => clientChannel?.SendPacket(packet);
 
     /// <summary>Called by hut blocks (Builder's Hut, Warehouse) when a player right-clicks them.</summary>
     public void RequestOpenHut(BlockPos pos) => clientChannel?.SendPacket(new HutOpenRequest { Pos = pos.Copy() });

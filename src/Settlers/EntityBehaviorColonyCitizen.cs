@@ -6,6 +6,7 @@ using Vintagestory.API.Common.Entities;
 using Vintagestory.API.Datastructures;
 using Vintagestory.API.MathTools;
 using Vintagestory.API.Server;
+using Vintagestory.GameContent;
 
 namespace CreateAColony.Settlers;
 
@@ -36,6 +37,10 @@ public class EntityBehaviorColonyCitizen : EntityBehavior
     /// <summary>Where the settler stood at the last check and how far it has walked since its last Fitness XP.</summary>
     Vec3d? lastStep;
     float walked;
+    /// <summary>Gear checks: snacking, picking things up, the torch, every couple of seconds; the look and clothes once after loading.</summary>
+    const float GearCheckSeconds = 2f;
+    float sinceGearCheck;
+    bool prepared;
 
     /// <summary>How long this settler has been stuck, and when it relocates itself (see Willpower.cs). Server only.</summary>
     public Willpower Willpower { get; }
@@ -73,6 +78,12 @@ public class EntityBehaviorColonyCitizen : EntityBehavior
             TickWillpower(StuckCheckSeconds);
             CountSteps();
         }
+        sinceGearCheck += deltaTime;
+        if (sinceGearCheck >= GearCheckSeconds)
+        {
+            sinceGearCheck = 0;
+            CheckGear();
+        }
         sinceSync += deltaTime;
         if (sinceSync < SyncIntervalSeconds) return;
         sinceSync = 0;
@@ -100,6 +111,24 @@ public class EntityBehaviorColonyCitizen : EntityBehavior
         record.LastSeenPos = entity.Pos.XYZ.Clone();
         record.LastSeenTotalDays = entity.World.Calendar.TotalDays;
         RefreshSkillEffects(record);
+    }
+
+    /// <summary>
+    /// Every couple of seconds: puts on its look and clothes once after loading, snacks from its packed
+    /// food, picks up items it stands next to, and holds a torch in the dark.
+    /// </summary>
+    void CheckGear()
+    {
+        if (entity is not EntitySettler settler || FindRecord() is not { } record || manager!.GetById(settler.ColonyId!) is not { } colony) return;
+        if (!prepared)
+        {
+            prepared = true;
+            manager.PrepareSettler(colony, record, settler);
+        }
+        if (record.IsDowned) return;
+        manager.SnackFromLunch(colony, record, settler);
+        manager.PickUpNearby(colony, record, settler, 1.5f);
+        manager.DressEntity(record);
     }
 
     /// <summary>Walking speed and max health from the Fitness and Hauling skills, worked out every few seconds rather than every step.</summary>
@@ -140,7 +169,15 @@ public class EntityBehaviorColonyCitizen : EntityBehavior
             var colony = manager.GetById(((EntitySettler)entity).ColonyId!);
             if (colony != null)
             {
-                foreach (var stack in manager.EmptyPackAndBags(colony, record).Concat(manager.TakeOffArmor(colony, record)))
+                var dropped = manager.EmptyPackAndBags(colony, record).Concat(manager.TakeOffArmor(colony, record)).ToList();
+                // The tool in hand too; and the clothes when they are gone for good (a downed settler keeps them).
+                if (((EntityAgent)entity).RightHandItemSlot is { Empty: false } hand)
+                {
+                    dropped.Add(hand.TakeOutWhole());
+                    entity.GetBehavior<EntityBehaviorVillagerInv>()?.storeInv();
+                }
+                if (!record.Visitor && manager.Permadeath(colony)) dropped.AddRange(manager.TakeOffClothes(colony, record));
+                foreach (var stack in dropped)
                 {
                     entity.World.SpawnItemEntity(stack, entity.Pos.XYZ.Add(0, 0.5, 0));
                 }

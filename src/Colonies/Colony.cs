@@ -85,6 +85,20 @@ public class CitizenRecord
     [ProtoMember(33)] public List<double> DownedDays = new();
     /// <summary>While Shaken: when it fades, if they are not knocked out again before then.</summary>
     [ProtoMember(34)] public double ShakenUntilTotalDays;
+    // 30-39 are left for the traits and quest work.
+    /// <summary>
+    /// The tool bar, kept apart from the inventory: weapon, three tools, offhand (see ColonyManager.Gear.cs).
+    /// Serialized stacks, an empty array where a slot is empty.
+    /// </summary>
+    [ProtoMember(40)] public List<byte[]> ToolBar = new();
+    /// <summary>Clothes worn, by the game's dress slot (EnumCharacterDressType 0-11); an empty array where the slot is empty.</summary>
+    [ProtoMember(41)] public List<byte[]> Clothes = new();
+    /// <summary>Set once the settler got its starting (Commoner) clothes, so clothes a player takes off stay off.</summary>
+    [ProtoMember(42)] public bool Dressed;
+    /// <summary>The settler's look from the player character creator: skin part code to chosen variant.</summary>
+    [ProtoMember(43)] public Dictionary<string, string> Skin = new();
+    /// <summary>Food the settler carries to eat on the go, kept apart from the inventory so it is never unloaded with the harvest.</summary>
+    [ProtoMember(44)] public List<byte[]> Lunch = new();
 
     public bool IsDowned => DownedUntilTotalDays > 0;
     public bool IsChild => GrowsUpTotalDays > 0;
@@ -203,6 +217,11 @@ public class Building
     [ProtoMember(45, IsRequired = true)] public bool MineProspected = true;
     /// <summary>A Miner's Hut: the middle of its shaft beside the hut, at the height a settler stands on the ground there.</summary>
     [ProtoMember(46)] public BlockPos? ShaftPos;
+    // 47-59 left free for other building fields.
+    /// <summary>A Miner's Hut: the surface entrances of the staircases dug at the prospected ore it is working.</summary>
+    [ProtoMember(60)] public List<BlockPos> SiteEntrances = new();
+    /// <summary>A Miner's Hut: entrances of finished mines the miner still has to fill back in.</summary>
+    [ProtoMember(61)] public List<BlockPos> MineSeals = new();
 
     public bool HasWorkOrder => TargetLevel > Level;
 }
@@ -308,6 +327,30 @@ public class OreFind
     [ProtoMember(3)] public double Ppt;
 }
 
+/// <summary>
+/// What is saved about one quest for a player or a colony: whether it was accepted and when it was
+/// claimed. Everything else (locked, counting, complete) is worked out from the world each time.
+/// </summary>
+[ProtoContract]
+public class QuestRecord
+{
+    [ProtoMember(1)] public bool Accepted;
+    [ProtoMember(2)] public double AcceptedTotalDays;
+    [ProtoMember(3)] public bool Claimed;
+    [ProtoMember(4)] public double ClaimedTotalDays;
+    /// <summary>The player was told the quest is ready to claim, so they are not told again.</summary>
+    [ProtoMember(5)] public bool Notified;
+}
+
+/// <summary>One player's own quests (the base game groups and the Story prologue), saved on the world under the player's uid.</summary>
+[ProtoContract]
+public class PlayerQuests
+{
+    [ProtoMember(1)] public Dictionary<string, QuestRecord> Quests = new();
+    /// <summary>Quest codes the player chose to track in the quest book.</summary>
+    [ProtoMember(2)] public List<string> Tracked = new();
+}
+
 [ProtoContract]
 public class Colony
 {
@@ -354,6 +397,8 @@ public class Colony
     [ProtoMember(28)] public List<OreSite> OreSites = new();
     /// <summary>The last in-game day traits earned their daily XP; -1 until the first tick.</summary>
     [ProtoMember(35, IsRequired = true)] public int LastTraitDay = -1; // 29 to 34 are left to the quests branch
+    /// <summary>The colony's quests (the Story and The Colony groups), by quest code: accepted and claimed ones only.</summary>
+    [ProtoMember(29)] public Dictionary<string, QuestRecord> Quests = new();
 
     public string OwnerUid => Members.Find(m => m.Role == ColonyRole.Owner)?.PlayerUid ?? "";
 

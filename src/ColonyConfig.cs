@@ -142,6 +142,17 @@ public class ColonyConfig
     public int MinerTorchLight = 8;
     /// <summary>How many torches a miner takes from the hut's storage, and asks couriers for when there are none.</summary>
     public int MinerTorchesCarried = 8;
+    /// <summary>When a mine at prospected ore is finished, the miner fills its staircase back in with dirt this many blocks down from the surface.</summary>
+    public int MinerFillDepth = 6;
+    /// <summary>
+    /// How far, in blocks, a miner's node search with its prospecting pick reaches, as the pick's node search
+    /// mode does for a player. 0 goes by the world's own setting for the pick, or 8 when it has none.
+    /// </summary>
+    public int MinerNodeSearchRadius = 0;
+    /// <summary>Seconds a miner takes over a node search.</summary>
+    public float MinerNodeSearchSeconds = 2f;
+    /// <summary>How much a node search wears the prospecting pick down.</summary>
+    public int MinerNodeSearchWear = 1;
 
     // Quarry
     /// <summary>The pit beside the Quarry goes this many blocks out from its middle at hut level 1 (2 makes a 5 by 5 pit)...</summary>
@@ -469,4 +480,21 @@ public class ColonyConfig
     /// <summary>Settlers the colony can hold: PopulationBase plus PopulationPerTownHallLevel for each Town Hall level (a freshly placed Town Hall is level 0).</summary>
     public int PopulationBase = 20;
     public int PopulationPerTownHallLevel = 5;
+    // Settler gear and inventory (see ColonyManager.Gear.cs and ColonyManager.Lunch.cs)
+    /// <summary>The character class whose starting clothes new settlers wear ("commoner" is the game's default class).</summary>
+    public string SettlerClothesClass = "commoner";
+    /// <summary>Settlers pick up items lying near them and take them to their hut (or the warehouse).</summary>
+    public bool SettlersPickUpItems = true;
+    /// <summary>Settlers leave items alone for this long after they land, so they do not grab what a player just dropped.</summary>
+    public float PickUpDelaySeconds = 5f;
+    /// <summary>An idle settler walks to items on the ground within this many blocks. 0: only what it walks over.</summary>
+    public int PickUpRange = 10;
+    /// <summary>Settlers carry food to eat on the go and snack while they work, so their stomach stays nearly full.</summary>
+    public bool CarryFood = true;
+    /// <summary>How much food a settler packs when it gets some, in saturation: 1200 is one full stomach.</summary>
+    public float CarryFoodSaturation = 1200f;
+    /// <summary>In the dark settlers hold a lit torch they carry, and fetch one from their hut or the warehouse when they have none.</summary>
+    public bool CarryTorches = true;
+    /// <summary>Workers within this many blocks of their hut drop off what they do not need on their way past.</summary>
+    public int DepositNearHut = 8;
 }

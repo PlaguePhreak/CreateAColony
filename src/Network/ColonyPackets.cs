@@ -157,8 +157,31 @@ public class CitizenSnapshot
     [ProtoMember(26)] public List<TraitView> Traits = new();
     /// <summary>The sum of the traits' points.</summary>
     [ProtoMember(27)] public int TraitScore;
+    // 26-39 are left for the traits and quest work.
+    /// <summary>The tool bar by slot: weapon, three tools, offhand; an empty array where a slot is empty.</summary>
+    [ProtoMember(40)] public List<byte[]> ToolBar = new();
+    /// <summary>Clothes by the game's dress slot (0-11); an empty array where a slot is empty.</summary>
+    [ProtoMember(41)] public List<byte[]> Clothes = new();
+    /// <summary>Packed food, carried to eat on the go.</summary>
+    [ProtoMember(42)] public List<byte[]> Lunch = new();
+    /// <summary>True when the viewer may take and give the settler's things (colony members).</summary>
+    [ProtoMember(43)] public bool CanEdit;
+    /// <summary>The settler's character class, for the Character tab ("commoner").</summary>
+    [ProtoMember(44)] public string ClothesClass = "";
 }
 
+/// <summary>A click on a slot of the settler window: which settler, which area and slot, and how.</summary>
+[ProtoContract]
+public class SettlerSlotPacket
+{
+    [ProtoMember(1)] public string ColonyId = "";
+    [ProtoMember(2)] public int CitizenId;
+    /// <summary>ColonyManager.AreaPack and the like.</summary>
+    [ProtoMember(3)] public string Area = "";
+    [ProtoMember(4)] public int Index;
+    [ProtoMember(5)] public bool Right;
+    [ProtoMember(6)] public bool Shift;
+}
 /// <summary>One trait of a settler for the windows.</summary>
 [ProtoContract]
 public class TraitView
@@ -429,6 +452,57 @@ public class ColonySnapshot
     [ProtoMember(36)] public int ProspectorHuts;
     /// <summary>How many settlers the colony can hold (PopulationBase + PopulationPerTownHallLevel x Town Hall level).</summary>
     [ProtoMember(45)] public int PopulationCap; // 37 to 44 are left to the quests branch
+    /// <summary>Where every quest stands for the viewer, for the Quests tab.</summary>
+    [ProtoMember(37)] public List<QuestStateView> Quests = new();
+}
+
+/// <summary>Client asks for the quest book: from the hotkey, the Colony Ledger, the inventory button or the Town Hall's Quests tab.</summary>
+[ProtoContract]
+public class QuestBookOpenRequest
+{
+    [ProtoMember(1)] public int Source;
+}
+
+/// <summary>Where one quest stands for the viewer: its status (QuestStatus) and how far along each objective is.</summary>
+[ProtoContract]
+public class QuestStateView
+{
+    [ProtoMember(1)] public string Code = "";
+    [ProtoMember(2)] public int Status;
+    [ProtoMember(3)] public List<int> Progress = new();
+    [ProtoMember(4)] public List<int> Needed = new();
+    [ProtoMember(5)] public bool Tracked;
+}
+
+/// <summary>Everything the quest book shows: the viewer's colony and where every quest stands for them.</summary>
+[ProtoContract]
+public class QuestBookSnapshot
+{
+    [ProtoMember(1)] public string ColonyId = "";
+    [ProtoMember(2)] public string ColonyName = "";
+    [ProtoMember(3)] public List<QuestStateView> Quests = new();
+    [ProtoMember(4)] public bool OpenWindow;
+    [ProtoMember(5)] public bool Periodic;
+    /// <summary>The viewer's role in the colony, so the book knows whether they may claim colony quests.</summary>
+    [ProtoMember(6)] public int ViewerRole;
+}
+
+public enum QuestAction
+{
+    Accept = 1,
+    Claim = 2,
+    Drop = 3,
+    Track = 4,
+    CloseWindow = 5,
+    Refresh = 6
+}
+
+/// <summary>A change asked from the quest book; the server checks it before applying it.</summary>
+[ProtoContract]
+public class QuestActionPacket
+{
+    [ProtoMember(1)] public string Code = "";
+    [ProtoMember(2)] public QuestAction Action;
 }
 
 public enum ColonyAction

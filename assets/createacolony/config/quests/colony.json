@@ -1,0 +1,551 @@
+{
+  "code": "colony",
+  "order": 3,
+  "scope": "colony",
+  "chapters": [
+    {
+      "code": "founding",
+      "quests": [
+        {
+          "code": "c-townhall",
+          "x": 0,
+          "y": 0,
+          "shape": "square",
+          "icon": "createacolony:townhall",
+          "objectives": [
+            {
+              "type": "colony"
+            }
+          ],
+          "rewards": [
+            {
+              "code": "game:firewood",
+              "count": 8
+            }
+          ]
+        },
+        {
+          "code": "c-townhall-1",
+          "x": 1,
+          "y": 0,
+          "shape": "square",
+          "requires": [
+            "c-townhall"
+          ],
+          "objectives": [
+            {
+              "type": "building",
+              "code": "townhall",
+              "level": 1
+            }
+          ],
+          "rewards": [
+            {
+              "code": "game:stick",
+              "count": 16
+            }
+          ]
+        },
+        {
+          "code": "c-name",
+          "x": 2,
+          "y": 0,
+          "shape": "star",
+          "requires": [
+            "c-townhall-1"
+          ],
+          "objectives": [
+            {
+              "type": "event",
+              "code": "event-founded"
+            }
+          ],
+          "rewards": [
+            {
+              "code": "game:bread-spelt-perfect",
+              "count": 2
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "code": "builder",
+      "quests": [
+        {
+          "code": "c-builder-hut",
+          "x": 0,
+          "y": 0,
+          "shape": "square",
+          "icon": "createacolony:hut-builder",
+          "objectives": [
+            {
+              "type": "building",
+              "code": "builder"
+            }
+          ],
+          "rewards": [
+            {
+              "code": "game:stick",
+              "count": 16
+            }
+          ]
+        },
+        {
+          "code": "c-builder-job",
+          "x": 1,
+          "y": 0,
+          "shape": "square",
+          "requires": [
+            "c-builder-hut"
+          ],
+          "objectives": [
+            {
+              "type": "job",
+              "code": "builder"
+            }
+          ],
+          "rewards": [
+            {
+              "code": "game:planks-*",
+              "count": 8
+            }
+          ]
+        },
+        {
+          "code": "c-builder-2",
+          "x": 2,
+          "y": 0,
+          "shape": "star",
+          "requires": [
+            "c-builder-job"
+          ],
+          "objectives": [
+            {
+              "type": "building",
+              "code": "builder",
+              "level": 2
+            }
+          ],
+          "rewards": [
+            {
+              "code": "game:planks-*",
+              "count": 32
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "code": "jobs",
+      "quests": [
+        {
+          "code": "c-two",
+          "x": 0,
+          "y": 0,
+          "shape": "square",
+          "objectives": [
+            {
+              "type": "settlers",
+              "count": 2
+            }
+          ],
+          "rewards": [
+            {
+              "code": "game:bread-spelt-perfect",
+              "count": 4
+            }
+          ]
+        },
+        {
+          "code": "c-jobs",
+          "x": 1,
+          "y": 0,
+          "shape": "square",
+          "requires": [
+            "c-two"
+          ],
+          "objectives": [
+            {
+              "type": "job",
+              "code": "builder"
+            },
+            {
+              "type": "job",
+              "code": "courier"
+            }
+          ],
+          "rewards": [
+            {
+              "code": "game:firewood",
+              "count": 16
+            }
+          ]
+        },
+        {
+          "code": "c-four",
+          "x": 2,
+          "y": 0,
+          "shape": "star",
+          "requires": [
+            "c-jobs"
+          ],
+          "objectives": [
+            {
+              "type": "settlers",
+              "count": 4
+            }
+          ],
+          "rewards": [
+            {
+              "code": "game:bread-spelt-perfect",
+              "count": 8
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "code": "storage",
+      "quests": [
+        {
+          "code": "c-warehouse",
+          "x": 0,
+          "y": 0,
+          "shape": "square",
+          "icon": "createacolony:warehouse",
+          "objectives": [
+            {
+              "type": "building",
+              "code": "warehouse"
+            }
+          ],
+          "rewards": [
+            {
+              "code": "game:stick",
+              "count": 16
+            }
+          ]
+        },
+        {
+          "code": "c-courier",
+          "x": 1,
+          "y": 0,
+          "shape": "square",
+          "requires": [
+            "c-warehouse"
+          ],
+          "objectives": [
+            {
+              "type": "job",
+              "code": "courier"
+            }
+          ],
+          "rewards": [
+            {
+              "code": "game:linen-normal-down",
+              "count": 2
+            }
+          ]
+        },
+        {
+          "code": "c-stock",
+          "x": 2,
+          "y": 0,
+          "shape": "star",
+          "requires": [
+            "c-courier"
+          ],
+          "objectives": [
+            {
+              "type": "stock",
+              "code": "*",
+              "count": 200
+            }
+          ],
+          "rewards": [
+            {
+              "code": "game:gear-rusty",
+              "count": 2
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "code": "food",
+      "quests": [
+        {
+          "code": "c-farmer",
+          "x": 0,
+          "y": 0,
+          "shape": "square",
+          "icon": "createacolony:hut-farmer",
+          "objectives": [
+            {
+              "type": "building",
+              "code": "farmer"
+            },
+            {
+              "type": "job",
+              "code": "farmer"
+            }
+          ],
+          "rewards": [
+            {
+              "code": "game:seeds-*",
+              "count": 8
+            }
+          ]
+        },
+        {
+          "code": "c-cook",
+          "x": 1,
+          "y": 0,
+          "shape": "square",
+          "icon": "createacolony:hut-cook",
+          "requires": [
+            "c-farmer"
+          ],
+          "objectives": [
+            {
+              "type": "building",
+              "code": "cook"
+            },
+            {
+              "type": "job",
+              "code": "cook"
+            }
+          ],
+          "rewards": [
+            {
+              "code": "game:bowl-fired",
+              "count": 4
+            }
+          ]
+        },
+        {
+          "code": "c-bread",
+          "x": 2,
+          "y": 0,
+          "shape": "star",
+          "requires": [
+            "c-cook"
+          ],
+          "objectives": [
+            {
+              "type": "stock",
+              "code": "game:bread-*",
+              "count": 8
+            }
+          ],
+          "rewards": [
+            {
+              "code": "game:honeyportion",
+              "count": 2
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "code": "families",
+      "quests": [
+        {
+          "code": "c-residence",
+          "x": 0,
+          "y": 0,
+          "shape": "square",
+          "icon": "createacolony:hut-residence",
+          "objectives": [
+            {
+              "type": "building",
+              "code": "residence",
+              "level": 1
+            }
+          ],
+          "rewards": [
+            {
+              "code": "game:drygrass",
+              "count": 32
+            }
+          ]
+        },
+        {
+          "code": "c-couple",
+          "x": 1,
+          "y": 0,
+          "shape": "square",
+          "requires": [
+            "c-residence"
+          ],
+          "objectives": [
+            {
+              "type": "couples"
+            }
+          ],
+          "rewards": [
+            {
+              "code": "game:linen-normal-down",
+              "count": 4
+            }
+          ]
+        },
+        {
+          "code": "c-born",
+          "x": 2,
+          "y": 0,
+          "shape": "square",
+          "requires": [
+            "c-couple"
+          ],
+          "objectives": [
+            {
+              "type": "children"
+            }
+          ],
+          "rewards": [
+            {
+              "code": "game:honeyportion",
+              "count": 4
+            }
+          ]
+        },
+        {
+          "code": "c-grown",
+          "x": 3,
+          "y": 0,
+          "shape": "star",
+          "requires": [
+            "c-born"
+          ],
+          "objectives": [
+            {
+              "type": "event",
+              "code": "event-grown-up"
+            }
+          ],
+          "rewards": [
+            {
+              "code": "game:gear-rusty",
+              "count": 4
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "code": "guards",
+      "quests": [
+        {
+          "code": "c-tower",
+          "x": 0,
+          "y": 0,
+          "shape": "square",
+          "icon": "createacolony:hut-guardtower",
+          "objectives": [
+            {
+              "type": "building",
+              "code": "guardtower",
+              "level": 1
+            }
+          ],
+          "rewards": [
+            {
+              "code": "game:spear-copper",
+              "count": 1
+            }
+          ]
+        },
+        {
+          "code": "c-guard",
+          "x": 1,
+          "y": 0,
+          "shape": "square",
+          "requires": [
+            "c-tower"
+          ],
+          "objectives": [
+            {
+              "type": "job",
+              "code": "guard"
+            }
+          ],
+          "rewards": [
+            {
+              "code": "game:spear-copper",
+              "count": 2
+            }
+          ]
+        },
+        {
+          "code": "c-patrol",
+          "x": 2,
+          "y": -1,
+          "shape": "hexagon",
+          "requires": [
+            "c-guard"
+          ],
+          "objectives": [
+            {
+              "type": "stat",
+              "code": "patrol-points",
+              "count": 20
+            }
+          ],
+          "rewards": [
+            {
+              "code": "game:torch-basic-lit-up",
+              "count": 8
+            }
+          ]
+        },
+        {
+          "code": "c-kills",
+          "x": 2,
+          "y": 1,
+          "shape": "star",
+          "requires": [
+            "c-guard"
+          ],
+          "objectives": [
+            {
+              "type": "stat",
+              "code": "kill:*",
+              "count": 5
+            }
+          ],
+          "rewards": [
+            {
+              "code": "game:gear-rusty",
+              "count": 4
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "code": "banners",
+      "quests": [
+        {
+          "code": "c-banner",
+          "x": 0,
+          "y": 0,
+          "shape": "star",
+          "objectives": [
+            {
+              "type": "event",
+              "code": "event-banner"
+            }
+          ],
+          "rewards": [
+            {
+              "code": "game:linen-normal-down",
+              "count": 8
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

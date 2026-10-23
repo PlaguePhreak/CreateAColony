@@ -67,10 +67,11 @@ public partial class ColonyManager
         return worn;
     }
 
-    void SaveArmor(Colony colony, CitizenRecord citizen, ItemStack?[] worn)
+    public void SaveArmor(Colony colony, CitizenRecord citizen, ItemStack?[] worn)
     {
         citizen.Armor = worn.Where(s => s != null && s.StackSize > 0).Select(s => s!.ToBytes()).ToList();
         MarkDirty(colony);
+        DressEntity(citizen);
     }
 
     /// <summary>A container (tower storage first, then warehouse) with a piece that beats what the guard wears, or null.</summary>
@@ -129,6 +130,7 @@ public partial class ColonyManager
         var all = Resolve(citizen.Armor);
         citizen.Armor.Clear();
         MarkDirty(colony);
+        DressEntity(citizen);
         return all;
     }
 

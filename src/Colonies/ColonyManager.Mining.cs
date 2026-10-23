@@ -17,7 +17,7 @@ namespace CreateAColony.Colonies;
 /// </summary>
 public partial class ColonyManager
 {
-    public enum MineWork { Travel, Dig }
+    public enum MineWork { Travel, Dig, Fill, Search }
 
     /// <summary>What a miner does next: walk to Stand, then (for Dig) dig out Block from there.</summary>
     public readonly record struct MineJob(MineWork Kind, BlockPos Block, BlockPos Stand, bool Ore);
@@ -137,6 +137,106 @@ public partial class ColonyManager
     /// <summary>Seconds to dig a block: ore takes half as long again as rock.</summary>
     public float DigSeconds(BlockPos pos, float perBlock) => IsOre(sapi.World.BlockAccessor.GetBlock(pos)) ? perBlock * 1.5f : perBlock;
 
+    // ---- Filling finished mines in -----------------------------------------------------------
+
+    /// <summary>A block a miner fills a finished mine with: soil, or failing that gravel, sand or stone it dug.</summary>
+    public static bool IsFillStack(ItemStack? stack) => stack?.Block is { } block && block.SideSolid.All && block.EntityClass == null
+        && block.BlockMaterial is EnumBlockMaterial.Soil or EnumBlockMaterial.Gravel or EnumBlockMaterial.Sand or EnumBlockMaterial.Stone
+        && !IsOre(block);
+
+    /// <summary>Soil first: the miner covers its mines with dirt when it has any.</summary>
+    public static bool IsSoilStack(ItemStack? stack) => IsFillStack(stack) && stack!.Block!.BlockMaterial == EnumBlockMaterial.Soil;
+
+    /// <summary>
+    /// The open spaces of a finished mine to fill: everything dug out below the surface and joined to the
+    /// entrance, down MinerFillDepth blocks (the staircase and whatever opens off it that high up), lowest
+    /// first. A cave the mine broke into is filled only within that box, and buildings never.
+    /// </summary>
+    public List<BlockPos> FillCells(Colony colony, BlockPos entrance)
+    {
+        var ba = sapi.World.BlockAccessor;
+        var boxes = DigProtected(colony);
+        int depth = Math.Max(1, Config.MinerFillDepth), reach = depth * 2 + 2;
+        bool Open(BlockPos p) => ba.GetChunkAtBlockPos(p) != null && IsClear(p) && ba.GetBlock(p, BlockLayersAccess.Fluid).Id == 0 && !Inside(p, boxes);
+
+        // From the first steps down beside the entrance; never along the surface, so other holes nearby are left alone.
+        var seen = new HashSet<BlockPos>();
+        var open = new Queue<BlockPos>();
+        for (int dx = -1; dx <= 1; dx++)
+        for (int dz = -1; dz <= 1; dz++)
+        {
+            var start = entrance.AddCopy(dx, -1, dz);
+            if (Open(start) && seen.Add(start)) open.Enqueue(start);
+        }
+        while (open.Count > 0 && seen.Count < 2000)
+        {
+            var at = open.Dequeue();
+            foreach (var face in BlockFacing.ALLFACES)
+            {
+                var next = at.AddCopy(face);
+                if (next.Y >= entrance.Y || next.Y < entrance.Y - depth) continue;
+                if (Math.Abs(next.X - entrance.X) > reach || Math.Abs(next.Z - entrance.Z) > reach) continue;
+                if (seen.Contains(next) || !Open(next)) continue;
+                seen.Add(next);
+                open.Enqueue(next);
+            }
+        }
+        return seen.OrderBy(p => p.Y).ThenBy(p => Horizontal(p, entrance)).ToList();
+    }
+
+    /// <summary>
+    /// The miner's next job filling in a finished mine: walk to its entrance, then put a block in the
+    /// lowest open space. Status "mine-filling". Null when no mine is waiting, or no fill is at hand (then
+    /// the status says so and other work goes on).
+    /// </summary>
+    MineJob? NextFillJob(Colony colony, Building hut, System.Func<BlockPos, bool> skip, out string status)
+    {
+        status = "";
+        var ba = sapi.World.BlockAccessor;
+        while (hut.MineSeals.Count > 0)
+        {
+            var entrance = hut.MineSeals[0];
+            if (ba.GetChunkAtBlockPos(entrance) == null)
+            {
+                status = "mine-filling";
+                return new MineJob(MineWork.Travel, entrance, entrance, false);
+            }
+            var cell = FillCells(colony, entrance).FirstOrDefault(p => !skip(p) && CanWorkAt(colony, p));
+            if (cell == null)
+            {
+                hut.MineSeals.RemoveAt(0);
+                MarkDirty(colony);
+                continue;
+            }
+            status = "mine-filling";
+            return new MineJob(MineWork.Fill, cell, entrance.Copy(), false);
+        }
+        return null;
+    }
+
+    /// <summary>Asks couriers for soil to fill finished mines with, once at a time.</summary>
+    public void EnsureFillRequest(Colony colony, Building hut)
+    {
+        var chest = HutStorage(colony, hut).FirstOrDefault();
+        if (chest == null) return;
+        const string code = "game:soil-*";
+        string tag = RequestTag(hut);
+        if (!colony.Requests.Any(r => r.RequestedBy == tag && r.ItemCode == code)) AddRequest(colony, code, 32, chest.Pos, tag);
+    }
+
+    /// <summary>Puts a fill block from the worker's inventory into an open space of a finished mine. False when it has none.</summary>
+    public bool FillBlock(Colony colony, CitizenRecord worker, BlockPos pos)
+    {
+        var ba = sapi.World.BlockAccessor;
+        if (!IsClear(pos)) return true;
+        var stack = TakeFromPack(colony, worker, IsSoilStack, 1) ?? TakeFromPack(colony, worker, IsFillStack, 1);
+        if (stack?.Block is not { } block) return false;
+        ba.SetBlock(block.Id, pos);
+        ba.TriggerNeighbourBlockUpdate(pos);
+        if (block.Sounds?.Place != null) sapi.World.PlaySoundAt(block.Sounds.Place, pos, 0);
+        return true;
+    }
+
     // ---- Torches -------------------------------------------------------------------------------
 
     /// <summary>A torch a miner can put down: lit or gone out, not burned out.</summary>
@@ -183,9 +283,15 @@ public partial class ColonyManager
 
     // ---- Choosing where to mine -----------------------------------------------------------
 
-    /// <summary>Forgets the miner's site and tunnel, so it picks a new reading.</summary>
+    /// <summary>Forgets the miner's site and tunnel, so it picks a new reading. The staircases it dug there get filled back in.</summary>
     public void ClearMine(Colony colony, Building hut)
     {
+        var site = hut.MineSite;
+        foreach (var entrance in hut.SiteEntrances)
+        {
+            if (!hut.MineSeals.Any(s => s.Equals(entrance))) hut.MineSeals.Add(entrance);
+        }
+        hut.SiteEntrances.Clear();
         hut.MineSite = null;
         hut.MineSiteOre = "";
         hut.MineEntrance = null;
@@ -193,6 +299,7 @@ public partial class ColonyManager
         hut.MineTarget = null;
         oreBlocks.Remove(hut.BuildingId);
         blockedOre.Remove(hut.BuildingId);
+        if (nodeFinds.TryGetValue(hut.BuildingId, out var finds) && site != null) finds.Forget(site, Config.MinerOreSearchRadius + NodeSearchRadius());
         MarkDirty(colony);
     }
 
@@ -408,10 +515,18 @@ public partial class ColonyManager
     /// the prospectors found comes first; otherwise, or when there is none it can get to, the shaft. At is
     /// where the miner stands. Null when there is nothing to dig.
     /// </summary>
-    public MineJob? NextMineJob(Colony colony, Building hut, BlockPos at, System.Func<BlockPos, bool> skip, out string status)
+    public MineJob? NextMineJob(Colony colony, Building hut, BlockPos at, System.Func<BlockPos, bool> skip, bool canFill, bool canSearch, out string status)
     {
-        if (hut.MineProspected && NextSiteJob(colony, hut, skip, out status) is { } trip) return trip;
-        return NextShaftJob(colony, hut, at, skip, out status);
+        if (canFill && NextFillJob(colony, hut, skip, out status) is { } fill) return fill;
+        if (NextNodeJob(colony, hut, skip, out status) is { } node) return node;
+        MineJob? job = hut.MineProspected && NextSiteJob(colony, hut, skip, out status) is { } trip ? trip : NextShaftJob(colony, hut, at, skip, out status);
+        // Somewhere new in the mine: a node search there first, for ore close by.
+        if (canSearch && job is { Kind: MineWork.Dig } dig && NeedsNodeSearch(hut, dig.Stand))
+        {
+            status = "mine-node-search";
+            return new MineJob(MineWork.Search, dig.Stand.Copy(), dig.Stand.Copy(), false);
+        }
+        return job;
     }
 
     /// <summary>
@@ -477,6 +592,7 @@ public partial class ColonyManager
                     continue;
                 }
                 hut.MineEntrance = entrance;
+                hut.SiteEntrances.Add(entrance.Copy());
                 hut.MineEnd = entrance.Copy();
                 MarkDirty(colony);
             }
@@ -726,5 +842,175 @@ public partial class ColonyManager
             }
         }
         return line;
+    }
+
+    // ---- Node search with the prospecting pick -----------------------------------------------
+
+    /// <summary>
+    /// What a miner's node searches found: where it searched, the ore blocks it found (each with the spot
+    /// it searched from), and the side tunnel it is digging to one of them (its target and how far it got).
+    /// </summary>
+    sealed class NodeFinds
+    {
+        public readonly List<BlockPos> Searched = new();
+        public readonly List<(BlockPos Ore, BlockPos From)> Ore = new();
+        public BlockPos? Target, End;
+
+        /// <summary>Drops what was searched and found around a finished site, within range of it.</summary>
+        public void Forget(BlockPos site, int range)
+        {
+            bool Near(BlockPos p) => Math.Abs(p.X - site.X) <= range && Math.Abs(p.Z - site.Z) <= range;
+            Searched.RemoveAll(Near);
+            Ore.RemoveAll(f => Near(f.From));
+            Target = End = null;
+        }
+    }
+
+    /// <summary>Each Miner's Hut's node finds. Kept in memory only: after a restart the miner just searches again.</summary>
+    readonly Dictionary<int, NodeFinds> nodeFinds = new();
+
+    NodeFinds FindsOf(Building hut)
+    {
+        if (!nodeFinds.TryGetValue(hut.BuildingId, out var finds)) nodeFinds[hut.BuildingId] = finds = new NodeFinds();
+        return finds;
+    }
+
+    /// <summary>
+    /// How far a node search reaches: MinerNodeSearchRadius, or when that is 0 the world's own setting for
+    /// the prospecting pick's node search mode, or 8 when the world has none.
+    /// </summary>
+    public int NodeSearchRadius()
+    {
+        if (Config.MinerNodeSearchRadius > 0) return Config.MinerNodeSearchRadius;
+        var value = sapi.World.Config?["propickNodeSearchRadius"]?.GetValue()?.ToString();
+        return int.TryParse(value, out int radius) && radius > 0 ? Math.Min(radius, 32) : 8;
+    }
+
+    /// <summary>True when the miner has not yet searched near this spot (within half a search's reach).</summary>
+    bool NeedsNodeSearch(Building hut, BlockPos stand)
+    {
+        double half = NodeSearchRadius() / 2.0;
+        return !FindsOf(hut).Searched.Any(p => p.DistanceTo(stand) <= half);
+    }
+
+    /// <summary>
+    /// A node search, as the prospecting pick's node search mode does for a player: every ore block within
+    /// reach of where the miner stands is noted, to be dug out. Wears the pick down. The number of new
+    /// ore blocks found.
+    /// </summary>
+    public int NodeSearch(Colony colony, Building hut, EntityAgent entity, BlockPos at, ItemSlot pick)
+    {
+        var finds = FindsOf(hut);
+        finds.Searched.Add(at.Copy()); // even without a pick in hand, so the miner does not try here again and again
+        if (!IsProspectingPick(pick.Itemstack)) return 0;
+        var ba = sapi.World.BlockAccessor;
+        int r = NodeSearchRadius(), found = 0;
+        var known = new HashSet<BlockPos>(finds.Ore.Select(f => f.Ore));
+        var pos = new BlockPos(0);
+        for (int x = -r; x <= r; x++)
+        for (int y = -r; y <= r; y++)
+        for (int z = -r; z <= r; z++)
+        {
+            pos.Set(at.X + x, at.Y + y, at.Z + z);
+            if (pos.Y <= 1 || !IsOre(ba.GetBlock(pos)) || known.Contains(pos)) continue;
+            finds.Ore.Add((pos.Copy(), at.Copy()));
+            found++;
+        }
+        for (int i = 0; i < Math.Max(0, Config.MinerNodeSearchWear); i++) WearTool(entity, pick);
+        AddStat(hut, "node-searches");
+        MarkDirty(colony);
+        return found;
+    }
+
+    /// <summary>
+    /// The miner's next job digging out ore its node searches found: the next block of a side tunnel to it,
+    /// or the ore itself. A side tunnel starts from where the search was made (or from the end of the last
+    /// one, when the next ore is in reach of it) and never digs away the floor of a way through the mine
+    /// or the shaft's pillar. Ore it cannot get to is let go. Null when there is none to dig.
+    /// </summary>
+    MineJob? NextNodeJob(Colony colony, Building hut, System.Func<BlockPos, bool> skip, out string status)
+    {
+        status = "";
+        if (!nodeFinds.TryGetValue(hut.BuildingId, out var finds) || finds.Ore.Count == 0) return null;
+        var ba = sapi.World.BlockAccessor;
+        finds.Ore.RemoveAll(f => !IsOre(ba.GetBlock(f.Ore)));
+        if (finds.Ore.Count == 0)
+        {
+            finds.Target = finds.End = null;
+            return null;
+        }
+
+        var (boxes, keep) = DigLimits(colony, hut, WaypointOf(hut, "mine") != null);
+        var guarded = new HashSet<BlockPos>(keep);
+        if (hut.ShaftPos is { } centre)
+        {
+            var plan = ShaftPlan(centre, ShaftLevels(hut), Math.Max(1, Config.MinerTunnelLength));
+            guarded.UnionWith(plan.Select(p => p.Feet.DownCopy()));
+            int bottom = plan.Count > 0 ? plan.Min(p => p.Feet.Y) : centre.Y;
+            for (int y = bottom - 1; y <= centre.Y; y++) guarded.Add(new BlockPos(centre.X, y, centre.Z));
+        }
+        // The floor of an open way someone walks on (two clear blocks above it) that the tunnel itself did not open.
+        bool Guarded(BlockPos dig, ISet<BlockPos> tunnel) => guarded.Contains(dig)
+            || !tunnel.Contains(dig.UpCopy()) && IsClear(dig.UpCopy()) && IsClear(dig.UpCopy(2));
+        bool Reaches(BlockPos from, BlockPos ore) => Horizontal(from, ore) >= Math.Abs(from.Y - ore.Y) + 1;
+
+        for (int tries = 0; tries < 8 && finds.Ore.Count > 0; tries++)
+        {
+            var current = finds.Target;
+            if (current == null || !finds.Ore.Any(f => f.Ore.Equals(current)) || skip(current) || IsBlockedOre(hut, current))
+            {
+                finds.Target = null;
+                var open = finds.Ore.Where(f => !skip(f.Ore) && !IsBlockedOre(hut, f.Ore)).ToList();
+                if (open.Count == 0) return null;
+                if (finds.End is { } end && open.Where(f => Reaches(end, f.Ore)).OrderBy(f => end.DistanceTo(f.Ore)).FirstOrDefault() is { Ore: not null } next)
+                {
+                    finds.Target = next.Ore;
+                }
+                else
+                {
+                    finds.End = null;
+                    // Ore no side tunnel from its search spot can reach (straight above or below it) is let go.
+                    finds.Ore.RemoveAll(f => !Reaches(f.From, f.Ore));
+                    var first = finds.Ore.Where(f => !skip(f.Ore) && !IsBlockedOre(hut, f.Ore)).OrderBy(f => f.From.DistanceTo(f.Ore)).FirstOrDefault();
+                    if (first.Ore == null) return null;
+                    finds.Target = first.Ore;
+                    finds.End = first.From.Copy();
+                }
+            }
+            var target = finds.Target!;
+            var from = finds.End ?? finds.Ore.First(f => f.Ore.Equals(target)).From;
+
+            var route = MineRoute(from, target);
+            var tunnel = new HashSet<BlockPos>(route.SelectMany(r => r.Digs));
+            var standAt = from.Copy();
+            bool blocked = Guarded(target, tunnel) || !CanDig(colony, target, boxes);
+            foreach (var (feet, digs) in route)
+            {
+                if (blocked) break;
+                foreach (var dig in digs)
+                {
+                    if (IsClear(dig)) continue;
+                    if (dig.Equals(target)) break;
+                    if (skip(dig) || Guarded(dig, tunnel) || !CanDig(colony, dig, boxes))
+                    {
+                        blocked = true;
+                        break;
+                    }
+                    status = "mine-node-tunnel";
+                    return new MineJob(MineWork.Dig, dig, standAt, IsOre(ba.GetBlock(dig)));
+                }
+                if (!blocked) standAt = feet;
+            }
+            if (blocked)
+            {
+                finds.Ore.RemoveAll(f => f.Ore.Equals(target));
+                finds.Target = finds.End = null;
+                continue;
+            }
+            finds.End = standAt;
+            status = "mine-node-ore";
+            return new MineJob(MineWork.Dig, target, standAt, true);
+        }
+        return null;
     }
 }

@@ -46,7 +46,7 @@ public class SettlerAnimations : ModSystem
     }
 
     /// <summary>The game's player (seraph) shape: the one with the bare-hand mining animation.</summary>
-    static (string Path, JObject Shape)? FindPlayerShape(ICoreAPI api)
+    internal static (string Path, JObject Shape)? FindPlayerShape(ICoreAPI api)
     {
         var candidates = api.Assets.GetMany("shapes/entity/humanoid/", "game", loadAsset: true)
             .Where(a => a.Location.Path.Contains("seraph") && a.Location.Path.EndsWith(".json"))
@@ -68,7 +68,7 @@ public class SettlerAnimations : ModSystem
         return null;
     }
 
-    static int MergeAnimations(JObject shape, JObject player)
+    internal static int MergeAnimations(JObject shape, JObject player)
     {
         if (shape["animations"] is not JArray animations || player["animations"] is not JArray source) return 0;
 

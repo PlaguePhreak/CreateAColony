@@ -43,7 +43,7 @@ public abstract class AiTaskSettlerDigger : AiTaskSettlerWorker
     /// </summary>
     protected ItemStack? BestToolFor(CitizenRecord citizen, Block block)
     {
-        var carried = new[] { Hand?.Itemstack }.Concat(manager!.PackItems(citizen));
+        var carried = new[] { Hand?.Itemstack }.Concat(manager!.CarriedItems(citizen));
         return carried.Where(s => IsDiggingTool(s) && s!.Collectible.ToolTier >= block.RequiredMiningTier)
             .OrderByDescending(s => SpeedOn(s!, block)).ThenByDescending(s => s!.Collectible.ToolTier)
             .FirstOrDefault();
@@ -72,7 +72,7 @@ public abstract class AiTaskSettlerDigger : AiTaskSettlerWorker
     protected int BestPickTier(CitizenRecord citizen)
     {
         int hand = IsToolStack(Hand?.Itemstack) ? Hand!.Itemstack.Collectible.ToolTier : -1;
-        int pack = manager!.PackItems(citizen).Where(s => IsToolStack(s)).Select(s => s.Collectible.ToolTier).DefaultIfEmpty(-1).Max();
+        int pack = manager!.CarriedItems(citizen).Where(s => IsToolStack(s)).Select(s => s.Collectible.ToolTier).DefaultIfEmpty(-1).Max();
         return System.Math.Max(hand, pack);
     }
 
@@ -87,7 +87,7 @@ public abstract class AiTaskSettlerDigger : AiTaskSettlerWorker
         var chest = storage.FirstOrDefault(c => c.Inventory.Any(slot => Better(slot.Itemstack)));
         if (chest != null) return FetchSupplies(chest.Pos, s => Better(s), 1);
 
-        var carried = new[] { Hand?.Itemstack }.Concat(manager!.PackItems(citizen)).ToList();
+        var carried = new[] { Hand?.Itemstack }.Concat(manager!.CarriedItems(citizen)).ToList();
         foreach (var kind in HelperTools)
         {
             if (carried.Any(s => s?.Collectible.Tool == kind)) continue;

@@ -396,10 +396,12 @@ public partial class ColonyManager : ModSystem
         entity.CitizenId = record.CitizenId;
 
         entity.Pos.SetPos(at ?? Beside(colony.TownHallPos));
+        PresetSkin(record, entity);
         sapi.World.SpawnEntity(entity);
         entity.GetBehavior<EntityBehaviorNameTag>()?.SetName(record.Name);
 
         record.EntityId = entity.EntityId;
+        PrepareSettler(colony, record, entity);
         record.LastSeenTotalDays = sapi.World.Calendar.TotalDays;
         SaveColony(colony);
     }
