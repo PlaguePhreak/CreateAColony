@@ -51,7 +51,7 @@ public partial class ColonyManager
     {
         if (!Config.BuildersNeedTools) return null;
         var block = sapi.World.BlockAccessor.GetBlock(pos);
-        if (block.Id == 0 || block.IsLiquid() || KeepsBlock(colony, block, step.BlockId)) return null;
+        if (block.Id == 0 || block.IsLiquid() || KeepsBlock(colony, block, step.BlockId, pos)) return null;
         return ToolFor(block) is { } type ? new ToolNeed(type, block.RequiredMiningTier) : null;
     }
 

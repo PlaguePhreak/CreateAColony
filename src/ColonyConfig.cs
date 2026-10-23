@@ -48,6 +48,11 @@ public class ColonyConfig
     // Construction
     /// <summary>When false, builders conjure blocks without materials. Handy for creative testing.</summary>
     public bool BuildersNeedMaterials = true;
+    /// <summary>
+    /// Builders give each wattle and daub block a stage of their own (wattle, cracked or smooth) instead of the
+    /// blueprint's, picked from where the block stands, so the same building looks a little different each time.
+    /// </summary>
+    public bool RandomDaubStages = true;
     /// <summary>Seconds a builder takes per block placed or cleared.</summary>
     public float BuilderSecondsPerBlock = 0.75f;
     /// <summary>

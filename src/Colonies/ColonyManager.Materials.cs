@@ -38,11 +38,12 @@ public partial class ColonyManager
     /// lit or burnt out all count), a fence however it is joined to its neighbours, or the same block in
     /// another wood or stone when the colony allows it.
     /// </summary>
-    public bool Fulfils(Colony colony, Block current, int targetId)
+    public bool Fulfils(Colony colony, Block current, int targetId, BlockPos pos)
     {
         if (current.Id == 0 || targetId == 0) return false;
         var target = sapi.World.GetBlock(targetId);
         if (target == null) return false;
+        target = VariedDaub(target, pos);
         // A Stone Bake Oven block is the same block whether its fire is lit or the oven is hot (ColonyManager.StoneOven.cs).
         if (IsStoneOvenBlock(target) || IsStoneOvenBlock(current)) return OvenRestingBlock(current).Id == OvenRestingBlock(target).Id
             || (colony.AnyWoodOrStone && SameButStone(OvenRestingBlock(current), OvenRestingBlock(target)));
@@ -81,13 +82,13 @@ public partial class ColonyManager
     }
 
     /// <summary>True when the block is a half-built step towards the blueprint's block, so it must not be torn down.</summary>
-    public bool InProgress(Colony colony, Block current, int targetId) =>
+    public bool InProgress(Colony colony, Block current, int targetId, BlockPos pos) =>
         current is BlockFirepit pit && !IsStoneOvenBlock(pit) && pit.Stage < FirepitReady && sapi.World.GetBlock(targetId) is BlockFirepit want && !IsStoneOvenBlock(want)
-        || DaubInProgress(colony, current, sapi.World.GetBlock(targetId));
+        || DaubInProgress(colony, current, VariedDaub(sapi.World.GetBlock(targetId), pos));
 
     /// <summary>True when a builder leaves this block standing for the step.</summary>
-    public bool KeepsBlock(Colony colony, Block current, int targetId) =>
-        current.Id == targetId || Fulfils(colony, current, targetId) || InProgress(colony, current, targetId);
+    public bool KeepsBlock(Colony colony, Block current, int targetId, BlockPos pos) =>
+        current.Id == targetId || Fulfils(colony, current, targetId, pos) || InProgress(colony, current, targetId, pos);
 
     /// <summary>Rock, gravel, sand, clay and other natural ground blocks.</summary>
     static bool IsNaturalGround(Block block) => block.SideSolid.All && block.BlockMaterial is EnumBlockMaterial.Soil
@@ -125,7 +126,7 @@ public partial class ColonyManager
             var start = sapi.World.GetBlock(new AssetLocation("game:firepit-construct1"));
             if (start != null) return (start, Costs(ItemCost("game:drygrass", 1)));
         }
-        if (DaubPlacement(colony, target, pos) is { } daub) return daub;
+        if (DaubPlacement(colony, VariedDaub(target, pos), pos) is { } daub) return daub;
         if (Config.BuildersNeedMaterials && (PlacedItemCosts(step, target, pos, colony.AnyWoodOrStone) ?? SavedCost(step, target)) is { } saved) return (target, saved);
         return (target, Costs(PickCost(colony, target, pos)));
     }
@@ -146,7 +147,7 @@ public partial class ColonyManager
             if (wood > 0) yield return firewood with { Count = wood };
             yield break;
         }
-        if (DaubRemaining(colony, target, pos) is { } daub)
+        if (DaubRemaining(colony, VariedDaub(target, pos), pos) is { } daub)
         {
             foreach (var cost in daub) yield return cost;
             yield break;

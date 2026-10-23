@@ -181,6 +181,10 @@ any wood or stone, any colour of raw daub will do: the wall takes the colour of 
 coats use that colour, as the game requires. Otherwise the builder asks for the blueprint's colour. A
 smoother coat than the blueprint's also counts as built, and a wattle fence or half-done daub where the
 blueprint has daub is never torn down.
+Since 0.56.1 builders also vary it: each daub block gets its own stage (wattle, cracked or smooth),
+picked from where the block stands, so a building placed many times looks a little different each time.
+The pick never changes for a spot, so finished walls stay finished. Set `RandomDaubStages` to false in
+`ModConfig/createacolony.json` to build the blueprint's stages exactly.
 
 ### Converting MineColonies blueprints
 

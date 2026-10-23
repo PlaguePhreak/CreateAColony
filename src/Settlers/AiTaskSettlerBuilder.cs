@@ -352,7 +352,7 @@ public class AiTaskSettlerBuilder : SettlerTaskBase
         var hand = Hand;
         if (hand == null) return;
         var current = entity.World.BlockAccessor.GetBlock(target);
-        bool clearing = current.Id != 0 && !manager!.KeepsBlock(colony, current, buildStep.BlockId);
+        bool clearing = current.Id != 0 && !manager!.KeepsBlock(colony, current, buildStep.BlockId, target);
         var need = clearing ? manager!.ToolNeededAt(colony, buildStep, target) : null;
         if (need == null)
         {
@@ -383,7 +383,7 @@ public class AiTaskSettlerBuilder : SettlerTaskBase
 
         var ba = entity.World.BlockAccessor;
         var current = ba.GetBlock(target);
-        if (current.Id != 0 && !manager.KeepsBlock(colony, current, buildStep.BlockId))
+        if (current.Id != 0 && !manager.KeepsBlock(colony, current, buildStep.BlockId, target))
         {
             var toolNeed = manager.ToolNeededAt(colony, buildStep, target);
             var hand = Hand;
@@ -445,7 +445,7 @@ public class AiTaskSettlerBuilder : SettlerTaskBase
     string WorkAnimationCode(Colony colony)
     {
         var current = entity.World.BlockAccessor.GetBlock(target);
-        bool clearing = current.Id != 0 && !manager!.KeepsBlock(colony, current, buildStep.BlockId);
+        bool clearing = current.Id != 0 && !manager!.KeepsBlock(colony, current, buildStep.BlockId, target);
         if (!clearing) return SettlerAnimations.PlayerAnimations.Contains("placeblock") ? "placeblock" : "interactstatic";
         var hand = Hand;
         return hand?.Itemstack?.Collectible.GetHeldTpHitAnimation(hand, entity) ?? "breakhand";

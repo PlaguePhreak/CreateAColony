@@ -13,7 +13,9 @@ namespace CreateAColony.Colonies;
 /// builder puts raw daub (daubraw-{color}) on it for the first coat ("wattle"), then more for "cracked" and
 /// more again for "normal", stopping at the stage the blueprint shows. How much each coat takes is the
 /// blocks' own "daubUpgradeAmount". When the colony allows any wood or stone, any colour will do for the first
-/// coat and the wall takes that colour; later coats, as in the game, must be the wall's own colour.
+/// coat and the wall takes that colour; later coats, as in the game, must be the wall's own colour. With
+/// RandomDaubStages on (the default), each block gets its own stage, picked from where it stands, in place of
+/// the blueprint's, so a building placed many times looks a little different each time.
 /// </summary>
 public partial class ColonyManager
 {
@@ -38,6 +40,16 @@ public partial class ColonyManager
 
     /// <summary>Raw daub one coat takes: the game reads "daubUpgradeAmount" from the fence (first coat) or the daub block (later coats).</summary>
     static int DaubCoat(Block? block) => block?.Attributes?["daubUpgradeAmount"].AsInt(2) ?? 2;
+
+    /// <summary>
+    /// The daub block a builder aims for at pos: with RandomDaubStages, the blueprint's colour at a stage picked
+    /// from the position, the same every time it is asked. Other blocks are returned as they are.
+    /// </summary>
+    Block VariedDaub(Block target, BlockPos pos)
+    {
+        if (!Config.RandomDaubStages || DaubStage(target, out string color) < 0) return target;
+        return DaubBlock(color, GameMath.MurmurHash3Mod(pos.X, pos.Y, pos.Z, DaubStages.Length)) ?? target;
+    }
 
     Block? DaubBlock(string color, int stage) => sapi.World.GetBlock(new AssetLocation("game", $"daub-{color}-{DaubStages[stage]}"));
 
