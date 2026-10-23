@@ -200,6 +200,7 @@ public partial class ColonyManager : ModSystem
             RefreshClaim(colony);
             TickWanderers(colony, now);
             TickFamilies(colony, now);
+            EnsureSkills(colony);
             EnsureMinStock(colony);
 
             foreach (var citizen in colony.Citizens.ToList())
@@ -365,8 +366,11 @@ public partial class ColonyManager : ModSystem
             Visitor = visitor,
             VisitorUntilTotalDays = visitor ? now + Config.WandererWaitDays : 0,
             JoinedTotalDays = now,
-            GrowsUpTotalDays = child ? now + Math.Max(0.01, Config.FamilyChildGrowDays) : 0
+            GrowsUpTotalDays = child ? now + Math.Max(0.01, Config.FamilyChildGrowDays) : 0,
+            SkillsRolled = true
         };
+        // Grown-ups from outside bring what they learned before; children start from nothing (see GrowUp).
+        if (!child) record.SkillXp = RollStartingSkills();
         colony.Citizens.Add(record);
         SpawnEntityFor(colony, record, at);
         return record;

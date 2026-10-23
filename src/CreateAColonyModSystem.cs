@@ -111,6 +111,12 @@ public class CreateAColonyModSystem : ModSystem
                 .WithArgs(parsers.WordRange("action", "couple", "child", "grow"), parsers.Word("settler"), parsers.OptionalWord("partner"))
                 .HandleWith(OnFamily)
             .EndSubCommand()
+            .BeginSubCommand("skills")
+                .WithDescription("Skills, for testing: show a settler's skills, or set one skill to a level")
+                .RequiresPrivilege(Privilege.controlserver)
+                .WithArgs(parsers.Word("settler"), parsers.OptionalWord("skill"), parsers.OptionalInt("level", 0))
+                .HandleWith(OnSkills)
+            .EndSubCommand()
             .BeginSubCommand("invite")
                 .WithDescription("Invite an online player to join your colony")
                 .WithArgs(parsers.OnlinePlayer("player"))
@@ -279,6 +285,35 @@ public class CreateAColonyModSystem : ModSystem
     /// /colony family couple A B, /colony family child A (A and their partner have a child), /colony family grow A:
     /// family events at once, for testing. Settlers are found by first or full name.
     /// </summary>
+    /// <summary>/colony skills Jon: lists Jon's skills; /colony skills Jon farming 7: sets Farming to level 7.</summary>
+    TextCommandResult OnSkills(TextCommandCallingArgs args)
+    {
+        var player = (IServerPlayer)args.Caller.Player;
+        var manager = sapi!.ModLoader.GetModSystem<ColonyManager>();
+        var colony = manager.GetOwnedBy(player.PlayerUID);
+        if (colony == null) return TextCommandResult.Error(Lang.Get("createacolony:no-colony"));
+        if (!manager.Config.Skills) return TextCommandResult.Error(Lang.Get("createacolony:skills-cmd-off"));
+
+        string name = (string)args[0];
+        var settler = colony.Citizens.Find(c => c.Alive && !c.Visitor
+            && (c.Name.Equals(name, StringComparison.OrdinalIgnoreCase) || c.Name.Split(' ')[0].Equals(name, StringComparison.OrdinalIgnoreCase)));
+        if (settler == null) return TextCommandResult.Error(Lang.Get("createacolony:family-cmd-notfound", name));
+
+        if (args[1] is string code && code.Length > 0)
+        {
+            var skill = manager.Skill(code.ToLowerInvariant());
+            if (skill == null) return TextCommandResult.Error(Lang.Get("createacolony:skills-cmd-badskill", code, string.Join(", ", manager.Skills().Select(s => s.Code))));
+            int level = Math.Clamp((int)args[2], 0, manager.MaxLevel);
+            settler.SkillXp[skill.Code] = manager.XpForLevel(level);
+            manager.MarkDirty(colony);
+            return TextCommandResult.Success(Lang.Get("createacolony:skills-cmd-set", settler.Name, Lang.Get("createacolony:skill-" + skill.Code), level));
+        }
+
+        var lines = manager.SkillInfos(colony, settler).Where(s => s.Level > 0)
+            .Select(s => Lang.Get("createacolony:skill-level", Lang.Get("createacolony:skill-" + s.Code), s.Usable < s.Level ? Lang.Get("createacolony:skill-using", s.Level, s.Usable) : s.Level.ToString()));
+        return TextCommandResult.Success(lines.Any() ? Lang.Get("createacolony:skills-cmd-line", settler.Name, string.Join(", ", lines)) : Lang.Get("createacolony:skills-cmd-none", settler.Name));
+    }
+
     TextCommandResult OnFamily(TextCommandCallingArgs args)
     {
         var player = (IServerPlayer)args.Caller.Player;

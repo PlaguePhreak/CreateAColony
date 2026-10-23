@@ -246,8 +246,10 @@ public abstract class AiTaskSettlerWorker : SettlerTaskBase
                     workAnim = PlayShapeAnimation(WorkAnimation(Hand), "build");
                 }
                 workTime += dt;
-                if (workTime < WorkSeconds) return true;
+                // A skilled worker gets the same work done in less time (ColonyManager.Skills.cs).
+                if (workTime < WorkSeconds * manager!.WorkTimeFactor(colony, citizen)) return true;
                 DoWork(colony, citizen, hut);
+                manager.GainWorkXp(colony, citizen, Job);
                 StopWorkAnimation();
                 break;
         }

@@ -170,6 +170,8 @@ public class AiTaskSettlerCourier : SettlerTaskBase
 
         var request = colony.Requests.Find(r => r.RequestId == requestId);
         bool blocked;
+        int stacksBefore = manager.PackItems(citizen).Count;
+        bool wasFull = manager.PackFull(citizen);
         if (request != null)
         {
             if (entity.World.BlockAccessor.GetBlockEntity(request.DestPos) is not BlockEntityContainer dest)
@@ -193,6 +195,9 @@ public class AiTaskSettlerCourier : SettlerTaskBase
             manager.SavePack(colony, citizen, items);
             blocked = !manager.PackEmpty(citizen);
         }
+
+        // Hauling XP for every stack set down, Strength for a full load (ColonyManager.Skills.cs).
+        manager.GainHaulXp(colony, citizen, stacksBefore - manager.PackItems(citizen).Count, wasFull);
 
         // Straight on to the next job (anything left over goes to the warehouse), unless the destination was full.
         nextSearchMs = blocked ? entity.World.ElapsedMilliseconds + BlockedRetryMs : 0;
