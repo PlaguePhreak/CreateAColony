@@ -25,9 +25,9 @@ public partial class ColonyManager
 
     // ---- Containers -----------------------------------------------------------------------
 
-    public IEnumerable<BlockEntityGenericTypedContainer> WarehouseContainers(Colony colony)
+    public IEnumerable<BlockEntityContainer> WarehouseContainers(Colony colony)
     {
-        if (colony.WarehousePos == null) return Enumerable.Empty<BlockEntityGenericTypedContainer>();
+        if (colony.WarehousePos == null) return Enumerable.Empty<BlockEntityContainer>();
         var w = colony.WarehousePos;
         // Drop-off and worker hut chests are never warehouse storage, or couriers would shuffle items in circles.
         var excluded = new HashSet<BlockPos>(DropOffContainers(colony).Select(c => c.Pos));
@@ -35,14 +35,22 @@ public partial class ColonyManager
         {
             excluded.UnionWith(HutStorage(colony, hut).Select(c => c.Pos));
         }
-        return FindBlockEntities<BlockEntityGenericTypedContainer>(colony)
-            .Where(c => Math.Abs(c.Pos.X - w.X) <= WarehouseRadius && Math.Abs(c.Pos.Z - w.Z) <= WarehouseRadius
-                && Math.Abs(c.Pos.Y - w.Y) <= WarehouseHeight && !excluded.Contains(c.Pos))
-            .OrderBy(c => c.Pos.DistanceSqTo(w.X, w.Y, w.Z));
+        // The storage within WarehouseRadius of the Warehouse block, and anywhere inside the Warehouse's own building.
+        int x1 = w.X - WarehouseRadius, y1 = w.Y - WarehouseHeight, z1 = w.Z - WarehouseRadius;
+        int x2 = w.X + WarehouseRadius, y2 = w.Y + WarehouseHeight, z2 = w.Z + WarehouseRadius;
+        if (GetBuilding(colony, w) is { } warehouse && Blueprints.Get(warehouse, Math.Max(1, warehouse.Level)) is { Steps.Count: > 0 })
+        {
+            var (min, max) = BuildingBox(warehouse);
+            x1 = Math.Min(x1, min.X); y1 = Math.Min(y1, min.Y); z1 = Math.Min(z1, min.Z);
+            x2 = Math.Max(x2, max.X); y2 = Math.Max(y2, max.Y); z2 = Math.Max(z2, max.Z);
+        }
+        return FindBlockEntities<BlockEntityContainer>(new Cuboidi(x1, y1, z1, x2, y2, z2))
+            .Where(c => !excluded.Contains(c.Pos) && IsStorageVessel(c))
+            .OrderBy(c => c.Pos.DistanceSqTo(w.X, w.Y, w.Z))
+            .ToList();
     }
 
-    /// <summary>Containers touching a drop-off marker, including diagonally.</summary>
-    public IEnumerable<BlockEntityGenericTypedContainer> DropOffContainers(Colony colony)
+    public IEnumerable<BlockEntityContainer> DropOffContainers(Colony colony)
     {
         var ba = sapi.World.BlockAccessor;
         var seen = new HashSet<BlockPos>();
@@ -53,7 +61,7 @@ public partial class ColonyManager
             for (int dz = -1; dz <= 1; dz++)
             {
                 var pos = marker.AddCopy(dx, dy, dz);
-                if (ba.GetBlockEntity(pos) is BlockEntityGenericTypedContainer c && seen.Add(c.Pos)) yield return c;
+                if (ba.GetBlockEntity(pos) is BlockEntityContainer c && IsStorageVessel(c) && seen.Add(c.Pos)) yield return c;
             }
         }
     }

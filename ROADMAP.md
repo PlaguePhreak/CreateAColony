@@ -1,6 +1,6 @@
-# Create a Colony: roadmap
+# Vintage Colonies: roadmap
 
-Create a Colony brings the ideas of the Minecraft mod MineColonies to Vintage Story. This page shows what the mod has today (version 0.50.0), what it does not have yet, and the order we plan to build it in. It comes from a side-by-side check against the MineColonies wiki. Plans can change as things get tested in game.
+Vintage Colonies brings the ideas of the Minecraft mod MineColonies to Vintage Story. This page shows what the mod has today (version 0.72.0), what it does not have yet, and the order we plan to build it in. It comes from a side-by-side check against the MineColonies wiki. Plans can change as things get tested in game.
 
 Everything listed under "What we have" and "Partly done" has been tested in game.
 
@@ -43,12 +43,12 @@ Everything listed under "What we have" and "Partly done" has been tested in game
 
 ## Partly done
 
-- **Cook's Hut**: no baking in clay ovens yet, no place where the Cook serves food, no food-mod cooking stations *(tested)*
+- **Cook's Hut**: baking comes from the Stone Bake Oven mod (0.55.0); still no place where the Cook serves food, no food-mod cooking stations *(tested)*
 - **Town Hall window**: alliances, happiness, reordering work orders, custom ranks, permission logs, auto hiring and housing, and enter and leave messages say "Coming later" *(tested)*
 - **Permissions**: no custom ranks, no hostile or neutral list, no log of who did what *(tested)*
 - **Requests**: no list players can see and fill, and no crafter huts that make what is asked for *(tested)*
 - **Hiring and housing**: no auto-hire switch, and homes can't be picked by hand *(tested)*
-- **Guards**: no ranged guards and no Barracks *(tested)*
+- **Guards**: no ranged guards yet; the Barracks came in 0.54.0 *(not tested yet)*
 - **Blueprints**: no in-game scan tool for your own buildings, and the wand's Education, Walls and Decoration tabs are still empty *(tested)*
 - **Death**: dead settlers are listed, but there are no graves or mourning *(tested)*
 - **Quests**: the quest book works, but Tavern jobs and settler requests are not in it yet *(tested)*

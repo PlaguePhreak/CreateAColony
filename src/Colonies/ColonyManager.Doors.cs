@@ -22,22 +22,34 @@ namespace CreateAColony.Colonies;
 public partial class ColonyManager
 {
     const int DoorTickMs = 500;
-    /// <summary>A door a settler opened stays open at least this long, so the settler is through it.</summary>
-    const long DoorOpenMinMs = 1500;
+    /// <summary>A door a settler opened stays open at least this long, so the settler gets into it.</summary>
+    const long DoorOpenMinMs = 600;
+    /// <summary>A door is shut again at the latest after this long, even if the settler that opened it turned back.</summary>
+    const long DoorOpenMaxMs = 8000;
+    /// <summary>The settler is through once it is this far (blocks, level) from the door's middle.</summary>
+    const double DoorPassedDistance = 1.4;
 
-    /// <summary>Doors and gates settlers opened, by position, with when they were opened.</summary>
-    readonly Dictionary<BlockPos, long> doorsOpened = new();
+    /// <summary>Doors and gates settlers opened, by position, with when and by whom.</summary>
+    readonly Dictionary<BlockPos, (long OpenedMs, long ByEntityId)> doorsOpened = new();
     Harmony? harmony;
 
     void StartDoors()
     {
         harmony = new Harmony("createacolony.doors");
-        DoorPathing.Patch(harmony);
         PathBlocks.Init(sapi.World, Config);
-        PathBlocks.Patch(harmony);
         StepCheck.Init(Config);
-        StepCheck.Patch(harmony);
+        // These hook into the game's pathfinder by name. If a game update renames what they hook, that one
+        // helper is left off (with a warning) and the rest of the mod keeps working.
+        TryPatch("door pathing", () => DoorPathing.Patch(harmony));
+        TryPatch("Pathblock discounts", () => PathBlocks.Patch(harmony));
+        TryPatch("step checks", () => StepCheck.Patch(harmony));
         sapi.Event.RegisterGameTickListener(OnDoorTick, DoorTickMs);
+    }
+
+    void TryPatch(string what, Action patch)
+    {
+        try { patch(); }
+        catch (Exception e) { Mod.Logger.Warning("Could not hook {0} into the pathfinder, so it is off: {1}", what, e.Message); }
     }
 
     public override void Dispose()
@@ -70,19 +82,23 @@ public partial class ColonyManager
             {
                 cell.Set(x, y + dy, z);
                 if (DoorPathing.ClosedDoorAt(ba, cell) is not { } door) continue;
-                if (DoorPathing.SetOpen(sapi.World, door, true)) doorsOpened[door.Copy()] = sapi.World.ElapsedMilliseconds;
+                if (DoorPathing.SetOpen(sapi.World, door, true)) doorsOpened[door.Copy()] = (sapi.World.ElapsedMilliseconds, settler.EntityId);
             }
         }
     }
 
-    /// <summary>Closes the doors settlers opened once nobody stands in them.</summary>
+    /// <summary>
+    /// Shuts each door or gate a settler opened as soon as that settler has walked through it (or away from it),
+    /// once no settler or player stands in the doorway. Doors players left open are not touched.
+    /// </summary>
     void OnDoorTick(float dt)
     {
         if (doorsOpened.Count == 0) return;
         long now = sapi.World.ElapsedMilliseconds;
-        foreach (var (door, openedAt) in doorsOpened.ToList())
+        foreach (var (door, (openedAt, byId)) in doorsOpened.ToList())
         {
             if (now - openedAt < DoorOpenMinMs) continue;
+            if (now - openedAt < DoorOpenMaxMs && !SettlerPassed(door, byId)) continue;
             if (sapi.World.BlockAccessor.GetChunkAtBlockPos(door) == null)
             {
                 doorsOpened.Remove(door);
@@ -94,8 +110,16 @@ public partial class ColonyManager
         }
     }
 
+    /// <summary>True once the settler that opened the door is through it: a step past it, or gone.</summary>
+    bool SettlerPassed(BlockPos door, long entityId)
+    {
+        if (sapi.World.GetEntityById(entityId) is not { Alive: true } settler) return true;
+        double dx = settler.Pos.X - (door.X + 0.5), dz = settler.Pos.Z - (door.Z + 0.5);
+        return dx * dx + dz * dz >= DoorPassedDistance * DoorPassedDistance;
+    }
+
     /// <summary>
-    /// True while a creature is in the doorway or within a step of it, so closing would hit it or shut the door
+    /// True while a settler or player is in the doorway or within a step of it, so closing would hit it or shut the door
     /// in the face of a settler about to walk through. (Only right next to it, the door used to close on settlers
     /// that had slowed down to turn into it, and they walked into the closed door.)
     /// </summary>
@@ -103,7 +127,8 @@ public partial class ColonyManager
     {
         const double margin = 0.9;
         var area = new Cuboidd(door.X - margin, door.Y, door.Z - margin, door.X + 1 + margin, door.Y + 2, door.Z + 1 + margin);
-        return sapi.World.GetEntitiesAround(door.ToVec3d().Add(0.5, 0.5, 0.5), 3, 3, e => e is EntityAgent && e.Alive)
+        // Only people count: a door is shut in a monster's face rather than left open for it.
+        return sapi.World.GetEntitiesAround(door.ToVec3d().Add(0.5, 0.5, 0.5), 3, 3, e => e is EntitySettler or EntityPlayer && e.Alive)
             .Any(e => e.CollisionBox.ToDouble().Translate(e.Pos.X, e.Pos.Y, e.Pos.Z).Intersects(area));
     }
 }

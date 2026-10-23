@@ -68,9 +68,11 @@ public static class PathBlocks
 
     public static void Patch(Harmony harmony)
     {
+        var traversable = AccessTools.Method(typeof(AStar), "traversable")
+            ?? throw new MissingMethodException(nameof(AStar), "traversable");
+        if (AccessTools.Field(typeof(AStar), "blockAccess") == null) throw new MissingFieldException(nameof(AStar), "blockAccess");
         blockAccess = AccessTools.FieldRefAccess<AStar, ICachingBlockAccessor>("blockAccess");
-        harmony.Patch(AccessTools.Method(typeof(AStar), "traversable"),
-            postfix: new HarmonyMethod(typeof(PathBlocks), nameof(Traversable)));
+        harmony.Patch(traversable, postfix: new HarmonyMethod(typeof(PathBlocks), nameof(Traversable)));
     }
 
     /// <summary>

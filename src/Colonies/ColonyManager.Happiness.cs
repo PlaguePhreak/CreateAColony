@@ -102,7 +102,7 @@ public partial class ColonyManager
         double now = sapi.World.Calendar.TotalDays;
         foreach (var t in c.Thoughts.Where(t => t.UntilTotalDays > now))
         {
-            list.Add(new ThoughtInfo(t.Code, t.Mood, (int)Math.Ceiling((t.UntilTotalDays - now) * 24)));
+            list.Add(new ThoughtInfo(t.Code, t.Mood, (int)Math.Ceiling((t.UntilTotalDays - now) * sapi.World.Calendar.HoursPerDay)));
         }
 
         float fussy = TraitMult(c, "variety");

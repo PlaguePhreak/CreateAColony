@@ -106,8 +106,8 @@ public partial class ColonyManager
             var parts = recipe.ResolvedIngredients!.Where(i => i != null).Select(i => i!).ToList();
             var forPiece = parts.FirstOrDefault(i => i.SatisfiesAsIngredient(piece, false));
             if (forPiece == null) continue;
-            var other = parts.First(i => i != forPiece);
-            if (other.SatisfiesAsIngredient(piece, false) || other.IsTool) continue;
+            var other = parts.FirstOrDefault(i => i != forPiece);
+            if (other == null || other.SatisfiesAsIngredient(piece, false) || other.IsTool) continue;
             var output = recipe.Output!.ResolvedItemStack!;
             if (output.Collectible.Code.Equals(piece.Collectible.Code) || output.Collectible.FirstCodePart() == "ingot") continue;
             return (recipe, other);

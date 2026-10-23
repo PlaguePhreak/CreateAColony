@@ -1,7 +1,9 @@
-# Create a Colony (starter skeleton)
+# Vintage Colonies
 
-Vintage Story 1.22.x code mod, .NET 10. This is milestone 1 only: found a colony, get a vanilla
-land claim, recruit settlers that persist with the save. Compiles cleanly against the 1.22.7 API; not yet tested in-game.
+Vintage Story 1.22.x code mod, .NET 10 (mod id `createacolony`). It brings the ideas of the Minecraft mod
+MineColonies to Vintage Story: found a colony with a Town Hall, recruit settlers, and place huts that your
+settlers build, staff and level up: builders, farmers, foresters, miners, cooks, couriers, guards, crafters
+and more. See [ROADMAP.md](ROADMAP.md) for what is done and what is planned.
 
 ## Build
 1. Install the .NET 10 SDK and set `VINTAGE_STORY` to your game folder.
@@ -23,7 +25,9 @@ land claim, recruit settlers that persist with the save. Compiles cleanly agains
 - `/colony citizens` lists every settler with their food level and whether they have a bed.
 - Lost settlers (missing for half a day while the Town Hall area is loaded) respawn at the Town Hall. With
   Permadeath off, a killed settler returns after `DownedRecoveryDays`.
-- Breaking the Town Hall disbands the colony and removes the claim.
+- Breaking the Town Hall disbands the colony and removes the claim. Only the owner (or a server admin) can, and
+  only while sneaking. Officers can break huts; a hut that is built or has a work order also needs sneaking.
+  Settlers of a disbanded colony leave with it.
 - The mod refuses to start if VS Village is installed.
 
 ## Crafting recipes (0.32.0)
@@ -113,6 +117,21 @@ All three are on the new Mining tab of the Builder's Wand and use placeholder bl
 ## Aaron's mineshaft pieces and a relieving Quarry (0.63.0)
 - **Mineshaft**: Aaron's surface entrance, T section and straight section ship as the Medieval oak defaults (`assets/createacolony/config/blueprints/medievaloak/mineshaft/`); the cross is still a placeholder (`tools/blueprints/mineshaft_pieces.py`). The entrance goes on the ground beside the hut (saved as the hut's `MineshaftPos`), not under the hut's Mine waypoint, and goes deeper with each hut level. Sections join by their gaps, so their floors line up; tunnels leave the entrance at its rows of Mine waypoints on every loop of the stairs (0.63.1, from Aaron's connected example: loops 7 blocks apart). Support beams keep their saved beams when built.
 - **Quarry**: its main work is now whole rock blocks, the game's relieving (a block broken with all six sides open drops itself). Inside the pit's staircase, rock in a 3D checkerboard is left standing (`IsReliefCell`), the rest is dug as before, and each rock that ends up free on all sides is broken out whole before more digging. A 5x5 pit at level 1 gives about 19 rock blocks; any settler digging rock that stands free gets the whole block too. Stat "Whole rock blocks quarried".
+
+## Storage, doors, trader claims and lag fixes (0.72.0)
+- **Hut storage**: every chest, trunk, crate, clay storage vessel and modded storage block inside a hut's
+  blueprint counts as that hut's storage. A hut without a blueprint uses storage within 2 blocks of the hut
+  block. `HutStorageBlocks` in the config adds block codes the mod does not recognise by itself. The
+  Warehouse only looks around itself (and inside its building), which was a big source of lag.
+- **Doors**: settlers close a door or gate once they have walked through it (after 8 seconds at most), unless
+  someone is standing in the doorway.
+- **Trader claims**: a land claim the world made for a trader (no player owner, "trader" in its name) is
+  lifted when the colony's land reaches it, so the colony can grow over it. `ClearedWorldgenClaims` lists
+  the words to look for.
+- **Placement**: only officers and the owner can move, turn, confirm or take back placed huts.
+- **Lag**: colonies are saved together every 30 seconds (and whenever the world saves) instead of on every
+  change; open windows reuse build progress and materials for a few seconds; the mineshaft checks its
+  hut's storage once per scan.
 
 ## Config (`ModConfig/createacolony.json`)
 - `Permadeath` (default `true`): settlers who die are gone. Set `false` to have them knocked out and recover after `DownedRecoveryDays`.

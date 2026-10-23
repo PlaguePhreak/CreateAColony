@@ -76,7 +76,7 @@ public partial class ColonyNetwork
             Overlaps = outline.Overlaps,
             OverlapsLater = outline.OverlapsLater,
             Nearby = outline.Nearby,
-            CanAdjust = role >= ColonyRole.Member && building.Level == 0 && !building.HasWorkOrder,
+            CanAdjust = role >= ColonyRole.Officer && building.Level == 0 && !building.HasWorkOrder,
             CanOrder = role >= ColonyRole.Officer && !building.HasWorkOrder && building.Level < max,
             OpenWindow = openWindow,
             Style = Manager.Blueprints.StyleFor(building),
@@ -140,6 +140,13 @@ public partial class ColonyNetwork
 
         bool unbuilt = building.Level == 0 && !building.HasWorkOrder;
         string? error = null;
+        // Turning, moving or taking a hut back changes the colony's plans: officers only.
+        if (role < ColonyRole.Officer)
+        {
+            player.SendIngameError("createacolony-placement", Lang.GetL(player.LanguageCode, "createacolony:denied-officer"));
+            SendPlacement(player, colony, building, false);
+            return;
+        }
         switch (packet.Action)
         {
             case ColonyAction.PlacementTurn:

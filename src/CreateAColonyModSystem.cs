@@ -37,7 +37,7 @@ public class CreateAColonyModSystem : ModSystem
         {
             if (api.ModLoader.IsModEnabled(modId))
             {
-                throw new InvalidOperationException($"Create a Colony cannot run together with '{modId}'. Disable one of the two mods.");
+                throw new InvalidOperationException($"Vintage Colonies cannot run together with '{modId}'. Disable one of the two mods.");
             }
         }
     }
@@ -88,7 +88,7 @@ public class CreateAColonyModSystem : ModSystem
         var parsers = api.ChatCommands.Parsers;
 
         api.ChatCommands.Create("colony")
-            .WithDescription("Create a Colony commands")
+            .WithDescription("Vintage Colonies commands")
             .RequiresPlayer()
             .RequiresPrivilege(Privilege.chat)
             .BeginSubCommand("info")
@@ -342,10 +342,6 @@ public class CreateAColonyModSystem : ModSystem
         return TextCommandResult.Success(Lang.Get("createacolony:recruited", record.Name));
     }
 
-    /// <summary>
-    /// /colony family couple A B, /colony family child A (A and their partner have a child), /colony family grow A:
-    /// family events at once, for testing. Settlers are found by first or full name.
-    /// </summary>
     /// <summary>/colony mood Jon: Jon's happiness and thoughts; /colony mood Jon 10: sets it to 10 (a breakdown follows soon).</summary>
     TextCommandResult OnMood(TextCommandCallingArgs args)
     {
@@ -441,6 +437,10 @@ public class CreateAColonyModSystem : ModSystem
         return TextCommandResult.Success(Lang.Get("createacolony:traits-cmd-line", settler.Name, score, manager.TraitsText(settler)));
     }
 
+    /// <summary>
+    /// /colony family couple A B, /colony family child A (A and their partner have a child), /colony family grow A:
+    /// family events at once, for testing. Settlers are found by first or full name.
+    /// </summary>
     TextCommandResult OnFamily(TextCommandCallingArgs args)
     {
         var player = (IServerPlayer)args.Caller.Player;
@@ -567,12 +567,18 @@ public class CreateAColonyModSystem : ModSystem
         return TextCommandResult.Success(string.Join("\n", lines));
     }
 
+    static bool SafeName(string name) =>
+        name.Length > 0 && !name.Contains("..") && name.IndexOfAny(new[] { '/', '\\', ':' }) < 0
+        && name.IndexOfAny(System.IO.Path.GetInvalidFileNameChars()) < 0;
+
     TextCommandResult OnImportMc(TextCommandCallingArgs args)
     {
         string file = (string)args[0];
         string type = ((string)args[1]).ToLowerInvariant();
         int level = (int)args[2];
 
+        // Only plain names: the file must be in the import folder and the type a folder name, nothing like "../".
+        if (!SafeName(file) || !SafeName(type)) return TextCommandResult.Error(Lang.Get("createacolony:import-badname"));
         if (!file.EndsWith(".blueprint")) file += ".blueprint";
         string input = System.IO.Path.Combine(MineColoniesImporter.ImportFolder, file);
         if (!System.IO.File.Exists(input)) return TextCommandResult.Error(Lang.Get("createacolony:import-missing", input));

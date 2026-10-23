@@ -38,7 +38,7 @@ public static class StepCheck
 
     public static void Patch(Harmony harmony)
     {
-        harmony.Patch(AccessTools.Method(typeof(AStar), "traversable"),
+        harmony.Patch(AccessTools.Method(typeof(AStar), "traversable") ?? throw new MissingMethodException(nameof(AStar), "traversable"),
             prefix: new HarmonyMethod(typeof(StepCheck), nameof(Before)),
             postfix: new HarmonyMethod(typeof(StepCheck), nameof(After)));
     }

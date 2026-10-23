@@ -62,6 +62,13 @@ public class BlockTownHall : Block, IWandPlaceable
         return true;
     }
 
+    /// <summary>Only some players may break it, and only when they mean to (see ColonyManager.BreakRefusal).</summary>
+    public override void OnBlockBroken(IWorldAccessor world, BlockPos pos, IPlayer byPlayer, float dropQuantityMultiplier = 1)
+    {
+        if (!ColonyBlockGuard.MayBreak(world, pos, byPlayer, townHall: true)) return;
+        base.OnBlockBroken(world, pos, byPlayer, dropQuantityMultiplier);
+    }
+
     public override void OnBlockRemoved(IWorldAccessor world, BlockPos pos)
     {
         if (world.Side == EnumAppSide.Server && world.BlockAccessor.GetBlockEntity(pos) is BlockEntityTownHall { ColonyId: not null } be)

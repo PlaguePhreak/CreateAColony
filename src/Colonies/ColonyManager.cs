@@ -30,6 +30,11 @@ public partial class ColonyManager : ModSystem
     const string IndexKey = "createacolony:index";
     const string ColonyKeyPrefix = "createacolony:colony:";
     const string ClaimDescriptionPrefix = "Colony: ";
+    /// <summary>Colonies disbanded in this world, so settlers of theirs that were not loaded then leave when they are.</summary>
+    const string DisbandedKey = "createacolony:disbanded";
+    readonly HashSet<string> disbanded = new();
+
+    public bool WasDisbanded(string colonyId) => disbanded.Contains(colonyId);
 
     ICoreServerAPI sapi = null!;
     readonly Dictionary<string, Colony> colonies = new();
@@ -62,6 +67,7 @@ public partial class ColonyManager : ModSystem
         api.Event.OnEntitySpawn += OnCreatureReady;
         api.Event.OnEntityLoaded += OnCreatureReady;
         api.Event.RegisterGameTickListener(OnFarWorkTick, FarWorkTickMs);
+        api.Event.RegisterGameTickListener(_ => SaveDirty(), DirtySaveMs, DirtySaveMs);
         StartDoors();
     }
 
@@ -310,6 +316,14 @@ public partial class ColonyManager : ModSystem
 
     public void Disband(Colony colony)
     {
+        // The settlers go with the colony; any that are not loaded now leave when they are (EntityBehaviorColonyCitizen).
+        foreach (var citizen in colony.Citizens)
+        {
+            if (sapi.World.GetEntityById(citizen.EntityId) is { Alive: true } entity) entity.Die(EnumDespawnReason.Removed);
+        }
+        storageSpots.Clear();
+        disbanded.Add(colony.ColonyId);
+        sapi.WorldManager.SaveGame.StoreData(DisbandedKey, disbanded.ToList());
         var claim = FindClaim(colony);
         if (claim != null) sapi.World.Claims.Remove(claim);
 
@@ -446,6 +460,8 @@ public partial class ColonyManager : ModSystem
     void OnSaveGameLoaded()
     {
         colonies.Clear();
+        disbanded.Clear();
+        disbanded.UnionWith(sapi.WorldManager.SaveGame.GetData<List<string>>(DisbandedKey) ?? new List<string>());
         var ids = sapi.WorldManager.SaveGame.GetData<List<string>>(IndexKey) ?? new List<string>();
         foreach (string id in ids)
         {
@@ -491,11 +507,30 @@ public partial class ColonyManager : ModSystem
 
     void OnGameWorldSave()
     {
+        dirtyColonies.Clear();
         foreach (var colony in colonies.Values) SaveColony(colony, saveIndex: false);
         SaveIndex();
     }
 
-    public void MarkDirty(Colony colony) => SaveColony(colony);
+    /// <summary>Colonies changed since they were last written to the save.</summary>
+    readonly HashSet<string> dirtyColonies = new();
+    const int DirtySaveMs = 30_000;
+
+    /// <summary>
+    /// Notes that the colony changed. Writing a whole colony on every change made busy colonies stutter, so
+    /// changed colonies are written together every half minute, and all of them whenever the world saves.
+    /// </summary>
+    public void MarkDirty(Colony colony) => dirtyColonies.Add(colony.ColonyId);
+
+    void SaveDirty()
+    {
+        if (dirtyColonies.Count == 0) return;
+        foreach (var id in dirtyColonies.ToList())
+        {
+            if (colonies.TryGetValue(id, out var colony)) SaveColony(colony, saveIndex: false);
+        }
+        dirtyColonies.Clear();
+    }
 
     void SaveColony(Colony colony, bool saveIndex = true)
     {

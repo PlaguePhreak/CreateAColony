@@ -82,6 +82,17 @@ public class ColonyConfig
     /// inside furniture comes along. The mods are optional.
     /// </summary>
     public string[] BlueprintPlaceAsItem = { "w4rd0sfurniture:*", "heraldrybanners:*", "foodshelves:*" };
+    /// <summary>
+    /// Extra blocks (code patterns) that count as storage for huts and the Warehouse, for mods whose storage the
+    /// mod does not recognise by itself. Chests, trunks, crates and clay storage vessels always count.
+    /// </summary>
+    public string[] HutStorageBlocks = System.Array.Empty<string>();
+
+    /// <summary>
+    /// World-generated land claims (no player owner) whose name or description contains one of these words are
+    /// taken away when the colony's land reaches them, so a trader's claim does not stop the colony growing.
+    /// </summary>
+    public string[] ClearedWorldgenClaims = { "trader" };
 
     // Forester
     /// <summary>How far from the Forester's Hut, in blocks, a forester looks for trees.</summary>

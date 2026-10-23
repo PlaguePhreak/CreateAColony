@@ -5,6 +5,7 @@ using Vintagestory.API.Common;
 using Vintagestory.API.Common.Entities;
 using Vintagestory.API.Config;
 using Vintagestory.API.MathTools;
+using Vintagestory.GameContent;
 
 namespace CreateAColony.Colonies;
 
@@ -123,6 +124,9 @@ public partial class ColonyManager
         MineJob? found = null;
         PlacedPiece? foundIn = null;
         int fillId = FillBlockId(hut);
+        // The hut's storage is looked through once per scan, and each kind of cost is checked once, not per block.
+        List<BlockEntityContainer>? storage = null;
+        var payable = new Dictionary<string, bool>();
         foreach (var piece in WorkOrder(pieces, hut))
         {
             var origin = piece.Origin;
@@ -154,10 +158,16 @@ public partial class ColonyManager
                 var costs = NextPlacement(colony, step, pos).Costs;
                 foreach (var cost in costs) needs.Add(cost.Code);
                 if (skip(pos)) { busy = true; continue; }
-                if (!CanPay(colony, hut, miner, costs))
+                string costKey = string.Join(";", costs.Select(c => c.Code + "x" + c.Count));
+                if (!payable.TryGetValue(costKey, out bool canPay))
+                {
+                    storage ??= HutStorage(colony, hut).ToList();
+                    payable[costKey] = canPay = CanPay(miner, storage, costs);
+                    if (!canPay) RequestMineshaftMaterials(colony, hut, miner, costs, storage);
+                }
+                if (!canPay)
                 {
                     busy = true;
-                    RequestMineshaftMaterials(colony, hut, miner, costs);
                     if (found == null) status = "mineshaft-materials";
                     continue;
                 }
@@ -254,10 +264,9 @@ public partial class ColonyManager
     }
 
     /// <summary>True when the miner carries, or the hut's storage holds, everything placing a block costs.</summary>
-    bool CanPay(Colony colony, Building hut, CitizenRecord miner, IReadOnlyList<MaterialCost> costs)
+    bool CanPay(CitizenRecord miner, List<BlockEntityContainer> storage, IReadOnlyList<MaterialCost> costs)
     {
         if (costs.Count == 0) return true;
-        var storage = HutStorage(colony, hut).ToList();
         foreach (var cost in costs)
         {
             var match = Matcher(cost.Code);
@@ -274,9 +283,9 @@ public partial class ColonyManager
     }
 
     /// <summary>Asks couriers for what a mineshaft block costs, a few at a time, once per item.</summary>
-    void RequestMineshaftMaterials(Colony colony, Building hut, CitizenRecord miner, IReadOnlyList<MaterialCost> costs)
+    void RequestMineshaftMaterials(Colony colony, Building hut, CitizenRecord miner, IReadOnlyList<MaterialCost> costs, List<BlockEntityContainer> storage)
     {
-        var chest = HutStorage(colony, hut).FirstOrDefault();
+        var chest = storage.FirstOrDefault();
         if (chest == null) return;
         string tag = RequestTag(hut);
         foreach (var cost in costs)

@@ -77,7 +77,8 @@ public partial class ColonyManager
     /// </summary>
     Cuboidi? FitClaim(BlockPos center, int size, string? ownDescription)
     {
-        var others = sapi.World.Claims.All.Where(c => ownDescription == null || c.Description != ownDescription).ToList();
+        // A trader's claim gives way to the colony (RemoveTraderClaims), so it does not shrink the square.
+        var others = sapi.World.Claims.All.Where(c => (ownDescription == null || c.Description != ownDescription) && !IsClearedClaim(c)).ToList();
         int min = Math.Min(size, Math.Max(1, Config.ClaimSizeMin));
         for (int s = size; ; s = Math.Max(min, s - 2))
         {
@@ -108,6 +109,7 @@ public partial class ColonyManager
             if (area != null && !areas.Any(a => a.Equals(area))) areas.Add(area);
         }
         claimedSizes[colony.ColonyId] = sizes;
+        RemoveTraderClaims(colony, areas);
         if (areas.Count == 0 || areas.SequenceEqual(claim.Areas)) return;
 
         // Claims are replaced rather than edited so the server re-syncs them to clients.
@@ -117,6 +119,36 @@ public partial class ColonyManager
         var townHall = colony.Buildings.FirstOrDefault(b => b.Type == BuildingTypes.TownHall);
         colony.ClaimRadius = (townHall == null ? ClaimSize(BuildingTypes.TownHall) : ClaimSize(townHall)) / 2;
         MarkDirty(colony);
+    }
+
+    /// <summary>
+    /// A claim the world made for a trader (or another structure listed in ClearedWorldgenClaims): it has no
+    /// player or group owner, and its name or description names a trader.
+    /// </summary>
+    bool IsClearedClaim(LandClaim claim)
+    {
+        if (!string.IsNullOrEmpty(claim.OwnedByPlayerUid) || claim.OwnedByPlayerGroupUid != 0 || claim.OwnedByEntityId != 0) return false;
+        if (claim.Description?.StartsWith(ClaimDescriptionPrefix) == true) return false;
+        foreach (var word in Config.ClearedWorldgenClaims ?? Array.Empty<string>())
+        {
+            if (string.IsNullOrWhiteSpace(word)) continue;
+            if (claim.Description?.Contains(word, StringComparison.OrdinalIgnoreCase) == true
+                || claim.LastKnownOwnerName?.Contains(word, StringComparison.OrdinalIgnoreCase) == true) return true;
+        }
+        return false;
+    }
+
+    /// <summary>Takes away trader claims that the colony's land reaches, so the colony can grow over them.</summary>
+    void RemoveTraderClaims(Colony colony, List<Cuboidi> areas)
+    {
+        if (areas.Count == 0) return;
+        foreach (var claim in sapi.World.Claims.All.Where(c => IsClearedClaim(c) && areas.Any(a => c.Intersects(a))).ToList())
+        {
+            sapi.World.Claims.Remove(claim);
+            Mod.Logger.Notification("Removed the land claim '{0}' ({1}) inside colony {2}", claim.Description, claim.LastKnownOwnerName, colony.Name);
+            LogEvent(colony, "event-trader-claim", claim.LastKnownOwnerName ?? claim.Description ?? "");
+            MarkDirty(colony);
+        }
     }
 
     /// <summary>The square this building claims, in blocks along a side; 0 if it claims nothing yet or is blocked.</summary>

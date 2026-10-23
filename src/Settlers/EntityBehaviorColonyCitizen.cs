@@ -91,8 +91,10 @@ public class EntityBehaviorColonyCitizen : EntityBehavior
         var record = FindRecord();
         if (record == null)
         {
-            // A visitor who left or was turned away while this entity was unloaded.
-            if (entity is EntitySettler { ColonyId: { } colonyId } && manager.GetById(colonyId) != null) entity.Die(EnumDespawnReason.Removed);
+            // A visitor who left or was turned away while this entity was unloaded, or a settler whose colony
+            // was disbanded: it has nowhere to belong, so it goes.
+            // (A colony that only failed to load keeps its settlers, so nothing is lost if the save is fixed.)
+            if (entity is EntitySettler { ColonyId: { } colonyId } && (manager.GetById(colonyId) != null || manager.WasDisbanded(colonyId))) entity.Die(EnumDespawnReason.Removed);
             return;
         }
 
@@ -163,6 +165,8 @@ public class EntityBehaviorColonyCitizen : EntityBehavior
     public override void OnEntityDeath(DamageSource damageSourceForDeath)
     {
         var record = FindRecord();
+        // A stale copy of a settler the colony already brought back (see OnGameTick) dying is not the settler dying.
+        if (record != null && record.EntityId != entity.EntityId && entity.World.GetEntityById(record.EntityId) is { Alive: true }) record = null;
         if (record != null && manager != null)
         {
             // What they carried, bags included, falls where they died instead of vanishing with them.

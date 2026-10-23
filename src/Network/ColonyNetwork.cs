@@ -762,7 +762,7 @@ public partial class ColonyNetwork : ModSystem
             snapshot.Mood = Manager.MoodOf(Manager.HappinessOf(citizen));
             snapshot.Thoughts = Manager.ThoughtsOf(colony, citizen).OrderByDescending(t => t.Mood).Select(Manager.ThoughtText).ToList();
             double left = citizen.BreakdownUntilTotalDays - sapi!.World.Calendar.TotalDays;
-            snapshot.BreakdownHours = left > 0 ? (int)System.Math.Ceiling(left * 24) : 0;
+            snapshot.BreakdownHours = left > 0 ? (int)System.Math.Ceiling(left * sapi!.World.Calendar.HoursPerDay) : 0;
         }
         serverChannel!.SendPacket(snapshot, player);
     }
@@ -947,7 +947,7 @@ public partial class ColonyNetwork : ModSystem
         var storage = Manager.HutStorage(colony, building).Cast<BlockEntityContainer>().ToList();
         var hand = (sapi!.World.GetEntityById(builder.EntityId) as EntityAgent)?.RightHandItemSlot?.Itemstack;
 
-        foreach (var need in Manager.ToolsNeeded(colony, current, blueprint).OrderBy(n => n.Type))
+        foreach (var need in Manager.ToolsForWindow(colony, current, blueprint).OrderBy(n => n.Type))
         {
             var sample = Manager.ToolSample(need.Type);
             if (sample == null) continue;
@@ -956,7 +956,7 @@ public partial class ColonyNetwork : ModSystem
                 || Manager.PackCount(builder, s => ColonyManager.ToolFits(s, need.Type, need.Tier)) > 0;
             snapshot.Resources.Add(new ResourceView { Stack = sample.ToBytes(), Needed = 1, Have = has ? 1 : 0, IsTool = true });
         }
-        foreach (var (code, (sample, count)) in Manager.MaterialsNeeded(colony, current, blueprint).OrderByDescending(kv => kv.Value.Count))
+        foreach (var (code, (sample, count)) in Manager.MaterialsForWindow(colony, current, blueprint).OrderByDescending(kv => kv.Value.Count))
         {
             var match = ColonyManager.Matcher(code);
             int have = Manager.CountItems(storage, match) + Manager.PackCount(builder, match);
