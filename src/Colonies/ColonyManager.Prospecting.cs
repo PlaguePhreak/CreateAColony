@@ -12,7 +12,7 @@ using Vintagestory.GameContent;
 namespace CreateAColony.Colonies;
 
 /// <summary>
-/// The prospector's trade. It walks a grid of spots around its hut and at each one takes a reading with
+/// The prospector's trade. It wanders its work area, heading where the readings look best, and takes readings with
 /// the game's own prospecting pick (density mode), so it finds exactly what a player's pick would. The
 /// readings are kept by the colony for its miners, and put on every member's ore map as well.
 /// </summary>
@@ -47,61 +47,127 @@ public partial class ColonyManager
         if (!colony.Requests.Any(r => r.RequestedBy == tag && r.ItemCode == code)) AddRequest(colony, code, 1, chest.Pos, tag);
     }
 
-    /// <summary>
-    /// The spots a prospector takes readings at: a grid ProspectorSpacing apart around the hut, as far
-    /// as the work area goes, nearest first.
-    /// </summary>
-    List<(int X, int Z)> ProspectGrid(Building hut)
+    /// <summary>Where each Prospector's Hut's prospector is headed, so it keeps to one spot until it has read there.</summary>
+    readonly Dictionary<int, BlockPos> prospectTargets = new();
+    /// <summary>Where each Prospector's Hut's prospector took its last reading, which it walks on from.</summary>
+    readonly Dictionary<int, BlockPos> lastReadings = new();
+
+    /// <summary>What a reading promises, about 0 to 1: its best ore's density, plus a little for each other ore found there.</summary>
+    public static double ReadingQuality(OreSite site)
     {
-        int radius = Math.Max(1, GatherRadius(hut));
-        int spacing = Math.Max(4, Config.ProspectorSpacing);
-        int steps = radius / spacing;
-        var spots = new List<(int X, int Z)>();
-        for (int i = -steps; i <= steps; i++)
-        for (int j = -steps; j <= steps; j++)
+        if (site.Ores.Count == 0) return 0;
+        double best = site.Ores.Max(o => o.Factor);
+        return best + 0.25 * (site.Ores.Sum(o => o.Factor) - best);
+    }
+
+    /// <summary>
+    /// A guess at what a reading at x, z would show, from the readings around it: nearer ones count for
+    /// more (inverse distance squared). Prior when no reading is within range.
+    /// </summary>
+    public static double EstimateQuality(IEnumerable<OreSite> sites, double x, double z, double range, double prior)
+    {
+        double total = 0, weights = 0;
+        foreach (var site in sites)
         {
-            if ((i * i + j * j) * spacing * spacing > radius * radius) continue;
-            spots.Add((hut.HutPos.X + i * spacing, hut.HutPos.Z + j * spacing));
+            double dx = site.Pos.X - x, dz = site.Pos.Z - z, d2 = dx * dx + dz * dz;
+            if (d2 > range * range) continue;
+            double w = 1 / (d2 + 16);
+            total += w * ReadingQuality(site);
+            weights += w;
         }
-        return spots.OrderBy(s => (s.X - hut.HutPos.X) * (s.X - hut.HutPos.X) + (s.Z - hut.HutPos.Z) * (s.Z - hut.HutPos.Z)).ToList();
+        return weights == 0 ? prior : total / weights;
     }
 
     /// <summary>True when the colony already has a reading close to this spot.</summary>
-    bool Prospected(Colony colony, int x, int z)
+    bool Prospected(Colony colony, double x, double z)
     {
-        int near = Math.Max(2, Config.ProspectorSpacing / 2);
-        return colony.OreSites.Any(s => Math.Abs(s.Pos.X - x) < near && Math.Abs(s.Pos.Z - z) < near);
+        double near = Math.Max(2, Config.ProspectorNearReading);
+        return colony.OreSites.Any(s => (s.Pos.X - x) * (s.Pos.X - x) + (s.Pos.Z - z) * (s.Pos.Z - z) < near * near);
     }
 
     /// <summary>
     /// The next spot to take a reading at, where the prospector stands (the air above the ground), or null
-    /// when every spot in range is done. Spots in land that is loaded come first; for the others the
-    /// height is a guess until the prospector gets there.
+    /// when the work area is read all over. Like a player with a pick, the prospector walks on from its last
+    /// reading, or from a good one, a random ProspectorMinStep to ProspectorMaxStep blocks, and it is more
+    /// likely to head where the readings around are good: each spot is picked at random, weighted by the
+    /// ore the nearby readings promise there (ProspectorPreference sets how strongly).
     /// </summary>
     public BlockPos? NextProspectSpot(Colony colony, Building hut, System.Func<BlockPos, bool> skip)
     {
         var ba = sapi.World.BlockAccessor;
-        BlockPos? unloaded = null;
-        foreach (var (x, z) in ProspectGrid(hut))
+        if (prospectTargets.TryGetValue(hut.BuildingId, out var kept) && !skip(kept) && !Prospected(colony, kept.X, kept.Z)) return kept;
+        prospectTargets.Remove(hut.BuildingId);
+
+        var rand = sapi.World.Rand;
+        int radius = Math.Max(1, GatherRadius(hut));
+        double minStep = Math.Max(4, Config.ProspectorMinStep), maxStep = Math.Max(minStep, Config.ProspectorMaxStep);
+        var inRange = colony.OreSites.Where(s => s.Pos.HorDistanceSqTo(hut.HutPos.X, hut.HutPos.Z) <= (double)radius * radius).ToList();
+
+        // Where to walk on from: the last reading, a reading picked by how good it was, or the hut.
+        var starts = new List<BlockPos> { lastReadings.GetValueOrDefault(hut.BuildingId) ?? hut.HutPos };
+        if (inRange.Count > 0)
         {
-            if (Prospected(colony, x, z)) continue;
-            var pos = new BlockPos(x, hut.HutPos.Y + 1, z);
-            if (ba.GetChunkAtBlockPos(pos) == null)
+            double sum = inRange.Sum(s => Math.Exp(Config.ProspectorPreference * ReadingQuality(s)));
+            double roll = rand.NextDouble() * sum;
+            foreach (var site in inRange)
             {
-                if (unloaded == null && !skip(pos) && CanWorkAt(colony, pos)) unloaded = pos;
-                continue;
+                roll -= Math.Exp(Config.ProspectorPreference * ReadingQuality(site));
+                if (roll <= 0) { starts.Add(site.Pos); break; }
             }
-            pos.Y = ba.GetTerrainMapheightAt(pos) + 1;
-            if (skip(pos) || !CanWorkAt(colony, pos)) continue;
-            // Never take a reading under water; the next spot will do.
-            if (ba.GetBlock(pos.DownCopy(), BlockLayersAccess.Fluid).Id != 0) continue;
-            return pos;
         }
-        return unloaded;
+        starts.Add(hut.HutPos);
+
+        var candidates = new List<(BlockPos Pos, double Weight)>();
+        foreach (var from in starts)
+        {
+            for (int tries = 0; tries < 24; tries++)
+            {
+                double angle = rand.NextDouble() * Math.PI * 2, step = minStep + rand.NextDouble() * (maxStep - minStep);
+                int x = (int)Math.Round(from.X + Math.Cos(angle) * step), z = (int)Math.Round(from.Z + Math.Sin(angle) * step);
+                if ((double)(x - hut.HutPos.X) * (x - hut.HutPos.X) + (double)(z - hut.HutPos.Z) * (z - hut.HutPos.Z) > (double)radius * radius) continue;
+                if (Prospected(colony, x, z)) continue;
+                var pos = new BlockPos(x, hut.HutPos.Y + 1, z);
+                if (ba.GetChunkAtBlockPos(pos) != null)
+                {
+                    pos.Y = ba.GetTerrainMapheightAt(pos) + 1;
+                    // Never take a reading under water.
+                    if (ba.GetBlock(pos.DownCopy(), BlockLayersAccess.Fluid).Id != 0) continue;
+                }
+                if (skip(pos) || !CanWorkAt(colony, pos)) continue;
+                double guess = EstimateQuality(colony.OreSites, x, z, maxStep * 2, Config.ProspectorUnknownQuality);
+                candidates.Add((pos, Math.Exp(Config.ProspectorPreference * guess)));
+            }
+            if (candidates.Count >= 8) break;
+        }
+        if (candidates.Count == 0) return null;
+
+        double total = candidates.Sum(c => c.Weight), pick = rand.NextDouble() * total;
+        var chosen = candidates[^1].Pos;
+        foreach (var (pos, weight) in candidates)
+        {
+            pick -= weight;
+            if (pick <= 0) { chosen = pos; break; }
+        }
+        prospectTargets[hut.BuildingId] = chosen;
+        return chosen;
     }
 
-    /// <summary>How many grid spots in range still have no reading.</summary>
-    public int ProspectSpotsLeft(Colony colony, Building hut) => ProspectGrid(hut).Count(s => !Prospected(colony, s.X, s.Z));
+    /// <summary>About how much of the work area has a reading near it, from 0 to 100.</summary>
+    public int ProspectedPercent(Colony colony, Building hut)
+    {
+        int radius = Math.Max(1, GatherRadius(hut)), step = Math.Max(4, Config.ProspectorMinStep / 2);
+        double near = Math.Max(Config.ProspectorNearReading, Config.ProspectorMinStep);
+        int all = 0, done = 0;
+        for (int x = -radius; x <= radius; x += step)
+        for (int z = -radius; z <= radius; z += step)
+        {
+            if (x * x + z * z > radius * radius) continue;
+            all++;
+            double px = hut.HutPos.X + x, pz = hut.HutPos.Z + z;
+            if (colony.OreSites.Any(s => (s.Pos.X - px) * (s.Pos.X - px) + (s.Pos.Z - pz) * (s.Pos.Z - pz) < near * near)) done++;
+        }
+        return all == 0 ? 100 : done * 100 / all;
+    }
 
     /// <summary>
     /// Takes a reading at the ground below the spot with the prospecting pick in the worker's hand, wears the
@@ -139,6 +205,8 @@ public partial class ColonyManager
         }
         site.Ores.Sort((a, b) => b.Factor.CompareTo(a.Factor));
         colony.OreSites.Add(site);
+        lastReadings[hut.BuildingId] = site.Pos.Copy();
+        prospectTargets.Remove(hut.BuildingId);
         AddStat(hut, "readings");
         MarkDirty(colony);
 
@@ -203,7 +271,7 @@ public partial class ColonyManager
     /// <summary>The Prospector's Hut window line: how many readings, how many spots are left, and the best find.</summary>
     string ProspectorInfo(Colony colony, Building hut)
     {
-        string line = Lang.Get("createacolony:prospector-progress", colony.OreSites.Count, ProspectSpotsLeft(colony, hut));
+        string line = Lang.Get("createacolony:prospector-progress", colony.OreSites.Count, ProspectedPercent(colony, hut));
         var best = OreSummary(colony).FirstOrDefault();
         if (best.Code != null) line += "<br>" + Lang.Get("createacolony:prospector-best", OreName(best.Code), DensityName(best.Best), DirectionFrom(hut.HutPos, best.BestPos));
         return line;

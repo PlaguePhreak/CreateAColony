@@ -99,8 +99,16 @@ public class ColonyConfig
     // Prospector
     /// <summary>How far from the Prospector's Hut, in blocks, a prospector takes readings (change it on the Work area tab).</summary>
     public int ProspectorRadius = 64;
-    /// <summary>Blocks between a prospector's readings. The prospecting pick reads the ground for a long way around, so they can be far apart.</summary>
-    public int ProspectorSpacing = 24;
+    /// <summary>A prospector walks on this many blocks at least from its last reading (or a good one) before the next...</summary>
+    public int ProspectorMinStep = 25;
+    /// <summary>...and this many at most; each step is a random distance in between.</summary>
+    public int ProspectorMaxStep = 50;
+    /// <summary>No new reading within this many blocks of one the colony already has.</summary>
+    public int ProspectorNearReading = 16;
+    /// <summary>How strongly a prospector heads where nearby readings were good: 0 is purely random; at 15 an area that reads "decent" all round is picked about 25 times as often as one that reads "very poor".</summary>
+    public double ProspectorPreference = 15;
+    /// <summary>What a prospector expects of ground with no reading near it (0 to 1), so new ground is worth a look beside poor readings but not beside good ones.</summary>
+    public double ProspectorUnknownQuality = 0.15;
     /// <summary>Seconds a prospector spends tapping the ground for one reading (a player takes three samples).</summary>
     public float ProspectorSecondsPerReading = 9f;
     /// <summary>Wear on the prospecting pick per reading; a player's three samples wear it 3.</summary>
