@@ -248,9 +248,33 @@ public class HutSnapshot
     [ProtoMember(55)] public int ResidenceFreeBeds;
     /// <summary>The hut block's position, so the window can show patrol points relative to it.</summary>
     [ProtoMember(51)] public BlockPos HutPos = new BlockPos(0);
+    /// <summary>A Prospector's or Miner's Hut, whose window has an Ore tab: what the colony's prospectors found.</summary>
+    [ProtoMember(56)] public bool IsOreHut;
+    [ProtoMember(57)] public List<OreView> Ores = new();
+    /// <summary>A Miner's Hut: the ore its miner digs for, empty for the best found.</summary>
+    [ProtoMember(58)] public string MineOre = "";
+    [ProtoMember(59)] public int OreReadings;
+    /// <summary>A Quarry, whose window has a Quarry tab.</summary>
+    [ProtoMember(60)] public bool IsQuarry;
+    [ProtoMember(61)] public bool HasPit;
+    [ProtoMember(62)] public string PitInfo = "";
 }
 
 /// <summary>One line of a hut's chest list: an item, how many there are, and which containers hold it.</summary>
+/// <summary>One ore the colony's prospectors found, for the Ore tab.</summary>
+[ProtoContract]
+public class OreView
+{
+    /// <summary>The deposit code, such as "nativecopper".</summary>
+    [ProtoMember(1)] public string Code = "";
+    /// <summary>The strongest reading's density factor, 0 to 1.</summary>
+    [ProtoMember(2)] public double Best;
+    [ProtoMember(3)] public int Sites;
+    [ProtoMember(4)] public int MinedOut;
+    /// <summary>"40 blocks north-east" of the hut, to the strongest reading.</summary>
+    [ProtoMember(5)] public string Where = "";
+}
+
 [ProtoContract]
 public class HutItemView
 {
@@ -432,7 +456,13 @@ public enum ColonyAction
     /// <summary>Text "1" puts the colony banner on each building once a builder finishes it.</summary>
     SetBannerOnNew = 49,
     /// <summary>Text "-1" or "1" shows the level below or above in the placement preview.</summary>
-    PlacementLevel = 50
+    PlacementLevel = 50,
+    /// <summary>Text is the ore (deposit code) the Miner's Hut with BuildingId digs for; empty for the best found.</summary>
+    SetMineOre = 51,
+    /// <summary>Forgets the pit of the Quarry with BuildingId, so it waits for a new Quarry marker.</summary>
+    ClearQuarry = 52,
+    /// <summary>Forgets the Miner's Hut's site and tunnel, so the miner starts a new mine.</summary>
+    NewMine = 53
 }
 
 /// <summary>The Builder's Wand building list: each building type with how many of its blocks the player carries.</summary>

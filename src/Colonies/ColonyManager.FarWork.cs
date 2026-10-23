@@ -24,7 +24,7 @@ public partial class ColonyManager
     /// <summary>Columns no settler needs any more, unloaded once no player is near them either.</summary>
     readonly HashSet<Vec2i> releasingColumns = new();
 
-    static bool WorksFarOut(string? job) => job is Jobs.Forester or Jobs.Farmer or Jobs.Guard;
+    static bool WorksFarOut(string? job) => job is Jobs.Forester or Jobs.Farmer or Jobs.Guard or Jobs.Prospector or Jobs.Miner or Jobs.Quarrier;
 
     void OnFarWorkTick(float dt)
     {
