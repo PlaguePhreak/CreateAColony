@@ -247,7 +247,12 @@ public class GuiDialogTownHall : GuiDialog
         left = composer.Row(Lang.Get("createacolony:stat-settlers"), settlers, pad, left, column, snapshot.PopulationCap > 0 && alive >= snapshot.PopulationCap ? GuiKit.WarnColor : null);
         composer.Row(Lang.Get("createacolony:stat-hungry"), hungry.ToString(), pad, left, column, hungry > 0 ? GuiKit.WarnColor : null);
         right = composer.Row(Lang.Get("createacolony:stat-beds"), snapshot.BedCount.ToString(), 2 * pad + column, right, column);
-        composer.Row(Lang.Get("createacolony:stat-members"), snapshot.Members.Count.ToString(), 2 * pad + column, right, column);
+        right = composer.Row(Lang.Get("createacolony:stat-members"), snapshot.Members.Count.ToString(), 2 * pad + column, right, column);
+        if (snapshot.AverageHappiness >= 0)
+        {
+            string mood = Lang.Get("createacolony:mood-value", snapshot.AverageHappiness, Lang.Get("createacolony:mood-" + MoodWord(snapshot.AverageHappiness)));
+            composer.Row(Lang.Get("createacolony:stat-happiness"), mood, 2 * pad + column, right, column, snapshot.AverageHappiness < 30 ? GuiKit.WarnColor : null);
+        }
         y += 3 * 24 + 2 * pad + 10;
 
         int visitors = snapshot.Citizens.Count(c => c.Visitor);
@@ -909,4 +914,7 @@ public class GuiDialogTownHall : GuiDialog
         network.SendAction(new ColonyActionPacket { ColonyId = ColonyId, Action = ColonyAction.CloseWindow });
         base.OnGuiClosed();
     }
+
+    /// <summary>The mood word for a happiness, the same bands as ColonyManager.MoodOf.</summary>
+    static string MoodWord(int h) => h >= 85 ? "joyful" : h >= 70 ? "happy" : h >= 45 ? "content" : h >= 30 ? "unhappy" : h >= 15 ? "miserable" : "broken";
 }

@@ -80,7 +80,7 @@ public partial class ColonyManager
             var skills = RollStartingSkills();
             var rolled = RollTraits();
             ApplyTraitSkillStart(skills, rolled);
-            tavern.Recruits.Add(new RecruitOffer { Name = RandomName(colony, sex), Sex = sex, Cost = RecruitPrice(sapi.World.Rand.Next(min, max + 1), rolled), SkillXp = skills, Traits = rolled });
+            tavern.Recruits.Add(new RecruitOffer { Name = RandomName(colony, sex), Sex = sex, Cost = RecruitPrice(sapi.World.Rand.Next(min, max + 1), rolled), SkillXp = skills, Traits = rolled, Passions = RollPassions(skills, rolled) });
         }
         MarkDirty(colony);
         return tavern.Recruits;
@@ -141,6 +141,8 @@ public partial class ColonyManager
         // The skills the offer showed are the ones they bring.
         if (offer.SkillXp.Count > 0) record.SkillXp = new Dictionary<string, int>(offer.SkillXp);
         if (offer.Traits.Count > 0) record.Traits = offer.Traits.Select(t => new TraitRecord { Code = t.Code, Level = t.Level }).ToList();
+        // Offers from before passions get theirs now, from the traits they really have.
+        record.Passions = offer.Passions.Count > 0 ? new Dictionary<string, int>(offer.Passions) : RollPassions(record.SkillXp, record.Traits);
         TellMembers(colony, "createacolony:recruit-hired", record.Name, colony.Name, player.PlayerName);
         LogEvent(colony, "event-hired", record.Name, player.PlayerName);
         return null;

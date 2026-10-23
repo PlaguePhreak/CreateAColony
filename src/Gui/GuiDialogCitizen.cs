@@ -107,6 +107,7 @@ public class GuiDialogCitizen : GuiDialog
         SingleComposer.GetHorizontalTabs("tabs").SetValue((int)lastTab, false);
         SingleComposer.GetStatbar("health")?.SetValues(snapshot.Health, 0, Math.Max(1, snapshot.MaxHealth));
         SingleComposer.GetStatbar("satiety")?.SetValues(snapshot.FoodPercent, 0, 100);
+        SingleComposer.GetStatbar("happiness")?.SetValues(Math.Max(0, snapshot.Happiness), 0, 100);
         foreach (var s in snapshot.Skills)
         {
             // From this level's XP to the next level's; a full bar at the top level.
@@ -114,6 +115,12 @@ public class GuiDialogCitizen : GuiDialog
             SingleComposer.GetStatbar("skill-" + s.Code)?.SetValues(atTop ? 1 : s.Xp - s.LevelXp, 0, atTop ? 1 : Math.Max(1, s.NextXp - s.LevelXp));
         }
     }
+
+    /// <summary>The passion mark after a skill's name: lang passion-mark-1 / -2.</summary>
+    static string ColonyPassionMark(int passion) => passion > 0 ? " " + Lang.Get("createacolony:passion-mark-" + Math.Min(2, passion)) : "";
+
+    /// <summary>Green when happy, plain when content, orange then red as it falls.</summary>
+    static double[] MoodColor(int happiness) => happiness >= 70 ? GuiKit.GoodColor : happiness >= 45 ? GuiStyle.FoodBarColor : happiness >= 30 ? GuiKit.WarnColor : GuiStyle.HealthBarColor;
 
     string JobLine() => snapshot.Child ? Lang.Get("createacolony:citizen-child", snapshot.GrowsUpHours)
         : Lang.Get("createacolony:job-" + (snapshot.Job.Length == 0 ? "none" : snapshot.Job));
@@ -177,6 +184,17 @@ public class GuiDialogCitizen : GuiDialog
         Row(Lang.Get("createacolony:citizen-satiety"), snapshot.FoodPercent + "%");
         composer.AddStatbar(ElementBounds.Fixed(x, y - 2, StatsWidth, 10), GuiStyle.FoodBarColor, "satiety");
         y += 14;
+        if (snapshot.Happiness >= 0)
+        {
+            // Happiness: the number and mood word, a bar, and every thought behind it on hover.
+            double top = y;
+            Row(Lang.Get("createacolony:citizen-happiness"), Lang.Get("createacolony:mood-value", snapshot.Happiness, Lang.Get("createacolony:mood-" + snapshot.Mood)));
+            composer.AddStatbar(ElementBounds.Fixed(x, y - 2, StatsWidth, 10), MoodColor(snapshot.Happiness), "happiness");
+            y += 14;
+            string thoughts = snapshot.Thoughts.Count == 0 ? Lang.Get("createacolony:thought-none") : string.Join("\n", snapshot.Thoughts);
+            composer.AddHoverText(Lang.Get("createacolony:mood-hover") + "\n" + thoughts, CairoFont.WhiteDetailText(), 300, ElementBounds.Fixed(x, top, StatsWidth, y - top));
+            if (snapshot.BreakdownHours > 0) y = composer.Text(Lang.Get("createacolony:mood-breakdown-now", snapshot.BreakdownHours), GuiKit.Detail().WithColor(GuiKit.WarnColor), x, y, StatsWidth);
+        }
         Row(Lang.Get("createacolony:citizen-walkspeed"), (int)Math.Round(snapshot.WalkSpeed * 100) + "%");
         Row(Lang.Get("createacolony:citizen-state"), Lang.Get("createacolony:state-" + snapshot.State));
         Row(Lang.Get("createacolony:citizen-bed"), Lang.Get(snapshot.HasBed ? "createacolony:has-bed" : "createacolony:no-bed"));
@@ -249,23 +267,42 @@ public class GuiDialogCitizen : GuiDialog
             composer.Text(Lang.Get("createacolony:skills-child"), GuiKit.Muted(), x, y, width);
             return x + width;
         }
+        var passionFont = label.Clone().WithColor(GuiKit.GoodColor);
+        var muted = GuiKit.Muted();
         foreach (var s in snapshot.Skills)
         {
+            string name = Lang.Get("createacolony:skill-" + s.Code) + ColonyPassionMark(s.Passion);
+            if (s.Incapable.Length > 0)
+            {
+                // Ruled out by a trait: no level, no bar.
+                composer
+                    .AddStaticText(name, muted, ElementBounds.Fixed(x, y, width, 20))
+                    .AddStaticText(Lang.Get("createacolony:skill-incapable"), muted.Clone().WithOrientation(EnumTextOrientation.Right), ElementBounds.Fixed(x, y, width, 20))
+                    .AddHoverText(Lang.Get("createacolony:skill-incapable-by", Lang.Get("createacolony:trait-" + s.Incapable)), CairoFont.WhiteDetailText(), 260, ElementBounds.Fixed(x, y, width, 26));
+                y += 30;
+                continue;
+            }
             bool limited = s.Usable < s.Level;
             string text = limited ? Lang.Get("createacolony:skill-using", s.Level, s.Usable) : s.Level.ToString();
+            if (s.Decaying) text = Lang.Get("createacolony:skill-decaying-mark") + " " + text;
             composer
-                .AddStaticText(Lang.Get("createacolony:skill-" + s.Code), label, ElementBounds.Fixed(x, y, width, 20))
+                .AddStaticText(name, s.Passion > 0 ? passionFont : label, ElementBounds.Fixed(x, y, width, 20))
                 .AddStaticText(text, limited ? capped : value, ElementBounds.Fixed(x, y, width, 20));
             // The bar fills towards the next level; full at the top level.
             var bar = ElementBounds.Fixed(x, y + 20, width, 6);
             composer.AddStatbar(bar, limited ? GuiKit.WarnColor : GuiStyle.FoodBarColor, "skill-" + s.Code);
-            string hover = s.NextXp > 0 ? Lang.Get("createacolony:skill-xp", s.Xp, s.NextXp) : Lang.Get("createacolony:skill-max");
+            string hover = Lang.Get("createacolony:skill-rank-line", ColonyManager.LevelName(s.Level), s.Level);
+            hover += "\n" + (s.NextXp > 0 ? Lang.Get("createacolony:skill-xp", s.Xp, s.NextXp) : Lang.Get("createacolony:skill-max"));
+            if (s.Passion > 0) hover += "\n" + Lang.Get("createacolony:skill-passion-" + Math.Min(2, s.Passion));
             if (limited)
             {
                 string by = s.CapNote.StartsWith('@') ? Lang.Get("createacolony:" + s.CapNote[1..]) : s.CapNote;
                 hover += "\n" + Lang.Get("createacolony:skill-capped-by", s.Usable, by);
             }
-            composer.AddHoverText(hover, CairoFont.WhiteDetailText(), 260, ElementBounds.Fixed(x, y, width, 26));
+            if (s.Decaying) hover += "\n" + Lang.Get("createacolony:skill-decaying");
+            if (snapshot.SkillDailyCap > 0 && s.XpToday > 0) hover += "\n" + Lang.Get(s.XpToday >= snapshot.SkillDailyCap ? "createacolony:skill-today-capped" : "createacolony:skill-today", s.XpToday, snapshot.SkillDailyCap);
+            if (s.NextPerk.Length > 0) hover += "\n" + s.NextPerk;
+            composer.AddHoverText(hover, CairoFont.WhiteDetailText(), 300, ElementBounds.Fixed(x, y, width, 26));
             y += 30;
         }
         composer.Text(Lang.Get("createacolony:skills-hint"), GuiKit.Muted(), x, y + 4, width);

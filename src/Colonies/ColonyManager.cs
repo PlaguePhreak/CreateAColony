@@ -84,6 +84,14 @@ public partial class ColonyManager : ModSystem
             var placeAsItem = config.BlueprintPlaceAsItem ?? Array.Empty<string>();
             if (placeAsItem.SequenceEqual(new[] { "w4rd0sfurniture:*", "heraldrybanners:*" })) config.BlueprintPlaceAsItem = new ColonyConfig().BlueprintPlaceAsItem;
         }
+        if (config.ConfigVersion < 3)
+        {
+            // RimWorld-style skills: levels to 20, a cap for each of the 5 hut levels, a wider effect clamp.
+            var fresh = new ColonyConfig();
+            if (config.SkillLevelMax == 10) config.SkillLevelMax = fresh.SkillLevelMax;
+            if ((config.SkillCapByBuildingLevel ?? Array.Empty<int>()).SequenceEqual(new[] { 4, 6, 8, 10 })) config.SkillCapByBuildingLevel = fresh.SkillCapByBuildingLevel;
+            if (config.SkillEffectMax == 2f) config.SkillEffectMax = fresh.SkillEffectMax;
+        }
         config.ConfigVersion = ColonyConfig.CurrentConfigVersion;
     }
 
@@ -208,7 +216,10 @@ public partial class ColonyManager : ModSystem
             TickFamilies(colony, now);
             EnsureSkills(colony);
             EnsureTraits(colony);
+            EnsurePassions(colony);
             TickTraits(colony, now);
+            TickSkills(colony, now);
+            TickHappiness(colony);
             EnsureMinStock(colony);
 
             foreach (var citizen in colony.Citizens.ToList())
@@ -385,6 +396,8 @@ public partial class ColonyManager : ModSystem
         {
             record.Traits = RollTraits();
             ApplyTraitSkillStart(record.SkillXp, record.Traits);
+            record.Passions = RollPassions(record.SkillXp, record.Traits);
+            record.PassionsRolled = true;
         }
         colony.Citizens.Add(record);
         SpawnEntityFor(colony, record, at);

@@ -4,6 +4,7 @@ using System.Linq;
 using CreateAColony.Settlers;
 using Vintagestory.API.Common;
 using Vintagestory.API.Common.Entities;
+using Vintagestory.API.Config;
 using Vintagestory.API.Util;
 using Vintagestory.GameContent;
 
@@ -23,20 +24,27 @@ public class SkillDef
     public int StrengthPerWork;
     /// <summary>Each usable level makes the job's work this much faster (0.04 = 4%).</summary>
     public float WorkSpeedPerLevel = 0.04f;
+    /// <summary>
+    /// Milestone perks: effect key to its values at the levels in config SkillPerkLevels (5, 10, 15, 20).
+    /// "yield" and "portion" are chances of one more item, "packSlots" adds slots, the rest multiply.
+    /// </summary>
+    public Dictionary<string, float[]> Perks = new();
 
     public bool IsPassive => Job.Length == 0;
     public bool Covers(string? job) => job != null && job.Length > 0 && (job == Job || AlsoJobs.Contains(job));
 }
 
 /// <summary>What the settler window and the hiring lists show about one skill.</summary>
-public readonly record struct SkillInfo(string Code, int Level, int Usable, int Xp, int LevelXp, int NextXp, string CapNote);
+public readonly record struct SkillInfo(string Code, int Level, int Usable, int Xp, int LevelXp, int NextXp, string CapNote, int Passion, string Incapable, bool Decaying, int XpToday);
 
 /// <summary>
-/// Skills, Project Zomboid style: settlers learn by doing and get better at their job, from level 0 to 10.
+/// Skills, RimWorld style: settlers learn by doing and get better at their job, from level 0 to 20.
 /// Strength and Fitness grow for everyone. How much of a skill a settler can use is limited by the level
 /// of the building they work at (or sleep in, for Strength and Fitness): a master at a level 1 hut works
 /// like a level 4 one until the hut is upgraded, because skill is no use without the tools. XP keeps
-/// coming past the cap, so nothing is lost. Numbers live in config/skills.json and ColonyConfig.
+/// coming past the cap, so nothing is lost. Passions (one or two flames) make a skill grow faster, some
+/// traits rule a skill out, skills above 10 fade a little every day, and each skill gains full XP only
+/// up to a daily cap. Numbers live in config/skills.json and ColonyConfig.
 /// </summary>
 public partial class ColonyManager
 {
@@ -71,8 +79,18 @@ public partial class ColonyManager
 
     public int MaxLevel => Math.Max(1, Config.SkillLevelMax);
 
-    /// <summary>Total XP needed to reach a level: level n costs SkillXpPerLevel x n on top of the one below.</summary>
-    public int XpForLevel(int level) => Math.Max(0, Config.SkillXpPerLevel) * level * (level + 1) / 2;
+    /// <summary>
+    /// Total XP needed to reach a level. Level n costs SkillXpPerLevel x n on top of the one below up to
+    /// SkillSteepFrom (75, 150 ... 4,125 for level 10), then steps grow SkillSteepFactor times as fast
+    /// (900, 1,050 ... 19,875 for level 20), the shape of RimWorld's curve.
+    /// </summary>
+    public int XpForLevel(int level)
+    {
+        int per = Math.Max(0, Config.SkillXpPerLevel), from = Math.Max(0, Config.SkillSteepFrom), factor = Math.Max(1, Config.SkillSteepFactor);
+        int total = 0;
+        for (int n = 1; n <= level; n++) total += per * (n <= from ? n : from + factor * (n - from));
+        return total;
+    }
 
     /// <summary>The level this much XP has earned, at most MaxLevel.</summary>
     public int LevelOf(int xp)
@@ -87,16 +105,42 @@ public partial class ColonyManager
     /// <summary>The settler's real level in a skill, whatever their building allows.</summary>
     public int SkillLevel(CitizenRecord c, string code) => LevelOf(SkillXp(c, code));
 
-    /// <summary>Gives a settler XP in a skill. Children and the dead learn nothing. Logs level 5 and the top level.</summary>
+    /// <summary>
+    /// Gives a settler XP in a skill. Children, the dead and the incapable learn nothing. The amount is
+    /// multiplied by passion, learning rate (Fast/Slow Learner), mood and the config multiplier, then
+    /// counts in full only up to the daily cap. Logs levels 5, 10, 15 and the top level.
+    /// </summary>
     public void AddSkillXp(Colony colony, CitizenRecord c, string code, int amount)
     {
-        if (!Config.Skills || amount <= 0 || !c.Alive || c.IsChild || Skill(code) == null) return;
-        int scaled = (int)Math.Round(amount * Math.Max(0, Config.SkillXpMultiplier));
-        if (scaled <= 0) return;
+        if (!Config.Skills || amount <= 0 || !c.Alive || c.IsChild || Skill(code) == null || IsIncapable(c, code)) return;
+        double scaled = amount * Math.Max(0, Config.SkillXpMultiplier) * PassionXpFactor(c, code) * TraitMult(c, "learning") * MoodLearnFactor(c);
+        // The daily soft cap: past SkillDailyCap a skill only gets SkillOverCapFactor of the XP.
+        int today = (int)sapi.World.Calendar.TotalDays;
+        if (c.SkillXpDay != today)
+        {
+            c.SkillXpDay = today;
+            c.SkillXpToday.Clear();
+        }
+        int cap = Config.SkillDailyCap;
+        int got = c.SkillXpToday.GetValueOrDefault(code);
+        if (cap > 0)
+        {
+            double full = Math.Clamp(cap - got, 0, scaled);
+            scaled = full + (scaled - full) * Math.Clamp(Config.SkillOverCapFactor, 0, 1);
+        }
+        // Whole XP only: the fraction is a chance of one more, so small amounts still add up on average.
+        int gain = (int)Math.Floor(scaled);
+        if (sapi.World.Rand.NextDouble() < scaled - gain) gain++;
+        if (gain <= 0) return;
+        c.SkillXpToday[code] = got + gain;
         int before = SkillLevel(c, code);
-        c.SkillXp[code] = Math.Min(SkillXp(c, code) + scaled, XpForLevel(MaxLevel));
+        c.SkillXp[code] = Math.Min(SkillXp(c, code) + gain, XpForLevel(MaxLevel));
         int after = SkillLevel(c, code);
-        if (after > before && (after == 5 || after == MaxLevel)) LogEvent(colony, "event-skill-up", c.Name, "@skill-" + code, after.ToString());
+        if (after > before)
+        {
+            if (after % 5 == 0 || after == MaxLevel) LogEvent(colony, "event-skill-up", c.Name, "@skill-" + code, after.ToString());
+            AddThought(c, "skillup", 0);
+        }
         MarkDirty(colony);
     }
 
@@ -105,9 +149,11 @@ public partial class ColonyManager
     {
         var skill = SkillForJob(job);
         if (skill == null || times <= 0) return;
-        // A matching job trait (Green Thumb for a farmer) makes the skill grow faster.
-        AddSkillXp(colony, c, skill.Code, (int)Math.Ceiling(skill.XpPerWork * times * TraitSkillXpFactor(c, job)));
+        // A job trait (Green Thumb for a farmer) now gives a passion for its skill, which is what speeds it up.
+        AddSkillXp(colony, c, skill.Code, skill.XpPerWork * times);
         if (skill.StrengthPerWork > 0) AddSkillXp(colony, c, Strength, skill.StrengthPerWork * times);
+        // Doing work they love lifts their mood for a while (RimWorld's +8 / +14).
+        if (Passion(c, skill.Code) is int flames and > 0) AddThought(c, "passion" + flames, 0);
     }
 
     /// <summary>A courier set down a load: Hauling for each stack, Strength when the pack was full.</summary>
@@ -137,13 +183,22 @@ public partial class ColonyManager
         return colony.Buildings.Where(b => skill.Covers(JobOf(b.Type))).OrderByDescending(b => b.Level).FirstOrDefault();
     }
 
+    /// <summary>The highest usable level a building allows: by its level, or everything at the top level its style has.</summary>
+    public int CapForBuilding(Building? b)
+    {
+        if (b == null) return CapForBuildingLevel(0);
+        int top = Blueprints.MaxLevel(b);
+        if (top > 0 && b.Level >= top) return MaxLevel;
+        return CapForBuildingLevel(b.Level);
+    }
+
     /// <summary>How much of a skill the settler can use where they work or live now.</summary>
-    public int SkillCap(Colony colony, CitizenRecord c, SkillDef skill) => CapForBuildingLevel(CapBuilding(colony, c, skill)?.Level ?? 0);
+    public int SkillCap(Colony colony, CitizenRecord c, SkillDef skill) => CapForBuilding(CapBuilding(colony, c, skill));
 
     /// <summary>The level that counts: the lower of the real level and what the building allows.</summary>
     public int UsableLevel(Colony colony, CitizenRecord c, string code)
     {
-        if (!Config.Skills || c.IsChild) return 0;
+        if (!Config.Skills || c.IsChild || IsIncapable(c, code)) return 0;
         var skill = Skill(code);
         if (skill == null) return 0;
         return Math.Min(SkillLevel(c, code), SkillCap(colony, c, skill));
@@ -160,13 +215,15 @@ public partial class ColonyManager
         var skill = SkillForJob(c.JobCode);
         float speed = Config.Skills && skill != null ? 1f + skill.WorkSpeedPerLevel * UsableLevel(colony, c, skill.Code) : 1f;
         speed *= TraitMult(c, "workSpeed"); // Hard Worker, Lazy, the job traits, Shaken
+        speed *= SkillPerk(colony, c, "workSpeed"); // Prospecting's faster readings
+        speed *= MoodWorkFactor(c); // Joyful works faster, Miserable slower
         return ClampEffect(1f / speed);
     }
 
     /// <summary>Divide a guard's time between swings by this: Veteran swings faster, Night Owl at night.</summary>
     public float SwingFactor(Colony colony, CitizenRecord c)
     {
-        float f = TraitMult(c, "swingSpeed");
+        float f = TraitMult(c, "swingSpeed") * SkillPerk(colony, c, "swingSpeed");
         float hour = sapi.World.Calendar.HourOfDay;
         if (!InHours(hour, Config.SleepEndHour, Config.SleepStartHour)) f *= TraitMult(c, "nightSwing");
         return ClampEffect(f);
@@ -227,6 +284,189 @@ public partial class ColonyManager
         }
     }
 
+    // ---- Passions ------------------------------------------------------------------------------
+
+    /// <summary>A settler's passion for a skill: 0 none, 1 Interested (one flame), 2 Burning (two flames).</summary>
+    public int Passion(CitizenRecord c, string code) => Config.SkillPassions ? Math.Clamp(c.Passions.GetValueOrDefault(code), 0, 2) : 0;
+
+    /// <summary>How much faster a skill grows for the settler's passion: SkillPassionXp by flames.</summary>
+    public float PassionXpFactor(CitizenRecord c, string code)
+    {
+        var table = Config.SkillPassionXp;
+        if (table == null || table.Length == 0) return 1f;
+        return Math.Max(0, table[Math.Min(Passion(c, code), table.Length - 1)]);
+    }
+
+    /// <summary>
+    /// Passions for someone from outside: 0 to 3 rolled ones (a quarter Burning), more likely on their best
+    /// (background) skill, never on a skill a trait rules out. A job trait gives its skill a flame, or turns
+    /// one flame into two.
+    /// </summary>
+    public Dictionary<string, int> RollPassions(Dictionary<string, int> skillXp, List<TraitRecord> traits)
+    {
+        var result = new Dictionary<string, int>();
+        var all = Skills().Where(s => !IncapableBy(traits, s.Code).Any()).ToList();
+        if (!Config.SkillPassions || all.Count == 0) return result;
+        var rand = sapi.World.Rand;
+        var weights = Config.SkillPassionCountWeights is { Length: > 0 } w ? w : new[] { 1 };
+        int count = Weighted(rand, Enumerable.Range(0, weights.Length).ToList(), i => weights[i]);
+        // The best skill they came with counts three times in the draw: what they did before, they liked.
+        string best = skillXp.OrderByDescending(kv => kv.Value).Select(kv => kv.Key).FirstOrDefault() ?? "";
+        for (int i = 0; i < count; i++)
+        {
+            var left = all.Where(s => !result.ContainsKey(s.Code)).ToList();
+            if (left.Count == 0) break;
+            var pick = Weighted(rand, left, s => s.Code == best ? 3 : 1);
+            result[pick.Code] = rand.NextDouble() < Config.SkillPassionBurningChance ? 2 : 1;
+        }
+        ApplyTraitPassions(result, traits);
+        return result;
+    }
+
+    /// <summary>A job trait means they love that work: at least one flame, or two if they already had one.</summary>
+    public void ApplyTraitPassions(Dictionary<string, int> passions, List<TraitRecord> traits)
+    {
+        foreach (var record in traits)
+        {
+            if (Trait(record.Code) is not { IsJobTrait: true } def || SkillForJob(def.Job) is not { } skill) continue;
+            passions[skill.Code] = Math.Min(2, passions.GetValueOrDefault(skill.Code) + 1);
+        }
+    }
+
+    /// <summary>A grown-up child takes each parent's passion SkillPassionInherit of the time, plus one rolled passion and its job trait's.</summary>
+    public void InheritPassions(Colony colony, CitizenRecord child)
+    {
+        if (!Config.SkillPassions) return;
+        var rand = sapi.World.Rand;
+        var result = new Dictionary<string, int>();
+        foreach (var parent in ParentsOf(colony, child))
+        {
+            foreach (var (code, flames) in parent.Passions)
+            {
+                if (IncapableBy(child.Traits, code).Any() || rand.NextDouble() >= Config.SkillPassionInherit) continue;
+                result[code] = Math.Max(result.GetValueOrDefault(code), flames);
+            }
+        }
+        var free = Skills().Where(s => !result.ContainsKey(s.Code) && !IncapableBy(child.Traits, s.Code).Any()).ToList();
+        if (free.Count > 0) result[free[rand.Next(free.Count)].Code] = rand.NextDouble() < Config.SkillPassionBurningChance ? 2 : 1;
+        ApplyTraitPassions(result, child.Traits);
+        child.Passions = result;
+        child.PassionsRolled = true;
+    }
+
+    /// <summary>Settlers from saves before passions roll theirs once; children get theirs when they grow up.</summary>
+    void EnsurePassions(Colony colony)
+    {
+        if (!Config.SkillPassions) return;
+        bool changed = false;
+        foreach (var c in colony.Citizens)
+        {
+            if (c.PassionsRolled || c.IsChild) continue;
+            c.PassionsRolled = true;
+            if (c.Alive && c.Passions.Count == 0) c.Passions = RollPassions(c.SkillXp, c.Traits);
+            changed = true;
+        }
+        if (changed) MarkDirty(colony);
+    }
+
+    // ---- Incapable ------------------------------------------------------------------------------
+
+    /// <summary>The traits in this list that rule a skill out (trait effect "incapable-&lt;skill&gt;").</summary>
+    public IEnumerable<string> IncapableBy(List<TraitRecord> traits, string code)
+    {
+        if (!Config.SkillIncapable || !Config.Traits) yield break;
+        foreach (var record in traits)
+        {
+            if (Trait(record.Code) is { } def && def.Effects.ContainsKey("incapable-" + code)) yield return def.Code;
+        }
+    }
+
+    public bool IsIncapable(CitizenRecord c, string code) => IncapableBy(c.Traits, code).Any();
+
+    /// <summary>The trait that keeps a settler from a job, or null when they can do it.</summary>
+    public string? IncapableOfJob(CitizenRecord c, string? job) =>
+        SkillForJob(job) is { } skill ? IncapableBy(c.Traits, skill.Code).FirstOrDefault() : null;
+
+    // ---- Decay ----------------------------------------------------------------------------------
+
+    /// <summary>XP a skill at this level loses a day: nothing up to SkillSteepFrom, then SkillDecayPerDay.</summary>
+    public int DecayPerDay(int level)
+    {
+        int from = Math.Max(0, Config.SkillSteepFrom);
+        var table = Config.SkillDecayPerDay;
+        if (!Config.SkillDecay || level <= from || table == null || table.Length == 0) return 0;
+        return Math.Max(0, table[Math.Min(level - from - 1, table.Length - 1)]);
+    }
+
+    /// <summary>
+    /// Part of the colony tick, once per in-game day: skills above SkillSteepFrom lose their day's XP
+    /// (halved by Good Memory), never dropping below SkillSteepFrom.
+    /// </summary>
+    void TickSkills(Colony colony, double now)
+    {
+        if (!Config.Skills) return;
+        int today = (int)now;
+        if (colony.LastSkillDay == today) return;
+        bool first = colony.LastSkillDay < 0;
+        colony.LastSkillDay = today;
+        MarkDirty(colony);
+        if (first || !Config.SkillDecay) return;
+        int floor = XpForLevel(Math.Min(MaxLevel, Math.Max(0, Config.SkillSteepFrom)));
+        foreach (var c in colony.Citizens)
+        {
+            if (!c.Alive || c.Visitor || c.IsChild) continue;
+            foreach (var code in c.SkillXp.Keys.ToList())
+            {
+                int loss = (int)Math.Round(DecayPerDay(SkillLevel(c, code)) * TraitMult(c, "decay"));
+                if (loss > 0) c.SkillXp[code] = Math.Max(floor, c.SkillXp[code] - loss);
+            }
+        }
+    }
+
+    // ---- Milestone perks ------------------------------------------------------------------------
+
+    static readonly HashSet<string> AddingPerks = new() { "yield", "portion", "packSlots" };
+
+    /// <summary>
+    /// A milestone perk from every skill the settler uses: their job's skill and Strength/Fitness. A skill
+    /// gives the value of the highest SkillPerkLevels milestone its usable level has reached. Adding keys
+    /// sum (0 when none), the rest multiply (1 when none).
+    /// </summary>
+    public float SkillPerk(Colony colony, CitizenRecord c, string key)
+    {
+        bool adds = AddingPerks.Contains(key);
+        float result = adds ? 0f : 1f;
+        if (!Config.Skills || c.IsChild) return result;
+        var levels = Config.SkillPerkLevels ?? Array.Empty<int>();
+        foreach (var skill in Skills())
+        {
+            if (!skill.Perks.TryGetValue(key, out var values) || values.Length == 0) continue;
+            if (!skill.IsPassive && !skill.Covers(c.JobCode)) continue;
+            int usable = UsableLevel(colony, c, skill.Code);
+            int reached = levels.Count(l => usable >= l);
+            if (reached == 0) continue;
+            float v = values[Math.Min(reached, values.Length) - 1];
+            result = adds ? result + v : result * v;
+        }
+        return result;
+    }
+
+    /// <summary>The colony a settler belongs to, for callers that only have the record.</summary>
+    public Colony? ColonyOf(CitizenRecord c) => colonies.Values.FirstOrDefault(col => col.Citizens.Contains(c));
+
+    /// <summary>Multiply hunger by this: the Fitness perk.</summary>
+    public float HungerPerkFor(string? colonyId, CitizenRecord c) => GetById(colonyId ?? "") is { } colony ? SkillPerk(colony, c, "hunger") : 1f;
+
+    /// <summary>The next milestone level above a usable level, or 0 past the last.</summary>
+    public int NextPerkLevel(int usable) => (Config.SkillPerkLevels ?? Array.Empty<int>()).Where(l => l > usable).DefaultIfEmpty(0).Min();
+
+    /// <summary>A chance perk ("yield", "portion") rolled once: true when the settler gets one more.</summary>
+    public bool RollPerk(Colony colony, CitizenRecord c, string key)
+    {
+        float chance = SkillPerk(colony, c, key);
+        return chance > 0 && sapi.World.Rand.NextDouble() < chance;
+    }
+
     /// <summary>Settlers from saves before skills existed roll their starting skills once.</summary>
     void EnsureSkills(Colony colony)
     {
@@ -258,13 +498,45 @@ public partial class ColonyManager
             if (level > usable && CapBuilding(colony, c, s) is { } limit) note = BuildingName(limit);
             else if (level > usable) note = s.IsPassive ? "@skill-cap-no-home" : "@skill-cap-no-hut";
             int next = level >= MaxLevel ? 0 : XpForLevel(level + 1);
-            list.Add(new SkillInfo(s.Code, level, usable, xp, XpForLevel(level), next, note));
+            string incapable = IncapableBy(c.Traits, s.Code).FirstOrDefault() ?? "";
+            if (incapable.Length > 0) usable = 0;
+            int today = c.SkillXpDay == (int)sapi.World.Calendar.TotalDays ? c.SkillXpToday.GetValueOrDefault(s.Code) : 0;
+            list.Add(new SkillInfo(s.Code, level, usable, xp, XpForLevel(level), next, incapable.Length > 0 ? "" : note, Passion(c, s.Code), incapable, DecayPerDay(level) > 0, today));
         }
         var own = SkillForJob(c.JobCode);
         return own == null ? list : list.OrderByDescending(i => i.Code == own.Code).ToList();
     }
 
-    /// <summary>The two best skills someone has, for the hiring lists: "Farming 3, Strength 2".</summary>
-    public List<(string Code, int Level)> BestSkills(Dictionary<string, int> xp, int count = 2) =>
-        xp.Select(kv => (kv.Key, LevelOf(kv.Value))).Where(x => x.Item2 > 0).OrderByDescending(x => x.Item2).ThenBy(x => x.Key).Take(count).ToList();
+    /// <summary>The two best skills someone has, for the hiring lists: "Farming 3, Strength 2", passions first among equals.</summary>
+    public List<(string Code, int Level, int Passion)> BestSkills(Dictionary<string, int> xp, Dictionary<string, int>? passions = null, int count = 2) =>
+        xp.Select(kv => (kv.Key, LevelOf(kv.Value), Config.SkillPassions ? passions?.GetValueOrDefault(kv.Key) ?? 0 : 0)).Where(x => x.Item2 > 0)
+            .OrderByDescending(x => x.Item2).ThenByDescending(x => x.Item3).ThenBy(x => x.Key).Take(count).ToList();
+
+    /// <summary>The mark after a skill for its passion in lists: lang passion-mark-1 / -2, empty for none.</summary>
+    public string PassionMark(int passion) => passion > 0 && Config.SkillPassions ? " " + Lang.Get("createacolony:passion-mark-" + Math.Min(2, passion)) : "";
+
+    /// <summary>The level name: "Journeyman", "Legend of the realm".</summary>
+    public static string LevelName(int level) => Lang.Get("createacolony:skill-rank-" + Math.Clamp(level, 0, 20));
+
+    /// <summary>"Next: extra yield 10% at level 10" for a skill's hover, or empty past its last perk.</summary>
+    public string NextPerkText(string code, int usable)
+    {
+        if (Skill(code) is not { } skill || skill.Perks.Count == 0) return "";
+        var levels = Config.SkillPerkLevels ?? Array.Empty<int>();
+        int next = NextPerkLevel(usable);
+        int index = Array.IndexOf(levels, next);
+        if (next <= 0 || index < 0) return "";
+        var parts = new List<string>();
+        foreach (var (key, values) in skill.Perks)
+        {
+            if (values.Length == 0) continue;
+            float v = values[Math.Min(index, values.Length - 1)];
+            if (AddingPerks.Contains(key) && v <= 0) continue;
+            string amount = key == "packSlots" ? "+" + (int)Math.Round(v)
+                : AddingPerks.Contains(key) ? (int)Math.Round(v * 100) + "%"
+                : (v >= 1 ? "+" : "") + (int)Math.Round((v - 1) * 100) + "%";
+            parts.Add(Lang.Get("createacolony:perk-" + key, amount));
+        }
+        return parts.Count == 0 ? "" : Lang.Get("createacolony:perk-next", string.Join(", ", parts), next);
+    }
 }

@@ -104,6 +104,7 @@ public abstract class AiTaskSettlerWorker : SettlerTaskBase
         var colony = Colony;
         var citizen = Citizen;
         if (colony == null || citizen == null || citizen.JobCode != Job) return false;
+        if (manager!.IsBrokenDown(citizen)) return false; // too unhappy to work
 
         var hut = manager!.EnsureWorkplace(colony, citizen, HutType);
         if (hut == null) return false;

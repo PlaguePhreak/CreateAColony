@@ -99,6 +99,19 @@ public class CitizenRecord
     [ProtoMember(43)] public Dictionary<string, string> Skin = new();
     /// <summary>Food the settler carries to eat on the go, kept apart from the inventory so it is never unloaded with the harvest.</summary>
     [ProtoMember(44)] public List<byte[]> Lunch = new();
+    /// <summary>Passions by skill code: 1 = Interested (one flame), 2 = Burning (two flames). 50-59 are skills and happiness.</summary>
+    [ProtoMember(50)] public Dictionary<string, int> Passions = new();
+    /// <summary>Whether passions were rolled, so settlers from saves before passions get theirs once.</summary>
+    [ProtoMember(51)] public bool PassionsRolled;
+    /// <summary>XP gained in each skill on SkillXpDay, for the daily soft cap.</summary>
+    [ProtoMember(52)] public Dictionary<string, int> SkillXpToday = new();
+    [ProtoMember(53)] public int SkillXpDay;
+    /// <summary>Mood from 0 to 100; -1 until first set (starts at 50). See ColonyManager.Happiness.cs.</summary>
+    [ProtoMember(54, IsRequired = true)] public float Happiness = -1f;
+    /// <summary>Thoughts that last a while: a good meal, a death in the family, being knocked out.</summary>
+    [ProtoMember(55)] public List<ThoughtRecord> Thoughts = new();
+    /// <summary>While above the current time: too unhappy to work, sulking.</summary>
+    [ProtoMember(56)] public double BreakdownUntilTotalDays;
 
     public bool IsDowned => DownedUntilTotalDays > 0;
     public bool IsChild => GrowsUpTotalDays > 0;
@@ -284,6 +297,19 @@ public class RecruitOffer
     [ProtoMember(4)] public Dictionary<string, int> SkillXp = new();
     /// <summary>Their traits, rolled with the offer; the price follows the trait score.</summary>
     [ProtoMember(5)] public List<TraitRecord> Traits = new();
+    /// <summary>Their passions (skill code to 1 or 2 flames), shown before hiring.</summary>
+    [ProtoMember(6)] public Dictionary<string, int> Passions = new();
+}
+
+/// <summary>A thought that lasts a while and adds to a settler's mood (ColonyManager.Happiness.cs).</summary>
+[ProtoContract]
+public class ThoughtRecord
+{
+    /// <summary>The thought's code: "meal", "knockedout", "death", "passion" and so on.</summary>
+    [ProtoMember(1)] public string Code = "";
+    /// <summary>Mood points it adds (negative to take away).</summary>
+    [ProtoMember(2)] public int Mood;
+    [ProtoMember(3)] public double UntilTotalDays;
 }
 
 /// <summary>One trait of a settler: which, and how far it has grown (0 to TraitLevelMax).</summary>
@@ -404,6 +430,10 @@ public class Colony
     [ProtoMember(28)] public List<OreSite> OreSites = new();
     /// <summary>The last in-game day traits earned their daily XP; -1 until the first tick.</summary>
     [ProtoMember(35, IsRequired = true)] public int LastTraitDay = -1; // 29 to 34 are left to the quests branch
+    /// <summary>The last in-game day skills decayed. 50-59 are skills and happiness.</summary>
+    [ProtoMember(50, IsRequired = true)] public int LastSkillDay = -1;
+    /// <summary>When moods last moved (total hours); 0 until the first happiness tick.</summary>
+    [ProtoMember(51)] public double LastMoodTotalHours;
     /// <summary>The colony's quests (the Story and The Colony groups), by quest code: accepted and claimed ones only.</summary>
     [ProtoMember(29)] public Dictionary<string, QuestRecord> Quests = new();
 

@@ -39,6 +39,9 @@ public class CitizenView
     [ProtoMember(17)] public string TraitsText = "";
     /// <summary>In a hut's worker lists: they have the job trait for this hut's job.</summary>
     [ProtoMember(18)] public bool JobTrait;
+    /// <summary>In a hut's worker lists: their passion for the hut's job skill (0-2), and the trait that rules the job out, if any.</summary>
+    [ProtoMember(19)] public int Passion;
+    [ProtoMember(20)] public string Incapable = "";
 }
 
 /// <summary>One person in a family list: who, how they are related, and what they do.</summary>
@@ -170,6 +173,15 @@ public class CitizenSnapshot
     [ProtoMember(43)] public bool CanEdit;
     /// <summary>The settler's character class, for the Character tab ("commoner").</summary>
     [ProtoMember(44)] public string ClothesClass = "";
+    /// <summary>Happiness 0-100 and its mood word ("content"); -1 when happiness is off or for children. 50-59 are skills and happiness.</summary>
+    [ProtoMember(50, IsRequired = true)] public int Happiness = -1;
+    [ProtoMember(51)] public string Mood = "";
+    /// <summary>Every thought, already in words ("Ate a cooked meal +4 (9 h)"), good ones first.</summary>
+    [ProtoMember(52)] public List<string> Thoughts = new();
+    /// <summary>Hours left of a breakdown, 0 when working normally.</summary>
+    [ProtoMember(53)] public int BreakdownHours;
+    /// <summary>Full XP a skill gets per day before the soft cap; 0 = no cap.</summary>
+    [ProtoMember(54)] public int SkillDailyCap;
 }
 
 /// <summary>A click on a slot of the settler window: which settler, which area and slot, and how.</summary>
@@ -223,6 +235,15 @@ public class SkillView
     [ProtoMember(6)] public string CapNote = "";
     /// <summary>XP at which the current level began, so the bar runs from it to NextXp.</summary>
     [ProtoMember(7)] public int LevelXp;
+    /// <summary>Passion: 0 none, 1 Interested, 2 Burning.</summary>
+    [ProtoMember(8)] public int Passion;
+    /// <summary>The trait that rules this skill out, empty if none.</summary>
+    [ProtoMember(9)] public string Incapable = "";
+    /// <summary>True when the skill is above 10 and loses XP every day.</summary>
+    [ProtoMember(10)] public bool Decaying;
+    [ProtoMember(11)] public int XpToday;
+    /// <summary>Already in words: the next milestone perk and its level, empty past the last.</summary>
+    [ProtoMember(12)] public string NextPerk = "";
 }
 
 /// <summary>Client asks to open the window of the hut block at Pos.</summary>
@@ -464,6 +485,8 @@ public class ColonySnapshot
     [ProtoMember(36)] public int ProspectorHuts;
     /// <summary>How many settlers the colony can hold (PopulationBase + PopulationPerTownHallLevel x Town Hall level).</summary>
     [ProtoMember(45)] public int PopulationCap; // 37 to 44 are left to the quests branch
+    /// <summary>The settlers' average happiness, -1 when happiness is off or nobody has a mood. 50-59 are skills and happiness.</summary>
+    [ProtoMember(50, IsRequired = true)] public int AverageHappiness = -1;
     /// <summary>Where every quest stands for the viewer, for the Quests tab.</summary>
     [ProtoMember(37)] public List<QuestStateView> Quests = new();
 }

@@ -47,7 +47,7 @@ public partial class ColonyManager
     /// <summary>Keys whose values multiply the game's number; every other key adds to it.</summary>
     static readonly HashSet<string> MultiplierKeys = new()
     {
-        "workSpeed", "walkSpeed", "hunger", "downedDays", "regen", "toolWear", "variety", "willpowerWait", "swingSpeed", "nightSwing", "pairAfter", "packSlots"
+        "workSpeed", "walkSpeed", "hunger", "downedDays", "regen", "toolWear", "variety", "willpowerWait", "swingSpeed", "nightSwing", "pairAfter", "packSlots", "learning", "decay"
     };
     /// <summary>Weights for rolling 2, 3, 4 ... 10 traits: most settlers have three to five.</summary>
     static readonly int[] TraitCountWeights = { 12, 22, 24, 18, 10, 6, 4, 2, 2 };
@@ -205,17 +205,6 @@ public partial class ColonyManager
             int level = Math.Min(MaxLevel, LevelOf(skillXp.GetValueOrDefault(skill.Code)) + bonus);
             skillXp[skill.Code] = XpForLevel(level);
         }
-    }
-
-    /// <summary>Job traits make the matching skill grow half again as fast (twice as fast at trait level 20).</summary>
-    public float TraitSkillXpFactor(CitizenRecord c, string? job)
-    {
-        if (job == null) return 1f;
-        foreach (var (def, record) in ActiveTraits(c))
-        {
-            if (def.IsJobTrait && def.Job == job) return TraitLevelMax > 0 && record.Level >= TraitLevelMax ? 2f : 1.5f;
-        }
-        return 1f;
     }
 
     // ---- Inheritance ----------------------------------------------------------------------------
@@ -402,6 +391,7 @@ public partial class ColonyManager
         {
             float value = EffectAt(def, key, level);
             if (key is "noPair" or "pairFirst" or "flees") lines.Add(Lang.Get("createacolony:trait-effect-" + key));
+            else if (key.StartsWith("incapable-")) lines.Add(Lang.Get("createacolony:trait-effect-incapable", Lang.Get("createacolony:skill-" + key["incapable-".Length..])));
             else lines.Add(Lang.Get("createacolony:trait-effect-" + key, FormatEffect(key, value)));
         }
         return string.Join("\n", lines);

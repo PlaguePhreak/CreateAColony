@@ -121,6 +121,12 @@ public class CreateAColonyModSystem : ModSystem
                 .WithArgs(parsers.Word("settler"), parsers.OptionalWord("skill"), parsers.OptionalInt("level", 0))
                 .HandleWith(OnSkills)
             .EndSubCommand()
+            .BeginSubCommand("mood")
+                .WithDescription("Happiness, for testing: show a settler's happiness and thoughts, or set it (0-100)")
+                .RequiresPrivilege(Privilege.controlserver)
+                .WithArgs(parsers.Word("settler"), parsers.OptionalInt("happiness", -1))
+                .HandleWith(OnMood)
+            .EndSubCommand()
             .BeginSubCommand("traits")
                 .WithDescription("Traits, for testing: show a settler's traits, add or remove one, or set its level")
                 .RequiresPrivilege(Privilege.controlserver)
@@ -339,6 +345,31 @@ public class CreateAColonyModSystem : ModSystem
     /// /colony family couple A B, /colony family child A (A and their partner have a child), /colony family grow A:
     /// family events at once, for testing. Settlers are found by first or full name.
     /// </summary>
+    /// <summary>/colony mood Jon: Jon's happiness and thoughts; /colony mood Jon 10: sets it to 10 (a breakdown follows soon).</summary>
+    TextCommandResult OnMood(TextCommandCallingArgs args)
+    {
+        var player = (IServerPlayer)args.Caller.Player;
+        var manager = sapi!.ModLoader.GetModSystem<ColonyManager>();
+        var colony = manager.GetOwnedBy(player.PlayerUID);
+        if (colony == null) return TextCommandResult.Error(Lang.Get("createacolony:no-colony"));
+        if (!manager.Config.Happiness) return TextCommandResult.Error(Lang.Get("createacolony:mood-cmd-off"));
+
+        string name = (string)args[0];
+        var settler = colony.Citizens.Find(c => c.Alive && !c.Visitor && !c.IsChild
+            && (c.Name.Equals(name, StringComparison.OrdinalIgnoreCase) || c.Name.Split(' ')[0].Equals(name, StringComparison.OrdinalIgnoreCase)));
+        if (settler == null) return TextCommandResult.Error(Lang.Get("createacolony:family-cmd-notfound", name));
+        int set = (int)args[1];
+        if (set >= 0)
+        {
+            settler.Happiness = Math.Clamp(set, 0, 100);
+            manager.MarkDirty(colony);
+        }
+        float mood = manager.HappinessOf(settler);
+        var thoughts = manager.ThoughtsOf(colony, settler).OrderByDescending(t => t.Mood).Select(manager.ThoughtText);
+        return TextCommandResult.Success(Lang.Get("createacolony:mood-cmd-line", settler.Name, (int)Math.Round(mood), Lang.Get("createacolony:mood-" + manager.MoodOf(mood)),
+            (int)Math.Round(manager.MoodTarget(colony, settler)), string.Join(", ", thoughts)));
+    }
+
     /// <summary>/colony skills Jon: lists Jon's skills; /colony skills Jon farming 7: sets Farming to level 7.</summary>
     TextCommandResult OnSkills(TextCommandCallingArgs args)
     {

@@ -719,6 +719,42 @@ of the level below (75, 150, 225... 4,125 in all).
 - Level 5 and level 10 go in the Town Hall event log. `/colony skills <name> [skill] [level]` shows or sets
   skills (admin). `Skills: false` turns the whole thing off; `SkillXpMultiplier` speeds it up or down.
 
+### RimWorld-style skills and happiness (0.61.0)
+
+Design doc: https://claude.ai/artifact/D5hsBzzJ8fd3uJ5D6WpEFj. This replaces parts of the 0.37.0 section above.
+
+- **Levels 0 to 20** with medieval names (Unschooled, Novice ... Journeyman ... Master ... Legend of the realm,
+  lang `skill-rank-<n>`). Levels 0 to 10 cost what they did, so old saves keep every level; above
+  `SkillSteepFrom` (10) steps grow `SkillSteepFactor` (2) times as fast: level 20 is 19,875 XP.
+- **Hut caps** `SkillCapByBuildingLevel` 4, 8, 12, 16, 20 for hut levels 1 to 5. A building at the top level its
+  blueprint style has always allows all 20 (Dev's Builds huts with fewer levels).
+- **Passions** (`CitizenRecord.Passions`, 1 = Interested "+", 2 = Burning "++", marks in lang `passion-mark-*`):
+  XP x1 / x2 / x3 (`SkillPassionXp`) and +8 / +14 happiness for 4 hours after each piece of that work. 0 to 3
+  rolled per settler (`SkillPassionCountWeights`, a quarter Burning), likelier on their best skill. A job trait
+  gives its skill a flame (two if it already had one) instead of the old 1.5x XP. Children take each parent's
+  passion half the time when they grow up. Old saves roll passions once.
+- **Incapable**: traits with an `incapable-<skill>` effect (Pacifist: fighting; Bad Back: woodcutting and
+  mining; Ham-fisted: cooking and pottery) block those jobs, XP and usable level. Hut lists grey them out.
+- **Decay**: levels above 10 lose `SkillDecayPerDay` XP every in-game day (5 at 11 up to 270 at 20), never below
+  level 10. Good Memory halves it. **Daily soft cap**: `SkillDailyCap` (600) full XP per skill per day, then
+  `SkillOverCapFactor` (0.2).
+- **Learning rate**: XP = work x passion x trait `learning` (Fast Learner 1.5, Slow Learner 0.6) x mood x
+  `SkillXpMultiplier`, then the daily cap. Fractions round by chance.
+- **Milestone perks** (`perks` in skills.json, one value per `SkillPerkLevels` 5/10/15/20): Building tool wear,
+  Farming/Woodcutting/Mining/Pottery extra yield (in `StoreHarvest`), Cooking extra portion (in
+  `EmptyFirepit`), Hauling and Strength pack slots, Fighting swing speed, Prospecting work speed, Fitness hunger.
+- **Happiness** (`ColonyManager.Happiness.cs`): 0 to 100, drifting `HappinessPerHour` (2) towards 50 plus all
+  thoughts. Lasting thoughts (`CitizenRecord.Thoughts`): passion work, cooked meal, skill up, became a parent,
+  knocked out, a death (family -20). Standing ones: hungry/starving, varied diet, bed in a Residence (+1 per
+  Residence level) or no bed, partner, Town Hall level, no job, Sanguine/Melancholic (trait `mood`). Joyful 85+
+  works 10% faster and learns 20% faster; Happy 70+ 5%/10%; Unhappy below 45 works 5% slower; Miserable below 30
+  15% slower, learns 25% slower. At `HappinessBreakAt` (15) a settler stops working for 2 to 4 hours
+  (`IsBrokenDown`, checked by every work task), then gets a +20 relief thought for a day.
+- **Windows**: Skills panel shows passion marks, "v" when decaying, "Incapable"; hover has the level name, passion,
+  today's XP against the cap and the next perk. Stats tab has a happiness bar with every thought on hover. Town
+  Hall Overview shows the average happiness. `/colony mood <name> [0-100]` shows or sets happiness (admin).
+- Config version 3 upgrades files still at the old skill defaults (max 10, caps 4/6/8/10, effect clamp 2).
+
 ### Traits, the population cap and meal levels (0.45.0)
 
 **Traits** are what a settler is born with (`src/Colonies/ColonyManager.Traits.cs`, listed in

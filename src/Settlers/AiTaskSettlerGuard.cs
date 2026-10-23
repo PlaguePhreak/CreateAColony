@@ -49,7 +49,7 @@ public class AiTaskSettlerGuard : SettlerTaskBase
 
     public AiTaskSettlerGuard(EntityAgent entity, JsonObject taskConfig, JsonObject aiConfig) : base(entity, taskConfig, aiConfig) { }
 
-    public override bool ShouldExecute() => manager != null && Citizen?.JobCode == Jobs.Guard && Colony != null;
+    public override bool ShouldExecute() => manager != null && Citizen is { JobCode: Jobs.Guard } c && !manager.IsBrokenDown(c) && Colony != null;
 
     public override void StartExecute()
     {
@@ -65,7 +65,7 @@ public class AiTaskSettlerGuard : SettlerTaskBase
     {
         var colony = Colony;
         var citizen = Citizen;
-        if (colony == null || citizen == null || citizen.JobCode != Jobs.Guard || !citizen.Alive) return false;
+        if (colony == null || citizen == null || citizen.JobCode != Jobs.Guard || !citizen.Alive || manager!.IsBrokenDown(citizen)) return false;
 
         cooldown -= dt;
         patrolPause -= dt;

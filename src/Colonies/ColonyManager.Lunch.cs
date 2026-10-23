@@ -95,6 +95,7 @@ public partial class ColonyManager
         if (best == null || bestProps == null) return null;
 
         string name = best.GetName();
+        if (IsCookedFood(best)) AddThought(citizen, "meal");
         best.StackSize--;
         SaveLunch(colony, citizen, items);
         citizen.Saturation = Math.Min(Config.SaturationMax, citizen.Saturation + bestProps.Sum(p => p.Satiety));

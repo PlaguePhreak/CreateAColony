@@ -347,7 +347,15 @@ public class GuiDialogHut : GuiDialog
             composer
                 .AddStaticText(c.Name, GuiKit.Body(), ElementBounds.Fixed(10, y + 6, 190, 25))
                 .AddStaticText(now, GuiKit.Muted(), ElementBounds.Fixed(200, y + 8, 125, 22));
-            if (skill.Length > 0) composer.AddStaticText(skill, c.SkillLevel >= 3 || c.JobTrait ? GuiKit.Detail().WithColor(GuiKit.GoodColor) : GuiKit.Muted(), ElementBounds.Fixed(325, y + 8, 100, 22));
+            if (c.Incapable.Length > 0)
+            {
+                // A trait rules this job out: say which, and no Assign button.
+                composer.AddStaticText(Lang.Get("createacolony:skill-incapable"), GuiKit.Muted(), ElementBounds.Fixed(325, y + 8, 100, 22))
+                    .AddHoverText(Lang.Get("createacolony:job-incapable-by", Lang.Get("createacolony:trait-" + c.Incapable)), CairoFont.WhiteDetailText(), 260, ElementBounds.Fixed(325, y + 6, 100, 24));
+                y += ListRowHeight;
+                continue;
+            }
+            if (skill.Length > 0) composer.AddStaticText(skill, c.SkillLevel >= 3 || c.JobTrait || c.Passion > 0 ? GuiKit.Detail().WithColor(GuiKit.GoodColor) : GuiKit.Muted(), ElementBounds.Fixed(325, y + 8, 100, 22));
             if (!full) composer.AddSmallButton(Lang.Get("createacolony:manage-assign"), () => SendCitizen(ColonyAction.AssignWorker, id), ElementBounds.Fixed(Width - 130, y + 3, 120, 28));
             y += ListRowHeight;
         }
@@ -903,7 +911,8 @@ public class GuiDialogHut : GuiDialog
 
     /// <summary>"Farming 3" for a worker list row, or nothing when skills are off.</summary>
     static string SkillText(CitizenView c) =>
-        (c.Skill.Length == 0 ? "" : Lang.Get("createacolony:skill-level", Lang.Get("createacolony:skill-" + c.Skill), c.SkillLevel))
+        (c.Skill.Length == 0 ? "" : Lang.Get("createacolony:skill-level", Lang.Get("createacolony:skill-" + c.Skill), c.SkillLevel)
+            + (c.Passion > 0 ? " " + Lang.Get("createacolony:passion-mark-" + Math.Min(2, c.Passion)) : ""))
         + (c.JobTrait ? " " + Lang.Get("createacolony:job-trait-mark") : "");
 
     void ComposeRecruits(GuiComposer composer)

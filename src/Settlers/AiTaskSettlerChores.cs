@@ -58,7 +58,7 @@ public class AiTaskSettlerChores : SettlerTaskBase
     bool Plan()
     {
         if (Colony is not { } colony || Citizen is not { } citizen || !ColonyManager.IsJobless(citizen)) return false;
-        if (!manager!.Config.JoblessTendHome) return false;
+        if (!manager!.Config.JoblessTendHome || manager.IsBrokenDown(citizen)) return false;
         // Halfway through a delivery it is helping with: that comes first.
         if (colony.Requests.Exists(r => r.LeasedByCitizenId == citizen.CitizenId)) return false;
         if (manager.HomeOf(colony, citizen) is not { } home) return false;

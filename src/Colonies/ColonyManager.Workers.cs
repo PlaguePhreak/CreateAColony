@@ -152,6 +152,10 @@ public partial class ColonyManager
     public void StoreHarvest(Colony colony, Building hut, CitizenRecord worker, IEnumerable<ItemStack> drops, BlockPos at)
     {
         var storage = HutStorage(colony, hut).ToList();
+        // A skilled farmer, forester, miner or potter sometimes gets one more of the biggest stack (yield perk).
+        var list = drops.Where(d => d != null && d.StackSize > 0).ToList();
+        if (list.Count > 0 && RollPerk(colony, worker, "yield")) list.OrderByDescending(d => d.StackSize).First().StackSize++;
+        drops = list;
         foreach (var drop in drops)
         {
             if (drop == null || drop.StackSize <= 0) continue;
@@ -170,7 +174,9 @@ public partial class ColonyManager
     {
         if (hand.Itemstack == null) return;
         // Careful settlers skip some of the wear, Clumsy ones add some (trait toolWear).
-        float wear = worker is EntitySettler s && FindCitizen(s.ColonyId, s.CitizenId) is { } c ? TraitMult(c, "toolWear") : 1f;
+        // A skilled builder wears tools less too (Building perk).
+        float wear = worker is EntitySettler s && FindCitizen(s.ColonyId, s.CitizenId) is { } c
+            ? TraitMult(c, "toolWear") * (GetById(s.ColonyId) is { } home ? SkillPerk(home, c, "toolWear") : 1f) : 1f;
         double roll = sapi.World.Rand.NextDouble();
         if (wear < 1f && roll < 1f - wear) return;
         hand.Itemstack.Collectible.DamageItem(worker.World, worker, hand);

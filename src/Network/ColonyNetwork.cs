@@ -256,7 +256,7 @@ public partial class ColonyNetwork : ModSystem
         return null;
     }
 
-    static string? SetJob(Colony colony, ColonyRole role, int citizenId, string job)
+    string? SetJob(Colony colony, ColonyRole role, int citizenId, string job)
     {
         if (role < ColonyRole.Officer) return "createacolony:denied-officer";
         if (!Jobs.IsValid(job)) return "createacolony:bad-job";
@@ -264,6 +264,7 @@ public partial class ColonyNetwork : ModSystem
         if (citizen == null || !citizen.Alive) return "createacolony:bad-citizen";
         if (citizen.Visitor) return "createacolony:visitor-no-job";
         if (citizen.IsChild && job.Length > 0) return "createacolony:child-no-job";
+        if (job.Length > 0 && Manager.IncapableOfJob(citizen, job) != null) return "createacolony:job-incapable";
         if (citizen.JobCode != (job.Length == 0 ? null : job)) citizen.WorkplacePos = null;
         citizen.JobCode = job.Length == 0 ? null : job;
         return null;
@@ -493,6 +494,7 @@ public partial class ColonyNetwork : ModSystem
             Name = colony.Name,
             Level = colony.Level,
             PopulationCap = Manager.PopulationCap(colony),
+            AverageHappiness = Manager.Config.Happiness ? Manager.AverageHappiness(colony) : -1,
             ViewerRole = (int)colony.RoleOf(viewerUid),
             BedCount = colony.Citizens.Count(c => c.Alive && c.HomeBedPos != null),
             OpenWindow = openWindow,
@@ -731,10 +733,23 @@ public partial class ColonyNetwork : ModSystem
             CanEdit = colony.RoleOf(uid) >= ColonyRole.Member && citizen.Alive,
             ClothesClass = config.SettlerClothesClass,
             Skills = Manager.Config.Skills ? Manager.SkillInfos(colony, citizen)
-                .Select(s => new SkillView { Code = s.Code, Level = s.Level, Usable = s.Usable, Xp = s.Xp, NextXp = s.NextXp, LevelXp = s.LevelXp, CapNote = s.CapNote }).ToList() : new(),
+                .Select(s => new SkillView
+                {
+                    Code = s.Code, Level = s.Level, Usable = s.Usable, Xp = s.Xp, NextXp = s.NextXp, LevelXp = s.LevelXp, CapNote = s.CapNote,
+                    Passion = s.Passion, Incapable = s.Incapable, Decaying = s.Decaying, XpToday = s.XpToday, NextPerk = Manager.NextPerkText(s.Code, s.Usable)
+                }).ToList() : new(),
             Traits = Manager.Config.Traits ? TraitViews(citizen) : new(),
-            TraitScore = Manager.TraitScore(citizen)
+            TraitScore = Manager.TraitScore(citizen),
+            SkillDailyCap = Manager.Config.SkillDailyCap
         };
+        if (Manager.Config.Happiness && citizen.Alive && !citizen.IsChild && !citizen.Visitor)
+        {
+            snapshot.Happiness = (int)System.Math.Round(Manager.HappinessOf(citizen));
+            snapshot.Mood = Manager.MoodOf(Manager.HappinessOf(citizen));
+            snapshot.Thoughts = Manager.ThoughtsOf(colony, citizen).OrderByDescending(t => t.Mood).Select(Manager.ThoughtText).ToList();
+            double left = citizen.BreakdownUntilTotalDays - sapi!.World.Calendar.TotalDays;
+            snapshot.BreakdownHours = left > 0 ? (int)System.Math.Ceiling(left * 24) : 0;
+        }
         serverChannel!.SendPacket(snapshot, player);
     }
 
@@ -797,7 +812,7 @@ public partial class ColonyNetwork : ModSystem
             if (Manager.Config.Skills)
             {
                 snapshot.RecruitSkills = snapshot.Recruits.Select(r => string.Join(", ",
-                    Manager.BestSkills(r.SkillXp).Select(s => Lang.Get("createacolony:skill-level", Lang.Get("createacolony:skill-" + s.Code), s.Level)))).ToList();
+                    Manager.BestSkills(r.SkillXp, r.Passions).Select(s => Lang.Get("createacolony:skill-level", Lang.Get("createacolony:skill-" + s.Code), s.Level) + Manager.PassionMark(s.Passion)))).ToList();
             }
             if (Manager.Config.Traits) snapshot.RecruitTraits = snapshot.Recruits.Select(r => Manager.TraitsText(new CitizenRecord { Traits = r.Traits })).ToList();
             snapshot.Population = Manager.Population(colony);

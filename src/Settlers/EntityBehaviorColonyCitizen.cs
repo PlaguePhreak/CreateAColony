@@ -193,6 +193,7 @@ public class EntityBehaviorColonyCitizen : EntityBehavior
                 record.Alive = false;
                 record.DiedTotalDays = entity.World.Calendar.TotalDays;
                 manager.LogEvent(colony, "event-died", record.Name);
+                manager.MournDeath(colony, record);
             }
             else
             {
@@ -201,6 +202,7 @@ public class EntityBehaviorColonyCitizen : EntityBehavior
                 record.DownedUntilTotalDays = now + manager.Config.DownedRecoveryDays * manager.TraitMult(record, "downedDays"); // Fast / Slow Healer
                 if (colony != null) manager.LogEvent(colony, "event-downed", record.Name);
                 if (colony != null) manager.CountKnockOut(colony, record, now); // towards Shaken
+                manager.AddThought(record, "knockedout");
             }
         }
         base.OnEntityDeath(damageSourceForDeath);

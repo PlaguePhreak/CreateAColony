@@ -7,9 +7,10 @@
 	// Effects: a value like 1.15 on a "speed" key is a multiplier (15% faster), one like 0.8 is 20% slower.
 	// Other keys add to the game's number: maxHealth 6 is six more health, sleepEnd 2 wakes two hours later.
 	// Multiplier keys: workSpeed, walkSpeed, hunger, downedDays, regen, toolWear, variety, willpowerWait,
-	// swingSpeed, nightSwing, pairAfter, packSlots. Adding keys: maxHealth, reckless, guardRange,
-	// retreatHealth, damageAdd, sleepStart, sleepEnd, childChance, freeBlock, cookLevel. Flags (1 = on):
-	// noPair, pairFirst, flees.
+	// swingSpeed, nightSwing, pairAfter, packSlots, learning (all skill XP), decay (skill decay). Adding keys:
+	// maxHealth, reckless, guardRange, retreatHealth, damageAdd, sleepStart, sleepEnd, childChance, freeBlock,
+	// cookLevel, mood (happiness points). Flags (1 = on): noPair, pairFirst, flees, incapable-<skill> (can
+	// never learn that skill or take its jobs).
 	// "job": the trait only works while the settler has that job; a settler has at most one job trait.
 	// "weight": how often it rolls. "inherited": children can get it from a parent. "earned": never rolled,
 	// only given by the game (Veteran after kills, Shaken after knock-outs). "conflicts": never together.
@@ -50,6 +51,15 @@
 		{ "code": "loner", "points": -1, "weight": 6, "inherited": false, "conflicts": ["charming", "fertile"], "effects": { "noPair": 1 } },
 		{ "code": "earlyriser", "points": 0, "weight": 6, "inherited": true, "conflicts": ["nightowl", "heavysleeper"], "effects": { "sleepStart": -1, "sleepEnd": -2 } },
 		{ "code": "nightowl", "points": 0, "weight": 6, "inherited": true, "conflicts": ["earlyriser"], "effects": { "sleepStart": 3, "sleepEnd": 2, "nightSwing": 1.15 } },
+
+		{ "code": "fastlearner", "points": 2, "weight": 5, "inherited": true, "conflicts": ["slowlearner"], "effects": { "learning": 1.5 } },
+		{ "code": "slowlearner", "points": -2, "weight": 5, "inherited": true, "conflicts": ["fastlearner"], "effects": { "learning": 0.6 } },
+		{ "code": "goodmemory", "points": 1, "weight": 6, "inherited": true, "effects": { "decay": 0.5 } },
+		{ "code": "sanguine", "points": 1, "weight": 6, "inherited": true, "conflicts": ["melancholic"], "effects": { "mood": 8 } },
+		{ "code": "melancholic", "points": -1, "weight": 6, "inherited": true, "conflicts": ["sanguine"], "effects": { "mood": -8 } },
+		{ "code": "pacifist", "points": -2, "weight": 3, "inherited": true, "conflicts": ["brave", "sharpeyed", "veteran"], "effects": { "incapable-fighting": 1 } },
+		{ "code": "badback", "points": -2, "weight": 3, "inherited": true, "conflicts": ["lumberjack", "hardrock"], "effects": { "incapable-woodcutting": 1, "incapable-mining": 1 } },
+		{ "code": "hamfisted", "points": -2, "weight": 3, "inherited": true, "conflicts": ["goodcook", "steadyhands"], "effects": { "incapable-cooking": 1, "incapable-pottery": 1 } },
 
 		{ "code": "veteran", "points": 3, "weight": 0, "earned": true, "inherited": false, "effects": { "damageAdd": 1, "swingSpeed": 1.2 } },
 		{ "code": "shaken", "points": -1, "weight": 0, "earned": true, "inherited": false, "effects": { "workSpeed": 0.9, "retreatHealth": 0.27, "flees": 1 } }

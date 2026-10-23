@@ -46,7 +46,8 @@ public partial class ColonyManager
 
     public List<ItemStack> PackBags(CitizenRecord citizen) => Resolve(citizen.Bags);
 
-    public int PackSlots(CitizenRecord citizen) => (int)Math.Round((PackBaseSlots + PackBags(citizen).Sum(BagSlots)) * TraitMult(citizen, "packSlots")); // Pack Mule
+    public int PackSlots(CitizenRecord citizen) => (int)Math.Round((PackBaseSlots + PackBags(citizen).Sum(BagSlots)) * TraitMult(citizen, "packSlots")) // Pack Mule
+        + (ColonyOf(citizen) is { } colony ? (int)Math.Round(SkillPerk(colony, citizen, "packSlots")) : 0); // Hauling and Strength perks
 
     public bool PackEmpty(CitizenRecord citizen) => citizen.Pack.Count == 0 && citizen.CarriedStack == null;
 

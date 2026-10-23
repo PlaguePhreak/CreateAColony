@@ -7,7 +7,7 @@ public class ColonyConfig
 {
     public const string FileName = "createacolony.json";
     /// <summary>Bumped when a default changes in a way old config files should pick up; see ColonyManager.UpgradeConfig.</summary>
-    public const int CurrentConfigVersion = 2;
+    public const int CurrentConfigVersion = 3;
 
     /// <summary>Which defaults this file has been brought up to. Files from before 0.33.0 have none, so read as 0.</summary>
     public int ConfigVersion;
@@ -523,20 +523,44 @@ public class ColonyConfig
     // Skills (config/skills.json lists them; see ColonyManager.Skills.cs)
     /// <summary>Settlers learn skills by doing their job and get faster at it. Off: no XP, no effects, no Skills panel.</summary>
     public bool Skills = true;
-    /// <summary>The highest level a skill can reach.</summary>
-    public int SkillLevelMax = 10;
-    /// <summary>Level n costs this many XP times n on top of the level below: 75, 150, 225... (4,125 in all for level 10).</summary>
+    /// <summary>The highest level a skill can reach (RimWorld style, 0 to 20).</summary>
+    public int SkillLevelMax = 20;
+    /// <summary>XP step: level n costs this x n XP on top of the level below, up to SkillSteepFrom.</summary>
     public int SkillXpPerLevel = 75;
+    /// <summary>Above this level each step grows SkillSteepFactor times as fast: level n costs SkillXpPerLevel x (from + factor x (n - from)).</summary>
+    public int SkillSteepFrom = 10;
+    public int SkillSteepFactor = 2;
     /// <summary>Speeds up or slows down all skill XP, like Project Zomboid's sandbox XP multiplier.</summary>
     public float SkillXpMultiplier = 1f;
     /// <summary>
-    /// How much of a skill a settler can use at a building of level 1, 2, 3, 4 and up (the last entry covers
+    /// How much of a skill a settler can use at a building of level 1, 2, 3, 4, 5 and up (the last entry covers
     /// higher levels). A job skill is limited by the hut they work at, Strength and Fitness by the Residence
-    /// they sleep in; a settler with no such building uses the first entry. XP keeps growing past the cap.
+    /// they sleep in. A building at the top level its blueprint style has always allows everything.
     /// </summary>
-    public int[] SkillCapByBuildingLevel = { 4, 6, 8, 10 };
+    public int[] SkillCapByBuildingLevel = { 4, 8, 12, 16, 20 };
     /// <summary>No skill effect multiplies a number by more than this (or less than one over it).</summary>
-    public float SkillEffectMax = 2f;
+    public float SkillEffectMax = 2.5f;
+    /// <summary>The levels at which skills.json "perks" kick in: the first value at the first level here, and so on.</summary>
+    public int[] SkillPerkLevels = { 5, 10, 15, 20 };
+    /// <summary>Settlers have passions (one or two flames) for some skills: those grow faster and lift their mood while they work.</summary>
+    public bool SkillPassions = true;
+    /// <summary>XP multiplier for no passion, one flame (Interested) and two flames (Burning).</summary>
+    public float[] SkillPassionXp = { 1f, 2f, 3f };
+    /// <summary>Weights for a new settler having 0, 1, 2 or 3 passions.</summary>
+    public int[] SkillPassionCountWeights = { 15, 40, 35, 10 };
+    /// <summary>The chance a rolled passion is Burning (two flames) instead of Interested.</summary>
+    public double SkillPassionBurningChance = 0.25;
+    /// <summary>The chance a grown-up child gets each of its parents' passions.</summary>
+    public double SkillPassionInherit = 0.5;
+    /// <summary>Some traits (Pacifist, Bad Back, Ham-fisted) make a settler incapable of a skill: they cannot take its jobs.</summary>
+    public bool SkillIncapable = true;
+    /// <summary>Skills above SkillSteepFrom lose XP every day, used or not, as in RimWorld; never below SkillSteepFrom.</summary>
+    public bool SkillDecay = true;
+    /// <summary>XP lost per day at level SkillSteepFrom + 1, + 2 and so on up to the top level (the last entry covers the rest).</summary>
+    public int[] SkillDecayPerDay = { 5, 9, 14, 23, 40, 63, 90, 135, 180, 270 };
+    /// <summary>Each skill gains full XP up to this much per in-game day; XP past it counts for SkillOverCapFactor. 0 turns the cap off.</summary>
+    public int SkillDailyCap = 600;
+    public float SkillOverCapFactor = 0.2f;
 
     // Traits (config/colonytraits.json lists them; see ColonyManager.Traits.cs)
     /// <summary>Settlers are born with traits: strengths and flaws that change how they work, eat, fight and live.</summary>
@@ -604,4 +628,15 @@ public class ColonyConfig
     public bool JoblessHelpHauling = true;
     /// <summary>Seeds a settler takes along for its home plot at a time.</summary>
     public int JoblessSeedTake = 8;
+
+    // Happiness (see ColonyManager.Happiness.cs)
+    /// <summary>Settlers have a mood from 0 to 100 made of thoughts (meals, home, family, passions); it changes how well they work and learn.</summary>
+    public bool Happiness = true;
+    /// <summary>Points an hour that happiness moves towards the sum of the settler's thoughts.</summary>
+    public float HappinessPerHour = 2f;
+    /// <summary>A settler at or below this happiness downs tools and sulks for a few hours.</summary>
+    public float HappinessBreakAt = 15f;
+    /// <summary>In-game hours a breakdown lasts (rolled between the two).</summary>
+    public double HappinessBreakHoursMin = 2;
+    public double HappinessBreakHoursMax = 4;
 }

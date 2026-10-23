@@ -233,9 +233,11 @@ public partial class ColonyManager
 
         var slot = choice.Slot;
         string name = slot.Itemstack!.GetName();
+        bool cooked = choice.Placed != null || IsCookedFood(slot.Itemstack);
         if (!(choice.Placed != null ? TakePlacedServing(container, choice.Placed) : TakeServing(container, slot))) return null;
 
         citizen.Saturation = Math.Min(Config.SaturationMax, citizen.Saturation + choice.Satiety);
+        if (cooked) AddThought(citizen, "meal");
         if (choice.Health > 0)
         {
             eater.ReceiveDamage(new DamageSource { Source = EnumDamageSource.Internal, Type = EnumDamageType.Heal }, choice.Health);

@@ -168,6 +168,12 @@ public partial class ColonyManager
     {
         var cooked = pit.outputSlot.Itemstack;
         if (cooked == null) return;
+        // A skilled cook sometimes gets one more portion: a serving more in a pot, one more piece grilled.
+        if (RollPerk(colony, cook, "portion"))
+        {
+            if (cooked.Block is IBlockMealContainer meal) meal.SetQuantityServings(sapi.World, cooked, meal.GetQuantityServings(sapi.World, cooked) + 1);
+            else cooked.StackSize++;
+        }
         AddToPack(colony, cook, cooked);
         pit.outputSlot.Itemstack = cooked.StackSize > 0 ? cooked : null;
         pit.outputSlot.MarkDirty();
