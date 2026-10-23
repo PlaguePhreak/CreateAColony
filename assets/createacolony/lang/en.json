@@ -1075,6 +1075,7 @@
 	"citizen-tools": "Tools",
 	"citizen-offhand": "Offhand",
 	"citizen-lunch": "Packed food (eaten on the go)",
+	"citizen-lunch-short": "Packed food",
 	"citizen-inventory-hint-edit": "Click a slot to take an item or put the one on your cursor in, as with your own inventory. Right-click takes half or puts one; shift-click sends it to your inventory. The tool bar takes one weapon, three tools and anything in the offhand (a shield shows in the left hand). Packed food only takes food.",
 	"gear-members-only": "Only colony members can take or give a settler's things.",
 	"gear-does-not-fit": "{0} does not go in that slot.",
