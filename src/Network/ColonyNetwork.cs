@@ -144,7 +144,7 @@ public partial class ColonyNetwork : ModSystem
             ColonyAction.SetWorkRadius or ColonyAction.SetEscort or ColonyAction.SetCollectBerries => WorkAreaAction(colony, role, packet),
             ColonyAction.SetPotteryKeep => PotteryAction(colony, role, packet),
             ColonyAction.SetKitchenKeep => KitchenAction(colony, role, packet),
-            ColonyAction.SetMineOre or ColonyAction.ClearQuarry or ColonyAction.NewMine => MiningAction(colony, role, packet),
+            ColonyAction.SetMineOre or ColonyAction.SetMineProspected or ColonyAction.NewMine => MiningAction(colony, role, packet),
             ColonyAction.WelcomeVisitor or ColonyAction.TurnAwayVisitor => VisitorAction(colony, role, packet),
             ColonyAction.RecallCitizen => RecallCitizen(colony, role, packet.CitizenId),
             ColonyAction.SetColonyBanner or ColonyAction.ReplaceBanners or ColonyAction.SetBannerOnNew => BannerAction(player, colony, role, packet),
@@ -298,18 +298,17 @@ public partial class ColonyNetwork : ModSystem
         return null;
     }
 
-    /// <summary>The Miner's Hut's ore choice and new mine, and the Quarry's Forget pit.</summary>
+    /// <summary>The Miner's Hut's ore choice, "Go to prospected ore" and new mine.</summary>
     string? MiningAction(Colony colony, ColonyRole role, ColonyActionPacket packet)
     {
         if (role < ColonyRole.Officer) return "createacolony:denied-officer";
         var building = colony.Buildings.Find(b => b.BuildingId == packet.BuildingId);
-        if (packet.Action == ColonyAction.ClearQuarry)
+        if (building == null || building.Type != BuildingTypes.Miner) return "createacolony:bad-building";
+        if (packet.Action == ColonyAction.SetMineProspected)
         {
-            if (building == null || building.Type != BuildingTypes.Quarry) return "createacolony:bad-building";
-            building.QuarryCenter = null;
+            building.MineProspected = packet.Text == "1";
             return null;
         }
-        if (building == null || building.Type != BuildingTypes.Miner) return "createacolony:bad-building";
         if (packet.Action == ColonyAction.SetMineOre)
         {
             if (packet.Text.Length > 0 && !colony.OreSites.Any(s => s.Ores.Any(o => o.Code == packet.Text))) return "createacolony:bad-building";
@@ -677,6 +676,7 @@ public partial class ColonyNetwork : ModSystem
         {
             snapshot.IsOreHut = true;
             snapshot.MineOre = building.MineOre;
+            snapshot.MineProspected = building.MineProspected;
             snapshot.OreReadings = colony.OreSites.Count;
             foreach (var ore in Manager.OreSummary(colony))
             {
@@ -686,7 +686,6 @@ public partial class ColonyNetwork : ModSystem
         if (building.Type == BuildingTypes.Quarry)
         {
             snapshot.IsQuarry = true;
-            snapshot.HasPit = building.QuarryCenter != null;
             snapshot.PitInfo = Manager.QuarryInfo(building);
         }
         if (building.Type == BuildingTypes.Potter)

@@ -8,11 +8,12 @@ using Vintagestory.API.MathTools;
 namespace CreateAColony.Colonies;
 
 /// <summary>
-/// The miner's trade, and the digging it shares with the quarrier. A miner picks the best reading the
-/// colony's prospectors took (or the ore an officer chose), finds that ore's blocks in the ground there,
-/// and digs a staircase down to them from the surface: one block wide, three high where it steps, so
-/// settlers can walk it. From the end of the tunnel it digs out the ore around it, then tunnels on to
-/// the next ore block, and when the spot is dug out it moves on to the next reading.
+/// The miner's trade, and the digging it shares with the quarrier. As in MineColonies, a miner works a
+/// shaft beside its hut: a spiral staircase round a pillar, going down a level at a time, with a tunnel
+/// out from each side of every level, and it digs out any ore it sees on the way. When "Go to prospected
+/// ore" is on, it first goes to good ore the colony's prospectors found: there it digs a staircase down
+/// from the surface to the ore's blocks and digs them out, and when they are dug out it comes back to
+/// its shaft.
 /// </summary>
 public partial class ColonyManager
 {
@@ -133,6 +134,8 @@ public partial class ColonyManager
     OreSite? ChooseMineSite(Colony colony, Building hut)
     {
         int radius = GatherRadius(hut);
+        // A trip away from the shaft is only worth it for good ore, unless an ore was chosen.
+        double least = hut.MineOre.Length > 0 ? Config.MinerMinFactor : Math.Max(Config.MinerMinFactor, Config.MinerTripMinFactor);
         var taken = colony.Buildings.Where(b => b != hut && b.Type == BuildingTypes.Miner && b.MineSite != null).Select(b => b.MineSite!).ToList();
         OreSite? bestSite = null;
         string bestOre = "";
@@ -144,7 +147,7 @@ public partial class ColonyManager
             if (distance > radius || taken.Any(t => t.Equals(site.Pos))) continue;
             foreach (var ore in site.Ores)
             {
-                if (ore.Factor < Config.MinerMinFactor || site.MinedOut.Contains(ore.Code)) continue;
+                if (ore.Factor < least || site.MinedOut.Contains(ore.Code)) continue;
                 if (hut.MineOre.Length > 0 && ore.Code != hut.MineOre) continue;
                 // A stronger reading wins; between equal ones, the nearer.
                 double score = ore.Factor - distance / 10000;
@@ -294,8 +297,12 @@ public partial class ColonyManager
         return route;
     }
 
-    /// <summary>An ore block within the miner's reach of the tunnel's end with open air beside it, or null.</summary>
-    BlockPos? OreInReach(Colony colony, Building hut, BlockPos end, string ore, System.Func<BlockPos, bool> skip, List<(BlockPos Min, BlockPos Max)> boxes)
+    /// <summary>
+    /// An ore block within the miner's reach of where it stands with open air beside it, or null. Blocks in
+    /// keep (the floors of the shaft and its tunnels) are left alone even when they are ore.
+    /// </summary>
+    BlockPos? OreInReach(Colony colony, Building hut, BlockPos end, System.Func<Block, bool> isOre, System.Func<BlockPos, bool> skip,
+        List<(BlockPos Min, BlockPos Max)> boxes, ISet<BlockPos>? keep = null)
     {
         var ba = sapi.World.BlockAccessor;
         int r = Math.Max(1, Config.MinerReach);
@@ -307,7 +314,7 @@ public partial class ColonyManager
         for (int z = -r; z <= r; z++)
         {
             var pos = end.AddCopy(x, y, z);
-            if (!IsOreOf(ba.GetBlock(pos), ore) || skip(pos) || IsBlockedOre(hut, pos)) continue;
+            if (!isOre(ba.GetBlock(pos)) || skip(pos) || IsBlockedOre(hut, pos) || keep?.Contains(pos) == true) continue;
             double d = pos.DistanceTo(eye);
             if (d > r + 0.5 || d >= bestDistance) continue;
             if (!BlockFacing.ALLFACES.Any(f => IsClear(pos.AddCopy(f)))) continue;
@@ -318,10 +325,21 @@ public partial class ColonyManager
     }
 
     /// <summary>
-    /// The miner's next job, and its status for the hut window: walk to the site, dig the next block of the
-    /// tunnel, or dig out ore. Null when there is nothing to mine.
+    /// The miner's next job, and its status for the hut window. With "Go to prospected ore" on, good ore
+    /// the prospectors found comes first; otherwise, or when there is none it can get to, the shaft. At is
+    /// where the miner stands. Null when there is nothing to dig.
     /// </summary>
-    public MineJob? NextMineJob(Colony colony, Building hut, System.Func<BlockPos, bool> skip, out string status)
+    public MineJob? NextMineJob(Colony colony, Building hut, BlockPos at, System.Func<BlockPos, bool> skip, out string status)
+    {
+        if (hut.MineProspected && NextSiteJob(colony, hut, skip, out status) is { } trip) return trip;
+        return NextShaftJob(colony, hut, at, skip, out status);
+    }
+
+    /// <summary>
+    /// The miner's next job at prospected ore: walk to the site, dig the next block of the tunnel, or dig
+    /// out ore. Null when there is no site worth a trip, or none it can get to right now.
+    /// </summary>
+    MineJob? NextSiteJob(Colony colony, Building hut, System.Func<BlockPos, bool> skip, out string status)
     {
         var ba = sapi.World.BlockAccessor;
         var boxes = DigProtected(colony);
@@ -345,7 +363,7 @@ public partial class ColonyManager
             }
 
             // Ore around the end of the tunnel comes out first.
-            if (hut.MineEnd != null && OreInReach(colony, hut, hut.MineEnd, ore, skip, boxes) is { } near)
+            if (hut.MineEnd != null && OreInReach(colony, hut, hut.MineEnd, b => IsOreOf(b, ore), skip, boxes) is { } near)
             {
                 status = "mine-ore";
                 return new MineJob(MineWork.Dig, near, hut.MineEnd.Copy(), true);
@@ -428,11 +446,185 @@ public partial class ColonyManager
         return null;
     }
 
-    /// <summary>The Miner's Hut window line: what ore it digs, where, and how deep the tunnel is.</summary>
+    // ---- The shaft beside the hut -----------------------------------------------------------
+
+    /// <summary>The cells round the shaft's pillar, clockwise from the north-west corner; odd ones are the middles of the sides.</summary>
+    static readonly (int X, int Z)[] ShaftRing = { (-1, -1), (0, -1), (1, -1), (1, 0), (1, 1), (0, 1), (-1, 1), (-1, 0) };
+
+    /// <summary>
+    /// One spot of the shaft or of a tunnel off it: where a settler stands once it is dug out (Feet), how
+    /// many blocks high it is dug from there, and where the miner stands to dig it. Tunnel is the shaft
+    /// step the tunnel leads off (-1 for the shaft itself), and Level the shaft's level, from 0 at the top.
+    /// </summary>
+    public readonly record struct ShaftSpot(BlockPos Feet, BlockPos Stand, int Height, int Tunnel, int Level);
+
+    /// <summary>
+    /// The whole mine for a shaft centred on centre (the height of the ground there): a spiral staircase
+    /// round a pillar, one step down for each cell round it, so every turn goes 8 blocks deeper. The first
+    /// turn is the way in; every turn below it is a level, with a tunnel out from the middle of each side.
+    /// Steps are dug three high so a settler can walk down them, tunnels two high. In digging order: each
+    /// level's tunnels are dug out before the shaft goes deeper.
+    /// </summary>
+    public static List<ShaftSpot> ShaftPlan(BlockPos centre, int levels, int tunnelLength)
+    {
+        var plan = new List<ShaftSpot>();
+        var (fx, fz) = ShaftRing[0];
+        // The first step is dug from just outside the shaft.
+        BlockPos previous = new(centre.X + fx * 2, centre.Y, centre.Z + fz * 2);
+        for (int k = 0; k < 8 * (levels + 1); k++)
+        {
+            var (dx, dz) = ShaftRing[k % 8];
+            var feet = new BlockPos(centre.X + dx, centre.Y - k, centre.Z + dz);
+            if (feet.Y <= 3) break;
+            plan.Add(new ShaftSpot(feet, previous, 3, -1, k / 8));
+            previous = feet;
+            if (k < 8 || k % 2 == 0) continue;
+            // The middle of a side: a tunnel straight out from it, away from the pillar.
+            var stand = feet;
+            for (int t = 1; t <= tunnelLength; t++)
+            {
+                var cell = new BlockPos(feet.X + dx * t, feet.Y, feet.Z + dz * t);
+                plan.Add(new ShaftSpot(cell, stand, 2, k, k / 8));
+                stand = cell;
+            }
+        }
+        return plan;
+    }
+
+    /// <summary>How many levels the Miner's Hut's shaft may have at its hut level.</summary>
+    int ShaftLevels(Building hut) => Math.Max(1, hut.Level) * Math.Max(1, Config.MinerLevelsPerHutLevel);
+
+    /// <summary>
+    /// A spot beside a hut for something dug into the ground, such as the Miner's Hut's shaft or the
+    /// Quarry's pit: the middle of one of the hut's sides, far enough out that a square half blocks round
+    /// it leaves a gap of two to the hut. The side facing away from the Town Hall is tried first. The
+    /// square must be loaded, in the colony's land, clear of other buildings and not under water. The
+    /// spot is at the height a settler stands on the ground there, or null when no side will do.
+    /// </summary>
+    BlockPos? SpotBeside(Colony colony, Building hut, int half)
+    {
+        var ba = sapi.World.BlockAccessor;
+        // The hut at its highest level, so what is dug stays clear of it when it is upgraded.
+        var hutBox = Footprint(hut);
+        var others = colony.Buildings.Where(b => b != hut).Select(Footprint).ToList();
+        int gap = half + 3, midX = (hutBox.X1 + hutBox.X2) / 2, midZ = (hutBox.Z1 + hutBox.Z2) / 2;
+        var sides = new[]
+        {
+            (X: midX, Z: hutBox.Z2 + gap), (X: hutBox.X2 + gap, Z: midZ), (X: midX, Z: hutBox.Z1 - gap), (X: hutBox.X1 - gap, Z: midZ)
+        }.OrderByDescending(c => (double)(c.X - colony.TownHallPos.X) * (c.X - colony.TownHallPos.X) + (double)(c.Z - colony.TownHallPos.Z) * (c.Z - colony.TownHallPos.Z));
+        foreach (var (cx, cz) in sides)
+        {
+            bool ok = true;
+            var pos = new BlockPos(0);
+            for (int x = cx - half; x <= cx + half && ok; x++)
+            for (int z = cz - half; z <= cz + half && ok; z++)
+            {
+                pos.Set(x, hut.HutPos.Y, z);
+                if (ba.GetChunkAtBlockPos(pos) == null) { ok = false; break; }
+                pos.Y = ba.GetTerrainMapheightAt(pos);
+                if (ba.GetBlock(pos, BlockLayersAccess.Fluid).Id != 0 || ba.GetBlock(pos.UpCopy(), BlockLayersAccess.Fluid).Id != 0) ok = false;
+                else if (!CanWorkAt(colony, pos)) ok = false;
+                else if (others.Any(o => x >= o.X1 - 2 && x <= o.X2 + 2 && z >= o.Z1 - 2 && z <= o.Z2 + 2)) ok = false;
+            }
+            if (!ok) continue;
+            pos.Set(cx, hut.HutPos.Y, cz);
+            return new BlockPos(cx, ba.GetTerrainMapheightAt(pos) + 1, cz);
+        }
+        return null;
+    }
+
+    /// <summary>The middle of the Miner's Hut's shaft, chosen the first time it is needed; null when there is no room beside the hut.</summary>
+    BlockPos? ShaftFor(Colony colony, Building hut)
+    {
+        if (hut.ShaftPos != null) return hut.ShaftPos;
+        hut.ShaftPos = SpotBeside(colony, hut, 1);
+        if (hut.ShaftPos != null) MarkDirty(colony);
+        return hut.ShaftPos;
+    }
+
+    /// <summary>
+    /// The miner's next job in its shaft: ore it can see from where it stands first, then the next block
+    /// of the shaft or of a level's tunnel. A tunnel that runs into water, a building or someone else's
+    /// land just stops there; the shaft itself waits until the way is clear.
+    /// </summary>
+    MineJob? NextShaftJob(Colony colony, Building hut, BlockPos at, System.Func<BlockPos, bool> skip, out string status)
+    {
+        if (ShaftFor(colony, hut) is not { } centre)
+        {
+            status = "mine-no-shaft-spot";
+            return null;
+        }
+        var ba = sapi.World.BlockAccessor;
+        if (ba.GetChunkAtBlockPos(centre) == null)
+        {
+            status = "mine-travelling";
+            return new MineJob(MineWork.Travel, centre, centre, false);
+        }
+        var boxes = DigProtected(colony);
+        var plan = ShaftPlan(centre, ShaftLevels(hut), Math.Max(1, Config.MinerTunnelLength));
+        var floors = new HashSet<BlockPos>(plan.Select(p => p.Feet.DownCopy()));
+
+        // Ore in sight of the spot in the mine where the miner stands comes out first.
+        if (plan.Any(p => p.Feet.Equals(at)) && OreInReach(colony, hut, at, IsOre, skip, boxes, floors) is { } ore)
+        {
+            status = "mine-ore";
+            return new MineJob(MineWork.Dig, ore, at.Copy(), true);
+        }
+
+        int stoppedTunnel = int.MinValue;
+        foreach (var spot in plan)
+        {
+            if (spot.Tunnel >= 0 && spot.Tunnel == stoppedTunnel) continue;
+            for (int h = spot.Height - 1; h >= 0; h--)
+            {
+                var dig = spot.Feet.UpCopy(h);
+                if (IsClear(dig)) continue;
+                if (skip(dig) || !CanDig(colony, dig, boxes))
+                {
+                    if (spot.Tunnel < 0)
+                    {
+                        status = "mine-shaft-blocked";
+                        return null;
+                    }
+                    stoppedTunnel = spot.Tunnel;
+                    break;
+                }
+                status = spot.Tunnel >= 0 ? "mine-shaft-tunnel" : "mine-shaft";
+                return new MineJob(MineWork.Dig, dig, spot.Stand.Copy(), IsOre(ba.GetBlock(dig)));
+            }
+        }
+        status = "mine-shaft-done";
+        return null;
+    }
+
+    /// <summary>How far the shaft has got: its depth below the ground, and the deepest level reached.</summary>
+    (int Depth, int Level) ShaftProgress(Building hut)
+    {
+        if (hut.ShaftPos is not { } centre || sapi.World.BlockAccessor.GetChunkAtBlockPos(centre) == null) return (0, 0);
+        int depth = 0, level = 0;
+        foreach (var spot in ShaftPlan(centre, ShaftLevels(hut), 0))
+        {
+            if (!IsClear(spot.Feet) || !IsClear(spot.Feet.UpCopy())) break;
+            depth = centre.Y - spot.Feet.Y;
+            level = spot.Level;
+        }
+        return (depth, level);
+    }
+
+    /// <summary>The Miner's Hut window lines: the shaft, whether the miner goes to prospected ore, and where it digs now.</summary>
     string MineInfo(Colony colony, Building hut)
     {
+        string line;
+        if (hut.ShaftPos is { } shaft)
+        {
+            var (depth, level) = ShaftProgress(hut);
+            line = Lang.Get("createacolony:mine-shaft", depth, level, ShaftLevels(hut), shaft.X, shaft.Y, shaft.Z);
+        }
+        else line = Lang.Get("createacolony:mine-shaft-none");
+        if (!hut.MineProspected) return line + "<br>" + Lang.Get("createacolony:mine-trips-off");
+
         string choice = hut.MineOre.Length == 0 ? Lang.Get("createacolony:mine-any-ore") : OreName(hut.MineOre);
-        string line = Lang.Get("createacolony:mine-digs-for", choice);
+        line += "<br>" + Lang.Get("createacolony:mine-digs-for", choice);
         if (hut.MineSite != null && hut.MineSiteOre.Length > 0)
         {
             var site = colony.OreSites.Find(s => s.Pos.Equals(hut.MineSite));

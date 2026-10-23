@@ -9,8 +9,8 @@ using Vintagestory.GameContent;
 namespace CreateAColony.Settlers;
 
 /// <summary>
-/// A quarrier works from a Quarry: it digs out the square pit around the Quarry marker a layer at a
-/// time with a pickaxe, leaving a staircase round the edge to walk down. The stone goes into its
+/// A quarrier works from a Quarry: it digs out the square pit beside the Quarry a layer at a time with a
+/// pickaxe, leaving a staircase round the edge to walk down. The stone goes into its
 /// inventory and from there to the Quarry's storage.
 /// </summary>
 public class AiTaskSettlerQuarrier : AiTaskSettlerDigger
@@ -24,12 +24,12 @@ public class AiTaskSettlerQuarrier : AiTaskSettlerDigger
     protected override bool PlanWork(Colony colony, CitizenRecord citizen, Building hut, List<BlockEntityContainer> storage)
     {
         if (FetchBetterPick(citizen, storage)) return true;
-        if (hut.QuarryCenter == null)
+        if (manager!.QuarryPit(colony, hut) == null)
         {
-            SetStatus("quarry-no-marker");
+            SetStatus("quarry-no-room");
             return false;
         }
-        var next = manager!.NextQuarryBlock(colony, hut, entity.Pos.XYZ, IsUnreachable, out bool done);
+        var next = manager.NextQuarryBlock(colony, hut, entity.Pos.XYZ, IsUnreachable, out bool done);
         if (next == null)
         {
             SetStatus(done ? "quarry-done" : "quarry-blocked");

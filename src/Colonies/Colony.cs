@@ -179,8 +179,12 @@ public class Building
     [ProtoMember(42)] public BlockPos? MineEnd;
     /// <summary>A Miner's Hut: the ore block the miner is tunnelling towards.</summary>
     [ProtoMember(43)] public BlockPos? MineTarget;
-    /// <summary>A Quarry: the Quarry marker the pit is centred on, and the top layer of the pit (the ground under the marker).</summary>
+    /// <summary>A Quarry: the middle of its pit beside the hut, in the air just above the ground; the top layer of the pit is the ground under it.</summary>
     [ProtoMember(44)] public BlockPos? QuarryCenter;
+    /// <summary>A Miner's Hut: the miner goes off to dig ore the colony's prospectors found before working its own shaft.</summary>
+    [ProtoMember(45, IsRequired = true)] public bool MineProspected = true;
+    /// <summary>A Miner's Hut: the middle of its shaft beside the hut, at the height a settler stands on the ground there.</summary>
+    [ProtoMember(46)] public BlockPos? ShaftPos;
 
     public bool HasWorkOrder => TargetLevel > Level;
 }

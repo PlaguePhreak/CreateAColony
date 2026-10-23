@@ -47,7 +47,6 @@ planks of any wood.
 | Prospector's Hut | 2 stones (any rock) + 7 planks |
 | Miner's Hut | 2 torches + 7 planks |
 | Quarry | 2 rock blocks (any) + 7 planks |
-| Quarry Marker | a stone over 2 sticks (1x3) |
 | Supply Camp | 3 firewood over 2 sticks (unchanged) |
 | Colony Ledger | 4 paper (any), 2 leather, 2 charcoal: paper, leather, paper / charcoal, paper, charcoal / paper, leather, paper |
 | Drop-off | stick over a plank (unchanged) |
@@ -61,11 +60,12 @@ planks of any wood.
 - **Camp buildings**: put a WorldEdit export at `ModConfig/createacolony/blueprints/supplycamp/level1.json` (or `assets/createacolony/config/blueprints/supplycamp/level1.json`). The first camp then puts that building up around itself at once, turned to face you. Put a Supply Camp block in the export where the camp should sit; without one the camp sits at the bottom centre. If any of it would land on land you may not build on, none of it is built.
 - The **Colony Ledger** opens your colony's Town Hall window from anywhere when you right-click with it. Quests and the colony's history will live in it later. A replacement is expensive on purpose (4 paper, 2 leather, 2 charcoal); the first one is free.
 
-## Mining: Prospector, Miner and Quarry (0.31.0)
+## Mining: Prospector, Miner and Quarry (0.31.1)
 All three are on the new Mining tab of the Builder's Wand and use placeholder blueprints for now.
 - **Prospector's Hut**: put a prospecting pick in its storage. The prospector walks a grid of spots (every `ProspectorSpacing` 24 blocks, out to `ProspectorRadius` 64, changeable on the Work area tab) and takes a density reading at each with the game's own prospecting pick code, wearing the pick 3 per reading. Readings appear on the hut's Ore tab and on every colony member's ore map layer (`ProspectorSharesOreMap`). Good finds go in the Town Hall event log.
-- **Miner's Hut**: put a pickaxe in its storage. The miner picks the strongest reading in range (`MinerRadius` 64), or the ore chosen on the Ore tab, finds that ore's blocks within `MinerOreSearchRadius` 12 of the reading, and digs a walkable staircase (1 wide, 3 high where it steps) down to them from the surface, then digs out the ore around the tunnel end. It never digs next to water or lava, into colony buildings or other people's land. Ore too hard for its pick waits for a better pickaxe in the hut storage. When a reading is dug out it moves to the next.
-- **Quarry**: put a pickaxe in its storage and place a Quarry Marker within 48 blocks. The quarrier clears up to 4 blocks above the ground, then digs a `QuarrySize` 9 x 9 pit `QuarryDepth` 12 layers deep around the marker, top layer first, leaving a staircase round the edge.
+- **Miner's Hut**: put a pickaxe in its storage. Like MineColonies, the miner digs its own shaft beside the hut: a spiral staircase round a rock pillar (3x3, steps 3 high so settlers can walk it). The first turn is the way in; every turn below it is a level, 8 blocks deeper, with a 2-high tunnel `MinerTunnelLength` 12 out from each side. Each hut level allows `MinerLevelsPerHutLevel` 2 levels. It digs out any ore it can see from where it stands (`MinerReach` 3), but never the floors of the shaft or tunnels. A tunnel that runs into water, lava, a building or someone else's land stops there; a blocked shaft waits.
+- **Go to prospected ore** (switch on the Ore tab, on by default): the miner first goes to the best reading in range (`MinerRadius` 64) that is at least `MinerTripMinFactor` 0.267 ("decent"), or any reading of the ore chosen on the Ore tab. It finds that ore's blocks within `MinerOreSearchRadius` 12, digs a staircase down to them from the surface and digs them out, then comes back to its shaft. Ore too hard for its pick waits for a better pickaxe in the hut storage.
+- **Quarry**: put a pickaxe in its storage. The quarrier picks a side of the Quarry facing away from the Town Hall and digs a square pit there, clearing up to 4 blocks above the ground first, then one layer at a time, leaving a staircase round the edge. Level 1 is 5x5 and 6 deep (`QuarryRadius` 2, `QuarryDepthPerLevel` 6); each level adds `QuarryRadiusPerLevel` 1 (2 blocks wider) up to `QuarryMaxRadius` 6 (13x13), and 6 more layers.
 
 ## Config (`ModConfig/createacolony.json`)
 - `Permadeath` (default `true`): settlers who die are gone. Set `false` to have them knocked out and recover after `DownedRecoveryDays`.
