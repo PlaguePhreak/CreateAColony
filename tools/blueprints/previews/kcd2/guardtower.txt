@@ -1,0 +1,98 @@
+Guard Tower (KCD2 Inspired): what each level needs, one item per block
+
+Level 1: 7 x 7 blocks, 16 high. 1 beds, 1 chests.
+       98  hay-normal-ud
+       31  cobblestone-shale
+       29  log-placed-oak-ud
+       12  mudbrick-light
+       12  woodenfence-oak
+        9  rammed-light-plain
+        8  planks-oak-hor
+        6  log-placed-oak-we
+        6  log-placed-oak-ns
+        4  ladder-wood-oak-north
+        2  bed-hay (half: 2 blocks = 1 bed)
+        1  stonepath-free
+        1  chest
+        1  door-crude
+        1  torch-basic-lit
+
+Level 2: 7 x 7 blocks, 19 high. 2 beds, 1 chests.
+       78  planks-oak-hor
+       49  log-placed-oak-ud
+       36  plankstairs-oak
+       31  cobblestone-shale
+       28  mudbrick-light
+       12  log-placed-oak-we
+       12  log-placed-oak-ns
+       12  woodenfence-oak
+        9  rammed-light-plain
+        7  ladder-wood-oak-north
+        4  bed-hay (half: 2 blocks = 1 bed)
+        1  stonepath-free
+        1  chest
+        1  door-crude
+        1  torch-basic-lit
+
+Level 3: 11 x 11 blocks, 24 high. 2 beds, 2 chests.
+      240  planks-oak-hor
+      128  cobblestone-shale
+      100  plankstairs-oak
+       37  log-placed-oak-ud
+       32  log-placed-oak-we
+       31  stonebricks-shale
+       28  log-placed-oak-ns
+       28  mudbrick-light
+        8  ladder-wood-oak-north
+        4  bed-wood (half: 2 blocks = 1 bed)
+        2  chest
+        2  barrel
+        2  lantern-small
+        1  stonepath-free
+        1  door-solid-oak
+        1  pole-banner-wall2-north
+
+Level 4: 17 x 11 blocks, 27 high. 6 beds, 4 chests.
+      342  planks-oak-hor
+      222  cobblestone-shale
+      172  plankstairs-oak
+      120  mudbrick-light
+       67  log-placed-oak-ud
+       51  log-placed-oak-we
+       43  stonebricks-shale
+       35  log-placed-oak-ns
+       25  rammed-light-plain
+       11  ladder-wood-oak-north
+        8  bed-hay (half: 2 blocks = 1 bed)
+        4  chest
+        4  bed-wood (half: 2 blocks = 1 bed)
+        3  barrel
+        3  lantern-small
+        2  stonepath-free
+        1  roughtable-north
+        1  door-solid-oak
+        1  door-crude
+        1  pole-banner-wall2-north
+
+Level 5: 18 x 16 blocks, 30 high. 6 beds, 5 chests.
+      368  planks-oak-hor
+      270  cobblestone-shale
+      172  plankstairs-oak
+      158  log-placed-oak-ud
+      127  mudbrick-light
+       58  stonebricks-shale
+       51  log-placed-oak-we
+       37  log-placed-oak-ns
+       25  rammed-light-plain
+       15  woodenfence-oak
+       14  ladder-wood-oak-north
+        8  bed-hay (half: 2 blocks = 1 bed)
+        6  stonepath-free
+        5  chest
+        4  bed-wood (half: 2 blocks = 1 bed)
+        4  barrel
+        4  lantern-small
+        1  roughtable-north
+        1  door-solid-oak
+        1  door-crude
+        1  pole-banner-wall2-north

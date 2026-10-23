@@ -1,0 +1,85 @@
+Builder's Hut (KCD2 Inspired): what each level needs, one item per block
+
+Level 1: 9 x 7 blocks, 13 high. 0 beds, 1 chests.
+      126  hay-normal-ud
+       70  mudbrick-light
+       39  cobblestone-shale
+       26  log-placed-oak-ud
+       15  rammed-light-plain
+       10  log-placed-oak-we
+        6  log-placed-oak-ns
+        1  stonepath-free
+        1  barrel
+        1  chest
+        1  door-crude
+        1  torch-basic-lit
+
+Level 2: 15 x 7 blocks, 13 high. 0 beds, 1 chests.
+      217  hay-normal-ud
+       70  mudbrick-light
+       42  log-placed-oak-ud
+       39  cobblestone-shale
+       20  log-placed-oak-we
+       18  log-placed-oak-ns
+       15  rammed-light-plain
+        2  plankslab-oak
+        1  stonepath-free
+        1  barrel
+        1  chest
+        1  door-crude
+        1  torch-basic-lit
+
+Level 3: 19 x 7 blocks, 13 high. 0 beds, 3 chests.
+       98  hay-normal-ud
+       94  mudbrick-light
+       84  planks-oak-hor
+       78  plankstairs-oak
+       55  cobblestone-shale
+       50  log-placed-oak-ud
+       41  log-placed-oak-we
+       27  rammed-light-plain
+       18  log-placed-oak-ns
+        3  chest
+        2  plankslab-oak
+        1  stonepath-free
+        1  barrel
+        1  roughtable-north
+        1  door-crude
+        1  lantern-small
+
+Level 4: 19 x 9 blocks, 18 high. 1 beds, 4 chests.
+      213  planks-oak-hor
+      150  plankstairs-oak
+      146  mudbrick-light
+       90  log-placed-oak-ud
+       70  log-placed-oak-we
+       55  cobblestone-shale
+       28  log-placed-oak-ns
+       27  rammed-light-plain
+        4  chest
+        2  plankslab-oak
+        2  lantern-small
+        2  bed-hay (half: 2 blocks = 1 bed)
+        1  stonepath-free
+        1  barrel
+        1  roughtable-north
+        1  door-solid-oak
+
+Level 5: 19 x 13 blocks, 18 high. 1 beds, 4 chests.
+      240  planks-oak-hor
+      150  plankstairs-oak
+      124  mudbrick-light
+       98  cobblestone-shale
+       70  log-placed-oak-we
+       64  log-placed-oak-ud
+       25  log-placed-oak-ns
+       19  stonebricks-shale
+       12  stonepath-free
+        9  wattle-sticks
+        4  chest
+        2  plankslab-oak
+        2  lantern-small
+        2  bed-hay (half: 2 blocks = 1 bed)
+        1  barrel
+        1  roughtable-north
+        1  door-solid-oak

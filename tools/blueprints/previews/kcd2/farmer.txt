@@ -1,0 +1,84 @@
+Farmer's Hut (KCD2 Inspired): what each level needs, one item per block
+
+Level 1: 9 x 13 blocks, 13 high. 0 beds, 1 chests.
+      126  hay-normal-ud
+       70  mudbrick-light
+       39  cobblestone-shale
+       33  log-placed-oak-ud
+       15  rammed-light-plain
+       12  wattle-sticks
+       10  log-placed-oak-we
+        6  log-placed-oak-ns
+        1  stonepath-free
+        1  stationarybasket-north
+        1  chest
+        1  door-crude
+        1  torch-basic-lit
+
+Level 2: 17 x 13 blocks, 13 high. 0 beds, 2 chests.
+      245  hay-normal-ud
+      143  mudbrick-light
+       77  cobblestone-shale
+       58  log-placed-oak-ud
+       30  rammed-light-plain
+       20  log-placed-oak-we
+       12  wattle-sticks
+       12  log-placed-oak-ns
+        3  stonepath-free
+        2  chest
+        1  stationarybasket-north
+        1  door-crude
+        1  torch-basic-lit
+
+Level 3: 21 x 13 blocks, 15 high. 0 beds, 2 chests.
+      278  hay-normal-ud
+      150  mudbrick-light
+       98  cobblestone-shale
+       60  log-placed-oak-ud
+       36  rammed-light-plain
+       24  log-placed-oak-we
+       12  wattle-sticks
+       11  log-placed-oak-ns
+        3  stonepath-free
+        2  chest
+        1  stationarybasket-north
+        1  door-crude
+        1  lantern-small
+
+Level 4: 21 x 19 blocks, 18 high. 0 beds, 2 chests.
+      383  hay-normal-ud
+      212  mudbrick-light
+      141  cobblestone-shale
+       80  log-placed-oak-ud
+       41  planks-oak-hor
+       36  rammed-light-plain
+       30  log-placed-oak-we
+       18  stonebricks-shale
+       17  log-placed-oak-ns
+       12  wattle-sticks
+        4  ladder-wood-oak-north
+        3  stonepath-free
+        3  stationarybasket-north
+        2  chest
+        1  plankstairs-oak
+        1  door-solid-oak
+        1  lantern-small
+
+Level 5: 26 x 19 blocks, 18 high. 0 beds, 2 chests.
+      229  planks-oak-hor
+      212  mudbrick-light
+      156  plankstairs-oak
+      141  cobblestone-shale
+       88  log-placed-oak-ud
+       56  log-placed-oak-we
+       36  rammed-light-plain
+       23  wattle-sticks
+       19  hay-normal-ud
+       18  stonebricks-shale
+       17  log-placed-oak-ns
+        4  ladder-wood-oak-north
+        3  stonepath-free
+        3  stationarybasket-north
+        2  chest
+        1  door-solid-oak
+        1  lantern-small

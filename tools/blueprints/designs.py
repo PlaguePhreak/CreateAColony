@@ -148,7 +148,7 @@ def townhall(b):
         b.put(13, 0, 5, chest("west"))
         # The headman's banner over the door.
         b.banner(2, 2, 7)
-    b.put(1, 2, 5, torch("east")), b.put(9, 2, 5, torch("west"))
+    b.put(1, 2, 4, torch("east")), b.put(13 if L >= 2 else 9, 2, 4, torch("west"))
     if L >= 3:
         # The solar upstairs: the headman's chamber.
         b.put(2, 4, 2, TABLE), b.put(3, 4, 2, chair("east"))
@@ -549,7 +549,7 @@ def warehouse(b):
             b.put(x, 0, z, chest(facing))
             placed += 1
     assert placed == want, f"warehouse level {L}: room for {placed} chests, wanted {want}"
-    b.put(x0 + 1, 2, z1 - 1, torch("east")), b.put(x1 - 1, 2, z1 - 1, torch("west"))
+    b.put(x0 + 1, 2, z1 - 2, torch("east")), b.put(x1 - 1, 2, z1 - 2, torch("west"))
     if L == 5:
         # Buttresses on the long walls, as on a stone tithe barn.
         for x in (-3, 3):

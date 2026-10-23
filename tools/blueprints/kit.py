@@ -1,5 +1,5 @@
 """
-Building kit for the 12th Century Inspired asset pack: blocks, walls, roofs, doors and furniture,
+Building kit for the generated asset packs (12th Century Inspired, KCD2 Inspired): blocks, walls, roofs, doors and furniture,
 written out as Vintage Story 1.22 WorldEdit exports that the mod's builders can build.
 
 Every block code used here comes from Aaron's own exports (game 1.22.7), apart from the few listed in
@@ -74,6 +74,11 @@ def ladder():
     return "game:ladder-wood-oak-north"
 
 
+def lantern_code(facing):
+    """A copper lantern: "down" hangs from the block above, a side faces that way off the wall behind it."""
+    return f"game:lantern-small-{facing}"
+
+
 def chest(facing):
     return f"game:chest-{facing}"
 
@@ -98,6 +103,7 @@ w4rd0sfurniture:roughchairdining-north w4rd0sfurniture:roughchairdining-east
 w4rd0sfurniture:roughchairdining-south w4rd0sfurniture:roughchairdining-west
 heraldrybanners:pole-banner-wall2-north
 createacolony:waypoint-mine createacolony:waypoint-quarry
+game:lantern-small-down game:lantern-small-north game:lantern-small-east game:lantern-small-south game:lantern-small-west
 """.split())
 for _half in ("up", "down"):
     for _side in ("north", "east", "south", "west"):
@@ -146,6 +152,18 @@ def door_data(code, x, y, z, rot):
     return base64.a85encode(_tree([
         (1, "posx", x), (1, "posy", y), (1, "posz", z), (5, "blockCode", code.split(":")[1]),
         (4, "rotateYRad", rot), (9, "opened", False), (9, "invertHandles", False),
+    ])).decode()
+
+
+# Lanterns as in Aaron's exports: copper, plain lining, quartz glass, turned to face out from the wall.
+LANTERN_ANGLE = {"south": 0.0, "west": -math.pi / 2, "north": -math.pi, "east": math.pi / 2, "down": -math.pi / 4}
+
+
+def lantern_data(x, y, z, facing):
+    code = lantern_code(facing)
+    return base64.a85encode(_tree([
+        (1, "posx", x), (1, "posy", y), (1, "posz", z), (5, "blockCode", code.split(":")[1]),
+        (5, "material", "copper"), (5, "lining", "plain"), (5, "glass", "quartz"), (4, "meshAngle", LANTERN_ANGLE[facing]),
     ])).decode()
 
 
@@ -384,6 +402,10 @@ class Build:
             self.put(x, y, z, "game:bed-wood-head-north")
             self.put(x, y, z - 1, "game:bed-wood-feet-north")
 
+    def lantern(self, x, y, z, facing="down"):
+        """A lantern hanging from the block above ("down") or on the wall behind it, facing `facing`."""
+        self.put(x, y, z, lantern_code(facing), lantern_data(x, y, z, facing))
+
     def banner(self, x, y, z):
         """A Heraldry : Banners pennant on the wall north of (x, y, z)."""
         self.put(x, y, z, "heraldrybanners:pole-banner-wall2-north", BANNER_DATA)
@@ -510,6 +532,13 @@ def check(bp, type, needs=()):
             problems.append(f"hay bed at {(x, y, z)} has lost its foot end")
         if c == "game:bed-wood-head-north" and at.get((x, y, z - 1)) != "game:bed-wood-feet-north":
             problems.append(f"wooden bed at {(x, y, z)} has lost its foot end")
+        if c == "game:lantern-small-down" and at.get((x, y + 1, z)) is None:
+            problems.append(f"hanging lantern at {(x, y, z)} has nothing above it")
+        if c.startswith(("game:lantern-small-", "game:torch-basic-lit-")) and not c.endswith("-down"):
+            facing = c.rsplit("-", 1)[1]
+            dx, dz = SIDES[OPPOSITE[facing]]
+            if at.get((x + dx, y, z + dz)) in (None, DOOR_TOP):
+                problems.append(f"{c.split(':')[1]} at {(x, y, z)} has no wall behind it")
         if c.startswith("game:door-"):
             for dz in (-1, 1):
                 for dy in (0, 1):
@@ -543,7 +572,7 @@ def materials(bp):
     for c, n in count.items():
         name = c.split(":")[1]
         for prefix in ("plankstairs-oak", "cobblestonestairs-shale", "stonebrickstairs-shale", "woodenfence-oak",
-                       "drystonefence-shale", "wattle-sticks", "torch-basic-lit", "chest", "plankslab-oak", "cobblestoneslab-shale",
+                       "drystonefence-shale", "wattle-sticks", "torch-basic-lit", "lantern-small", "chest", "plankslab-oak", "cobblestoneslab-shale",
                        "roughchairdining", "bed-hay", "bed-wood"):
             if name.startswith(prefix):
                 name = prefix + (" (half: 2 blocks = 1 bed)" if prefix.startswith("bed-") else "")

@@ -3,3 +3,4 @@ obj/
 Releases/
 *.user
 .vs/
+__pycache__/

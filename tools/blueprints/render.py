@@ -6,7 +6,7 @@ from PIL import Image, ImageDraw, ImageFont
 
 COLOURS = [
     ("createacolony:waypoint", (20, 20, 20)), ("createacolony:", (60, 120, 220)),
-    ("door", (92, 60, 34)), ("multiblock", (92, 60, 34)), ("torch", (255, 200, 60)),
+    ("door", (92, 60, 34)), ("lantern", (255, 190, 80)), ("multiblock", (92, 60, 34)), ("torch", (255, 200, 60)),
     ("log-placed", (106, 76, 44)), ("debarkedlog", (170, 130, 85)), ("plankstairs", (150, 104, 60)), ("plankslab", (176, 128, 78)),
     ("planks", (186, 140, 86)), ("packeddirt", (222, 206, 172)), ("mudbrick", (196, 170, 128)),
     ("rammed", (150, 128, 96)), ("stonebrick", (150, 150, 155)), ("cobblestonestairs", (112, 112, 118)),

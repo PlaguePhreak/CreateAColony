@@ -1,0 +1,86 @@
+Potter's Hut (KCD2 Inspired): what each level needs, one item per block
+
+Level 1: 8 x 7 blocks, 13 high. 0 beds, 1 chests.
+      112  hay-normal-ud
+       64  mudbrick-light
+       35  cobblestone-shale
+       24  log-placed-oak-ud
+       12  rammed-light-plain
+        8  log-placed-oak-we
+        6  log-placed-oak-ns
+        1  stonepath-free
+        1  storagevessel-red-fired
+        1  chest
+        1  door-crude
+        1  torch-basic-lit
+
+Level 2: 8 x 12 blocks, 13 high. 0 beds, 1 chests.
+      189  hay-normal-ud
+       64  mudbrick-light
+       36  log-placed-oak-ud
+       35  cobblestone-shale
+       18  log-placed-oak-we
+       12  rammed-light-plain
+       10  log-placed-oak-ns
+        3  plankslab-oak
+        3  storagevessel-red-fired
+        1  stonepath-free
+        1  chest
+        1  door-crude
+        1  torch-basic-lit
+
+Level 3: 10 x 12 blocks, 13 high. 0 beds, 1 chests.
+      217  hay-normal-ud
+       78  mudbrick-light
+       43  cobblestone-shale
+       38  log-placed-oak-ud
+       22  log-placed-oak-we
+       18  rammed-light-plain
+       10  log-placed-oak-ns
+        4  storagevessel-red-fired
+        3  plankslab-oak
+        1  stonepath-free
+        1  chest
+        1  roughtable-north
+        1  stationarybasket-north
+        1  door-crude
+        1  lantern-small
+
+Level 4: 12 x 12 blocks, 13 high. 0 beds, 1 chests.
+       96  planks-oak-hor
+       96  plankstairs-oak
+       78  mudbrick-light
+       72  hay-normal-ud
+       46  log-placed-oak-ud
+       43  cobblestone-shale
+       40  log-placed-oak-we
+       18  rammed-light-plain
+       14  log-placed-oak-ns
+        6  storagevessel-red-fired
+        3  plankslab-oak
+        1  stonepath-free
+        1  chest
+        1  roughtable-north
+        1  stationarybasket-north
+        1  door-crude
+        1  lantern-small
+
+Level 5: 12 x 12 blocks, 16 high. 0 beds, 2 chests.
+      123  planks-oak-hor
+       96  mudbrick-light
+       96  plankstairs-oak
+       72  log-placed-oak-ud
+       72  hay-normal-ud
+       52  log-placed-oak-we
+       43  cobblestone-shale
+       20  log-placed-oak-ns
+       18  rammed-light-plain
+        7  storagevessel-red-fired
+        4  ladder-wood-oak-north
+        3  plankslab-oak
+        2  chest
+        1  stonepath-free
+        1  roughtable-north
+        1  stationarybasket-north
+        1  door-solid-oak
+        1  lantern-small

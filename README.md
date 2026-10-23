@@ -118,7 +118,7 @@ Buildings grow from blueprints, which are ordinary WorldEdit exports. Build the 
 creative world with its hut block where the hut should stand, select it with WorldEdit, and run
 `/we export <name>`. Copy the file from `VintagestoryData/WorldEdit/` to
 `VintagestoryData/ModConfig/createacolony/blueprints/<pack>/<type>/level<N>.json`, where `<pack>` is
-`twelfthcentury` or `devsbuilds`, `<type>` is the building (`townhall`, `builder`, `farmer`, `forester`,
+`twelfthcentury`, `kcd2` or `devsbuilds`, `<type>` is the building (`townhall`, `builder`, `farmer`, `forester`,
 `cook`, `potter`, `residence`, `guardtower`, `tavern`, `warehouse`, `prospector`, `miner`, `quarry`) and
 `<N>` is 1 to 5. `/colony reloadblueprints` picks up changes without a restart. Blueprints in ModConfig
 override the ones shipped in `assets/createacolony/config/blueprints/`.
@@ -142,6 +142,16 @@ placed in for every level, also after you change packs. Your choice is saved wit
   one-level camp (a thatched shelter, two hay beds, a fire ring) put down with it. Tables, benches and
   chairs come from W4RD0's Furniture and the pennants from Heraldry : Banners; without those mods they are
   simply left out. Pictures of every level are in `tools/blueprints/previews/twelfthcentury/`.
+- **KCD2 Inspired** (`blueprints/kcd2/`, since 0.47.0): every building, levels 1 to 5, and the Supply
+  Camp, inspired by the Bohemian villages and towns of Kingdom Come: Deliverance II (around 1400). Timber
+  frames filled with pale cob, with braces under the wall plates, on stone sills; steep roofs (two blocks
+  up for each block in), thatch on village cottages and oak shingles in town; stone ground floors with a
+  jettied timber storey over them; stone chimneys on the hearths; wattle fences round gardens and yards;
+  copper lanterns from level 3. The Town Hall gets an arcade under its jettied front at level 4 and a stone tower
+  with a timber top storey at level 5; the Guard Tower is a wooden watchtower that becomes a stone tower
+  with a jettied timber fighting storey and a log palisade. The jobs' needs (beds, chests, hearths,
+  waypoints, the Warehouse's reach, open ground by the Potter's Hut) are met as in 12th Century Inspired.
+  Pictures are in `tools/blueprints/previews/kcd2/`.
 - **Dev's Builds** (`blueprints/devsbuilds/`): Aaron's own buildings: Town Hall 1 to 4, Builder's Hut 1
   to 4, Guard Tower 1 to 5, Cook's Hut 1 and Residence 1 (since 0.46.0). Other buildings have no
   blueprint in this pack yet, and the list says so.
@@ -165,14 +175,15 @@ and over it (a cellar); elsewhere the ground below the floor is left alone.
 
 ### Making blueprints with the generator
 
-`tools/blueprints/make_twelfth.py` (Python 3 with Pillow) makes the 12th Century Inspired pack from the
-designs in `tools/blueprints/designs.py`, built with the walls, roofs, doors and furniture in
+`tools/blueprints/make_packs.py` (Python 3 with Pillow) makes the 12th Century Inspired pack from the
+designs in `tools/blueprints/designs.py` and the KCD2 Inspired pack from `tools/blueprints/designs_kcd2.py`
+(`make_packs.py kcd2` makes one pack, `make_packs.py kcd2 tavern` one building), built with the walls, roofs, doors and furniture in
 `tools/blueprints/kit.py`. Only blocks from Aaron's own exports (and a few plain variants of them, such
 as chests and other fence joins) may be used. Every level is checked before it is written: one hut block,
-doors with their top half and saved direction and nothing standing in their way, ladders with something
+doors with their top half and saved direction and nothing standing in their way, ladders, torches and lanterns with something
 behind them, whole beds, and the work blocks the hut needs. It prints how much of each level stays in
 place at the next one, and draws all five levels of each building, whole and cut away, in
-`tools/blueprints/previews/twelfthcentury/`, with a list of what each level needs.
+`tools/blueprints/previews/<pack>/`, with a list of what each level needs.
 
 `tools/blueprints/import_devsbuilds.py <folder>` copies Aaron's exports into Dev's Builds (files named
 like `TownHallLevel1.json`, `GuardTowerLevel5.json`). It checks the same things, adds a hut block where

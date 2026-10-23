@@ -28,11 +28,12 @@ public static class BuildingCategories
 public static class BlueprintStyles
 {
     public const string TwelfthCentury = "twelfthcentury";
+    public const string Kcd2 = "kcd2";
     public const string DevsBuilds = "devsbuilds";
     /// <summary>The old Testing style (blueprints/&lt;type&gt;/), removed in 0.46.0. Buildings saved with it move to a pack that still exists.</summary>
     public const string OldTesting = "testing";
 
-    public static readonly string[] All = { TwelfthCentury, DevsBuilds };
+    public static readonly string[] All = { TwelfthCentury, Kcd2, DevsBuilds };
 
     /// <summary>The pack for buildings and players with none (or one that no longer exists).</summary>
     public const string Default = TwelfthCentury;
