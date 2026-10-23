@@ -12,12 +12,13 @@ namespace CreateAColony.Settlers;
 /// <summary>
 /// A cook works from a Cook's Hut with the game's own fire pit: it puts raw food the hut keeps too little
 /// of cooked in the fire pit by the hut, adds firewood and lights it, and takes the cooked food out when
-/// the game has cooked it. Cooked food goes into the hut storage, where hungry settlers eat. Raw food and
-/// firewood come from the hut storage, which couriers fill from the warehouse.
+/// the game has cooked it. Cooked food goes on the hut's Food Shelves shelves when there is room, else into
+/// the hut storage, where hungry settlers eat. Raw food and firewood come from the hut storage and shelves,
+/// which couriers fill from the warehouse.
 /// </summary>
 public class AiTaskSettlerCook : AiTaskSettlerWorker
 {
-    enum Work { Load, LoadMeal, Fuel, Empty }
+    enum Work { Load, LoadMeal, Fuel, Empty, Shelve }
 
     Work work;
     ColonyManager.KitchenKind? kind;
@@ -39,9 +40,43 @@ public class AiTaskSettlerCook : AiTaskSettlerWorker
 
     protected override string WorkAnimation(ItemSlot? hand) => "interactstatic";
 
+    /// <summary>A dish it carries that is not an ingredient of the meal it is about to cook.</summary>
+    bool IsDishToShelve(ItemStack s) => manager!.IsDish(s) && meal?.Uses(s) != true && !ColonyManager.IsCleanPot(s);
+
+    /// <summary>
+    /// Dishes go on the kitchen shelves before anything goes to the hut storage. With nothing to put away, it
+    /// takes dishes from the hut storage to shelves that have room for them.
+    /// </summary>
+    protected override bool PlanFirst(Colony colony, CitizenRecord citizen, Building hut)
+    {
+        var m = manager!;
+        var shelves = m.KitchenShelves(colony, hut).Where(s => !IsUnreachable(s.Pos)).ToList();
+        if (shelves.Count == 0) return false;
+        if (m.ShelfFor(colony, hut, citizen, IsDishToShelve, IsUnreachable) is { } shelf)
+        {
+            work = Work.Shelve;
+            SetStatus("shelving");
+            return GoWork(shelf.Pos);
+        }
+        if (m.PackFull(citizen)) return false;
+        foreach (var chest in m.HutStorage(colony, hut))
+        {
+            var dish = chest.Inventory.FirstOrDefault(s => !s.Empty && IsDishToShelve(s.Itemstack) && shelves.Any(sh => m.ShelfRoom(sh, s.Itemstack) > 0));
+            if (dish == null) continue;
+            var stack = dish.Itemstack!;
+            var kind = stack.Collectible;
+            int room = shelves.Max(sh => m.ShelfRoom(sh, stack));
+            SetStatus("shelving");
+            return FetchSupplies(chest.Pos, s => s.Collectible == kind && IsDishToShelve(s), room);
+        }
+        return false;
+    }
+
     protected override bool PlanWork(Colony colony, CitizenRecord citizen, Building hut, List<BlockEntityContainer> storage)
     {
         var m = manager!;
+        // Ingredients on the kitchen shelves (a vegetable basket, an egg shelf) are used as well as the hut storage.
+        storage = storage.Concat(m.KitchenShelves(colony, hut)).ToList();
         var pit = m.CookFirepit(colony, hut);
         if (pit == null)
         {
@@ -177,6 +212,15 @@ public class AiTaskSettlerCook : AiTaskSettlerWorker
     protected override void DoWork(Colony colony, CitizenRecord citizen, Building hut)
     {
         var m = manager!;
+        if (work == Work.Shelve)
+        {
+            if (entity.World.BlockAccessor.GetBlockEntity(target) is BlockEntityContainer shelf && ColonyManager.IsFoodShelf(shelf)
+                && m.ShelveFromPack(colony, citizen, shelf, IsDishToShelve) == 0)
+            {
+                MarkUnreachable(target); // full after all: try another shelf, or the hut storage
+            }
+            return;
+        }
         if (entity.World.BlockAccessor.GetBlockEntity(target) is not BlockEntityFirepit pit) return;
         switch (work)
         {

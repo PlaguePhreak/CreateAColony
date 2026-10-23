@@ -78,6 +78,12 @@ public partial class ColonyManager : ModSystem
             // 0.33.0: the Town Hall starts with a bigger square (100 -> 250).
             if (config.TownHallClaimSize == 100) config.TownHallClaimSize = new ColonyConfig().TownHallClaimSize;
         }
+        if (config.ConfigVersion < 2)
+        {
+            // 0.51.0: builders place Food Shelves blocks from their item too.
+            var placeAsItem = config.BlueprintPlaceAsItem ?? Array.Empty<string>();
+            if (placeAsItem.SequenceEqual(new[] { "w4rd0sfurniture:*", "heraldrybanners:*" })) config.BlueprintPlaceAsItem = new ColonyConfig().BlueprintPlaceAsItem;
+        }
         config.ConfigVersion = ColonyConfig.CurrentConfigVersion;
     }
 

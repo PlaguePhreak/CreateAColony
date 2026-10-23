@@ -7,7 +7,7 @@ public class ColonyConfig
 {
     public const string FileName = "createacolony.json";
     /// <summary>Bumped when a default changes in a way old config files should pick up; see ColonyManager.UpgradeConfig.</summary>
-    public const int CurrentConfigVersion = 1;
+    public const int CurrentConfigVersion = 2;
 
     /// <summary>Which defaults this file has been brought up to. Files from before 0.33.0 have none, so read as 0.</summary>
     public int ConfigVersion;
@@ -71,11 +71,12 @@ public class ColonyConfig
 
     /// <summary>
     /// Blocks a builder places the way a player does, from the item in hand, so the block sets itself up:
-    /// W4RD0's Furniture (wood and cloth colours, shelves of several cells, beds) and Heraldry : Banners poles.
-    /// Builders pay for the furniture item in the same wood and colours as the blueprint, and for a banner with
-    /// the same design when a pole holds one. Nothing inside furniture comes along. Both mods are optional.
+    /// W4RD0's Furniture (wood and cloth colours, shelves of several cells, beds), Heraldry : Banners poles and
+    /// Food Shelves (shelves, baskets and cabinets in their wood). Builders pay for the furniture item in the same
+    /// wood and colours as the blueprint, and for a banner with the same design when a pole holds one. Nothing
+    /// inside furniture comes along. The mods are optional.
     /// </summary>
-    public string[] BlueprintPlaceAsItem = { "w4rd0sfurniture:*", "heraldrybanners:*" };
+    public string[] BlueprintPlaceAsItem = { "w4rd0sfurniture:*", "heraldrybanners:*", "foodshelves:*" };
 
     // Forester
     /// <summary>How far from the Forester's Hut, in blocks, a forester looks for trees.</summary>

@@ -10,7 +10,8 @@ namespace CreateAColony.Settlers;
 /// <summary>
 /// The courier's working day, one trip at a time: deliver what it is carrying, otherwise fetch the
 /// oldest delivery request the warehouse can serve, otherwise empty a drop-off chest into the
-/// warehouse. It carries as much as its inventory holds, and what it carries is saved on its record,
+/// warehouse, otherwise fill the Food Shelves shelves of a Cook's Hut with food from the warehouse. It carries
+/// as much as its inventory holds, and what it carries is saved on its record,
 /// so nothing is lost if the trip is interrupted by night, hunger or a storm; the next trip finishes it.
 /// </summary>
 public class AiTaskSettlerCourier : SettlerTaskBase
@@ -29,6 +30,9 @@ public class AiTaskSettlerCourier : SettlerTaskBase
     bool toHut;
     /// <summary>When a settler without a hut started carrying things, so it saves them up for one trip to the warehouse.</summary>
     long carryingSinceMs = -1;
+    /// <summary>The kitchen shelf the food picked up is for, and how much it takes.</summary>
+    BlockPos? shelfTarget;
+    int shelfWant;
 
     public AiTaskSettlerCourier(EntityAgent entity, JsonObject taskConfig, JsonObject aiConfig) : base(entity, taskConfig, aiConfig) { }
 
@@ -77,6 +81,7 @@ public class AiTaskSettlerCourier : SettlerTaskBase
     {
         requestId = 0;
         toHut = false;
+        shelfTarget = null;
         if (!manager!.PackEmpty(citizen))
         {
             // Finish the delivery we were on, or bring the load back to the warehouse.
@@ -120,6 +125,15 @@ public class AiTaskSettlerCourier : SettlerTaskBase
         {
             pickupFilter = junk.IsJunk;
             return Go(Step.Pickup, junk.Chest.Pos);
+        }
+
+        // Stock the kitchen shelves with food from the warehouse (ColonyManager.FoodShelves.cs).
+        if (manager.FindShelfRestock(colony) is { } restock)
+        {
+            pickupFilter = restock.Match;
+            shelfTarget = restock.Shelf.Pos.Copy();
+            shelfWant = restock.Amount;
+            return Go(Step.Pickup, restock.Source.Pos);
         }
         return false;
     }
@@ -175,7 +189,7 @@ public class AiTaskSettlerCourier : SettlerTaskBase
         var request = colony.Requests.Find(r => r.RequestId == requestId);
 
         var match = request != null ? ColonyManager.Matcher(request.ItemCode) : pickupFilter;
-        int wanted = request?.Remaining ?? int.MaxValue;
+        int wanted = request?.Remaining ?? (shelfTarget != null ? shelfWant : int.MaxValue);
         int taken = 0;
         while (taken < wanted)
         {
@@ -196,7 +210,7 @@ public class AiTaskSettlerCourier : SettlerTaskBase
             if (request != null) manager!.ReleaseRequest(colony, request);
             return false;
         }
-        var destination = request != null ? request.DestPos : manager!.WarehouseContainers(colony).FirstOrDefault()?.Pos;
+        var destination = request != null ? request.DestPos : shelfTarget ?? manager!.WarehouseContainers(colony).FirstOrDefault()?.Pos;
         if (destination == null) return false; // warehouse removed mid-trip; the load waits until one exists
         target = destination.Copy();
         return true;
@@ -225,6 +239,16 @@ public class AiTaskSettlerCourier : SettlerTaskBase
             int moved = before - manager.PackCount(citizen, match);
             manager.RecordDelivery(colony, request, moved);
             blocked = manager.PackCount(citizen, match) > 0;
+        }
+        else if (shelfTarget != null)
+        {
+            // Whatever the shelf does not take goes back to the warehouse on the next trip.
+            if (entity.World.BlockAccessor.GetBlockEntity(shelfTarget) is BlockEntityContainer shelf && ColonyManager.IsFoodShelf(shelf))
+            {
+                manager.ShelveFromPack(colony, citizen, shelf, pickupFilter);
+            }
+            shelfTarget = null;
+            blocked = false;
         }
         else if (toHut && citizen.WorkplacePos != null && manager.GetBuilding(colony, citizen.WorkplacePos) is { } hut)
         {
@@ -277,6 +301,7 @@ public class AiTaskSettlerCourier : SettlerTaskBase
         {
             (true, Step.Pickup) => "activity-courier-fetch",
             (true, Step.Deliver) => "activity-courier-deliver",
+            (false, _) when shelfTarget != null => "activity-courier-shelves",
             (false, Step.Pickup) => "activity-courier-collect",
             _ => "activity-courier-store"
         };

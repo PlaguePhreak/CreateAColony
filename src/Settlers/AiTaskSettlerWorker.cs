@@ -58,6 +58,12 @@ public abstract class AiTaskSettlerWorker : SettlerTaskBase
     /// <summary>What the settler is working on, for the settler window.</summary>
     protected abstract string DescribeWork();
 
+    /// <summary>
+    /// Work that comes before taking things to the hut storage, such as a cook putting what it cooked on the
+    /// kitchen shelves. Calls GoWork and returns true when there is some.
+    /// </summary>
+    protected virtual bool PlanFirst(Colony colony, CitizenRecord citizen, Building hut) => false;
+
     /// <summary>Other things the worker keeps in its inventory instead of taking them to the hut.</summary>
     protected virtual bool AlsoKeeps(ItemStack stack) => false;
 
@@ -109,6 +115,8 @@ public abstract class AiTaskSettlerWorker : SettlerTaskBase
             SetStatus("no-hut-chest");
             return Wait();
         }
+
+        if (PlanFirst(colony, citizen, hut)) return true;
 
         // Hands full: take the harvest home first.
         if (manager.PackFull(citizen) && HasSurplus(citizen)) return Go(Step.Deposit, storage[0].Pos);

@@ -215,18 +215,21 @@ The config list `BlueprintBlockDetails` (default `["vsroofing:*"]`) says which b
 their saved details. Do not add chests or other containers: whatever they held in the export would
 come for free.
 
-### Furniture and banners (W4RD0's Furniture, Heraldry : Banners)
+### Furniture, banners and food shelves (W4RD0's Furniture, Heraldry : Banners, Food Shelves)
 
-With W4RD0's Furniture (1.5.1) or Heraldry : Banners (2.0.0, with Heraldry) installed, blueprints can hold their
-furniture and banner poles. Both mods are optional: without them those blocks are skipped. A builder
+With W4RD0's Furniture (1.5.1), Heraldry : Banners (2.0.0, with Heraldry) or Food Shelves (3.1.1) installed,
+blueprints can hold their furniture, banner poles and food shelves. The mods are optional: without them those
+blocks are skipped. A builder
 places these blocks the way a player does, from their item, so the block sets itself up: a double bed
 or a wide table puts down its other half, a shelf its other cells, and the block takes the item's wood
 and colours. The builder pays for the furniture item in the wood and cloth colours the blueprint has
 ("Rustic table (Oak)" in Items needed; "(any wood)" when the colony allows any wood), and for a pole's
 banner with the same design, which has to be made at the Heraldry workbench. What furniture held in the
-export (a cupboard's contents, a shelf's display) is not copied. The config list `BlueprintPlaceAsItem`
-(default `["w4rd0sfurniture:*", "heraldrybanners:*"]`) says which blocks are placed this way; any block
-that takes its wood from item attributes (Attribute Rendering Library) is placed this way too.
+export (a cupboard's contents, a shelf's display) is not copied. Food Shelves blocks work the same way: a
+builder pays for a "Bread shelf (Oak)" in the blueprint's wood, and the food that stood on it in the export
+is not copied. The config list `BlueprintPlaceAsItem` (default `["w4rd0sfurniture:*", "heraldrybanners:*",
+"foodshelves:*"]`, added to older config files that still had the old default) says which blocks are placed
+this way; any block that takes its wood from item attributes (Attribute Rendering Library) is placed this way too.
 
 Settlers sleep in W4RD0's Furniture beds as well as vanilla beds. A double bed sleeps two, each on their
 own half, and counts as two free beds for wanderers.
@@ -373,7 +376,7 @@ Forester's and Farmer's Huts have a **Work area** tab in their window (officers 
   prefer the food group they have had least of, weighed against how far away it is.
 - Food mods: Expanded Foods and A Culinary Artillery change the game's own meal nutrition, and settlers use
   that same code, so modded meals count with no hard dependency. Extra nutrients that Expanded Foods items
-  carry (`expandedSats`) count too. Food Shelves blocks are ordinary containers, so settlers find food on them.
+  carry (`expandedSats`) count too. Settlers find food on Food Shelves shelves like in any other container.
   A Culinary Artillery's mixing bowl, saucepan and cauldron are skipped by name so settlers never eat what is
   being made in them.
 
@@ -394,6 +397,13 @@ Forester's and Farmer's Huts have a **Work area** tab in their window (officers 
   into the hut storage and settlers eat from it a serving at a time; the emptied pot is used again. The
   Kitchen tab lists every meal with servings ready and to keep (`KitchenDefaultMealKeep`, 6). Meals come
   before grilling. Recipes that need water or another liquid are left to players.
+- **Food Shelves (0.51.0):** with the Food Shelves mod, any of its shelves, baskets and cabinets inside the
+  Cook's Hut (the building as its blueprint stands) are kitchen shelves. The cook puts what it cooks (grilled
+  food, pot meals, pies) on a shelf that takes it before anything goes into the hut storage, and moves dishes
+  from the hut storage onto shelves with room. It also takes ingredients and raw food from the shelves (a
+  vegetable basket, an egg shelf), and food on the shelves counts on the Kitchen tab. Couriers with nothing
+  else to do bring ready food from the warehouse to kitchen shelves that have room for it. Settlers stock a
+  shelf the way a player does: only what that shelf takes (bread on a bread shelf), one kind per segment.
 
 ### The smelter and the blacksmith (0.50.0)
 Both huts have a simple placeholder model and a placeholder level 1 blueprint (an open plank shed with a fire

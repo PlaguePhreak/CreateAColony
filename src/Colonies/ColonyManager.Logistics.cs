@@ -95,6 +95,8 @@ public partial class ColonyManager
     /// <summary>Puts as much of the stack as fits into the container. Returns how many items moved.</summary>
     public int PutItems(BlockEntityContainer container, ItemStack stack)
     {
+        // A Food Shelves shelf is stocked segment by segment, as a player stocks it.
+        if (IsFoodShelf(container)) return Shelve(container, stack);
         var source = new DummySlot(stack);
         int moved = 0;
         var skip = new List<ItemSlot>();

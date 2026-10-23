@@ -10,19 +10,42 @@ using Vintagestory.GameContent;
 namespace CreateAColony.Colonies;
 
 /// <summary>
-/// Blocks a builder places from their item, as a player does: W4RD0's Furniture and Heraldry : Banners.
-/// Both mods keep a block's wood and cloth colours as item attributes ("types", from Attribute Rendering
-/// Library), not in the block's name, so the blueprint's block entity says which item the block was placed
-/// from. A builder pays for that item in the same wood and colours (any wood when the colony allows it),
+/// Blocks a builder places from their item, as a player does: W4RD0's Furniture, Heraldry : Banners and
+/// Food Shelves. These mods keep a block's wood and cloth colours as item attributes ("types", from Attribute
+/// Rendering Library; Food Shelves has its own "FSAttributes"), not in the block's name, so the blueprint's
+/// block entity says which item the block was placed from. A builder pays for that item in the same wood and colours (any wood when the colony allows it),
 /// and for the banner on a flag or banner pole, with the same design. Placing the block with the item lets
 /// it set itself up: furniture of several blocks puts down its other parts, a shelf its other cells, and
 /// the block takes the item's wood. What furniture holds (a cupboard's contents, a shelf's display) is not
-/// copied. Both mods are optional: without them their blocks are simply missing from the blueprint.
+/// copied. The mods are optional: without them their blocks are simply missing from the blueprint.
 /// </summary>
 public partial class ColonyManager
 {
     const string HeraldryDomain = "heraldrybanners";
     const string TypesKey = "types";
+    const string FoodShelvesDomain = "foodshelves";
+    const string FoodShelvesKey = "FSAttributes";
+    /// <summary>
+    /// The Food Shelves attributes that say what a block is made of, as its recipes set them. Others (the seed
+    /// a seed bin or flour sack shows) come from what it holds, so a builder does not ask for them.
+    /// </summary>
+    static readonly HashSet<string> FoodShelvesMaterials = new() { "wood", "rock", "cloth" };
+
+    /// <summary>Where an item keeps its types: Food Shelves under "FSAttributes", everything else under "types".</summary>
+    static string TypesKeyOf(CollectibleObject collectible) => collectible.Code?.Domain == FoodShelvesDomain ? FoodShelvesKey : TypesKey;
+
+    /// <summary>The types a block in the blueprint was placed with, or null. For Food Shelves only its materials.</summary>
+    static ITreeAttribute? SavedTypes(ITreeAttribute tree, Block block)
+    {
+        var types = tree.GetTreeAttribute(TypesKeyOf(block));
+        if (types == null || block.Code.Domain != FoodShelvesDomain) return types;
+        var materials = new TreeAttribute();
+        foreach (var (key, value) in types)
+        {
+            if (FoodShelvesMaterials.Contains(key)) materials[key] = value.Clone();
+        }
+        return materials.Count > 0 ? materials : null;
+    }
 
     /// <summary>Costs of blocks with saved details, worked out once per blueprint block: [0] exact, [1] any wood.</summary>
     readonly ConditionalWeakTable<SavedBlockEntity, List<MaterialCost>?[]> placedItemCostCache = new();
@@ -60,7 +83,7 @@ public partial class ColonyManager
     public static bool TypesMatch(ItemStack stack, Dictionary<string, string>? wanted)
     {
         if (wanted == null) return true;
-        var have = stack.Attributes?.GetTreeAttribute(TypesKey);
+        var have = stack.Attributes?.GetTreeAttribute(TypesKeyOf(stack.Collectible));
         if (have != null && have.Any(kv => !wanted.ContainsKey(kv.Key))) return false;
         foreach (var (key, value) in wanted)
         {
@@ -91,8 +114,8 @@ public partial class ColonyManager
         {
             var tree = saved.Tree();
             var stack = PickStack(target, pos);
-            var types = tree.GetTreeAttribute(TypesKey);
-            if (types != null) stack.Attributes[TypesKey] = types.Clone();
+            var types = SavedTypes(tree, target);
+            if (types != null) stack.Attributes[TypesKeyOf(target)] = types.Clone();
             costs.Add(new MaterialCost(WithTypes(stack.Collectible.Code.ToString(), types, anyType ? SwappableVariants : null), stack, 1));
             foreach (var shown in DisplayedStacks(saved, tree, target))
             {
@@ -181,13 +204,14 @@ public partial class ColonyManager
     void FinishPlacedItem(Block block, BlockEntity? be, IReadOnlyList<ItemStack>? stacks)
     {
         if (be == null || stacks == null || stacks.Count == 0) return;
-        if (stacks[0].Attributes?.GetTreeAttribute(TypesKey) is { } types)
+        string key = TypesKeyOf(block);
+        if (stacks[0].Attributes?.GetTreeAttribute(key) is { } types)
         {
             var tree = new TreeAttribute();
             be.ToTreeAttributes(tree);
-            if (tree.GetTreeAttribute(TypesKey) == null)
+            if (tree.GetTreeAttribute(key) == null)
             {
-                tree[TypesKey] = types.Clone();
+                tree[key] = types.Clone();
                 be.FromTreeAttributes(tree, sapi.World);
             }
         }

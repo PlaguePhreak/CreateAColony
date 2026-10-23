@@ -13,8 +13,9 @@ namespace CreateAColony.Colonies;
 /// <summary>
 /// The cook of a Cook's Hut cooks with the game's own fire pit. It puts raw food (meat, fish, dough,
 /// anything the game cooks in a fire pit into something edible) in the fire pit by the hut, adds
-/// firewood, lights it, and takes the cooked food out once the game has cooked it. Cooked food stays
-/// in the hut's storage, where hungry settlers find it. The Kitchen tab says how much of each to keep.
+/// firewood, lights it, and takes the cooked food out once the game has cooked it. Cooked food goes on
+/// the hut's Food Shelves shelves when it has any (ColonyManager.FoodShelves.cs), else stays in the hut's
+/// storage, where hungry settlers find it. The Kitchen tab says how much of each to keep.
 /// </summary>
 public partial class ColonyManager
 {
@@ -85,14 +86,14 @@ public partial class ColonyManager
         MarkDirty(colony);
     }
 
-    /// <summary>How much of a cooked food is ready: at the hut, in the warehouse, with the cook and in the fire pit.</summary>
+    /// <summary>How much of a cooked food is ready: at the hut (and on its kitchen shelves), in the warehouse, with the cook and in the fire pit.</summary>
     public int KitchenStock(Colony colony, Building hut, KitchenKind kind, CitizenRecord? cook) =>
         KitchenStock(colony, hut, kind, cook, CookFirepit(colony, hut));
 
     int KitchenStock(Colony colony, Building hut, KitchenKind kind, CitizenRecord? cook, BlockEntityFirepit? pit)
     {
         ItemMatch mine = kind.IsMine;
-        int count = CountItems(WarehouseContainers(colony), mine) + CountItems(HutStorage(colony, hut), mine);
+        int count = CountItems(WarehouseContainers(colony), mine) + CountItems(KitchenStores(colony, hut), mine);
         if (cook != null) count += PackCount(cook, mine);
         if (pit != null)
         {

@@ -65,7 +65,7 @@ public partial class ColonyManager
     int MealStock(Colony colony, Building hut, CookingRecipe recipe, CitizenRecord? cook, BlockEntityFirepit? pit)
     {
         float servings = 0;
-        var slots = WarehouseContainers(colony).Concat(HutStorage(colony, hut)).SelectMany(c => c.Inventory).Where(s => !s.Empty).Select(s => s.Itemstack!);
+        var slots = WarehouseContainers(colony).Cast<BlockEntityContainer>().Concat(KitchenStores(colony, hut)).SelectMany(c => c.Inventory).Where(s => !s.Empty).Select(s => s.Itemstack!);
         if (cook != null) slots = slots.Concat(PackItems(cook));
         if (pit != null && !pit.outputSlot.Empty) slots = slots.Append(pit.outputSlot.Itemstack!);
         foreach (var stack in slots) servings += ServingsOf(stack, recipe);
@@ -126,7 +126,7 @@ public partial class ColonyManager
     {
         var larder = new Dictionary<AssetLocation, (ItemStack Sample, int Count)>();
         var stacks = PackItems(cook)
-            .Concat(HutStorage(colony, hut).Concat(WarehouseContainers(colony)).SelectMany(c => c.Inventory).Where(s => !s.Empty).Select(s => s.Itemstack!));
+            .Concat(KitchenStores(colony, hut).Concat(WarehouseContainers(colony)).SelectMany(c => c.Inventory).Where(s => !s.Empty).Select(s => s.Itemstack!));
         foreach (var stack in stacks)
         {
             if (stack.Collectible.Code.Path == "rot" || IsLiquid(stack) || stack.Block is IBlockMealContainer or BlockCookingContainer) continue;
@@ -206,7 +206,7 @@ public partial class ColonyManager
     /// <summary>A clean cooking pot the cook can use: one it carries, one in the hut storage or one in the warehouse.</summary>
     ItemStack? FindCleanPot(Colony colony, Building hut, CitizenRecord cook) =>
         PackItems(cook).FirstOrDefault(IsCleanPot)
-        ?? HutStorage(colony, hut).Concat(WarehouseContainers(colony)).SelectMany(c => c.Inventory)
+        ?? KitchenStores(colony, hut).Concat(WarehouseContainers(colony)).SelectMany(c => c.Inventory)
             .FirstOrDefault(s => !s.Empty && IsCleanPot(s.Itemstack))?.Itemstack;
 
     ItemStack? defaultPot;
