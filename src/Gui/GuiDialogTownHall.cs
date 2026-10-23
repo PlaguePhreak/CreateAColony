@@ -35,7 +35,7 @@ public class GuiDialogTownHall : GuiDialog
     const int BannersTab = 7;
     const double MapHeight = 380;
     // The map is at most this many pixels a side; bigger colonies get one pixel per few blocks.
-    const int MapMaxSide = 220;
+    const int MapMaxSide = 320;
     const int MapMargin = 16;
     // Opened with the ? button on the Actions tab, with a Back button.
     const int HelpView = 20;
@@ -56,8 +56,13 @@ public class GuiDialogTownHall : GuiDialog
     int infoPage;
     int statsPage;
     int statPeriod = 1;
+    // Which page of the Citizens tab: 0 the living (and wanderers), 1 the dead.
+    int citizensPage;
     // The Town map's ground, kept until the player asks for a fresh one or the colony's land changes.
     ColonyMapTerrain? terrain;
+    // Where the Town map is looking and how far zoomed in, kept while the window is open.
+    readonly ColonyMapView mapView = new();
+    GuiElementColonyMap? mapElement;
 
     public string ColonyId => snapshot.ColonyId;
 
@@ -76,6 +81,13 @@ public class GuiDialogTownHall : GuiDialog
         // Keep a half-typed name unless the name really changed.
         if (fresh.Name != snapshot.Name && !renaming) pendingName = fresh.Name;
         snapshot = fresh;
+        // On the Town map, timed refreshes only move the dots, so a zoom or a drag in progress is kept.
+        if (fresh.Periodic && currentTab == MapTab && mapElement != null && terrain != null
+            && MapBox(fresh) is { } box && terrain.Covers(box.MinX, box.MinZ, box.MaxX, box.MaxZ, MapMaxSide))
+        {
+            mapElement.SetSnapshot(fresh, capi.World.Player?.Entity?.Pos.XYZ);
+            return;
+        }
         // Timed progress refreshes would close an open dropdown or take the focus from the name box.
         if (fresh.Periodic && (renaming || currentTab is CitizensTab or PermissionsTab)) return;
         Compose();
@@ -93,6 +105,7 @@ public class GuiDialogTownHall : GuiDialog
         int activeTab = currentTab == HelpView ? ActionsTab : currentTab;
         var tabs = Tabs.Select(t => new GuiTab { Name = Lang.Get("createacolony:" + t.Lang), DataInt = t.Id, Active = t.Id == activeTab }).ToArray();
 
+        mapElement = null;
         var composer = capi.Gui.CreateCompo("createacolony-townhall", dialogBounds)
             .AddShadedDialogBG(bgBounds)
             .AddDialogTitleBar(snapshot.Name, () => TryClose())
@@ -264,11 +277,8 @@ public class GuiDialogTownHall : GuiDialog
 
     // ---- Town map tab ---------------------------------------------------------------------
 
-    /// <summary>
-    /// The Town map: the colony's land and buildings from above, with the settlers and the player.
-    /// Hovering a building names it. The ground is drawn from what this client has loaded.
-    /// </summary>
-    void ComposeMap(GuiComposer composer)
+    /// <summary>The area the Town map shows: the colony's land and buildings plus a margin, or null if it has neither.</summary>
+    static (int MinX, int MinZ, int MaxX, int MaxZ)? MapBox(ColonySnapshot snapshot)
     {
         var xs = new List<int>();
         var zs = new List<int>();
@@ -282,37 +292,43 @@ public class GuiDialogTownHall : GuiDialog
             xs.Add(b.X1); xs.Add(b.X2);
             zs.Add(b.Z1); zs.Add(b.Z2);
         }
+        if (xs.Count == 0) return null;
+        return (xs.Min() - MapMargin, zs.Min() - MapMargin, xs.Max() + MapMargin, zs.Max() + MapMargin);
+    }
+
+    /// <summary>
+    /// The Town map: the colony's land and buildings from above, with the settlers and the player.
+    /// The mouse wheel or the + and − buttons zoom, dragging moves the map, Fit shows it all again, and
+    /// pointing at a building names it. The ground is drawn from what this client has loaded.
+    /// </summary>
+    void ComposeMap(GuiComposer composer)
+    {
         double y = 30;
-        if (xs.Count == 0)
+        if (MapBox(snapshot) is not { } box)
         {
             composer.Text(Lang.Get("createacolony:townmap-empty"), GuiKit.Body(), 0, y, Width);
             return;
         }
-        int minX = xs.Min() - MapMargin, maxX = xs.Max() + MapMargin, minZ = zs.Min() - MapMargin, maxZ = zs.Max() + MapMargin;
-        if (terrain == null || !terrain.Covers(minX, minZ, maxX, maxZ, MapMaxSide))
+        if (terrain == null || !terrain.Covers(box.MinX, box.MinZ, box.MaxX, box.MaxZ, MapMaxSide))
         {
-            terrain = ColonyMapTerrain.Build(capi, minX, minZ, maxX, maxZ, MapMaxSide);
+            terrain = ColonyMapTerrain.Build(capi, box.MinX, box.MinZ, box.MaxX, box.MaxZ, MapMaxSide);
         }
 
         var mapBounds = ElementBounds.Fixed(0, y, Width, MapHeight);
+        mapElement = new GuiElementColonyMap(capi, mapBounds, terrain, snapshot, capi.World.Player?.Entity?.Pos.XYZ, mapView);
         composer
             .AddInset(mapBounds.FlatCopy(), 3, 0.8f)
-            .AddStaticElement(new GuiElementColonyMap(capi, mapBounds, terrain, snapshot, capi.World.Player?.Entity?.Pos.XYZ));
-
-        // Hovering a building names it.
-        var (cell, ox, oy) = GuiElementColonyMap.Fit(terrain, Width, MapHeight);
-        foreach (var b in snapshot.MapBuildings.OrderBy(b => b.Type != BuildingTypes.TownHall))
-        {
-            var (bx, by, bw, bh) = GuiElementColonyMap.Rect(terrain, b, cell, ox, y + oy, 6);
-            string text = Lang.Get("createacolony:hut-name-level", b.Name, b.Level)
-                + (b.UnderConstruction ? "\n" + Lang.Get("createacolony:townmap-being-built") : "");
-            composer.AddHoverText(text, GuiKit.Detail(), 220, ElementBounds.Fixed(bx, by, bw, bh));
-        }
+            .AddInteractiveElement(mapElement, "townmap");
         y += MapHeight + 8;
 
-        composer.AddSmallButton(Lang.Get("createacolony:townmap-redraw"), () => { terrain = null; Compose(); return true; }, ElementBounds.Fixed(Width - 150, y, 150, 28));
-        y = composer.Text(Lang.Get("createacolony:townmap-legend"), GuiKit.Detail(), 0, y, Width - 160, 6);
-        y = Math.Max(y, MapHeight + 30 + 8 + 34);
+        // Zoom buttons on the left, Redraw on the right, the key between them.
+        composer
+            .AddSmallButton(Lang.Get("createacolony:townmap-zoomout"), () => { mapElement?.ZoomBy(1 / 1.5); return true; }, ElementBounds.Fixed(0, y, 34, 28))
+            .AddSmallButton(Lang.Get("createacolony:townmap-zoomin"), () => { mapElement?.ZoomBy(1.5); return true; }, ElementBounds.Fixed(40, y, 34, 28))
+            .AddSmallButton(Lang.Get("createacolony:townmap-fit"), () => { mapElement?.Fit(); return true; }, ElementBounds.Fixed(80, y, 50, 28))
+            .AddSmallButton(Lang.Get("createacolony:townmap-redraw"), () => { terrain = null; Compose(); return true; }, ElementBounds.Fixed(Width - 150, y, 150, 28));
+        y += 36;
+        y = composer.Text(Lang.Get("createacolony:townmap-legend"), GuiKit.Detail(), 0, y, Width, 6);
         composer.Text(Lang.Get("createacolony:townmap-hint", terrain.Step), GuiKit.Muted(), 0, y, Width);
     }
 
@@ -464,20 +480,81 @@ public class GuiDialogTownHall : GuiDialog
 
     // ---- Citizens tab ---------------------------------------------------------------------
 
+    /// <summary>The Citizens tab: Current Citizens (the living and wanderers) and Dead Citizens pages.</summary>
     void ComposeCitizens(GuiComposer composer)
     {
+        int living = snapshot.Citizens.Count(c => c.State != "dead" && !c.Visitor), dead = snapshot.Citizens.Count(c => c.State == "dead");
+        var labels = new[] { "citizens-current", "citizens-dead" };
+        double top = 30;
+        double x = 0;
+        for (int i = 0; i < labels.Length; i++)
+        {
+            int index = i;
+            string label = (i == citizensPage ? "• " : "") + Lang.Get("createacolony:" + labels[i], i == 0 ? living : dead);
+            composer.AddSmallButton(label, () => { citizensPage = index; page = 0; Compose(); return true; }, ElementBounds.Fixed(x, top, 200, 28),
+                i == citizensPage ? EnumButtonStyle.Normal : EnumButtonStyle.Small);
+            x += 208;
+        }
+        top += 40;
+        if (citizensPage == 1) ComposeDeadCitizens(composer, top);
+        else ComposeCurrentCitizens(composer, top);
+    }
+
+    /// <summary>The dead: name, the job they had, when they died, and whether they have been buried.</summary>
+    void ComposeDeadCitizens(GuiComposer composer, double top)
+    {
+        var dead = snapshot.Citizens.Where(c => c.State == "dead").OrderByDescending(c => c.DiedTotalDays).ThenBy(c => c.Name).ToList();
+        double y;
+        if (dead.Count == 0)
+        {
+            y = composer.Text(Lang.Get("createacolony:citizens-no-dead"), GuiKit.Body(), 0, top, Width);
+        }
+        else
+        {
+            composer
+                .AddStaticText(Lang.Get("createacolony:col-name"), GuiKit.Muted(), ElementBounds.Fixed(10, top, 150, 20))
+                .AddStaticText(Lang.Get("createacolony:col-job"), GuiKit.Muted(), ElementBounds.Fixed(165, top, 130, 20))
+                .AddStaticText(Lang.Get("createacolony:col-died"), GuiKit.Muted(), ElementBounds.Fixed(300, top, 130, 20))
+                .AddStaticText(Lang.Get("createacolony:col-burial"), GuiKit.Muted(), ElementBounds.Fixed(435, top, 125, 20));
+
+            int pages = (dead.Count + RowsPerPage - 1) / RowsPerPage;
+            page = Math.Clamp(page, 0, pages - 1);
+            int shown = Math.Min(RowsPerPage, dead.Count - page * RowsPerPage);
+            composer.AddInset(ElementBounds.Fixed(0, top + 22, Width, shown * RowHeight + 6), 3, 0.8f);
+            y = top + 25;
+            foreach (var c in dead.Skip(page * RowsPerPage).Take(RowsPerPage))
+            {
+                string died = c.DiedTotalDays > 0 ? When(c.DiedTotalDays) : Lang.Get("createacolony:citizens-died-unknown");
+                var burialFont = c.Buried ? GuiKit.Detail().WithColor(GuiKit.GoodColor) : GuiKit.Detail().WithColor(GuiKit.WarnColor);
+                composer
+                    .AddStaticText(c.Name, GuiKit.Body().WithColor(GuiKit.MutedColor), ElementBounds.Fixed(10, y + 6, 150, 25))
+                    .AddStaticText(c.Child ? Lang.Get("createacolony:citizens-child") : JobName(c.Job), GuiKit.Detail(), ElementBounds.Fixed(165, y + 8, 130, 25))
+                    .AddStaticText(died, GuiKit.Detail(), ElementBounds.Fixed(300, y + 8, 130, 25))
+                    .AddStaticText(Lang.Get(c.Buried ? "createacolony:citizens-buried" : "createacolony:citizens-not-buried"), burialFont, ElementBounds.Fixed(435, y + 8, 125, 25));
+                y += RowHeight;
+            }
+            composer.Pager(page, pages, y + 14, Width, p => { page = p; Compose(); });
+            y += pages > 1 ? 54 : 16;
+        }
+        ComingLater(composer, "townhall-later-burial", y);
+    }
+
+    /// <summary>The living, with their state, food and bed, and (for officers) their job and Recall.</summary>
+    void ComposeCurrentCitizens(GuiComposer composer, double top)
+    {
         // Wanderers asking to join come first, so they are not missed.
-        var citizens = snapshot.Citizens.OrderByDescending(c => c.Visitor).ThenBy(c => c.State == "dead").ThenBy(c => c.Name).ToList();
+        var citizens = snapshot.Citizens.Where(c => c.State != "dead").OrderByDescending(c => c.Visitor).ThenBy(c => c.Name).ToList();
         if (citizens.Count == 0)
         {
-            composer.Text(Lang.Get("createacolony:no-citizens"), GuiKit.Body(), 0, 30, Width);
+            double empty = composer.Text(Lang.Get("createacolony:no-citizens"), GuiKit.Body(), 0, top, Width);
+            ComingLater(composer, "townhall-later-citizens", empty);
             return;
         }
 
         composer
-            .AddStaticText(Lang.Get("createacolony:col-name"), GuiKit.Muted(), ElementBounds.Fixed(10, 30, 150, 20))
-            .AddStaticText(Lang.Get("createacolony:col-status"), GuiKit.Muted(), ElementBounds.Fixed(165, 30, 170, 20))
-            .AddStaticText(Lang.Get("createacolony:col-job"), GuiKit.Muted(), ElementBounds.Fixed(340, 30, 150, 20));
+            .AddStaticText(Lang.Get("createacolony:col-name"), GuiKit.Muted(), ElementBounds.Fixed(10, top, 150, 20))
+            .AddStaticText(Lang.Get("createacolony:col-status"), GuiKit.Muted(), ElementBounds.Fixed(165, top, 170, 20))
+            .AddStaticText(Lang.Get("createacolony:col-job"), GuiKit.Muted(), ElementBounds.Fixed(340, top, 150, 20));
 
         string[] jobCodes = Jobs.All;
         string[] jobNames = jobCodes.Select(JobName).ToArray();
@@ -485,8 +562,8 @@ public class GuiDialogTownHall : GuiDialog
         int pages = (citizens.Count + RowsPerPage - 1) / RowsPerPage;
         page = Math.Clamp(page, 0, pages - 1);
         int shown = Math.Min(RowsPerPage, citizens.Count - page * RowsPerPage);
-        composer.AddInset(ElementBounds.Fixed(0, 52, Width, shown * RowHeight + 6), 3, 0.8f);
-        double y = 55;
+        composer.AddInset(ElementBounds.Fixed(0, top + 22, Width, shown * RowHeight + 6), 3, 0.8f);
+        double y = top + 25;
         foreach (var c in citizens.Skip(page * RowsPerPage).Take(RowsPerPage))
         {
             if (c.Visitor)

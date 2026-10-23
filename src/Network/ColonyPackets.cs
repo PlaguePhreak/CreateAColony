@@ -29,6 +29,9 @@ public class CitizenView
     /// <summary>A child, who cannot be given a job, and how many in-game hours until it grows up.</summary>
     [ProtoMember(11)] public bool Child;
     [ProtoMember(12)] public int GrowsUpHours;
+    /// <summary>For the dead: when they died (0 if unknown) and whether they have been buried.</summary>
+    [ProtoMember(13)] public double DiedTotalDays;
+    [ProtoMember(14)] public bool Buried;
 }
 
 /// <summary>One person in a family list: who, how they are related, and what they do.</summary>

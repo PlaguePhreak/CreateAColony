@@ -67,6 +67,10 @@ public class CitizenRecord
     [ProtoMember(24)] public double GrowsUpTotalDays;
     /// <summary>When this couple last had a child, so the next one waits a while.</summary>
     [ProtoMember(25)] public double LastChildTotalDays;
+    /// <summary>When a settler died for good (permadeath); 0 if alive, or dead before 0.33.0 recorded it.</summary>
+    [ProtoMember(26)] public double DiedTotalDays;
+    /// <summary>Whether a dead settler has been buried. Nothing sets it yet: burial and mourning are coming later.</summary>
+    [ProtoMember(27)] public bool Buried;
 
     public bool IsDowned => DownedUntilTotalDays > 0;
     public bool IsChild => GrowsUpTotalDays > 0;

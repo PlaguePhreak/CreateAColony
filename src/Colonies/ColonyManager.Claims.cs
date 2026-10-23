@@ -20,16 +20,34 @@ public partial class ColonyManager
     /// <summary>The square each building claims, by building id, after the last refresh; 0 when blocked. Not saved.</summary>
     readonly Dictionary<string, Dictionary<int, int>> claimedSizes = new();
 
-    /// <summary>How many blocks along each side a building of this type claims (before shrinking around other claims).</summary>
+    /// <summary>How many blocks along each side a new building of this type claims (before shrinking around other claims).</summary>
     public int ClaimSize(string type)
     {
         int min = Math.Max(1, Config.ClaimSizeMin);
         int max = Math.Max(min, Config.ClaimSizeMax);
-        int size = type == BuildingTypes.TownHall ? Config.TownHallClaimSize
-            : Config.HutClaimSizes.TryGetValue(type, out int listed) ? listed
+        if (type == BuildingTypes.TownHall) return Math.Clamp(Config.TownHallClaimSize, min, Math.Max(min, Config.TownHallClaimSizeMax));
+        int size = Config.HutClaimSizes.TryGetValue(type, out int listed) ? listed
             : IsMilitary(type) ? Config.MilitaryClaimSize
             : min;
         return Math.Clamp(size, min, max);
+    }
+
+    /// <summary>
+    /// How many blocks along each side this building claims (before shrinking around other claims). Squares grow
+    /// with the building's level: the Town Hall's by TownHallClaimPerLevel per level above 1 (up to
+    /// TownHallClaimSizeMax), a hut's by HutClaimPerLevel per level above 1 (up to ClaimSizeMax).
+    /// </summary>
+    public int ClaimSize(Building building)
+    {
+        int min = Math.Max(1, Config.ClaimSizeMin);
+        int levelsUp = Math.Max(0, building.Level - 1);
+        if (building.Type != BuildingTypes.TownHall)
+        {
+            int baseSize = ClaimSize(building.Type);
+            return Math.Clamp(baseSize + levelsUp * Math.Max(0, Config.HutClaimPerLevel), min, Math.Max(baseSize, Config.ClaimSizeMax));
+        }
+        int size = Config.TownHallClaimSize + levelsUp * Math.Max(0, Config.TownHallClaimPerLevel);
+        return Math.Clamp(size, min, Math.Max(min, Config.TownHallClaimSizeMax));
     }
 
     static bool IsMilitary(string type) =>
@@ -84,7 +102,7 @@ public partial class ColonyManager
         foreach (var building in colony.Buildings.OrderBy(b => b.Type == BuildingTypes.TownHall ? 0 : 1).ThenBy(b => b.BuildingId))
         {
             if (!ClaimsLand(building)) continue;
-            var area = FitClaim(building.HutPos, ClaimSize(building.Type), mine);
+            var area = FitClaim(building.HutPos, ClaimSize(building), mine);
             sizes[building.BuildingId] = area == null ? 0 : area.SizeX;
             if (area != null && !areas.Any(a => a.Equals(area))) areas.Add(area);
         }
@@ -95,7 +113,8 @@ public partial class ColonyManager
         sapi.World.Claims.Remove(claim);
         claim.Areas = areas;
         sapi.World.Claims.Add(claim);
-        colony.ClaimRadius = ClaimSize(BuildingTypes.TownHall) / 2;
+        var townHall = colony.Buildings.FirstOrDefault(b => b.Type == BuildingTypes.TownHall);
+        colony.ClaimRadius = (townHall == null ? ClaimSize(BuildingTypes.TownHall) : ClaimSize(townHall)) / 2;
         MarkDirty(colony);
     }
 
@@ -183,9 +202,9 @@ public partial class ColonyManager
             string name = Lang.Get("createacolony:building-" + building.Type);
             string where = building.HutPos.ToLocalPosition(sapi).ToString();
             int size = ClaimedSize(colony, building);
-            lines.Add(!ClaimsLand(building) ? Lang.Get("createacolony:claims-line-unbuilt", name, where, ClaimSize(building.Type))
+            lines.Add(!ClaimsLand(building) ? Lang.Get("createacolony:claims-line-unbuilt", name, where, ClaimSize(building))
                 : size == 0 ? Lang.Get("createacolony:claims-line-blocked", name, where)
-                : size < ClaimSize(building.Type) ? Lang.Get("createacolony:claims-line-shrunk", name, where, size, ClaimSize(building.Type))
+                : size < ClaimSize(building) ? Lang.Get("createacolony:claims-line-shrunk", name, where, size, ClaimSize(building))
                 : Lang.Get("createacolony:claims-line", name, where, size));
         }
         return lines;
