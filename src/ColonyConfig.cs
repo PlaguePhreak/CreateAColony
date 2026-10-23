@@ -96,6 +96,42 @@ public class ColonyConfig
     /// <summary>A farmer with fertilizer spreads it before sowing when the crop's nutrient is below this (soil shows 0 to 100).</summary>
     public float FarmerFertilizeBelow = 40f;
 
+    // Prospector
+    /// <summary>How far from the Prospector's Hut, in blocks, a prospector takes readings (change it on the Work area tab).</summary>
+    public int ProspectorRadius = 64;
+    /// <summary>Blocks between a prospector's readings. The prospecting pick reads the ground for a long way around, so they can be far apart.</summary>
+    public int ProspectorSpacing = 24;
+    /// <summary>Seconds a prospector spends tapping the ground for one reading (a player takes three samples).</summary>
+    public float ProspectorSecondsPerReading = 9f;
+    /// <summary>Wear on the prospecting pick per reading; a player's three samples wear it 3.</summary>
+    public int ProspectorPickWear = 3;
+    /// <summary>Each reading also goes on the ore map (the prospecting layer of the world map) of every colony member.</summary>
+    public bool ProspectorSharesOreMap = true;
+
+    // Miner
+    /// <summary>How far from the Miner's Hut, in blocks, the readings a miner may go and dig at can be.</summary>
+    public int MinerRadius = 64;
+    /// <summary>Readings weaker than this (the pick's density factor, 0 to 1; "poor" starts at 0.13) are not worth a mine.</summary>
+    public double MinerMinFactor = 0.05;
+    /// <summary>How far around a reading, across the ground, a miner looks for the ore's blocks.</summary>
+    public int MinerOreSearchRadius = 12;
+    /// <summary>Seconds a miner takes to dig one block of rock; ore takes half as long again.</summary>
+    public float MinerSecondsPerBlock = 2.5f;
+    /// <summary>How far, in blocks, a miner reaches from the end of its tunnel to dig ore around it.</summary>
+    public int MinerReach = 3;
+
+    // Quarry
+    /// <summary>The Quarry's pit, in blocks along each side; odd numbers keep the Quarry marker in the middle.</summary>
+    public int QuarrySize = 9;
+    /// <summary>How many layers deep the pit goes. A staircase runs around the pit's edge, so this is at most four times QuarrySize less a few.</summary>
+    public int QuarryDepth = 12;
+    /// <summary>Solid blocks up to this high above the ground under the marker are cleared too, so a pit on a slope is open to the sky.</summary>
+    public int QuarryClearAbove = 4;
+    /// <summary>How far from the Quarry a Quarry marker may be placed to belong to it.</summary>
+    public int QuarryMarkerRange = 48;
+    /// <summary>Seconds a quarrier takes to dig one block.</summary>
+    public float QuarrySecondsPerBlock = 2f;
+
     // Land claim
     /// <summary>
     /// The square of land, in blocks along each side, the Town Hall claims around itself when the colony is founded.
@@ -117,6 +153,9 @@ public class ColonyConfig
         ["potter"] = 30,
         ["residence"] = 30,
         ["cook"] = 30,
+        ["prospector"] = 30,
+        ["miner"] = 30,
+        ["quarry"] = 40,
     };
     /// <summary>The claim of a military building (Builder's Wand Military tab) that has no entry of its own in HutClaimSizes.</summary>
     public int MilitaryClaimSize = 200;

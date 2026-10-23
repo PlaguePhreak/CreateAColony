@@ -309,6 +309,9 @@ public static class BuildingTypes
     public const string Cook = "cook";
     public const string GuardTower = "guardtower";
     public const string Residence = "residence";
+    public const string Prospector = "prospector";
+    public const string Miner = "miner";
+    public const string Quarry = "quarry";
     /// <summary>Not a colony building: only used to find the supply camp's own blueprint.</summary>
     public const string SupplyCamp = "supplycamp";
 }

@@ -26,6 +26,10 @@ public partial class ColonyManager
     {
         [BuildingTypes.Forester] = new WorkerHutKind(Jobs.Forester, EnumTool.Axe, IsTreeSeed, _ => false),
         [BuildingTypes.Farmer] = new WorkerHutKind(Jobs.Farmer, EnumTool.Hoe, IsCropSeed, s => IsWateringCan(s) || IsFertilizer(s)),
+        // The prospecting pick is matched by its class, not a tool type (see IsProspectingPick).
+        [BuildingTypes.Prospector] = new WorkerHutKind(Jobs.Prospector, EnumTool.Probe, _ => false, IsProspectingPick),
+        [BuildingTypes.Miner] = new WorkerHutKind(Jobs.Miner, EnumTool.Pickaxe, _ => false, _ => false),
+        [BuildingTypes.Quarry] = new WorkerHutKind(Jobs.Quarrier, EnumTool.Pickaxe, _ => false, _ => false),
     };
 
     /// <summary>Huts a settler works from, whose chests are never warehouse storage.</summary>
@@ -183,6 +187,9 @@ public partial class ColonyManager
         }
         if (hut.Type == BuildingTypes.Potter) lines.Add(KilnInfo(colony, hut));
         if (hut.Type == BuildingTypes.Cook) lines.Add(FirepitInfo(colony, hut));
+        if (hut.Type == BuildingTypes.Prospector) lines.Add(ProspectorInfo(colony, hut));
+        if (hut.Type == BuildingTypes.Miner) lines.Add(MineInfo(colony, hut));
+        if (hut.Type == BuildingTypes.Quarry) lines.Add(QuarryInfo(hut));
         lines.Add("");
         lines.Add(Lang.Get("createacolony:hint-" + hut.Type, GatherRadius(hut)));
         return string.Join("<br>", lines);

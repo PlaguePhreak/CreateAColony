@@ -37,6 +37,10 @@ public class GuiDialogHut : GuiDialog
     const int MinStockTab = 10;
     const int StatsTab = 11;
     const int ResidentsTab = 12;
+    const int OreTab = 13;
+    const int QuarryTab = 14;
+    const int OreRowsPerPage = 6;
+    const double OreRowHeight = 44;
     /// <summary>Households shown per page of a Residence's Residents tab.</summary>
     const int HouseholdsPerPage = 3;
     // Pages opened from the Main tab, with a Back button.
@@ -89,6 +93,8 @@ public class GuiDialogHut : GuiDialog
         if (snapshot.IsCookHut) tabs.Add((KitchenTab, "tab-kitchen"));
         if (snapshot.IsTavern) tabs.Add((RecruitsTab, "tab-recruits"));
         if (snapshot.IsResidence) tabs.Add((ResidentsTab, "tab-residents"));
+        if (snapshot.IsOreHut) tabs.Add((OreTab, "tab-ore"));
+        if (snapshot.IsQuarry) tabs.Add((QuarryTab, "tab-quarry"));
         if (snapshot.IsGuardTower)
         {
             tabs.AddRange(new[] { (ToolsTab, "tab-tools"), (HostilesTab, "tab-hostiles"), (SettingsTab, "tab-settings"), (MinStockTab, "tab-minstock"), (StatsTab, "tab-stats") });
@@ -128,6 +134,8 @@ public class GuiDialogHut : GuiDialog
             case KitchenTab: ComposeKeepList(composer, snapshot.Kitchen, "kitchen", ColonyAction.SetKitchenKeep); break;
             case RecruitsTab: ComposeRecruits(composer); break;
             case ResidentsTab: ComposeResidents(composer); break;
+            case OreTab: ComposeOre(composer); break;
+            case QuarryTab: ComposeQuarry(composer); break;
             case ToolsTab: ComposeTools(composer); break;
             case HostilesTab: ComposeHostiles(composer); break;
             case SettingsTab: ComposeSettings(composer); break;
@@ -672,7 +680,7 @@ public class GuiDialogHut : GuiDialog
     {
         bool officer = ViewerRole >= ColonyRole.Officer;
         bool farmer = snapshot.Building.Type == BuildingTypes.Farmer;
-        string job = Lang.Get("createacolony:job-" + (farmer ? Jobs.Farmer : Jobs.Forester));
+        string job = Lang.Get("createacolony:job-" + snapshot.Job);
         double y = 30;
 
         y = composer.Section(Lang.Get("createacolony:workarea-range", job), y, Width);
@@ -691,7 +699,7 @@ public class GuiDialogHut : GuiDialog
             composer.AddStaticText(range, GuiKit.Body(), ElementBounds.Fixed(0, y + 4, Width, 25));
         }
         y += 36;
-        y = composer.Text(Lang.Get(farmer ? "createacolony:workarea-range-hint-farmer" : "createacolony:workarea-range-hint-forester"), GuiKit.Muted(), 0, y, Width, 14);
+        y = composer.Text(Lang.Get("createacolony:workarea-range-hint-" + snapshot.Building.Type), GuiKit.Muted(), 0, y, Width, 14);
 
         y = composer.Section(Lang.Get("createacolony:workarea-escort"), y, Width);
         y = AddSetting(composer, "escort", ColonyAction.SetEscort, snapshot.Escort, y);
@@ -705,6 +713,72 @@ public class GuiDialogHut : GuiDialog
             y = composer.Section(Lang.Get("createacolony:workarea-berries"), y, Width);
             y = AddSetting(composer, "berries", ColonyAction.SetCollectBerries, snapshot.CollectBerries, y);
             composer.Text(Lang.Get("createacolony:workarea-berries-hint"), GuiKit.Muted(), 0, y, Width);
+        }
+    }
+
+    /// <summary>
+    /// The Ore tab of a Prospector's or Miner's Hut: every ore the colony's prospectors found, strongest
+    /// first, with how strong the best reading was and where. At a Miner's Hut officers choose which ore
+    /// the miner digs for, or leave it to dig the best one found.
+    /// </summary>
+    void ComposeOre(GuiComposer composer)
+    {
+        bool miner = snapshot.Building.Type == BuildingTypes.Miner;
+        bool officer = Officer && miner;
+        double y = composer.Text(Lang.Get(miner ? "createacolony:ore-hint-miner" : "createacolony:ore-hint-prospector", snapshot.OreReadings), GuiKit.Muted(), 0, 30, Width, 10);
+        if (miner)
+        {
+            string choice = snapshot.MineOre.Length == 0 ? Lang.Get("createacolony:mine-any-ore") : Lang.Get("ore-" + snapshot.MineOre);
+            composer.AddStaticText(Lang.Get("createacolony:ore-digging-for", choice), GuiKit.Body(), ElementBounds.Fixed(0, y + 5, Width - 300, 25));
+            if (officer)
+            {
+                int id = BuildingId;
+                composer
+                    .AddSmallButton(Lang.Get("createacolony:ore-any"), () => SendText(ColonyAction.SetMineOre, id, ""), ElementBounds.Fixed(Width - 290, y, 140, 28))
+                    .AddSmallButton(Lang.Get("createacolony:ore-new-mine"), () => Send(ColonyAction.NewMine, id), ElementBounds.Fixed(Width - 140, y, 140, 28));
+            }
+            y += 38;
+        }
+        if (snapshot.Ores.Count == 0)
+        {
+            composer.Text(Lang.Get("createacolony:ore-none"), GuiKit.Body(), 0, y, Width);
+            return;
+        }
+        int pages = (snapshot.Ores.Count + OreRowsPerPage - 1) / OreRowsPerPage;
+        page = Math.Clamp(page, 0, pages - 1);
+        int shown = Math.Min(OreRowsPerPage, snapshot.Ores.Count - page * OreRowsPerPage);
+        composer.AddInset(ElementBounds.Fixed(0, y, Width, shown * OreRowHeight + 8), 3, 0.8f);
+        y += 4;
+        foreach (var ore in snapshot.Ores.Skip(page * OreRowsPerPage).Take(OreRowsPerPage))
+        {
+            string density = Lang.Get("propick-density-" + new[] { "verypoor", "poor", "decent", "high", "veryhigh", "ultrahigh" }[(int)GameMath.Clamp(ore.Best * 7.5, 0, 5)]);
+            bool chosen = miner && snapshot.MineOre == ore.Code;
+            var font = chosen ? CairoFont.WhiteSmallText().WithColor(GuiStyle.ActiveButtonTextColor) : CairoFont.WhiteSmallText();
+            composer.AddStaticText(Lang.Get("ore-" + ore.Code), font, ElementBounds.Fixed(10, y + 4, 300, 20));
+            string detail = Lang.Get("createacolony:ore-row", density, ore.Where, ore.Sites)
+                + (ore.MinedOut > 0 ? "  " + Lang.Get("createacolony:ore-row-minedout", ore.MinedOut) : "");
+            composer.AddStaticText(detail, GuiKit.Detail().WithColor(ore.MinedOut >= ore.Sites ? GuiKit.MutedColor : GuiKit.GoodColor), ElementBounds.Fixed(10, y + 22, Width - 160, 20));
+            if (officer && !chosen)
+            {
+                string code = ore.Code;
+                int id = BuildingId;
+                composer.AddSmallButton(Lang.Get("createacolony:ore-mine-this"), () => SendText(ColonyAction.SetMineOre, id, code), ElementBounds.Fixed(Width - 140, y + 8, 130, 28));
+            }
+            y += OreRowHeight;
+        }
+        AddPager(composer, pages, y + 14);
+    }
+
+    /// <summary>The Quarry tab: where the pit is, how it is dug, and Forget pit.</summary>
+    void ComposeQuarry(GuiComposer composer)
+    {
+        double y = 30;
+        y = composer.Rich(snapshot.PitInfo, GuiKit.Body(), 0, y, Width, 10);
+        y = composer.Text(Lang.Get("createacolony:quarry-hint"), GuiKit.Muted(), 0, y, Width, 10);
+        if (Officer && snapshot.HasPit)
+        {
+            int id = BuildingId;
+            composer.AddSmallButton(Lang.Get("createacolony:quarry-forget"), () => Send(ColonyAction.ClearQuarry, id), ElementBounds.Fixed(0, y, 180, 28));
         }
     }
 

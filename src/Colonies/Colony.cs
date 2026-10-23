@@ -168,6 +168,19 @@ public class Building
     [ProtoMember(36)] public List<StatEntry> Stats = new();
     /// <summary>All-time totals for the Statistics tab.</summary>
     [ProtoMember(37)] public Dictionary<string, int> StatTotals = new();
+    /// <summary>A Miner's Hut: the ore its miner digs for (a deposit code such as "nativecopper"); empty means the best the prospectors found.</summary>
+    [ProtoMember(38)] public string MineOre = "";
+    /// <summary>A Miner's Hut: the prospecting reading (OreSite position) the miner is working, and the ore it digs there.</summary>
+    [ProtoMember(39)] public BlockPos? MineSite;
+    [ProtoMember(40)] public string MineSiteOre = "";
+    /// <summary>A Miner's Hut: where the mine's staircase starts at the surface (the spot to stand on).</summary>
+    [ProtoMember(41)] public BlockPos? MineEntrance;
+    /// <summary>A Miner's Hut: the far end of the tunnel dug so far (the spot to stand on); new tunnels start from here.</summary>
+    [ProtoMember(42)] public BlockPos? MineEnd;
+    /// <summary>A Miner's Hut: the ore block the miner is tunnelling towards.</summary>
+    [ProtoMember(43)] public BlockPos? MineTarget;
+    /// <summary>A Quarry: the Quarry marker the pit is centred on, and the top layer of the pit (the ground under the marker).</summary>
+    [ProtoMember(44)] public BlockPos? QuarryCenter;
 
     public bool HasWorkOrder => TargetLevel > Level;
 }
@@ -235,6 +248,30 @@ public class FieldRecord
     [ProtoMember(3)] public int FarmerCitizenId;
 }
 
+/// <summary>
+/// One reading a prospector took with the game's prospecting pick (density mode): the spot, and how much
+/// of each ore lies in the ground around it, exactly as the pick would tell a player.
+/// </summary>
+[ProtoContract]
+public class OreSite
+{
+    /// <summary>The ground surface where the reading was taken.</summary>
+    [ProtoMember(1)] public BlockPos Pos = new BlockPos(0);
+    [ProtoMember(2)] public double TotalDays;
+    [ProtoMember(3)] public List<OreFind> Ores = new();
+    /// <summary>Ores a miner has dug out here, or found none of close enough to reach.</summary>
+    [ProtoMember(4)] public List<string> MinedOut = new();
+}
+
+/// <summary>One ore in a reading: the deposit code, the pick's density factor (0 to 1) and parts per thousand.</summary>
+[ProtoContract]
+public class OreFind
+{
+    [ProtoMember(1)] public string Code = "";
+    [ProtoMember(2)] public double Factor;
+    [ProtoMember(3)] public double Ppt;
+}
+
 [ProtoContract]
 public class Colony
 {
@@ -277,6 +314,8 @@ public class Colony
     [ProtoMember(26)] public bool BannerOnNew;
     /// <summary>The last in-game day couples and births were looked at.</summary>
     [ProtoMember(27, IsRequired = true)] public int LastFamilyDay = -1;
+    /// <summary>Readings the colony's prospectors took with the game's prospecting pick, oldest first.</summary>
+    [ProtoMember(28)] public List<OreSite> OreSites = new();
 
     public string OwnerUid => Members.Find(m => m.Role == ColonyRole.Owner)?.PlayerUid ?? "";
 

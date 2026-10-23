@@ -10,11 +10,11 @@ land claim, recruit settlers that persist with the save. Compiles cleanly agains
    game's `Mods` folder.
 
 ## Try it
-- Craft a **Builder's Wand** (flint on a stick), then a **Town Hall** (8 planks of any wood around the Builder's Wand; craft a second wand to keep one), or take them from the creative inventory. See "Crafting recipes" for every recipe. Right-click the ground with the wand, pick Town Hall and press Accept: this founds the colony, claims a 100x100 area, and 3 to 4 settlers arrive. Finished huts grow the claim (see "Growing the colony's land").
+- Start with a **Supply Camp** (3 firewood over 2 sticks): place it anywhere, no colony needed. Your first camp in a world gives you a Town Hall, a Builder's Hut, a Builder's Wand and a **Colony Ledger**, and right-clicking the camp opens its storage with one set of starting materials. See "The supply camp and the Colony Ledger".
+- Or craft a **Builder's Wand** (flint on a stick), then a **Town Hall** (8 planks of any wood around the Builder's Wand; craft a second wand to keep one), or take them from the creative inventory. See "Crafting recipes" for every recipe. Right-click the ground with the wand, pick Town Hall and press Accept: this founds the colony, claims a 100x100 area, and 3 to 4 settlers arrive. Finished huts grow the claim (see "Growing the colony's land").
 - `/colony info` inside the claim shows the colony.
 - `/colony invite <player>`, then that player types `/colony join`. `/colony leave` leaves the colony you stand in.
 - `/colony recruit [name]` (needs controlserver) spawns one more settler, for testing.
-- Craft a **Supply Camp** (3 firewood over 2 sticks) and place it inside your colony. Right-click once per in-game day for starter materials, 5 deliveries per colony. Edit `assets/createacolony/config/supplycamp.json` to change the bundle.
 - Settlers get hungry and take food from any chest, shelf or crock inside the colony claim. Keep bread, fruit,
   bowls of stew, pots of meals or pies near the Town Hall. With no food they slowly starve. See "Food and meals".
 - At night (21:00 to 06:00) each settler claims a free bed inside the claim and sleeps there. Without a bed they
@@ -26,7 +26,7 @@ land claim, recruit settlers that persist with the save. Compiles cleanly agains
 - Breaking the Town Hall disbands the colony and removes the claim.
 - The mod refuses to start if VS Village is installed.
 
-## Crafting recipes (0.29.0)
+## Crafting recipes (0.32.0)
 Every building needs planks, and planks need a saw, so a colony is a mid game goal (copper age). Huts all use
 the same shape: two of the hut's own item in the middle column (top middle and center), the other 7 slots
 planks of any wood.
@@ -44,9 +44,28 @@ planks of any wood.
 | Guard Tower | 2 spears (any) + 7 planks |
 | Tavern | 2 rusty gears + 7 planks |
 | Warehouse | 2 chests + 7 planks |
+| Prospector's Hut | 2 stones (any rock) + 7 planks |
+| Miner's Hut | 2 torches + 7 planks |
+| Quarry | 2 rock blocks (any) + 7 planks |
+| Quarry Marker | a stone over 2 sticks (1x3) |
 | Supply Camp | 3 firewood over 2 sticks (unchanged) |
+| Colony Ledger | 4 paper (any), 2 leather, 2 charcoal: paper, leather, paper / charcoal, paper, charcoal / paper, leather, paper |
 | Drop-off | stick over a plank (unchanged) |
 | Field Marker | dry grass over 2 sticks (unchanged) |
+
+## The supply camp and the Colony Ledger (0.32.0)
+- The **Supply Camp** goes down anywhere, inside a colony or not. The first camp each player places in a world hands them the colony charter: a Town Hall, a Builder's Hut, a Builder's Wand and a Colony Ledger (anything that does not fit drops on the camp). The camp itself starts with one set of materials in its own storage; right-click it to open it like a chest.
+- This happens **once per player per world**, saved on the world, so it holds before you have a colony and also for players who join someone else's colony. Breaking the camp and placing it again, or crafting another, only gives an empty camp (still useful as storage). Breaking a camp drops what is inside.
+- The daily deliveries are gone, and so is the "Supply bundles left" line in the Town Hall window.
+- What the camp gives is in `assets/createacolony/config/supplycamp.json`: `playerItems` go to the player, `items` (up to 16 stacks) go into the camp.
+- **Camp buildings**: put a WorldEdit export at `ModConfig/createacolony/blueprints/supplycamp/level1.json` (or `assets/createacolony/config/blueprints/supplycamp/level1.json`). The first camp then puts that building up around itself at once, turned to face you. Put a Supply Camp block in the export where the camp should sit; without one the camp sits at the bottom centre. If any of it would land on land you may not build on, none of it is built.
+- The **Colony Ledger** opens your colony's Town Hall window from anywhere when you right-click with it. Quests and the colony's history will live in it later. A replacement is expensive on purpose (4 paper, 2 leather, 2 charcoal); the first one is free.
+
+## Mining: Prospector, Miner and Quarry (0.31.0)
+All three are on the new Mining tab of the Builder's Wand and use placeholder blueprints for now.
+- **Prospector's Hut**: put a prospecting pick in its storage. The prospector walks a grid of spots (every `ProspectorSpacing` 24 blocks, out to `ProspectorRadius` 64, changeable on the Work area tab) and takes a density reading at each with the game's own prospecting pick code, wearing the pick 3 per reading. Readings appear on the hut's Ore tab and on every colony member's ore map layer (`ProspectorSharesOreMap`). Good finds go in the Town Hall event log.
+- **Miner's Hut**: put a pickaxe in its storage. The miner picks the strongest reading in range (`MinerRadius` 64), or the ore chosen on the Ore tab, finds that ore's blocks within `MinerOreSearchRadius` 12 of the reading, and digs a walkable staircase (1 wide, 3 high where it steps) down to them from the surface, then digs out the ore around the tunnel end. It never digs next to water or lava, into colony buildings or other people's land. Ore too hard for its pick waits for a better pickaxe in the hut storage. When a reading is dug out it moves to the next.
+- **Quarry**: put a pickaxe in its storage and place a Quarry Marker within 48 blocks. The quarrier clears up to 4 blocks above the ground, then digs a `QuarrySize` 9 x 9 pit `QuarryDepth` 12 layers deep around the marker, top layer first, leaving a staircase round the edge.
 
 ## Config (`ModConfig/createacolony.json`)
 - `Permadeath` (default `true`): settlers who die are gone. Set `false` to have them knocked out and recover after `DownedRecoveryDays`.

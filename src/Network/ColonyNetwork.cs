@@ -144,6 +144,7 @@ public partial class ColonyNetwork : ModSystem
             ColonyAction.SetWorkRadius or ColonyAction.SetEscort or ColonyAction.SetCollectBerries => WorkAreaAction(colony, role, packet),
             ColonyAction.SetPotteryKeep => PotteryAction(colony, role, packet),
             ColonyAction.SetKitchenKeep => KitchenAction(colony, role, packet),
+            ColonyAction.SetMineOre or ColonyAction.ClearQuarry or ColonyAction.NewMine => MiningAction(colony, role, packet),
             ColonyAction.WelcomeVisitor or ColonyAction.TurnAwayVisitor => VisitorAction(colony, role, packet),
             ColonyAction.RecallCitizen => RecallCitizen(colony, role, packet.CitizenId),
             ColonyAction.SetColonyBanner or ColonyAction.ReplaceBanners or ColonyAction.SetBannerOnNew => BannerAction(player, colony, role, packet),
@@ -294,6 +295,27 @@ public partial class ColonyNetwork : ModSystem
                 building.NoBerries = packet.Text != "1";
                 break;
         }
+        return null;
+    }
+
+    /// <summary>The Miner's Hut's ore choice and new mine, and the Quarry's Forget pit.</summary>
+    string? MiningAction(Colony colony, ColonyRole role, ColonyActionPacket packet)
+    {
+        if (role < ColonyRole.Officer) return "createacolony:denied-officer";
+        var building = colony.Buildings.Find(b => b.BuildingId == packet.BuildingId);
+        if (packet.Action == ColonyAction.ClearQuarry)
+        {
+            if (building == null || building.Type != BuildingTypes.Quarry) return "createacolony:bad-building";
+            building.QuarryCenter = null;
+            return null;
+        }
+        if (building == null || building.Type != BuildingTypes.Miner) return "createacolony:bad-building";
+        if (packet.Action == ColonyAction.SetMineOre)
+        {
+            if (packet.Text.Length > 0 && !colony.OreSites.Any(s => s.Ores.Any(o => o.Code == packet.Text))) return "createacolony:bad-building";
+            building.MineOre = packet.Text;
+        }
+        Manager.ClearMine(colony, building);
         return null;
     }
 
@@ -635,7 +657,8 @@ public partial class ColonyNetwork : ModSystem
             snapshot.Info = Lang.Get("createacolony:warehouse-summary", containers.Count, Manager.CountItems(containers, _ => true),
                 containers.Sum(c => c.Inventory.Count(s => s.Empty)), containers.Sum(c => c.Inventory.Count));
         }
-        if (building.Type is BuildingTypes.Forester or BuildingTypes.Farmer or BuildingTypes.Potter or BuildingTypes.Cook) snapshot.Info = Manager.WorkerHutInfo(colony, building);
+        if (building.Type is BuildingTypes.Forester or BuildingTypes.Farmer or BuildingTypes.Potter or BuildingTypes.Cook
+            or BuildingTypes.Prospector or BuildingTypes.Miner or BuildingTypes.Quarry) snapshot.Info = Manager.WorkerHutInfo(colony, building);
         if (building.Type == BuildingTypes.Tavern)
         {
             snapshot.IsTavern = true;
@@ -649,6 +672,22 @@ public partial class ColonyNetwork : ModSystem
             var code = new AssetLocation(Manager.Config.RecruitCurrency);
             var currency = sapi.World.GetItem(code) is { } item ? new ItemStack(item) : sapi.World.GetBlock(code) is { } block ? new ItemStack(block) : null;
             snapshot.Currency = currency?.ToBytes();
+        }
+        if (building.Type is BuildingTypes.Prospector or BuildingTypes.Miner)
+        {
+            snapshot.IsOreHut = true;
+            snapshot.MineOre = building.MineOre;
+            snapshot.OreReadings = colony.OreSites.Count;
+            foreach (var ore in Manager.OreSummary(colony))
+            {
+                snapshot.Ores.Add(new OreView { Code = ore.Code, Best = ore.Best, Sites = ore.Sites, MinedOut = ore.MinedOut, Where = ColonyManager.DirectionFrom(building.HutPos, ore.BestPos) });
+            }
+        }
+        if (building.Type == BuildingTypes.Quarry)
+        {
+            snapshot.IsQuarry = true;
+            snapshot.HasPit = building.QuarryCenter != null;
+            snapshot.PitInfo = Manager.QuarryInfo(building);
         }
         if (building.Type == BuildingTypes.Potter)
         {
