@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using Vintagestory.API.Common;
 using Vintagestory.API.MathTools;
 using Vintagestory.GameContent;
@@ -59,6 +60,9 @@ public partial class ColonyManager
             if (joined.Id == current.Id) return true;
             target = joined;
         }
+        // A gate or door is the same one open or shut, and with or without snow on it: settlers open gates as they
+        // walk through, so a gate saved closed must not be torn down and put back each time it is opened.
+        if (current is BlockBaseDoor && target is BlockBaseDoor && SameIgnoring(current, target, "state", "cover")) return true;
         // A torch is a torch, lit or burned out.
         if (IsTorch(target) && IsTorch(current) && LitTorch(current.Code).Equals(LitTorch(target.Code))) return true;
         // Ground in a blueprint is any soil: grass comes and goes, and how fertile it is depends on the spot. Natural
@@ -85,6 +89,15 @@ public partial class ColonyManager
     public bool InProgress(Colony colony, Block current, int targetId, BlockPos pos) =>
         current is BlockFirepit pit && !IsStoneOvenBlock(pit) && pit.Stage < FirepitReady && sapi.World.GetBlock(targetId) is BlockFirepit want && !IsStoneOvenBlock(want)
         || DaubInProgress(colony, current, VariedDaub(sapi.World.GetBlock(targetId), pos));
+
+    /// <summary>True when the two blocks' codes differ at most in the given variant groups.</summary>
+    bool SameIgnoring(Block current, Block target, params string[] groups)
+    {
+        var keep = groups.Where(g => current.Variant.ContainsKey(g) && target.Variant.ContainsKey(g)).ToArray();
+        if (keep.Length == 0) return current.Code.Equals(target.Code);
+        var values = keep.Select(g => current.Variant[g]).ToArray();
+        return target.CodeWithVariants(keep, values).Equals(current.Code);
+    }
 
     /// <summary>True when a builder leaves this block standing for the step.</summary>
     public bool KeepsBlock(Colony colony, Block current, int targetId, BlockPos pos) =>

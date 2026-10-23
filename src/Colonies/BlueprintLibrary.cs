@@ -65,6 +65,8 @@ public class MinePiece
     /// down to the layer above its bottom; the next loop's ground layer sits on this one's floor); 0 for a section.
     /// </summary>
     public int Period;
+    /// <summary>Where the piece's waypoint blocks were (offsets, as for Steps): the ground there is left alone, and nothing is filled in on or above them.</summary>
+    public HashSet<(int X, int Y, int Z)> Markers = new();
 
     readonly Dictionary<int, MinePiece> deeper = new();
 
@@ -82,14 +84,16 @@ public class MinePiece
         var cells = new Dictionary<(int, int, int), BuildStep>();
         foreach (var step in Steps) cells[(step.Dx, step.Dy, step.Dz)] = step;
         var open = new List<(BlockFacing Face, int X, int Y, int Z)>(Open);
+        var markers = new HashSet<(int X, int Y, int Z)>(Markers);
         for (int k = 1; k <= repeats; k++)
         {
             foreach (var step in band) cells[(step.Dx, step.Dy - k * Period, step.Dz)] = step with { Dy = step.Dy - k * Period };
             open.AddRange(Open.Select(o => (o.Face, o.X, o.Y - k * Period, o.Z)));
+            foreach (var m in Markers.Where(m => m.Y <= 0)) markers.Add((m.X, m.Y - k * Period, m.Z));
         }
         // Digging first; the miner sorts the rest as it works (ColonyManager.ScanMineshaft).
         var steps = cells.Values.OrderBy(s => s.BlockId == 0 ? 0 : 1).ToList();
-        piece = new MinePiece { Name = Name, Steps = steps, Open = open, Min = (Min.X, Min.Y - repeats * Period, Min.Z), Max = Max, Period = Period };
+        piece = new MinePiece { Name = Name, Steps = steps, Open = open, Min = (Min.X, Min.Y - repeats * Period, Min.Z), Max = Max, Period = Period, Markers = markers };
         deeper[repeats] = piece;
         return piece;
     }
@@ -440,13 +444,21 @@ public class BlueprintLibrary
         var digs = new List<BuildStep>();
         var solid = new List<BuildStep>();
         var decor = new List<BuildStep>();
+        var markers = new HashSet<(int X, int Y, int Z)>();
         for (int dy = sy - 1; dy >= 0; dy--)
         for (int dx = 0; dx < sx; dx++)
         for (int dz = 0; dz < sz; dz++)
         {
             blocks.TryGetValue((dx, dy, dz), out var block);
-            // Waypoints only mark spots: the ground there is left as it is.
-            if (block != null && (IsWaypoint(block) || IsMetaBlock(block) || IsNaturalGround(block))) continue;
+            // A waypoint sits in the floor where the tunnels start: the miner lays the floor's planks there (the
+            // block beside it in the floor), never fill.
+            if (block != null && IsWaypoint(block))
+            {
+                markers.Add((dx - ax, dy - ay, dz - az));
+                if (MarkerFloor(blocks, dx, dy, dz) is { } floor) solid.Add(new BuildStep(dx - ax, dy - ay, dz - az, floor.Id));
+                continue;
+            }
+            if (block != null && (IsMetaBlock(block) || IsNaturalGround(block))) continue;
             if (block == null || block.Id == 0 || block is BlockMultiblock || IsFurniturePart(block, saved.GetValueOrDefault((dx, dy, dz))))
             {
                 digs.Add(new BuildStep(dx - ax, dy - ay, dz - az, 0));
@@ -528,7 +540,7 @@ public class BlueprintLibrary
         {
             Name = name, Steps = digs.Concat(solid).Concat(decor).ToList(), Open = open,
             Min = (-ax, -ay, -az), Max = (sx - 1 - ax, sy - 1 - ay, sz - 1 - az),
-            Period = entrance ? ground : 0
+            Period = entrance ? ground : 0, Markers = markers
         };
     }
 
@@ -610,6 +622,21 @@ public class BlueprintLibrary
     public static bool IsDoor(Block block) => block.HasBehavior<BlockBehaviorDoor>();
 
     static bool IsSolid(Block block) => block.SideSolid.Any;
+
+    /// <summary>
+    /// The floor planks to lay where a mineshaft piece has a waypoint: the planks most common near it in the same
+    /// layer; null when there are none (a waypoint at the surface), and the spot is left as it is.
+    /// </summary>
+    static Block? MarkerFloor(Dictionary<(int, int, int), Block> blocks, int x, int y, int z)
+    {
+        var near = new List<Block>();
+        for (int dx = -2; dx <= 2; dx++)
+        for (int dz = -2; dz <= 2; dz++)
+        {
+            if (blocks.TryGetValue((x + dx, y, z + dz), out var b) && b.Code.Path.StartsWith("planks-")) near.Add(b);
+        }
+        return near.GroupBy(b => b.Id).OrderByDescending(g => g.Count()).Select(g => g.First()).FirstOrDefault();
+    }
 
     /// <summary>
     /// Doors always keep theirs (which way they face), support beams theirs (where each beam runs); blocks placed from their item keep theirs to know which

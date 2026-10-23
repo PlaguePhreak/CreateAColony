@@ -79,6 +79,8 @@ public partial class ColonyManager
         foreach (var step in piece.Piece.Steps)
         {
             if (step.BlockId != 0) continue;
+            // A waypoint marks a spot to keep as it is: no fill on it or in the way just above it.
+            if (piece.Piece.Markers.Contains((step.Dx, step.Dy - 1, step.Dz)) || piece.Piece.Markers.Contains((step.Dx, step.Dy - 2, step.Dz))) continue;
             var below = piece.At(step).DownCopy();
             if (cells.ContainsKey(below) || ba.GetChunkAtBlockPos(below) == null) continue;
             if (ba.GetBlock(below).Id != 0 || ba.GetBlock(below, BlockLayersAccess.Fluid).Id != 0) continue;
