@@ -202,7 +202,11 @@ public partial class ColonyManager
             lines.Add(Lang.Get("createacolony:hut-fields", mine, colony.Fields.Count));
         }
         if (hut.Type == BuildingTypes.Potter) lines.Add(KilnInfo(colony, hut));
-        if (hut.Type == BuildingTypes.Cook) lines.Add(FirepitInfo(colony, hut));
+        if (hut.Type == BuildingTypes.Cook)
+        {
+            lines.Add(FirepitInfo(colony, hut));
+            if (OvenInfo(colony, hut) is { } oven) lines.Add(oven);
+        }
         if (hut.Type == BuildingTypes.Smelter) lines.Add(SmelterInfo(colony, hut));
         if (hut.Type == BuildingTypes.Blacksmith) lines.Add(BlacksmithInfo(hut));
         if (hut.Type == BuildingTypes.Sawmill) lines.Add(SawmillInfo(hut));

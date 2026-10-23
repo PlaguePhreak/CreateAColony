@@ -80,6 +80,7 @@ public partial class ColonyManager
             // The defaults become the hut's own list, so changing one food keeps the others.
             hut.KitchenKeep = KitchenKinds().ToDictionary(k => k.Key, k => KitchenKeep(hut, k));
             foreach (var recipe in MealRecipes()) hut.KitchenKeep[MealKey(recipe)] = MealKeep(hut, recipe);
+            foreach (var bake in OvenKinds()) hut.KitchenKeep[bake.Key] = BakeKeep(hut, bake);
             hut.KitchenChosen = true;
         }
         hut.KitchenKeep[key] = keep;
@@ -108,8 +109,10 @@ public partial class ColonyManager
     public List<KitchenKind> WantedFood(Colony colony, Building hut, CitizenRecord? cook)
     {
         var pit = CookFirepit(colony, hut);
+        // With a Stone Bake Oven, dough goes in the oven rather than the fire pit.
+        bool oven = CookOven(colony, hut) != null;
         return KitchenKinds()
-            .Where(k => KitchenKeep(hut, k) > 0)
+            .Where(k => KitchenKeep(hut, k) > 0 && !(oven && k.Raw.All(IsBakeableCode)))
             .Select(k => (Kind: k, Short: KitchenKeep(hut, k) - KitchenStock(colony, hut, k, cook, pit)))
             .Where(k => k.Short > 0)
             .OrderByDescending(k => k.Short)
@@ -127,7 +130,7 @@ public partial class ColonyManager
         var h = hut.HutPos;
         var area = new Cuboidi(h.X - r, h.Y - 4, h.Z - r, h.X + r, h.Y + 4, h.Z + r);
         return FindBlockEntities<BlockEntityFirepit>(area)
-            .Where(p => !p.Block.Code.Path.Contains("construct"))
+            .Where(p => !p.Block.Code.Path.Contains("construct") && !IsOvenFire(p))
             .OrderBy(p => p.Pos.DistanceSqTo(h.X, h.Y, h.Z))
             .FirstOrDefault();
     }
@@ -175,7 +178,7 @@ public partial class ColonyManager
     /// At a Cook's Hut everything that is not food, firewood or a cooking pot goes to the warehouse. Cooked
     /// food and pot meals stay, so hungry settlers eat at the hut.
     /// </summary>
-    System.Func<ItemStack, bool> CookHutJunk() => s => !IsFirewood(s) && s.Collectible.NutritionProps == null && !IsGrillable(s)
+    System.Func<ItemStack, bool> CookHutJunk() => s => !IsFirewood(s) && s.Collectible.NutritionProps == null && !IsGrillable(s) && !IsBakeable(s) && PiePart(s) == null
         && s.Block is not (IBlockMealContainer or BlockCookingContainer) && !IsMealIngredient(s);
 
     /// <summary>True for anything a meal recipe can use (grain, vegetables, eggs and so on).</summary>

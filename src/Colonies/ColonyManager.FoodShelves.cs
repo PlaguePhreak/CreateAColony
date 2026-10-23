@@ -211,7 +211,7 @@ public partial class ColonyManager
     {
         if (s.Block is BlockPie pie) return pie.State != "raw";
         if (s.Block is IBlockMealContainer meal) return meal.GetQuantityServings(sapi.World, s) > 0;
-        return KitchenKinds().Any(k => k.IsMine(s));
+        return KitchenKinds().Any(k => k.IsMine(s)) || OvenKinds().Any(k => k.IsMine(s));
     }
 
     /// <summary>Food ready to eat that couriers bring to kitchen shelves: dishes and plain food, never raw food for the fire pit or rot.</summary>
@@ -219,7 +219,7 @@ public partial class ColonyManager
     {
         if (s.Collectible.Code.Path == "rot") return false;
         if (IsDish(s)) return true;
-        return s.Collectible.NutritionProps != null && !IsGrillable(s) && !IsLiquid(s);
+        return s.Collectible.NutritionProps != null && !IsGrillable(s) && !IsBakeable(s) && !IsLiquid(s);
     }
 
     /// <summary>The first kitchen shelf with room for something the settler carries that the match says yes to.</summary>

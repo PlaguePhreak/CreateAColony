@@ -42,6 +42,9 @@ public partial class ColonyManager
         if (current.Id == 0 || targetId == 0) return false;
         var target = sapi.World.GetBlock(targetId);
         if (target == null) return false;
+        // A Stone Bake Oven block is the same block whether its fire is lit or the oven is hot (ColonyManager.StoneOven.cs).
+        if (IsStoneOvenBlock(target) || IsStoneOvenBlock(current)) return OvenRestingBlock(current).Id == OvenRestingBlock(target).Id
+            || (colony.AnyWoodOrStone && SameButStone(OvenRestingBlock(current), OvenRestingBlock(target)));
         if (current is BlockFirepit have && target is BlockFirepit want) return have.Stage >= Math.Min(want.Stage, FirepitReady);
         // A fence's code says which sides it joins ("type": n, ew, nesw, empty...), and the game changes it
         // as neighbours are built. The blueprint's joins are from wherever it was saved, so they never count.
@@ -59,7 +62,12 @@ public partial class ColonyManager
         // A VS Roofing roof block turns bare or filled by itself as its materials load; either one is the roof.
         if (target.Code.Domain == RoofingDomain && VariantOf(current, "type") is { } roofState
             && target.CodeWithVariant("type", roofState).Equals(current.Code)) return true;
-        if (!colony.AnyWoodOrStone) return false;
+        return colony.AnyWoodOrStone && SameButStone(current, target);
+    }
+
+    /// <summary>True when the two blocks differ only in their wood or stone.</summary>
+    static bool SameButStone(Block current, Block target)
+    {
         foreach (string v in SwappableVariants)
         {
             string? theirs = VariantOf(current, v);
@@ -70,7 +78,7 @@ public partial class ColonyManager
 
     /// <summary>True when the block is a half-built step towards the blueprint's block, so it must not be torn down.</summary>
     public bool InProgress(Block current, int targetId) =>
-        current is BlockFirepit pit && pit.Stage < FirepitReady && sapi.World.GetBlock(targetId) is BlockFirepit;
+        current is BlockFirepit pit && !IsStoneOvenBlock(pit) && pit.Stage < FirepitReady && sapi.World.GetBlock(targetId) is BlockFirepit want && !IsStoneOvenBlock(want);
 
     /// <summary>True when a builder leaves this block standing for the step.</summary>
     public bool KeepsBlock(Colony colony, Block current, int targetId) =>
@@ -100,9 +108,11 @@ public partial class ColonyManager
     public (Block Place, IReadOnlyList<MaterialCost> Costs) NextPlacement(Colony colony, BuildStep step, BlockPos pos)
     {
         var target = sapi.World.GetBlock(step.BlockId);
-        if (target is BlockFirepit)
+        // An oven's heat source goes down with its fire out and its other blocks cold, as they come from crafting.
+        target = OvenRestingBlock(target);
+        if (target is BlockFirepit && !IsStoneOvenBlock(target))
         {
-            if (sapi.World.BlockAccessor.GetBlock(pos) is BlockFirepit pit && pit.Stage < FirepitReady)
+            if (sapi.World.BlockAccessor.GetBlock(pos) is BlockFirepit pit && !IsStoneOvenBlock(pit) && pit.Stage < FirepitReady)
             {
                 var next = sapi.World.GetBlock(pit.CodeWithParts(pit.NextStageCodePart)) ?? target;
                 return (next, Costs(ItemCost("game:firewood", 1)));
@@ -121,10 +131,10 @@ public partial class ColonyManager
     public IEnumerable<MaterialCost> RemainingCost(Colony colony, BuildStep step, BlockPos pos)
     {
         var target = sapi.World.GetBlock(step.BlockId);
-        if (target is BlockFirepit && ItemCost("game:firewood", 1) is { } firewood)
+        if (target is BlockFirepit && !IsStoneOvenBlock(target) && ItemCost("game:firewood", 1) is { } firewood)
         {
             var current = sapi.World.BlockAccessor.GetBlock(pos);
-            int stage = current is BlockFirepit pit ? pit.Stage : 0;
+            int stage = current is BlockFirepit pit && !IsStoneOvenBlock(pit) ? pit.Stage : 0;
             int wood = stage == 0 ? FirepitFirewood : FirepitReady - stage;
             if (stage == 0 && ItemCost("game:drygrass", 1) is { } grass) yield return grass;
             if (wood > 0) yield return firewood with { Count = wood };
@@ -150,7 +160,7 @@ public partial class ColonyManager
     /// <summary>A finished fire pit gets its firewood as fuel, as when a player builds one.</summary>
     public void FinishPlacement(Block placed, BlockPos pos)
     {
-        if (placed is not BlockFirepit { Stage: FirepitReady }) return;
+        if (placed is not BlockFirepit { Stage: FirepitReady } || IsStoneOvenBlock(placed)) return;
         if (sapi.World.BlockAccessor.GetBlockEntity(pos) is not BlockEntityFirepit be || !be.Inventory[0].Empty) return;
         var firewood = sapi.World.GetItem(new AssetLocation("game:firewood"));
         if (firewood == null) return;
@@ -182,10 +192,10 @@ public partial class ColonyManager
             return soil;
         }
 
-        ItemStack? stack;
+        ItemStack? stack = OvenItemStack(block);
         try
         {
-            stack = block.OnPickBlock(sapi.World, pos);
+            stack ??= block.OnPickBlock(sapi.World, pos);
         }
         catch (Exception)
         {

@@ -356,7 +356,7 @@ public partial class ColonyNetwork : ModSystem
         int bar = packet.Text.LastIndexOf('|');
         if (bar <= 0 || !int.TryParse(packet.Text[(bar + 1)..], out int keep) || keep < 0 || keep > 999) return "createacolony:bad-building";
         string key = packet.Text[..bar];
-        if (!Manager.KitchenKinds().Any(k => k.Key == key) && Manager.MealRecipe(key) == null) return "createacolony:bad-building";
+        if (!Manager.KitchenKinds().Any(k => k.Key == key) && Manager.MealRecipe(key) == null && Manager.FindOvenKind(key) == null) return "createacolony:bad-building";
         Manager.SetKitchenKeep(colony, building, key, keep);
         return null;
     }
@@ -870,6 +870,22 @@ public partial class ColonyNetwork : ModSystem
                     Stack = icon.ToBytes(),
                     Keep = Manager.MealKeep(building, recipe),
                     Have = Manager.MealStock(colony, building, recipe, cook),
+                    NeedsLevel = needs,
+                    CookLevel = System.Math.Max(0, cookLevel),
+                    Locked = cook != null && needs > cookLevel
+                });
+            }
+            // Stone Bake Oven bakes, when the mod is installed (ColonyManager.StoneOven.cs).
+            foreach (var bake in Manager.OvenKinds())
+            {
+                int needs = Manager.BakeLevel(bake);
+                snapshot.Kitchen.Add(new PotteryView
+                {
+                    Key = bake.Key,
+                    Name = bake.IsPie ? Lang.Get("createacolony:kitchen-pie") : Lang.Get("createacolony:kitchen-bake", bake.Sample.GetName()),
+                    Stack = bake.Sample.ToBytes(),
+                    Keep = Manager.BakeKeep(building, bake),
+                    Have = Manager.BakeStock(colony, building, bake, cook),
                     NeedsLevel = needs,
                     CookLevel = System.Math.Max(0, cookLevel),
                     Locked = cook != null && needs > cookLevel

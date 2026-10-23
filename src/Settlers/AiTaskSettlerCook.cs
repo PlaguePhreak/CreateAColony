@@ -14,15 +14,18 @@ namespace CreateAColony.Settlers;
 /// of cooked in the fire pit by the hut, adds firewood and lights it, and takes the cooked food out when
 /// the game has cooked it. Cooked food goes on the hut's Food Shelves shelves when there is room, else into
 /// the hut storage, where hungry settlers eat. Raw food and firewood come from the hut storage and shelves,
-/// which couriers fill from the warehouse.
+/// which couriers fill from the warehouse. With a Stone Bake Oven by the hut it also bakes bread and pies
+/// there (ColonyManager.StoneOven.cs): it loads the baking spaces, keeps the oven's fire going while
+/// something bakes and takes out what is done.
 /// </summary>
 public class AiTaskSettlerCook : AiTaskSettlerWorker
 {
-    enum Work { Load, LoadMeal, Fuel, Empty, Shelve }
+    enum Work { Load, LoadMeal, Fuel, Empty, Shelve, OvenLoad, OvenFuel, OvenEmpty }
 
     Work work;
     ColonyManager.KitchenKind? kind;
     ColonyManager.MealPlan? meal;
+    ColonyManager.BakePlan? bake;
 
     public AiTaskSettlerCook(EntityAgent entity, JsonObject taskConfig, JsonObject aiConfig) : base(entity, taskConfig, aiConfig) { }
 
@@ -36,12 +39,12 @@ public class AiTaskSettlerCook : AiTaskSettlerWorker
 
     /// <summary>It carries firewood, a cooking pot and the ingredients of the meal it is about to cook.</summary>
     protected override bool AlsoKeeps(ItemStack stack) =>
-        ColonyManager.IsFirewood(stack) || ColonyManager.IsCleanPot(stack) || meal?.Uses(stack) == true;
+        ColonyManager.IsFirewood(stack) || ColonyManager.IsCleanPot(stack) || meal?.Uses(stack) == true || bake?.Uses(stack) == true;
 
     protected override string WorkAnimation(ItemSlot? hand) => "interactstatic";
 
     /// <summary>A dish it carries that is not an ingredient of the meal it is about to cook.</summary>
-    bool IsDishToShelve(ItemStack s) => manager!.IsDish(s) && meal?.Uses(s) != true && !ColonyManager.IsCleanPot(s);
+    bool IsDishToShelve(ItemStack s) => manager!.IsDish(s) && meal?.Uses(s) != true && bake?.Uses(s) != true && !ColonyManager.IsCleanPot(s);
 
     /// <summary>
     /// Dishes go on the kitchen shelves before anything goes to the hut storage. With nothing to put away, it
@@ -77,10 +80,12 @@ public class AiTaskSettlerCook : AiTaskSettlerWorker
         var m = manager!;
         // Ingredients on the kitchen shelves (a vegetable basket, an egg shelf) are used as well as the hut storage.
         storage = storage.Concat(m.KitchenShelves(colony, hut)).ToList();
+        // The oven first: baked bread burns if it is left in too long.
+        if (PlanOven(colony, citizen, hut, storage) is { } baking) return baking;
         var pit = m.CookFirepit(colony, hut);
         if (pit == null)
         {
-            SetStatus("no-firepit");
+            if (m.CookOven(colony, hut) == null) SetStatus("no-firepit");
             return false;
         }
 
@@ -188,6 +193,70 @@ public class AiTaskSettlerCook : AiTaskSettlerWorker
         return FetchFirewood(colony, hut, storage);
     }
 
+    /// <summary>
+    /// Stone Bake Oven work: take out what is baked, keep the fire going under what is baking, or start a
+    /// bake. Null when the oven needs nothing now, so the cook gets on with the fire pit.
+    /// </summary>
+    bool? PlanOven(Colony colony, CitizenRecord citizen, Building hut, List<BlockEntityContainer> storage)
+    {
+        var m = manager!;
+        var oven = m.CookOven(colony, hut);
+        bake = null;
+        if (oven == null) return null;
+        var tops = oven.Tops.Where(t => !IsUnreachable(t.Pos)).ToList();
+
+        var done = tops.FirstOrDefault(m.OvenHasDone);
+        if (done != null && !m.PackFull(citizen))
+        {
+            work = Work.OvenEmpty;
+            SetStatus("oven-emptying");
+            return GoWork(done.Pos);
+        }
+        if (oven.Fire == null)
+        {
+            SetStatus("oven-nofire");
+            return null;
+        }
+
+        if (oven.Tops.Any(m.OvenIsBaking))
+        {
+            if (oven.Fire.IsBurning || IsUnreachable(oven.Fire.Pos)) return null;
+            if (!oven.Fire.fuelSlot.Empty || m.PackCount(citizen, ColonyManager.IsFirewood) > 0)
+            {
+                work = Work.OvenFuel;
+                SetStatus("oven-lighting");
+                return GoWork(oven.Fire.Pos);
+            }
+            return FetchFirewood(colony, hut, storage);
+        }
+
+        var plan = m.NextBake(colony, hut, citizen, oven);
+        if (plan == null) return null;
+        bake = plan;
+        foreach (var (code, count) in plan.Needs)
+        {
+            ItemMatch same = s => s.Collectible.Code.Equals(code);
+            int have = m.PackCount(citizen, same);
+            if (have >= count) continue;
+            var chest = storage.FirstOrDefault(c => c.Inventory.Any(s => !s.Empty && same(s.Itemstack)));
+            if (chest != null && !m.PackFull(citizen))
+            {
+                SetStatus("fetching-dough");
+                return FetchSupplies(chest.Pos, same, count - have);
+            }
+            // Waiting for a courier: cook on the fire pit meanwhile.
+            m.EnsureCookRequest(colony, hut, code.ToString(), count - have);
+            return null;
+        }
+        // Firewood comes along, so the cook can light the oven straight after loading it.
+        if (!oven.Fire.IsBurning && oven.Fire.fuelSlot.Empty && m.PackCount(citizen, ColonyManager.IsFirewood) == 0) return FetchFirewood(colony, hut, storage);
+        var free = tops.FirstOrDefault(t => plan.Kind.IsPie ? t.Inventory.All(s => s.Empty) : t.Inventory.Any(s => s.Empty));
+        if (free == null) return null;
+        work = Work.OvenLoad;
+        SetStatus(plan.Kind.IsPie ? "oven-loading-pie" : "oven-loading");
+        return GoWork(free.Pos);
+    }
+
     bool FetchFirewood(Colony colony, Building hut, List<BlockEntityContainer> storage)
     {
         var m = manager!;
@@ -221,6 +290,23 @@ public class AiTaskSettlerCook : AiTaskSettlerWorker
             }
             return;
         }
+        if (work is Work.OvenLoad or Work.OvenEmpty)
+        {
+            if (entity.World.BlockAccessor.GetBlockEntity(target) is not BlockEntityContainer top) return;
+            if (work == Work.OvenEmpty)
+            {
+                m.EmptyOven(colony, citizen, top);
+                return;
+            }
+            if (bake == null) return;
+            // Every baking space within reach gets some, nearest first.
+            var near = (m.CookOven(colony, hut)?.Tops ?? new List<BlockEntityContainer> { top })
+                .Where(t => t.Pos.DistanceTo(target) <= 3)
+                .OrderBy(t => t.Pos.DistanceTo(target));
+            if (m.LoadOven(colony, citizen, near, bake) == 0) MarkUnreachable(target);
+            bake = null;
+            return;
+        }
         if (entity.World.BlockAccessor.GetBlockEntity(target) is not BlockEntityFirepit pit) return;
         switch (work)
         {
@@ -231,6 +317,7 @@ public class AiTaskSettlerCook : AiTaskSettlerWorker
                 if (meal != null) m.LoadMeal(colony, citizen, pit, meal);
                 break;
             case Work.Fuel:
+            case Work.OvenFuel:
                 m.FuelFirepit(colony, citizen, pit);
                 break;
             case Work.Empty:

@@ -99,7 +99,8 @@ public partial class ColonyManager
     {
         if (container is BlockEntityOven or BlockEntityQuern or BlockEntityTrough or BlockEntityLiquidContainer) return false;
         string name = container.GetType().Name;
-        return !(name.Contains("MixingBowl") || name.Contains("Saucepan") || name.Contains("Cauldron") || name.Contains("Kiln"));
+        // Stone Bake Oven baking spaces too: settlers wait for the cook to take the bread out.
+        return !(name.Contains("MixingBowl") || name.Contains("Saucepan") || name.Contains("Cauldron") || name.Contains("Kiln") || name.StartsWith("BlockEntityOven"));
     }
 
     /// <summary>

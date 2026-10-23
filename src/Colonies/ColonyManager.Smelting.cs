@@ -119,7 +119,7 @@ public partial class ColonyManager
 
     /// <summary>The fire pit the smelter uses: the nearest finished one within reach of the hut.</summary>
     public BlockEntityFirepit? SmelterFirepit(Building hut) =>
-        NearHut<BlockEntityFirepit>(hut, Config.SmelterRadius, p => !p.Block.Code.Path.Contains("construct"));
+        NearHut<BlockEntityFirepit>(hut, Config.SmelterRadius, p => !p.Block.Code.Path.Contains("construct") && !IsOvenFire(p));
 
     /// <summary>Ingot molds set out within reach of the smelter's fire pit (or of the hut when it has none).</summary>
     public List<BlockEntityIngotMold> SmelterMolds(Building hut)

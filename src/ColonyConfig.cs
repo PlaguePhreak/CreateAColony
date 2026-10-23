@@ -319,6 +319,8 @@ public class ColonyConfig
     public int CookMaxTemperature = 500;
     /// <summary>How many of each cooked food a new Cook's Hut keeps in stock until an officer changes it.</summary>
     public int KitchenDefaultKeep = 8;
+    /// <summary>How many baked pies a new Cook's Hut with a Stone Bake Oven keeps in stock (bread uses KitchenDefaultKeep).</summary>
+    public int OvenDefaultPieKeep = 2;
     /// <summary>How many servings of each pot meal a new Cook's Hut keeps in stock until an officer changes it.</summary>
     public int KitchenDefaultMealKeep = 6;
     /// <summary>The "Keep in stock" amounts the Kitchen tab offers.</summary>

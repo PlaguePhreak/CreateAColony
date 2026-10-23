@@ -19,6 +19,8 @@ public partial class ColonyManager
     {
         public int[] ByIngredients = { 2, 2, 4, 6 };
         public Dictionary<string, int> Levels = new();
+        /// <summary>Stone Bake Oven bakes, by the baked food's name ("bread", "pie") or code; "default" for the rest.</summary>
+        public Dictionary<string, int> Baking = new();
     }
 
     CookingFile? cooking;

@@ -406,6 +406,18 @@ Forester's and Farmer's Huts have a **Work area** tab in their window (officers 
   vegetable basket, an egg shelf), and food on the shelves counts on the Kitchen tab. Couriers with nothing
   else to do bring ready food from the warehouse to kitchen shelves that have room for it. Settlers stock a
   shelf the way a player does: only what that shelf takes (bread on a bread shelf), one kind per segment.
+- **Stone Bake Oven (0.55.0):** with the Stone Bake Oven mod (1.4.0), the cook bakes in an oven whose baking
+  spaces are within `CookFirepitRadius` (8) blocks of the Cook's Hut. It puts dough on the baking spaces (four
+  pieces each), makes pies itself (4 dough and 8 of one filling, such as berries or vegetables, on an empty
+  baking space), puts firewood in the oven's heat source and lights it, keeps the fire going while something
+  bakes, and takes the bread and pies out once baked, before they burn. They go on the kitchen shelves or into
+  the hut storage. The Kitchen tab has a row for each bake ("Oven: Bread", "Oven: pie (any filling)") with how
+  many to keep (bread `KitchenDefaultKeep`, pies `OvenDefaultPieKeep`, 2). Bakes take a Cooking level from
+  `config/cooking.json` "baking": bread 1, pies 3, other mods' bakes 2. While the oven bakes, the cook gets on
+  with the fire pit; a hut with an oven and no fire pit only bakes. Dough itself is not made by the cook yet:
+  put it in the hut storage or the warehouse, and couriers bring it. The oven's cooking top (for pots) is left
+  to players. Builders place the oven's blocks from a blueprint like any block: they pay for the block as it
+  comes from crafting, any stone when the colony allows it, and never take its heat source for a fire pit.
 
 ### The smelter and the blacksmith (0.50.0)
 Both huts have a simple placeholder model and a placeholder level 1 blueprint (an open plank shed with a fire
