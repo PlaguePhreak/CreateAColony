@@ -71,6 +71,17 @@ An FTB-Quests-style quest book that doubles as a guide to the mod and to the bas
 - **Commands** (admin): `/colony quest list`, `/colony quest complete <code>` (marks it done, no rewards), `/colony quest reset` (forgets your quests and your own colony's), `/colony quest reload` (re-reads the quest files; players re-join to see changes).
 - Chapters with no quests yet say so in the book (Maps and waypoints, Riding, The wider world, Temporal storms, Raids, Deep places, and the whole Tavern group). Dialogue windows, ledger journal pages and the accepted-and-ignored downside are not in yet.
 
+## Settler gear, clothes and inventory (0.43.0)
+- **Settlers look like players.** They use the player's own model and get a random look from the player character creator (skin, eyes, hair, beard; women never get a beard). The look is kept, so a settler who is brought back looks the same. New settlers, and settlers from older saves once, start in the clothes of the game's **Commoner** class (config `SettlerClothesClass`).
+- **The settler window has tabs**: Character & Armour, Stats, Inventory, Traits & Skills. Traits are not in yet; the tab says so above the skills.
+- **Take and give items.** Colony members click the settler's slots the same way as their own: left-click takes a stack or puts the one on your cursor (swapping if different), right-click takes half or puts one, shift-click sends it to your inventory. Clothing, armor and bag slots only take what fits there; visitors to the colony can only look.
+- **Tool bar**: a line of its own on the Inventory tab with one **weapon** slot, three **tool** slots and an **offhand** slot. Tools and weapons a settler gets go there first, so they never get dropped off with the harvest; workers take their tool from it into their hand and put it back after. A shield in the offhand shows in the left hand.
+- **Packed food**: three slots of food carried to eat on the go. A settler eats from it whenever a whole bite fits in its stomach, so it stays nearly full while it keeps working. Once the packed food is gone it works on until it is hungry (40%), walks to the nearest food, eats, and packs up to a stomach's worth for later (config `CarryFood`, `CarryFoodSaturation`). Food that rots is moved to the inventory.
+- **Dropping things off**: a settler keeps only what its job needs. Workers drop the rest off at their hut whenever they pass within 8 blocks of it (`DepositNearHut`), as well as when their pack is full or work runs out; guards take theirs to the tower; others take theirs to their hut, or the warehouse if they have none.
+- **Picking things up**: settlers pick up items they walk past, and an idle settler walks to items lying within 10 blocks inside the colony (`SettlersPickUpItems`, `PickUpRange`). Items are left alone for 5 seconds after they land (`PickUpDelaySeconds`), so a settler does not grab what you just dropped.
+- **Torches**: at night or in a dark place a settler holds a lit torch in its left hand when it carries one (tool bar offhand or inventory). A settler without one fetches a lit torch from its hut's storage or the warehouse when it has nothing else to do (`CarryTorches`).
+- If the player's model cannot be read (a mod that changes the player a lot), settlers keep the older villager model and the log says why.
+
 ## Mining: Prospector, Miner and Quarry (0.36.0)
 All three are on the new Mining tab of the Builder's Wand and use placeholder blueprints for now.
 - **Prospector's Hut**: put a prospecting pick in its storage. The prospector wanders its work area (`ProspectorRadius` 64, changeable on the Work area tab), walking a random `ProspectorMinStep` 25 to `ProspectorMaxStep` 50 blocks from its last reading (or from a good earlier one) and never reading within `ProspectorNearReading` 16 of an existing reading. Each candidate spot is weighted by the ore the nearby readings promise (inverse-distance average of best density plus a quarter of the others; `ProspectorUnknownQuality` 0.15 for unread ground) to the power of `ProspectorPreference` 15, so it searches more near good readings and less near poor ones. It takes a density reading with the game's own prospecting pick code, wearing the pick 3 per reading. Readings appear on the hut's Ore tab, on the Town Hall's **Prospecting** tab (top of its tab list) and on a separate **Colony prospecting** layer of every colony member's world map (`ProspectorSharesOreMap`), kept apart from the player's own prospecting layer. Colony readings can't be deleted from the map. Good finds go in the Town Hall event log.
@@ -354,10 +365,11 @@ hut block, or press Storage in its window. Chests within two blocks of the hut a
 
 ### The settler window
 
-Right-click a settler to see it laid out like the player's character window: a Character panel with
-the settler's model (drag to turn it) between clothing slots and armor slots that stay empty until
-settlers can wear things, a Stats panel (health, satiety, walk speed, status, bed, job and what it is
-doing), and an Inventory panel with its bags, held item and pack.
+Right-click a settler to open its window, laid out like the player's character window with four tabs
+along the top: **Character & Armour** (the settler's model, drag to turn it, between its clothing
+slots, and its armor row), **Stats** (health, satiety, walk speed, status, bed, job, what it is doing,
+family), **Inventory** (tool bar, bags, held item, pack, packed food) and **Traits & Skills**. See
+"Settler gear, clothes and inventory (0.43.0)" for what you can do in it.
 
 ### Importing MineColonies blueprints
 
