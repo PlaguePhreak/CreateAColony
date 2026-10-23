@@ -27,7 +27,7 @@ public class AiTaskSettlerMiner : AiTaskSettlerDigger
 
     protected override string Job => Jobs.Miner;
     protected override string HutType => BuildingTypes.Miner;
-    protected override float WorkSeconds => job.Kind == ColonyManager.MineWork.Travel ? 0.1f : manager!.DigSeconds(target, manager.Config.MinerSecondsPerBlock);
+    protected override float WorkSeconds => job.Kind == ColonyManager.MineWork.Travel ? 0.1f : ToolSeconds(manager!.DigSeconds(target, manager.Config.MinerSecondsPerBlock));
 
     protected override bool PlanWork(Colony colony, CitizenRecord citizen, Building hut, List<BlockEntityContainer> storage)
     {
