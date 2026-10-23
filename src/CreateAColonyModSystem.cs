@@ -192,6 +192,12 @@ public class CreateAColonyModSystem : ModSystem
                 .WithDescription("Cancel a delivery request by its number")
                 .WithArgs(parsers.Int("number"))
                 .HandleWith(OnCancelRequest)
+            .EndSubCommand()
+            .BeginSubCommand("quest")
+                .WithDescription("Quest tools: list, complete <code> (marks it done, no rewards), reset (forgets your quests), reload (re-reads the quest files)")
+                .RequiresPrivilege(Privilege.controlserver)
+                .WithArgs(parsers.WordRange("action", "list", "complete", "reset", "reload"), parsers.OptionalWord("code"))
+                .HandleWith(OnQuest)
             .EndSubCommand();
     }
 
@@ -237,6 +243,31 @@ public class CreateAColonyModSystem : ModSystem
             lines.Add(Lang.Get("createacolony:stuck-line", citizen.Name, entity.Pos.AsBlockPos.ToLocalPosition(sapi), why, (int)(will.Fraction * 100)));
         }
         return TextCommandResult.Success(lines.Count == 0 ? Lang.Get("createacolony:stuck-none") : string.Join("\n", lines));
+    }
+
+    TextCommandResult OnQuest(TextCommandCallingArgs args)
+    {
+        var manager = sapi!.ModLoader.GetModSystem<ColonyManager>();
+        var player = (IServerPlayer)args.Caller.Player;
+        var colony = manager.HomeColony(player.PlayerUID);
+        switch ((string)args[0])
+        {
+            case "list":
+                var lines = manager.Quests.All.Select(q => q.Code + ": " + manager.Evaluate(player, colony, q, out _, out _));
+                return TextCommandResult.Success(string.Join("\n", lines));
+            case "complete":
+                var quest = args.Parsers[1].IsMissing ? null : manager.Quests.Get((string)args[1]);
+                if (quest == null) return TextCommandResult.Error("Unknown quest code");
+                manager.ForceClaim(player, quest);
+                return TextCommandResult.Success("Marked " + quest.Code + " as done");
+            case "reset":
+                manager.ResetQuests(player);
+                return TextCommandResult.Success("Your quests, and your own colony's, are forgotten");
+            case "reload":
+                manager.ReloadQuests();
+                return TextCommandResult.Success("Quest files re-read: " + manager.Quests.All.Count + " quests (players re-join to see changes)");
+        }
+        return TextCommandResult.Error("Unknown action");
     }
 
     TextCommandResult OnInfo(TextCommandCallingArgs args)
