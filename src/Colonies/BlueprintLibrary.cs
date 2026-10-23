@@ -190,14 +190,17 @@ public class BlueprintLibrary
     public int MaxLevel(Building building) => MaxLevel(StyleFor(building), building.Type, building.Variant);
 
     /// <summary>
-    /// The style a building's blueprints come from: its own, or, when that style has none for its type (a
-    /// Town Hall from before its blueprints moved to Dev's Builds), the first style that has some.
+    /// The style a building's blueprints come from: always its own asset pack. When that pack has no design for
+    /// the type, the building has no blueprints (only its hut block is placed), so players can build their own
+    /// around it; it never borrows another pack's design (only Medieval Oak (Alt) uses Medieval Oak's, being part of it).
     /// </summary>
-    public string StyleFor(Building building)
+    public string StyleFor(Building building) => StyleFor(building.Style, building.Type);
+
+    /// <summary>The pack itself, or the pack it is part of when only that one has the type (see BlueprintStyles.BaseOf).</summary>
+    public string StyleFor(string? style, string type)
     {
-        string own = BlueprintStyles.Normalize(building.Style);
-        if (MaxLevel(own, building.Type) > 0) return own;
-        return BlueprintStyles.All.FirstOrDefault(style => MaxLevel(style, building.Type) > 0) ?? own;
+        string own = BlueprintStyles.Normalize(style);
+        return MaxLevel(own, type) == 0 && BlueprintStyles.BaseOf(own) is { } basePack && MaxLevel(basePack, type) > 0 ? basePack : own;
     }
 
     public Blueprint? Get(string style, string type, int level, int rotation, string variant = "")

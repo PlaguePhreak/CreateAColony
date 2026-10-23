@@ -55,8 +55,9 @@ public partial class ColonyNetwork
                 string style = BlueprintStyles.Normalize(pack != "" ? pack : chosen.Length > 1 ? chosen[1] : null);
                 if (!WandTypes.Contains(type) || !wandSpots.TryGetValue(uid, out var at)) return;
                 // Change building keeps the variant when the same type is picked again.
-                string variant = Manager.Blueprints.VariantFor(style, type, plan?.Type == type ? plan.Variant : "");
-                plan = new Planned(type, at, plan?.Rotation ?? Manager.RotationFor(player, type, style, variant), style, 0, variant);
+                string from = Manager.Blueprints.StyleFor(style, type);
+                string variant = Manager.Blueprints.VariantFor(from, type, plan?.Type == type ? plan.Variant : "");
+                plan = new Planned(type, at, plan?.Rotation ?? Manager.RotationFor(player, type, from, variant), style, 0, variant);
                 planned[uid] = plan;
                 SendPlanned(player, plan, true);
                 return;
@@ -88,7 +89,7 @@ public partial class ColonyNetwork
                 plan = plan with { Level = StepLevel(PreviewLevel(plan.Level, max), max, packet.Text) };
                 break;
             case ColonyAction.PlacementVariant:
-                plan = plan with { Variant = StepVariant(plan.Style, plan.Type, plan.Variant, packet.Text), Level = 0 };
+                plan = plan with { Variant = StepVariant(Manager.Blueprints.StyleFor(plan.Style, plan.Type), plan.Type, plan.Variant, packet.Text), Level = 0 };
                 break;
             case ColonyAction.PlacementNudge:
                 var moved = new Building { HutPos = plan.Pos.Copy() };
@@ -166,8 +167,9 @@ public partial class ColonyNetwork
             snapshot.Have.Add(HutCount(player, type));
             foreach (var style in BlueprintStyles.All)
             {
-                if (Manager.Blueprints.MaxLevel(style, type) > 0) snapshot.WithBlueprints.Add(type + "|" + style);
-                int variants = Manager.Blueprints.Variants(style, type).Count;
+                string from = Manager.Blueprints.StyleFor(style, type);
+                if (Manager.Blueprints.MaxLevel(from, type) > 0) snapshot.WithBlueprints.Add(type + "|" + style);
+                int variants = Manager.Blueprints.Variants(from, type).Count;
                 if (variants > 1) snapshot.VariantCounts.Add($"{type}|{style}|{variants}");
             }
         }
@@ -201,8 +203,8 @@ public partial class ColonyNetwork
             CanOrder = true,
             Planned = true,
             Style = plan.Style,
-            Variant = Manager.Blueprints.VariantFor(plan.Style, plan.Type, plan.Variant),
-            Variants = Manager.Blueprints.Variants(plan.Style, plan.Type),
+            Variant = Manager.Blueprints.VariantFor(Manager.Blueprints.StyleFor(plan.Style, plan.Type), plan.Type, plan.Variant),
+            Variants = Manager.Blueprints.Variants(Manager.Blueprints.StyleFor(plan.Style, plan.Type), plan.Type),
             Have = HutCount(player, plan.Type),
             OpenWindow = openWindow
         }, player);

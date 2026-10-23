@@ -44,6 +44,12 @@ public static class BlueprintStyles
 
     public static string Normalize(string? style) => Exists(style) ? style! : Default;
 
+    /// <summary>
+    /// The pack a pack is part of, for buildings it has no design of its own for: Medieval Oak (Alt) only holds
+    /// MineColonies' alternative buildings and uses Medieval Oak's for the rest. Null for a pack that stands alone.
+    /// </summary>
+    public static string? BaseOf(string style) => style == MedievalOakAlt ? MedievalOak : null;
+
     /// <summary>The style's folder under blueprints/.</summary>
     public static string Folder(string style) => Normalize(style);
 }

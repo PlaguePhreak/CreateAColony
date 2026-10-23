@@ -170,6 +170,11 @@ placed in for every level, also after you change packs. Your choice is saved wit
   Medium and Small (0.60.0; the older Standard house was removed in 0.60.1). Other buildings have no blueprint in this pack yet, and the list
   says so.
 
+Since 0.64.0 a pack never borrows another pack's design: when your pack has no design for a building, the
+wand places just its block (no preview, no build order), so you can build your own building around it. The
+hut works at level 0 like any other. Medieval Oak (Alt) is the one exception: it is part of Medieval Oak and
+uses its buildings where it has no alternative of its own.
+
 The old **Testing** style and its sample blueprints were removed in 0.46.0. Buildings that were placed
 in it keep working: Town Halls and Builder's Huts (built from Dev's Builds since 0.26.1) move to Dev's
 Builds, everything else to the default pack, which builds its next level. The 12th Century Inspired
