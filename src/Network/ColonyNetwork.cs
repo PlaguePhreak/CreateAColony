@@ -436,6 +436,13 @@ public partial class ColonyNetwork : ModSystem
             Stats = Manager.ColonyStatSummary(colony).Select(r => new StatView { Key = r.Key, Counts = r.Counts }).ToList()
         };
 
+        snapshot.OreReadings = colony.OreSites.Count;
+        snapshot.ProspectorHuts = colony.Buildings.Count(b => b.Type == BuildingTypes.Prospector);
+        foreach (var ore in Manager.OreSummary(colony))
+        {
+            snapshot.Ores.Add(new OreView { Code = ore.Code, Best = ore.Best, Sites = ore.Sites, MinedOut = ore.MinedOut, Where = ColonyManager.DirectionFrom(colony.TownHallPos, ore.BestPos) });
+        }
+
         foreach (var c in colony.Citizens)
         {
             string state = !c.Alive ? "dead"

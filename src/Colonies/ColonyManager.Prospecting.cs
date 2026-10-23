@@ -20,8 +20,6 @@ public partial class ColonyManager
 {
     /// <summary>The pick's own reading code, which is protected; called on the pick the prospector holds.</summary>
     static readonly MethodInfo? GenProbeResults = AccessTools.Method(typeof(ItemProspectingPick), "GenProbeResults");
-    /// <summary>Sends a player's ore map readings to their client, so a new reading shows at once.</summary>
-    static readonly MethodInfo? ResendWaypoints = AccessTools.Method(typeof(OreMapLayer), "ResendWaypoints");
 
     /// <summary>The prospecting pick's density words, weakest first, as the game shows them.</summary>
     static readonly string[] DensityNames = { "verypoor", "poor", "decent", "high", "veryhigh", "ultrahigh" };
@@ -210,7 +208,7 @@ public partial class ColonyManager
         AddStat(hut, "readings");
         MarkDirty(colony);
 
-        if (Config.ProspectorSharesOreMap) ShareReading(colony, reading);
+        if (Config.ProspectorSharesOreMap) ShareReading(colony);
 
         if (site.Ores.FirstOrDefault() is { Factor: >= NotableFactor } best)
         {
@@ -231,24 +229,24 @@ public partial class ColonyManager
         return Lang.Get("createacolony:compass-blocks", distance, Lang.Get("createacolony:compass-" + names[(int)(angle / 45)]));
     }
 
-    /// <summary>Puts the reading on the ore map of every colony member the server knows.</summary>
-    void ShareReading(Colony colony, PropickReading reading)
+    /// <summary>
+    /// Shows a new reading on the "Colony prospecting" layer of every online member's world map, kept apart
+    /// from the readings they took themselves.
+    /// </summary>
+    void ShareReading(Colony colony)
     {
         try
         {
-            var layer = sapi.ModLoader.GetModSystem<WorldMapManager>()?.MapLayers.OfType<OreMapLayer>().FirstOrDefault();
+            var layer = sapi.ModLoader.GetModSystem<WorldMapManager>()?.MapLayers.OfType<Map.ColonyOreMapLayer>().FirstOrDefault();
             if (layer == null) return;
             foreach (var member in colony.Members)
             {
-                if (sapi.World.PlayerByUid(member.PlayerUid) is not IServerPlayer player) continue;
-                var readings = layer.getOrLoadReadings(player);
-                readings.Add(new PropickReading { Position = reading.Position.Clone(), OreReadings = reading.OreReadings, Guid = Guid.NewGuid().ToString() });
-                if (player.ConnectionState == EnumClientState.Playing) ResendWaypoints?.Invoke(layer, new object[] { player });
+                if (sapi.World.PlayerByUid(member.PlayerUid) is IServerPlayer { ConnectionState: EnumClientState.Playing } player) layer.Resend(player);
             }
         }
         catch (Exception e)
         {
-            sapi.Logger.Warning("[createacolony] Could not add a reading to the ore map: {0}", e.InnerException?.Message ?? e.Message);
+            sapi.Logger.Warning("[createacolony] Could not show a reading on the colony ore map: {0}", e.InnerException?.Message ?? e.Message);
         }
     }
 

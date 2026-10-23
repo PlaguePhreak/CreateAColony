@@ -6,6 +6,7 @@ using CreateAColony.Network;
 using Vintagestory.API.Client;
 using Vintagestory.API.Common;
 using Vintagestory.API.Config;
+using Vintagestory.API.MathTools;
 
 namespace CreateAColony.Gui;
 
@@ -33,6 +34,9 @@ public class GuiDialogTownHall : GuiDialog
     const int SettingsTab = 5;
     const int MapTab = 6;
     const int BannersTab = 7;
+    const int ProspectingTab = 8;
+    const int OreRowsPerPage = 7;
+    const double OreRowHeight = 44;
     const double MapHeight = 380;
     // The map is at most this many pixels a side; bigger colonies get one pixel per few blocks.
     const int MapMaxSide = 320;
@@ -42,7 +46,7 @@ public class GuiDialogTownHall : GuiDialog
 
     static readonly (int Id, string Lang)[] Tabs =
     {
-        (ActionsTab, "tab-actions"), (MapTab, "tab-townmap"), (BannersTab, "tab-banners"), (InfoTab, "tab-information"), (CitizensTab, "tab-citizens"),
+        (ProspectingTab, "tab-prospecting"), (ActionsTab, "tab-actions"), (MapTab, "tab-townmap"), (BannersTab, "tab-banners"), (InfoTab, "tab-information"), (CitizensTab, "tab-citizens"),
         (StatsTab, "tab-statistics"), (PermissionsTab, "tab-permissions"), (SettingsTab, "tab-settings")
     };
 
@@ -116,6 +120,7 @@ public class GuiDialogTownHall : GuiDialog
         {
             case ActionsTab: ComposeActions(composer); break;
             case MapTab: ComposeMap(composer); break;
+            case ProspectingTab: ComposeProspecting(composer); break;
             case BannersTab: ComposeBanners(composer); break;
             case InfoTab: ComposeInformation(composer); break;
             case CitizensTab: ComposeCitizens(composer); break;
@@ -150,6 +155,38 @@ public class GuiDialogTownHall : GuiDialog
     double ComingLater(GuiComposer composer, string langKey, double y)
     {
         return composer.Text(Lang.Get("createacolony:townhall-coming-later", Lang.Get("createacolony:" + langKey)), GuiKit.Muted(), 0, y, Width, 6);
+    }
+
+    // ---- Prospecting tab ------------------------------------------------------------------
+
+    /// <summary>
+    /// The Prospecting tab: every ore the colony's prospectors found, strongest first, with the best
+    /// reading of each and where it is from the Town Hall. The readings themselves are on the Colony
+    /// prospecting layer of the world map.
+    /// </summary>
+    void ComposeProspecting(GuiComposer composer)
+    {
+        double y = composer.Text(Lang.Get("createacolony:townhall-prospecting-hint", snapshot.OreReadings, snapshot.ProspectorHuts), GuiKit.Muted(), 0, 30, Width, 10);
+        if (snapshot.Ores.Count == 0)
+        {
+            composer.Text(Lang.Get(snapshot.ProspectorHuts == 0 ? "createacolony:townhall-prospecting-nohut" : "createacolony:ore-none"), GuiKit.Body(), 0, y, Width);
+            return;
+        }
+        int pages = (snapshot.Ores.Count + OreRowsPerPage - 1) / OreRowsPerPage;
+        page = Math.Clamp(page, 0, pages - 1);
+        int shown = Math.Min(OreRowsPerPage, snapshot.Ores.Count - page * OreRowsPerPage);
+        composer.AddInset(ElementBounds.Fixed(0, y, Width, shown * OreRowHeight + 8), 3, 0.8f);
+        y += 4;
+        foreach (var ore in snapshot.Ores.Skip(page * OreRowsPerPage).Take(OreRowsPerPage))
+        {
+            string density = Lang.Get("propick-density-" + new[] { "verypoor", "poor", "decent", "high", "veryhigh", "ultrahigh" }[(int)GameMath.Clamp(ore.Best * 7.5, 0, 5)]);
+            composer.AddStaticText(Lang.Get("ore-" + ore.Code), CairoFont.WhiteSmallText(), ElementBounds.Fixed(10, y + 4, Width - 20, 20));
+            string detail = Lang.Get("createacolony:ore-row", density, ore.Where, ore.Sites)
+                + (ore.MinedOut > 0 ? "  " + Lang.Get("createacolony:ore-row-minedout", ore.MinedOut) : "");
+            composer.AddStaticText(detail, GuiKit.Detail().WithColor(ore.MinedOut >= ore.Sites ? GuiKit.MutedColor : GuiKit.GoodColor), ElementBounds.Fixed(10, y + 22, Width - 20, 20));
+            y += OreRowHeight;
+        }
+        composer.Pager(page, pages, y + 14, Width, p => { page = p; Compose(); });
     }
 
     // ---- Actions tab ----------------------------------------------------------------------

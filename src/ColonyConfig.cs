@@ -118,7 +118,7 @@ public class ColonyConfig
     public float ProspectorSecondsPerReading = 9f;
     /// <summary>Wear on the prospecting pick per reading; a player's three samples wear it 3.</summary>
     public int ProspectorPickWear = 3;
-    /// <summary>Each reading also goes on the ore map (the prospecting layer of the world map) of every colony member.</summary>
+    /// <summary>Each reading also shows on the "Colony prospecting" layer of every colony member's world map (kept apart from their own prospecting layer).</summary>
     public bool ProspectorSharesOreMap = true;
 
     // Miner

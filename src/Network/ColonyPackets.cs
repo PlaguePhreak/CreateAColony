@@ -364,6 +364,10 @@ public class ColonySnapshot
     [ProtoMember(31)] public byte[]? BannerStack;
     [ProtoMember(32)] public bool BannerOnNew;
     [ProtoMember(33)] public bool HeraldryInstalled;
+    /// <summary>For the Prospecting tab: every ore the colony's prospectors found (where is from the Town Hall), how many readings, and how many Prospector's Huts.</summary>
+    [ProtoMember(34)] public List<OreView> Ores = new();
+    [ProtoMember(35)] public int OreReadings;
+    [ProtoMember(36)] public int ProspectorHuts;
 }
 
 public enum ColonyAction
