@@ -1,0 +1,497 @@
+{
+ "textureWidth": 16,
+ "textureHeight": 16,
+ "textures": {
+  "sides": "sides",
+  "planks": "planks",
+  "stone": "stone",
+  "coal": "coal",
+  "metal": "metal",
+  "cloth": "cloth"
+ },
+ "elements": [
+  {
+   "name": "Crate",
+   "from": [
+    1,
+    0,
+    1
+   ],
+   "to": [
+    15,
+    8,
+    15
+   ],
+   "faces": {
+    "north": {
+     "texture": "#sides",
+     "uv": [
+      0,
+      0,
+      14,
+      8
+     ]
+    },
+    "east": {
+     "texture": "#sides",
+     "uv": [
+      0,
+      0,
+      14,
+      8
+     ]
+    },
+    "south": {
+     "texture": "#sides",
+     "uv": [
+      0,
+      0,
+      14,
+      8
+     ]
+    },
+    "west": {
+     "texture": "#sides",
+     "uv": [
+      0,
+      0,
+      14,
+      8
+     ]
+    },
+    "up": {
+     "texture": "#sides",
+     "uv": [
+      0,
+      0,
+      14,
+      14
+     ]
+    },
+    "down": {
+     "texture": "#sides",
+     "uv": [
+      0,
+      0,
+      14,
+      14
+     ]
+    }
+   }
+  },
+  {
+   "name": "Lid",
+   "from": [
+    0,
+    8,
+    0
+   ],
+   "to": [
+    16,
+    9,
+    16
+   ],
+   "faces": {
+    "north": {
+     "texture": "#planks",
+     "uv": [
+      0,
+      0,
+      16,
+      1
+     ]
+    },
+    "east": {
+     "texture": "#planks",
+     "uv": [
+      0,
+      0,
+      16,
+      1
+     ]
+    },
+    "south": {
+     "texture": "#planks",
+     "uv": [
+      0,
+      0,
+      16,
+      1
+     ]
+    },
+    "west": {
+     "texture": "#planks",
+     "uv": [
+      0,
+      0,
+      16,
+      1
+     ]
+    },
+    "up": {
+     "texture": "#planks",
+     "uv": [
+      0,
+      0,
+      16,
+      16
+     ]
+    },
+    "down": {
+     "texture": "#planks",
+     "uv": [
+      0,
+      0,
+      16,
+      16
+     ]
+    }
+   }
+  },
+  {
+   "name": "Ring",
+   "from": [
+    4,
+    9,
+    4
+   ],
+   "to": [
+    12,
+    10,
+    12
+   ],
+   "faces": {
+    "north": {
+     "texture": "#stone",
+     "uv": [
+      0,
+      0,
+      8,
+      1
+     ]
+    },
+    "east": {
+     "texture": "#stone",
+     "uv": [
+      0,
+      0,
+      8,
+      1
+     ]
+    },
+    "south": {
+     "texture": "#stone",
+     "uv": [
+      0,
+      0,
+      8,
+      1
+     ]
+    },
+    "west": {
+     "texture": "#stone",
+     "uv": [
+      0,
+      0,
+      8,
+      1
+     ]
+    },
+    "up": {
+     "texture": "#stone",
+     "uv": [
+      0,
+      0,
+      8,
+      8
+     ]
+    },
+    "down": {
+     "texture": "#stone",
+     "uv": [
+      0,
+      0,
+      8,
+      8
+     ]
+    }
+   }
+  },
+  {
+   "name": "Coals",
+   "from": [
+    5,
+    10,
+    5
+   ],
+   "to": [
+    11,
+    10.5,
+    11
+   ],
+   "faces": {
+    "north": {
+     "texture": "#coal",
+     "uv": [
+      0,
+      0,
+      6,
+      0.5
+     ]
+    },
+    "east": {
+     "texture": "#coal",
+     "uv": [
+      0,
+      0,
+      6,
+      0.5
+     ]
+    },
+    "south": {
+     "texture": "#coal",
+     "uv": [
+      0,
+      0,
+      6,
+      0.5
+     ]
+    },
+    "west": {
+     "texture": "#coal",
+     "uv": [
+      0,
+      0,
+      6,
+      0.5
+     ]
+    },
+    "up": {
+     "texture": "#coal",
+     "uv": [
+      0,
+      0,
+      6,
+      6
+     ]
+    },
+    "down": {
+     "texture": "#coal",
+     "uv": [
+      0,
+      0,
+      6,
+      6
+     ]
+    }
+   }
+  },
+  {
+   "name": "Pot",
+   "from": [
+    5.5,
+    10.5,
+    5.5
+   ],
+   "to": [
+    10.5,
+    14,
+    10.5
+   ],
+   "faces": {
+    "north": {
+     "texture": "#metal",
+     "uv": [
+      0,
+      0,
+      5.0,
+      3.5
+     ]
+    },
+    "east": {
+     "texture": "#metal",
+     "uv": [
+      0,
+      0,
+      5.0,
+      3.5
+     ]
+    },
+    "south": {
+     "texture": "#metal",
+     "uv": [
+      0,
+      0,
+      5.0,
+      3.5
+     ]
+    },
+    "west": {
+     "texture": "#metal",
+     "uv": [
+      0,
+      0,
+      5.0,
+      3.5
+     ]
+    },
+    "up": {
+     "texture": "#metal",
+     "uv": [
+      0,
+      0,
+      5.0,
+      5.0
+     ]
+    },
+    "down": {
+     "texture": "#metal",
+     "uv": [
+      0,
+      0,
+      5.0,
+      5.0
+     ]
+    }
+   }
+  },
+  {
+   "name": "Rim",
+   "from": [
+    5,
+    14,
+    5
+   ],
+   "to": [
+    11,
+    14.5,
+    11
+   ],
+   "faces": {
+    "north": {
+     "texture": "#metal",
+     "uv": [
+      0,
+      0,
+      6,
+      0.5
+     ]
+    },
+    "east": {
+     "texture": "#metal",
+     "uv": [
+      0,
+      0,
+      6,
+      0.5
+     ]
+    },
+    "south": {
+     "texture": "#metal",
+     "uv": [
+      0,
+      0,
+      6,
+      0.5
+     ]
+    },
+    "west": {
+     "texture": "#metal",
+     "uv": [
+      0,
+      0,
+      6,
+      0.5
+     ]
+    },
+    "up": {
+     "texture": "#metal",
+     "uv": [
+      0,
+      0,
+      6,
+      6
+     ]
+    },
+    "down": {
+     "texture": "#metal",
+     "uv": [
+      0,
+      0,
+      6,
+      6
+     ]
+    }
+   }
+  },
+  {
+   "name": "Cloth",
+   "from": [
+    1,
+    9,
+    11.5
+   ],
+   "to": [
+    4,
+    9.6,
+    14.5
+   ],
+   "faces": {
+    "north": {
+     "texture": "#cloth",
+     "uv": [
+      0,
+      0,
+      3,
+      0.6
+     ]
+    },
+    "east": {
+     "texture": "#cloth",
+     "uv": [
+      0,
+      0,
+      3.0,
+      0.6
+     ]
+    },
+    "south": {
+     "texture": "#cloth",
+     "uv": [
+      0,
+      0,
+      3,
+      0.6
+     ]
+    },
+    "west": {
+     "texture": "#cloth",
+     "uv": [
+      0,
+      0,
+      3.0,
+      0.6
+     ]
+    },
+    "up": {
+     "texture": "#cloth",
+     "uv": [
+      0,
+      0,
+      3,
+      3.0
+     ]
+    },
+    "down": {
+     "texture": "#cloth",
+     "uv": [
+      0,
+      0,
+      3,
+      3.0
+     ]
+    }
+   }
+  }
+ ]
+}

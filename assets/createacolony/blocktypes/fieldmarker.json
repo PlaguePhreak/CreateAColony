@@ -3,9 +3,22 @@
 	"class": "BlockFieldMarker",
 	"creativeinventory": { "general": ["*"] },
 	"blockmaterial": "Wood",
-	"drawtype": "cube",
-	// Marks out a field for farmers, like MineColonies' scarecrow. Placeholder cube look.
-	"textures": { "all": { "base": "game:block/wood/planks/aged1" }, "up": { "base": "game:block/cloth/linen/blue" } },
+	"drawtype": "json",
+	// Marks out a field for farmers, like MineColonies' scarecrow. Simple model: a scarecrow two blocks tall.
+	"shape": { "base": "createacolony:block/fieldmarker" },
+	"textures": {
+		"planks": { "base": "game:block/wood/planks/aged1" },
+		"cloth": { "base": "game:block/cloth/linen/red" },
+		"hay": { "base": "game:block/wood/debarked/aged" },
+		"linen": { "base": "game:block/wood/table/aged/top" }
+	},
+	// Two blocks tall to look at, but only the post is solid.
+	"collisionbox": { "x1": 0.375, "y1": 0, "z1": 0.375, "x2": 0.625, "y2": 1.5, "z2": 0.625 },
+	"selectionbox": { "x1": 0.0625, "y1": 0, "z1": 0.0625, "x2": 0.9375, "y2": 2, "z2": 0.9375 },
+	"sideopaque": { "all": false },
+	"sidesolid": { "all": false },
+	"emitSideAo": { "all": false },
+	"lightAbsorption": 0,
 	"resistance": 1,
 	"sounds": { "place": "game:block/planks", "break": "game:block/planks", "hit": "game:block/planks" }
 }

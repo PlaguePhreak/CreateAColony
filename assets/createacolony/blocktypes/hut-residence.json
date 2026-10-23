@@ -13,9 +13,19 @@
 	},
 	"creativeinventory": { "general": ["*"] },
 	"blockmaterial": "Wood",
-	"drawtype": "cube",
-	// The seed of the Residence, where families live. Placeholder cube look.
-	"textures": { "all": { "base": "game:block/wood/table/aged/sides" }, "up": { "base": "game:block/cloth/linen/blue" }, "down": { "base": "game:block/wood/planks/aged1" } },
+	"drawtype": "json",
+	// The seed of the Residence, where families live. Simple model: a little bed.
+	"shape": { "base": "createacolony:block/hut-residence" },
+	"textures": {
+		"sides": { "base": "game:block/wood/table/aged/sides" },
+		"planks": { "base": "game:block/wood/planks/aged1" },
+		"cloth": { "base": "game:block/cloth/linen/red" },
+		"linen": { "base": "game:block/cloth/linen/blue" }
+	},
+	"sideopaque": { "all": false },
+	"sidesolid": { "all": false },
+	"emitSideAo": { "all": false },
+	"lightAbsorption": 0,
 	"resistance": 2,
 	"sounds": { "place": "game:block/planks", "break": "game:block/planks", "hit": "game:block/planks" }
 }

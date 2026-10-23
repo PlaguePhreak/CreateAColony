@@ -13,9 +13,20 @@
 	},
 	"creativeinventory": { "general": ["*"] },
 	"blockmaterial": "Wood",
-	"drawtype": "cube",
-	// The seed of the Miner's Hut. Placeholder cube look.
-	"textures": { "all": { "base": "game:block/wood/debarked/aged" }, "up": { "base": "game:block/cloth/linen/red" }, "down": { "base": "game:block/wood/planks/aged1" } },
+	"drawtype": "json",
+	// The seed of the Miner's Hut. Simple model: a pile of rock and ore with a pickaxe.
+	"shape": { "base": "createacolony:block/hut-miner" },
+	"textures": {
+		"sides": { "base": "game:block/wood/table/aged/sides" },
+		"planks": { "base": "game:block/wood/planks/aged1" },
+		"stone": { "base": "game:block/stone/rock/granite1" },
+		"coal": { "base": "game:block/coal/charcoal" },
+		"metal": { "base": "game:block/metal/ingot/iron" }
+	},
+	"sideopaque": { "all": false },
+	"sidesolid": { "all": false },
+	"emitSideAo": { "all": false },
+	"lightAbsorption": 0,
 	"resistance": 2,
 	"sounds": { "place": "game:block/planks", "break": "game:block/planks", "hit": "game:block/planks" }
 }

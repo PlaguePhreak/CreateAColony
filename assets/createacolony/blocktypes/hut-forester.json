@@ -13,9 +13,20 @@
 	},
 	"creativeinventory": { "general": ["*"] },
 	"blockmaterial": "Wood",
-	"drawtype": "cube",
-	// The seed of the Forester's Hut. Placeholder cube look.
-	"textures": { "all": { "base": "game:block/wood/debarked/aged" }, "up": { "base": "game:block/wood/table/aged/top" }, "down": { "base": "game:block/wood/planks/aged1" } },
+	"drawtype": "json",
+	// The seed of the Forester's Hut. Simple model: a stump with an axe in it.
+	"shape": { "base": "createacolony:block/hut-forester" },
+	"textures": {
+		"sides": { "base": "game:block/wood/table/aged/sides" },
+		"planks": { "base": "game:block/wood/planks/aged1" },
+		"log": { "base": "game:block/wood/debarked/aged" },
+		"top": { "base": "game:block/wood/table/aged/top" },
+		"metal": { "base": "game:block/metal/ingot/iron" }
+	},
+	"sideopaque": { "all": false },
+	"sidesolid": { "all": false },
+	"emitSideAo": { "all": false },
+	"lightAbsorption": 0,
 	"resistance": 2,
 	"sounds": { "place": "game:block/planks", "break": "game:block/planks", "hit": "game:block/planks" }
 }

@@ -75,6 +75,7 @@
 	"block-warehouse": "Warehouse marker",
 	"block-dropoff": "Courier drop-off",
 	"marker-outside": "This must be placed inside a colony you are a member of.",
+	"marker-no-room": "The scarecrow is two blocks tall: clear the block above first.",
 	"warehouse-exists": "This colony already has a warehouse. Break the old marker first.",
 	"warehouse-placed": "Warehouse set up. Every chest within {0} blocks of this marker is now warehouse storage.",
 	"warehouse-summary": "Warehouse: {0} chests, {1} items stored, {2} of {3} slots free.",

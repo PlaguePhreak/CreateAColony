@@ -13,9 +13,21 @@
 	},
 	"creativeinventory": { "general": ["*"] },
 	"blockmaterial": "Wood",
-	"drawtype": "cube",
-	// The seed of the Cook's Hut. Placeholder cube look.
-	"textures": { "all": { "base": "game:block/cloth/linen/red" }, "up": { "base": "game:block/wood/table/aged/top" }, "down": { "base": "game:block/wood/planks/aged1" } },
+	"drawtype": "json",
+	// The seed of the Cook's Hut. Simple model: a cooking pot on a little fire.
+	"shape": { "base": "createacolony:block/hut-cook" },
+	"textures": {
+		"sides": { "base": "game:block/wood/table/aged/sides" },
+		"planks": { "base": "game:block/wood/planks/aged1" },
+		"stone": { "base": "game:block/stone/rock/granite1" },
+		"coal": { "base": "game:block/coal/charcoal" },
+		"metal": { "base": "game:block/metal/ingot/iron" },
+		"cloth": { "base": "game:block/cloth/linen/red" }
+	},
+	"sideopaque": { "all": false },
+	"sidesolid": { "all": false },
+	"emitSideAo": { "all": false },
+	"lightAbsorption": 0,
 	"resistance": 2,
 	"sounds": { "place": "game:block/planks", "break": "game:block/planks", "hit": "game:block/planks" }
 }

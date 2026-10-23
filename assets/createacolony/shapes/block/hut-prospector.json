@@ -1,0 +1,427 @@
+{
+ "textureWidth": 16,
+ "textureHeight": 16,
+ "textures": {
+  "sides": "sides",
+  "planks": "planks",
+  "stone": "stone",
+  "metal": "metal",
+  "cloth": "cloth"
+ },
+ "elements": [
+  {
+   "name": "Crate",
+   "from": [
+    1,
+    0,
+    1
+   ],
+   "to": [
+    15,
+    8,
+    15
+   ],
+   "faces": {
+    "north": {
+     "texture": "#sides",
+     "uv": [
+      0,
+      0,
+      14,
+      8
+     ]
+    },
+    "east": {
+     "texture": "#sides",
+     "uv": [
+      0,
+      0,
+      14,
+      8
+     ]
+    },
+    "south": {
+     "texture": "#sides",
+     "uv": [
+      0,
+      0,
+      14,
+      8
+     ]
+    },
+    "west": {
+     "texture": "#sides",
+     "uv": [
+      0,
+      0,
+      14,
+      8
+     ]
+    },
+    "up": {
+     "texture": "#sides",
+     "uv": [
+      0,
+      0,
+      14,
+      14
+     ]
+    },
+    "down": {
+     "texture": "#sides",
+     "uv": [
+      0,
+      0,
+      14,
+      14
+     ]
+    }
+   }
+  },
+  {
+   "name": "Lid",
+   "from": [
+    0,
+    8,
+    0
+   ],
+   "to": [
+    16,
+    9,
+    16
+   ],
+   "faces": {
+    "north": {
+     "texture": "#planks",
+     "uv": [
+      0,
+      0,
+      16,
+      1
+     ]
+    },
+    "east": {
+     "texture": "#planks",
+     "uv": [
+      0,
+      0,
+      16,
+      1
+     ]
+    },
+    "south": {
+     "texture": "#planks",
+     "uv": [
+      0,
+      0,
+      16,
+      1
+     ]
+    },
+    "west": {
+     "texture": "#planks",
+     "uv": [
+      0,
+      0,
+      16,
+      1
+     ]
+    },
+    "up": {
+     "texture": "#planks",
+     "uv": [
+      0,
+      0,
+      16,
+      16
+     ]
+    },
+    "down": {
+     "texture": "#planks",
+     "uv": [
+      0,
+      0,
+      16,
+      16
+     ]
+    }
+   }
+  },
+  {
+   "name": "Rock",
+   "from": [
+    3,
+    9,
+    3
+   ],
+   "to": [
+    9,
+    13,
+    9
+   ],
+   "faces": {
+    "north": {
+     "texture": "#stone",
+     "uv": [
+      0,
+      0,
+      6,
+      4
+     ]
+    },
+    "east": {
+     "texture": "#stone",
+     "uv": [
+      0,
+      0,
+      6,
+      4
+     ]
+    },
+    "south": {
+     "texture": "#stone",
+     "uv": [
+      0,
+      0,
+      6,
+      4
+     ]
+    },
+    "west": {
+     "texture": "#stone",
+     "uv": [
+      0,
+      0,
+      6,
+      4
+     ]
+    },
+    "up": {
+     "texture": "#stone",
+     "uv": [
+      0,
+      0,
+      6,
+      6
+     ]
+    },
+    "down": {
+     "texture": "#stone",
+     "uv": [
+      0,
+      0,
+      6,
+      6
+     ]
+    }
+   }
+  },
+  {
+   "name": "PickHandle",
+   "from": [
+    9.5,
+    9,
+    5
+   ],
+   "to": [
+    10.5,
+    19,
+    6
+   ],
+   "faces": {
+    "north": {
+     "texture": "#planks",
+     "uv": [
+      0,
+      0,
+      1.0,
+      10
+     ]
+    },
+    "east": {
+     "texture": "#planks",
+     "uv": [
+      0,
+      0,
+      1,
+      10
+     ]
+    },
+    "south": {
+     "texture": "#planks",
+     "uv": [
+      0,
+      0,
+      1.0,
+      10
+     ]
+    },
+    "west": {
+     "texture": "#planks",
+     "uv": [
+      0,
+      0,
+      1,
+      10
+     ]
+    },
+    "up": {
+     "texture": "#planks",
+     "uv": [
+      0,
+      0,
+      1.0,
+      1
+     ]
+    },
+    "down": {
+     "texture": "#planks",
+     "uv": [
+      0,
+      0,
+      1.0,
+      1
+     ]
+    }
+   }
+  },
+  {
+   "name": "PickHead",
+   "from": [
+    7.5,
+    18,
+    5
+   ],
+   "to": [
+    13.5,
+    19,
+    6
+   ],
+   "faces": {
+    "north": {
+     "texture": "#metal",
+     "uv": [
+      0,
+      0,
+      6.0,
+      1
+     ]
+    },
+    "east": {
+     "texture": "#metal",
+     "uv": [
+      0,
+      0,
+      1,
+      1
+     ]
+    },
+    "south": {
+     "texture": "#metal",
+     "uv": [
+      0,
+      0,
+      6.0,
+      1
+     ]
+    },
+    "west": {
+     "texture": "#metal",
+     "uv": [
+      0,
+      0,
+      1,
+      1
+     ]
+    },
+    "up": {
+     "texture": "#metal",
+     "uv": [
+      0,
+      0,
+      6.0,
+      1
+     ]
+    },
+    "down": {
+     "texture": "#metal",
+     "uv": [
+      0,
+      0,
+      6.0,
+      1
+     ]
+    }
+   }
+  },
+  {
+   "name": "Map",
+   "from": [
+    2,
+    9,
+    10
+   ],
+   "to": [
+    12,
+    9.4,
+    14
+   ],
+   "faces": {
+    "north": {
+     "texture": "#cloth",
+     "uv": [
+      0,
+      0,
+      10,
+      0.4
+     ]
+    },
+    "east": {
+     "texture": "#cloth",
+     "uv": [
+      0,
+      0,
+      4,
+      0.4
+     ]
+    },
+    "south": {
+     "texture": "#cloth",
+     "uv": [
+      0,
+      0,
+      10,
+      0.4
+     ]
+    },
+    "west": {
+     "texture": "#cloth",
+     "uv": [
+      0,
+      0,
+      4,
+      0.4
+     ]
+    },
+    "up": {
+     "texture": "#cloth",
+     "uv": [
+      0,
+      0,
+      10,
+      4
+     ]
+    },
+    "down": {
+     "texture": "#cloth",
+     "uv": [
+      0,
+      0,
+      10,
+      4
+     ]
+    }
+   }
+  }
+ ]
+}

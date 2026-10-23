@@ -113,7 +113,7 @@ All three are on the new Mining tab of the Builder's Wand and use placeholder bl
 - `assets/createacolony/` entity, block and lang JSON
 
 ## Known TODOs
-- Town Hall and Supply Camp use a plain plank-cube look for now.
+- Most hut blocks have simple placeholder models (0.57.0); only the Town Hall and the Farmer's Hut have finished ones.
 - The Town Hall window, the warehouse and courier, and jobs come in milestones 3 to 6.
 
 ## Blueprints
@@ -272,7 +272,8 @@ Town Hall. Each works from the free hut of its kind nearest the start of the lis
 - The forester needs an axe. It fells wild trees within `ForesterRadius` blocks of its hut (never
   placed logs), nearest first, with the game's own axe logic, and plants a tree seed or sapling of
   the same wood on the stump.
-- The farmer needs a hoe. A **Field marker** (dry grass on two sticks) marks out the square of
+- The farmer needs a hoe. A **Field marker** (dry grass on two sticks, a scarecrow two blocks tall that needs
+  the block above it free) marks out the square of
   `FieldRadius` blocks around it. The farmer harvests ripe crops and sows them again, sows bare
   farmland, and tills soil, up to `FieldsPerFarmer` fields each. Right-click a marker with seeds to
   choose its crop; sneak and right-click it with an empty hand to allow any.
@@ -455,6 +456,14 @@ Smithing skill grows with both jobs.
   can be made comes from the game's smithing recipes; the anvil's tier must be high enough for the metal.
   The Smithing tab shows everything that can be made from the metals the colony has ingots of, with the
   ingots each takes; nothing is kept until an officer picks something.
+
+### Hut models (0.57.0)
+- Every hut block that was a plain cube now has a small model on a crate, like the new huts: Builder (toolbox and
+  hammer), Cook (pot on a fire), Forester (stump and axe), Guard Tower (lookout), Miner (rock, ore and pickaxe),
+  Potter (pots), Prospector (rock, pick and map), Quarry (stone blocks), Residence (bed), Tavern (barrel and
+  mugs) and Warehouse (crates). The Supply Camp is a crate and a small tent. The Town Hall and Farmer's Hut models
+  (by Aaron's friend) are unchanged. Generator: `tools/models/hut_models.py`.
+- The Field marker is a scarecrow two blocks tall. Only its post is solid, and it needs the block above it free.
 
 ### The barracks (0.54.0)
 - **Barracks** (2 bows + 7 planks), with a simple placeholder model and a placeholder level 1 blueprint (an open
