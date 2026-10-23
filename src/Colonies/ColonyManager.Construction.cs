@@ -212,7 +212,8 @@ public partial class ColonyManager
         if (current.Id == step.BlockId || Fulfils(colony, current, step.BlockId)) return true;
         if (GetBuilding(colony, pos) != null) return true;
         // A half-built fire pit already has its container (the fuel slot), but the firewood still has to go on.
-        if (InProgress(current, step.BlockId)) return false;
+        // A wattle fence or a first coat of daub waits for more daub the same way.
+        if (InProgress(colony, current, step.BlockId)) return false;
         if (ba.GetBlockEntity(pos) is BlockEntityContainer) return true;
         // The top half of a door belongs to the door below it; clearing it would break the door. The same goes
         // for the other cells of a furniture shelf.

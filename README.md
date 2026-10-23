@@ -172,6 +172,16 @@ torch counts as built whether it is lit or burned out. Items lying on the ground
 left out. Empty space below the hut's floor is dug out only when the blueprint has blocks both under
 and over it (a cellar); elsewhere the ground below the floor is left alone.
 
+**Wattle and daub (0.56.0)** is built the way a player builds it. Where a blueprint has a daub block
+(`daub-tan-wattle`, `daub-tan-cracked` or `daub-tan-normal`), the builder puts up a wattle fence, puts
+raw daub on it for the first coat ("wattle"), then more raw daub for "cracked" and again for "normal",
+stopping at the stage the blueprint shows. How much raw daub each coat takes comes from the game's own
+blocks (`daubUpgradeAmount`), and the Builder's Hut lists it under Items needed. When the colony allows
+any wood or stone, any colour of raw daub will do: the wall takes the colour of the first coat, and later
+coats use that colour, as the game requires. Otherwise the builder asks for the blueprint's colour. A
+smoother coat than the blueprint's also counts as built, and a wattle fence or half-done daub where the
+blueprint has daub is never torn down.
+
 ### Converting MineColonies blueprints
 
 `tools/blueprints/convert_minecolonies.py <style folder> [--library <out folder>]` (Python 3 with Pillow)

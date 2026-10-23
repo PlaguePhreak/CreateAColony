@@ -9,8 +9,9 @@ namespace CreateAColony.Colonies;
 /// <summary>
 /// What a builder spends on each block of a blueprint, and what counts as built. Most blocks cost the
 /// block itself. A fire pit is made the way a player makes one: dry grass on the ground, then four
-/// firewood added one at a time. When the colony allows it, any wood or stone type will do in place
-/// of the one the blueprint asks for, and the builder places the block in the type it brought.
+/// firewood added one at a time, and daub as a wattle fence with raw daub put on it coat by coat. When the
+/// colony allows it, any wood or stone type (or daub colour) will do in place of the one the blueprint asks
+/// for, and the builder places the block in the type it brought.
 /// </summary>
 public partial class ColonyManager
 {
@@ -46,6 +47,9 @@ public partial class ColonyManager
         if (IsStoneOvenBlock(target) || IsStoneOvenBlock(current)) return OvenRestingBlock(current).Id == OvenRestingBlock(target).Id
             || (colony.AnyWoodOrStone && SameButStone(OvenRestingBlock(current), OvenRestingBlock(target)));
         if (current is BlockFirepit have && target is BlockFirepit want) return have.Stage >= Math.Min(want.Stage, FirepitReady);
+        // Daub is built up coat by coat (ColonyManager.WattleDaub.cs): a smoother coat, or another colour when any will do, counts.
+        bool daubFits = DaubFulfils(colony, current, target, out bool isDaub);
+        if (isDaub) return daubFits;
         // A fence's code says which sides it joins ("type": n, ew, nesw, empty...), and the game changes it
         // as neighbours are built. The blueprint's joins are from wherever it was saved, so they never count.
         if (current is BlockFence && target is BlockFence && VariantOf(current, FenceJoins) is { } joins
@@ -77,12 +81,13 @@ public partial class ColonyManager
     }
 
     /// <summary>True when the block is a half-built step towards the blueprint's block, so it must not be torn down.</summary>
-    public bool InProgress(Block current, int targetId) =>
-        current is BlockFirepit pit && !IsStoneOvenBlock(pit) && pit.Stage < FirepitReady && sapi.World.GetBlock(targetId) is BlockFirepit want && !IsStoneOvenBlock(want);
+    public bool InProgress(Colony colony, Block current, int targetId) =>
+        current is BlockFirepit pit && !IsStoneOvenBlock(pit) && pit.Stage < FirepitReady && sapi.World.GetBlock(targetId) is BlockFirepit want && !IsStoneOvenBlock(want)
+        || DaubInProgress(colony, current, sapi.World.GetBlock(targetId));
 
     /// <summary>True when a builder leaves this block standing for the step.</summary>
     public bool KeepsBlock(Colony colony, Block current, int targetId) =>
-        current.Id == targetId || Fulfils(colony, current, targetId) || InProgress(current, targetId);
+        current.Id == targetId || Fulfils(colony, current, targetId) || InProgress(colony, current, targetId);
 
     /// <summary>Rock, gravel, sand, clay and other natural ground blocks.</summary>
     static bool IsNaturalGround(Block block) => block.SideSolid.All && block.BlockMaterial is EnumBlockMaterial.Soil
@@ -120,6 +125,7 @@ public partial class ColonyManager
             var start = sapi.World.GetBlock(new AssetLocation("game:firepit-construct1"));
             if (start != null) return (start, Costs(ItemCost("game:drygrass", 1)));
         }
+        if (DaubPlacement(colony, target, pos) is { } daub) return daub;
         if (Config.BuildersNeedMaterials && (PlacedItemCosts(step, target, pos, colony.AnyWoodOrStone) ?? SavedCost(step, target)) is { } saved) return (target, saved);
         return (target, Costs(PickCost(colony, target, pos)));
     }
@@ -140,6 +146,11 @@ public partial class ColonyManager
             if (wood > 0) yield return firewood with { Count = wood };
             yield break;
         }
+        if (DaubRemaining(colony, target, pos) is { } daub)
+        {
+            foreach (var cost in daub) yield return cost;
+            yield break;
+        }
         foreach (var cost in NextPlacement(colony, step, pos).Costs) yield return cost;
     }
 
@@ -147,6 +158,7 @@ public partial class ColonyManager
     public Block SwapToMaterial(Colony colony, Block place, ItemStack? used)
     {
         if (!colony.AnyWoodOrStone || used == null) return place;
+        if (SwapDaubColor(place, used) is { } recoloured) return recoloured;
         foreach (string v in SwappableVariants)
         {
             string? brought = VariantOf(used.Collectible, v);
