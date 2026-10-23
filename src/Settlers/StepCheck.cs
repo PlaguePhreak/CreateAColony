@@ -13,6 +13,12 @@ namespace CreateAColony.Settlers;
 /// walker can step. So it plans paths over fences, walls and other blocks taller than a full block (1.5
 /// blocks for a fence), and the settler then walks into them and stays there. While it plans for a settler
 /// (DoorPathing knows when), a step up that rises more than the settler's step height is refused.
+///
+/// It also never checks head room where the step starts: it checks that the settler fits standing on top of
+/// the block, but not that it can rise there from where it stands. A block hanging at head height over the
+/// spot before a step (a low roof edge, a floating block, a beam) stops the climb, and the settler walked into
+/// it over and over. A step up is refused unless the settler's whole body fits at the new height over the
+/// spot it starts from and halfway across.
 /// </summary>
 public static class StepCheck
 {
@@ -20,6 +26,8 @@ public static class StepCheck
     const double Tolerance = 0.05;
 
     [ThreadStatic] static BlockPos? tmpPos;
+    [ThreadStatic] static Vec3d? tmpVec;
+    [ThreadStatic] static CollisionTester? collisionTester;
 
     public static void Patch(Harmony harmony)
     {
@@ -31,7 +39,7 @@ public static class StepCheck
     /// <summary>Remembers the height the pathfinder starts the step at; it moves node up or down while it checks.</summary>
     static void Before(PathNode node, out int __state) => __state = node.Y;
 
-    static void After(AStar __instance, PathNode node, float stepHeight, Cardinal fromDir, int __state, ref bool __result)
+    static void After(AStar __instance, PathNode node, float stepHeight, Cuboidf entityCollBox, Cardinal fromDir, int __state, ref bool __result)
     {
         // node only ends up higher when the pathfinder stepped up onto the block in front.
         if (!__result || node.Y <= __state || !DoorPathing.Planning || PathBlocks.blockAccess == null) return;
@@ -43,7 +51,22 @@ public static class StepCheck
         double top = Top(ba, pos.Set(node.X, __state, node.Z));
         if (top <= 0) return;
         double from = Floor(ba, pos, node.X - fromDir.Normali.X, __state, node.Z - fromDir.Normali.Z);
-        if (__state + top - from > stepHeight + Tolerance) __result = false;
+        if (__state + top - from > stepHeight + Tolerance)
+        {
+            __result = false;
+            return;
+        }
+
+        // Head room for the climb: the body at the new height, over the spot it starts from and halfway across.
+        var tester = collisionTester ??= new CollisionTester();
+        var at = tmpVec ??= new Vec3d();
+        double x = node.X - fromDir.Normali.X + __instance.centerOffsetX, z = node.Z - fromDir.Normali.Z + __instance.centerOffsetZ;
+        double y = __state + top + Tolerance;
+        if (tester.IsColliding(ba, entityCollBox, at.Set(x, y, z), false)
+            || tester.IsColliding(ba, entityCollBox, at.Set(x + fromDir.Normali.X * 0.5, y, z + fromDir.Normali.Z * 0.5), false))
+        {
+            __result = false;
+        }
     }
 
     /// <summary>

@@ -25,6 +25,13 @@ public abstract class SettlerTaskBase : AiTaskBase
     /// another settler for a moment; that used to count as "no path" and soon made settlers give up on their work.
     /// </summary>
     const int MaxStuckReplans = 4;
+    /// <summary>
+    /// How close the settler gets to each waypoint of a path before heading for the next one. The game's walker
+    /// uses the walk's arrival range for every waypoint and looks up to three waypoints ahead, so with a range
+    /// of 1.5 to 2.5 blocks settlers cut corners and walked into wall edges and blocks at head height that the
+    /// path went around. Arriving at the goal itself is checked here with the walk's own range.
+    /// </summary>
+    const float WaypointRange = 0.75f;
 
     protected readonly float moveSpeed;
     protected readonly ColonyManager? manager;
@@ -194,6 +201,14 @@ public abstract class SettlerTaskBase : AiTaskBase
             return;
         }
         long now = entity.World.ElapsedMilliseconds;
+        // Within the walk's range of the goal (or of a stretch's end): arrived, even though the walker only
+        // counts a waypoint as reached much closer than that.
+        if (!failed && ladderPhase == LadderPhase.None && entity.Pos.SquareDistanceTo(goal) <= goalRange * goalRange)
+        {
+            pathTraverser.Stop();
+            OnArrived();
+            return;
+        }
         if (failed)
         {
             if (onLeg)
@@ -234,7 +249,7 @@ public abstract class SettlerTaskBase : AiTaskBase
         // A search still running would make the traverser ignore this one without a word.
         pathTraverser.Stop();
         // NavigateTo_Async already called OnPathFailed itself when it returns false: do not count that twice.
-        pathTraverser.NavigateTo_Async(goal!, moveSpeed, goalRange, OnArrived, OnStuck, OnPathFailed, 2000, 1);
+        pathTraverser.NavigateTo_Async(goal!, moveSpeed, System.Math.Min(goalRange, WaypointRange), OnArrived, OnStuck, OnPathFailed, 2000, 1);
     }
 
     void OnArrived()
