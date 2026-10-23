@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using CreateAColony.Colonies;
 using CreateAColony.Network;
+using CreateAColony.Quests;
 using Vintagestory.API.Client;
 using Vintagestory.API.Common;
 using Vintagestory.API.Config;
@@ -37,6 +38,7 @@ public class GuiDialogTownHall : GuiDialog
     const int ProspectingTab = 8;
     const int OreRowsPerPage = 7;
     const double OreRowHeight = 44;
+    const int QuestsTab = 9;
     const double MapHeight = 380;
     // The map is at most this many pixels a side; bigger colonies get one pixel per few blocks.
     const int MapMaxSide = 320;
@@ -46,7 +48,7 @@ public class GuiDialogTownHall : GuiDialog
 
     static readonly (int Id, string Lang)[] Tabs =
     {
-        (ProspectingTab, "tab-prospecting"), (ActionsTab, "tab-actions"), (MapTab, "tab-townmap"), (BannersTab, "tab-banners"), (InfoTab, "tab-information"), (CitizensTab, "tab-citizens"),
+        (ProspectingTab, "tab-prospecting"), (ActionsTab, "tab-actions"), (QuestsTab, "tab-quests"), (MapTab, "tab-townmap"), (BannersTab, "tab-banners"), (InfoTab, "tab-information"), (CitizensTab, "tab-citizens"),
         (StatsTab, "tab-statistics"), (PermissionsTab, "tab-permissions"), (SettingsTab, "tab-settings")
     };
 
@@ -122,6 +124,7 @@ public class GuiDialogTownHall : GuiDialog
             case MapTab: ComposeMap(composer); break;
             case ProspectingTab: ComposeProspecting(composer); break;
             case BannersTab: ComposeBanners(composer); break;
+            case QuestsTab: ComposeQuests(composer); break;
             case InfoTab: ComposeInformation(composer); break;
             case CitizensTab: ComposeCitizens(composer); break;
             case StatsTab: ComposeStatistics(composer); break;
@@ -293,6 +296,55 @@ public class GuiDialogTownHall : GuiDialog
             composer.AddSmallButton(Lang.Get("createacolony:build-rotate", b.Rotation), () => Send(ColonyAction.Rotate, id), ElementBounds.Fixed(x, y, 190, 28));
         }
         return y + 36;
+    }
+
+    // ---- Quests tab -----------------------------------------------------------------------
+
+    /// <summary>
+    /// The colony's quests at a glance: how far each colony chapter is, the quests ready to claim, and
+    /// a button that opens the quest book itself.
+    /// </summary>
+    void ComposeQuests(GuiComposer composer)
+    {
+        double y = 30;
+        var library = network.ClientQuests;
+        var states = snapshot.Quests.ToDictionary(s => s.Code, s => s);
+        QuestStatus StatusOf(QuestDef q) => states.TryGetValue(q.Code, out var s) ? (QuestStatus)s.Status : QuestStatus.Locked;
+
+        composer.AddSmallButton(Lang.Get("createacolony:questbook-open"), () => { network.RequestQuestBook(); return true; }, ElementBounds.Fixed(Width - 180, y - 2, 180, 28));
+        y = composer.Text(Lang.Get("createacolony:townhall-quests-intro"), GuiKit.Detail(), 0, y + 4, Width - 190, 10);
+
+        // Quests ready to claim, so officers see them without opening the book.
+        var ready = library.All.Where(q => q.PerColony && StatusOf(q) == QuestStatus.Complete).Take(5).ToList();
+        if (ready.Count > 0)
+        {
+            y = composer.Section(Lang.Get("createacolony:townhall-quests-ready"), y, Width);
+            foreach (var q in ready)
+            {
+                y = composer.Text("• " + Lang.Get(QuestLibrary.TitleKey(q)) + " — " + Lang.Get("createacolony:chapter-" + q.Chapter.Code), GuiKit.Body().WithColor(new[] { 1.0, 0.82, 0.25, 1.0 }), 10, y, Width - 10, 2);
+            }
+            y += 8;
+        }
+
+        // Each colony chapter as a row: name, done / total, and a bar.
+        foreach (var group in library.Groups)
+        {
+            var chapters = group.Chapters.Where(c => c.PerColony).ToList();
+            if (chapters.Count == 0) continue;
+            y = composer.Section(Lang.Get("createacolony:questgroup-" + group.Code), y, Width);
+            foreach (var chapter in chapters)
+            {
+                int total = chapter.Quests.Count(q => !q.Secret || StatusOf(q) != QuestStatus.Locked);
+                int done = chapter.Quests.Count(q => StatusOf(q) == QuestStatus.Claimed);
+                var font = done > 0 && done == total ? GuiKit.Body().WithColor(GuiKit.GoodColor) : GuiKit.Body();
+                composer
+                    .AddStaticText(Lang.Get("createacolony:chapter-" + chapter.Code), font, ElementBounds.Fixed(10, y, Width * 0.5, 22))
+                    .AddStaticText(total == 0 ? Lang.Get("createacolony:townhall-quests-later") : done + " / " + total,
+                        GuiKit.Detail().WithOrientation(EnumTextOrientation.Right), ElementBounds.Fixed(Width * 0.5, y + 1, Width * 0.5 - 10, 22));
+                y += 24;
+            }
+            y += 4;
+        }
     }
 
     void ComposeHelp(GuiComposer composer)

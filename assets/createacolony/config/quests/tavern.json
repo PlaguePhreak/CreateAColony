@@ -1,0 +1,23 @@
+{
+  "code": "tavern",
+  "order": 10,
+  "scope": "player",
+  "chapters": [
+    {
+      "code": "oddjobs",
+      "quests": []
+    },
+    {
+      "code": "deliveries",
+      "quests": []
+    },
+    {
+      "code": "bounties",
+      "quests": []
+    },
+    {
+      "code": "hunts",
+      "quests": []
+    }
+  ]
+}

@@ -291,6 +291,30 @@ public class OreFind
     [ProtoMember(3)] public double Ppt;
 }
 
+/// <summary>
+/// What is saved about one quest for a player or a colony: whether it was accepted and when it was
+/// claimed. Everything else (locked, counting, complete) is worked out from the world each time.
+/// </summary>
+[ProtoContract]
+public class QuestRecord
+{
+    [ProtoMember(1)] public bool Accepted;
+    [ProtoMember(2)] public double AcceptedTotalDays;
+    [ProtoMember(3)] public bool Claimed;
+    [ProtoMember(4)] public double ClaimedTotalDays;
+    /// <summary>The player was told the quest is ready to claim, so they are not told again.</summary>
+    [ProtoMember(5)] public bool Notified;
+}
+
+/// <summary>One player's own quests (the base game groups and the Story prologue), saved on the world under the player's uid.</summary>
+[ProtoContract]
+public class PlayerQuests
+{
+    [ProtoMember(1)] public Dictionary<string, QuestRecord> Quests = new();
+    /// <summary>Quest codes the player chose to track in the quest book.</summary>
+    [ProtoMember(2)] public List<string> Tracked = new();
+}
+
 [ProtoContract]
 public class Colony
 {
@@ -335,6 +359,8 @@ public class Colony
     [ProtoMember(27, IsRequired = true)] public int LastFamilyDay = -1;
     /// <summary>Readings the colony's prospectors took with the game's prospecting pick, oldest first.</summary>
     [ProtoMember(28)] public List<OreSite> OreSites = new();
+    /// <summary>The colony's quests (the Story and The Colony groups), by quest code: accepted and claimed ones only.</summary>
+    [ProtoMember(29)] public Dictionary<string, QuestRecord> Quests = new();
 
     public string OwnerUid => Members.Find(m => m.Role == ColonyRole.Owner)?.PlayerUid ?? "";
 

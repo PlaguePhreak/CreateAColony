@@ -47,7 +47,10 @@ public partial class ColonyNetwork : ModSystem
             .RegisterMessageType<CitizenSnapshot>()
             .RegisterMessageType<PlacementSnapshot>()
             .RegisterMessageType<WandChooserSnapshot>()
-            .RegisterMessageType<GhostPreviewPacket>();
+            .RegisterMessageType<GhostPreviewPacket>()
+            .RegisterMessageType<QuestBookOpenRequest>()
+            .RegisterMessageType<QuestBookSnapshot>()
+            .RegisterMessageType<QuestActionPacket>();
     }
 
     // ---- Server ---------------------------------------------------------------------------
@@ -58,7 +61,10 @@ public partial class ColonyNetwork : ModSystem
         serverChannel = api.Network.GetChannel(ChannelName)
             .SetMessageHandler<TownHallOpenRequest>(OnOpenRequest)
             .SetMessageHandler<ColonyActionPacket>(OnAction)
-            .SetMessageHandler<HutOpenRequest>(OnHutOpenRequest);
+            .SetMessageHandler<HutOpenRequest>(OnHutOpenRequest)
+            .SetMessageHandler<QuestBookOpenRequest>(OnQuestBookOpen)
+            .SetMessageHandler<QuestActionPacket>(OnQuestAction);
+        StartQuestsServer(api);
         // Construction progress changes without anyone clicking, so open windows refresh on their own.
         api.Event.RegisterGameTickListener(_ =>
         {
@@ -80,6 +86,7 @@ public partial class ColonyNetwork : ModSystem
             planned.Remove(player.PlayerUID);
             wandSpots.Remove(player.PlayerUID);
             citizenViewers.Remove(player.PlayerUID);
+            questViewers.Remove(player.PlayerUID);
         };
     }
 
@@ -433,7 +440,8 @@ public partial class ColonyNetwork : ModSystem
             Events = colony.Events.Select(e => new EventView { TotalDays = e.TotalDays, Key = e.Key, Args = e.Args.ToList() }).ToList(),
             WorkOrders = colony.Buildings.Where(b => b.HasWorkOrder).OrderBy(b => b.BuildingId).Select(b => BuildingViewFor(colony, b)).ToList(),
             Jobs = Manager.JobCounts(colony).Select(j => new JobView { Job = j.Job, Workers = j.Workers, Places = j.Places }).ToList(),
-            Stats = Manager.ColonyStatSummary(colony).Select(r => new StatView { Key = r.Key, Counts = r.Counts }).ToList()
+            Stats = Manager.ColonyStatSummary(colony).Select(r => new StatView { Key = r.Key, Counts = r.Counts }).ToList(),
+            Quests = sapi!.World.PlayerByUid(viewerUid) is IServerPlayer viewer ? QuestStates(viewer, colony) : new()
         };
 
         snapshot.OreReadings = colony.OreSites.Count;
@@ -802,7 +810,9 @@ public partial class ColonyNetwork : ModSystem
             .SetMessageHandler<CitizenSnapshot>(OnCitizenSnapshot)
             .SetMessageHandler<PlacementSnapshot>(OnPlacementSnapshot)
             .SetMessageHandler<WandChooserSnapshot>(OnWandChooserSnapshot)
-            .SetMessageHandler<GhostPreviewPacket>(OnGhostPreview);
+            .SetMessageHandler<GhostPreviewPacket>(OnGhostPreview)
+            .SetMessageHandler<QuestBookSnapshot>(OnQuestBookSnapshot);
+        StartQuestsClient(api);
     }
 
     /// <summary>Called by the Town Hall block when a player right-clicks it.</summary>

@@ -1,0 +1,782 @@
+{
+  "code": "ages",
+  "order": 2,
+  "scope": "player",
+  "chapters": [
+    {
+      "code": "stone",
+      "quests": [
+        {
+          "code": "age-knife",
+          "x": 0,
+          "y": 0,
+          "shape": "round",
+          "objectives": [
+            {
+              "type": "obtain",
+              "code": "game:knife-*"
+            }
+          ],
+          "rewards": [
+            {
+              "code": "game:flint",
+              "count": 4
+            }
+          ]
+        },
+        {
+          "code": "age-axe",
+          "x": 1,
+          "y": -1,
+          "shape": "round",
+          "requires": [
+            "age-knife"
+          ],
+          "objectives": [
+            {
+              "type": "obtain",
+              "code": "game:axe-*"
+            }
+          ],
+          "rewards": [
+            {
+              "code": "game:stick",
+              "count": 8
+            }
+          ]
+        },
+        {
+          "code": "age-sticks",
+          "x": 1,
+          "y": 1,
+          "shape": "round",
+          "requires": [
+            "age-knife"
+          ],
+          "objectives": [
+            {
+              "type": "obtain",
+              "code": "game:stick",
+              "count": 32
+            },
+            {
+              "type": "obtain",
+              "code": "game:drygrass",
+              "count": 16
+            }
+          ],
+          "rewards": [
+            {
+              "code": "game:firewood",
+              "count": 8
+            }
+          ]
+        },
+        {
+          "code": "age-fire",
+          "x": 2,
+          "y": 0,
+          "shape": "round",
+          "requires": [
+            "age-axe",
+            "age-sticks"
+          ],
+          "objectives": [
+            {
+              "type": "obtain",
+              "code": "game:firewood",
+              "count": 8
+            }
+          ],
+          "rewards": [
+            {
+              "code": "game:torch-basic-lit-up",
+              "count": 2
+            }
+          ]
+        },
+        {
+          "code": "age-spear",
+          "x": 3,
+          "y": -1,
+          "shape": "hexagon",
+          "requires": [
+            "age-fire"
+          ],
+          "objectives": [
+            {
+              "type": "obtain",
+              "code": "game:spear-*"
+            }
+          ],
+          "rewards": [
+            {
+              "code": "game:flint",
+              "count": 8
+            }
+          ]
+        },
+        {
+          "code": "age-camp",
+          "x": 3,
+          "y": 0,
+          "shape": "star",
+          "icon": "createacolony:supplycamp",
+          "requires": [
+            "age-fire"
+          ],
+          "objectives": [
+            {
+              "type": "camp"
+            }
+          ],
+          "rewards": [
+            {
+              "code": "game:bread-spelt-perfect",
+              "count": 4
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "code": "clay",
+      "quests": [
+        {
+          "code": "age-clay",
+          "x": 0,
+          "y": 0,
+          "shape": "round",
+          "objectives": [
+            {
+              "type": "obtain",
+              "code": "game:clay-*",
+              "count": 16
+            }
+          ],
+          "rewards": [
+            {
+              "code": "game:stick",
+              "count": 16
+            }
+          ]
+        },
+        {
+          "code": "age-bowl",
+          "x": 1,
+          "y": -1,
+          "shape": "round",
+          "requires": [
+            "age-clay"
+          ],
+          "objectives": [
+            {
+              "type": "obtain",
+              "code": "game:bowl-fired"
+            }
+          ],
+          "rewards": [
+            {
+              "code": "game:clay-blue",
+              "count": 8
+            }
+          ]
+        },
+        {
+          "code": "age-pot",
+          "x": 1,
+          "y": 1,
+          "shape": "round",
+          "requires": [
+            "age-clay"
+          ],
+          "objectives": [
+            {
+              "type": "obtain",
+              "code": "game:claypot-*"
+            }
+          ],
+          "rewards": [
+            {
+              "code": "game:bowl-fired",
+              "count": 2
+            }
+          ]
+        },
+        {
+          "code": "age-vessels",
+          "x": 2,
+          "y": 0,
+          "shape": "round",
+          "requires": [
+            "age-bowl",
+            "age-pot"
+          ],
+          "objectives": [
+            {
+              "type": "obtain",
+              "code": "game:storagevessel-*",
+              "count": 4
+            }
+          ],
+          "rewards": [
+            {
+              "code": "game:clay-blue",
+              "count": 16
+            }
+          ]
+        },
+        {
+          "code": "age-crucible",
+          "x": 3,
+          "y": -1,
+          "shape": "hexagon",
+          "requires": [
+            "age-vessels"
+          ],
+          "objectives": [
+            {
+              "type": "obtain",
+              "code": "game:crucible-*"
+            }
+          ],
+          "rewards": [
+            {
+              "code": "game:charcoal",
+              "count": 8
+            }
+          ]
+        },
+        {
+          "code": "age-potter",
+          "x": 3,
+          "y": 0,
+          "shape": "star",
+          "icon": "createacolony:hut-potter",
+          "requires": [
+            "age-vessels"
+          ],
+          "objectives": [
+            {
+              "type": "building",
+              "code": "potter"
+            },
+            {
+              "type": "job",
+              "code": "potter"
+            }
+          ],
+          "rewards": [
+            {
+              "code": "game:clay-blue",
+              "count": 32
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "code": "copper",
+      "quests": [
+        {
+          "code": "age-copper-ore",
+          "x": 0,
+          "y": 0,
+          "shape": "round",
+          "objectives": [
+            {
+              "type": "obtain",
+              "code": "game:ore-*copper*",
+              "count": 8
+            }
+          ],
+          "rewards": [
+            {
+              "code": "game:charcoal",
+              "count": 8
+            }
+          ]
+        },
+        {
+          "code": "age-charcoal",
+          "x": 1,
+          "y": -1,
+          "shape": "round",
+          "requires": [
+            "age-copper-ore"
+          ],
+          "objectives": [
+            {
+              "type": "obtain",
+              "code": "game:charcoal",
+              "count": 16
+            }
+          ],
+          "rewards": [
+            {
+              "code": "game:firewood",
+              "count": 16
+            }
+          ]
+        },
+        {
+          "code": "age-molds",
+          "x": 1,
+          "y": 1,
+          "shape": "round",
+          "requires": [
+            "age-copper-ore"
+          ],
+          "objectives": [
+            {
+              "type": "obtain",
+              "code": "game:ingotmold-*"
+            },
+            {
+              "type": "obtain",
+              "code": "game:toolmold-*",
+              "count": 2
+            }
+          ],
+          "rewards": [
+            {
+              "code": "game:clay-fire",
+              "count": 8
+            }
+          ]
+        },
+        {
+          "code": "age-copper-ingots",
+          "x": 2,
+          "y": 0,
+          "shape": "round",
+          "requires": [
+            "age-charcoal",
+            "age-molds"
+          ],
+          "objectives": [
+            {
+              "type": "obtain",
+              "code": "game:ingot-copper",
+              "count": 4
+            }
+          ],
+          "rewards": [
+            {
+              "code": "game:ore-*copper*",
+              "count": 8
+            }
+          ]
+        },
+        {
+          "code": "age-copper-pick",
+          "x": 3,
+          "y": -1,
+          "shape": "round",
+          "requires": [
+            "age-copper-ingots"
+          ],
+          "objectives": [
+            {
+              "type": "obtain",
+              "code": "game:pickaxe-copper"
+            }
+          ],
+          "rewards": [
+            {
+              "code": "game:ingot-copper",
+              "count": 2
+            }
+          ]
+        },
+        {
+          "code": "age-builder-2",
+          "x": 3,
+          "y": 0,
+          "shape": "star",
+          "icon": "createacolony:hut-builder",
+          "requires": [
+            "age-copper-ingots"
+          ],
+          "objectives": [
+            {
+              "type": "building",
+              "code": "builder",
+              "level": 2
+            }
+          ],
+          "rewards": [
+            {
+              "code": "game:ingot-copper",
+              "count": 4
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "code": "bronze",
+      "quests": [
+        {
+          "code": "age-tin-ore",
+          "x": 0,
+          "y": 0,
+          "shape": "round",
+          "objectives": [
+            {
+              "type": "obtain",
+              "code": "game:ore-*-*cassiterite*",
+              "count": 4
+            }
+          ],
+          "rewards": [
+            {
+              "code": "game:ingot-copper",
+              "count": 4
+            }
+          ]
+        },
+        {
+          "code": "age-bronze",
+          "x": 1,
+          "y": 0,
+          "shape": "round",
+          "requires": [
+            "age-tin-ore"
+          ],
+          "objectives": [
+            {
+              "type": "obtain",
+              "code": "game:ingot-*bronze",
+              "count": 8
+            }
+          ],
+          "rewards": [
+            {
+              "code": "game:charcoal",
+              "count": 16
+            }
+          ]
+        },
+        {
+          "code": "age-anvil",
+          "x": 2,
+          "y": -1,
+          "shape": "round",
+          "requires": [
+            "age-bronze"
+          ],
+          "objectives": [
+            {
+              "type": "obtain",
+              "code": "game:anvil-*bronze"
+            }
+          ],
+          "rewards": [
+            {
+              "code": "game:ingot-*bronze",
+              "count": 4
+            }
+          ]
+        },
+        {
+          "code": "age-hammer",
+          "x": 2,
+          "y": 1,
+          "shape": "round",
+          "requires": [
+            "age-bronze"
+          ],
+          "objectives": [
+            {
+              "type": "obtain",
+              "code": "game:hammer-*bronze"
+            },
+            {
+              "type": "obtain",
+              "code": "game:pickaxe-*bronze"
+            }
+          ],
+          "rewards": [
+            {
+              "code": "game:ingot-*bronze",
+              "count": 2
+            }
+          ]
+        },
+        {
+          "code": "age-propick",
+          "x": 3,
+          "y": 0,
+          "shape": "hexagon",
+          "requires": [
+            "age-anvil",
+            "age-hammer"
+          ],
+          "objectives": [
+            {
+              "type": "obtain",
+              "code": "game:propick-*"
+            }
+          ],
+          "rewards": [
+            {
+              "code": "game:gear-rusty",
+              "count": 2
+            }
+          ]
+        },
+        {
+          "code": "age-guards",
+          "x": 4,
+          "y": 0,
+          "shape": "star",
+          "icon": "createacolony:hut-guardtower",
+          "requires": [
+            "age-anvil",
+            "age-hammer"
+          ],
+          "objectives": [
+            {
+              "type": "job",
+              "code": "guard",
+              "count": 2
+            },
+            {
+              "type": "stock",
+              "code": "game:spear-*bronze",
+              "count": 2
+            }
+          ],
+          "rewards": [
+            {
+              "code": "game:spear-tinbronze",
+              "count": 2
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "code": "iron",
+      "quests": [
+        {
+          "code": "age-bloomery",
+          "x": 0,
+          "y": 0,
+          "shape": "round",
+          "objectives": [
+            {
+              "type": "obtain",
+              "code": "game:bloomery"
+            }
+          ],
+          "rewards": [
+            {
+              "code": "game:charcoal",
+              "count": 16
+            }
+          ]
+        },
+        {
+          "code": "age-bloom",
+          "x": 1,
+          "y": 0,
+          "shape": "round",
+          "requires": [
+            "age-bloomery"
+          ],
+          "objectives": [
+            {
+              "type": "obtain",
+              "code": "game:ironbloom*"
+            }
+          ],
+          "rewards": [
+            {
+              "code": "game:ore-*-*hematite*",
+              "count": 8
+            }
+          ]
+        },
+        {
+          "code": "age-iron-ingots",
+          "x": 2,
+          "y": 0,
+          "shape": "round",
+          "requires": [
+            "age-bloom"
+          ],
+          "objectives": [
+            {
+              "type": "obtain",
+              "code": "game:ingot-iron",
+              "count": 4
+            }
+          ],
+          "rewards": [
+            {
+              "code": "game:ingot-iron",
+              "count": 2
+            }
+          ]
+        },
+        {
+          "code": "age-forge",
+          "x": 2,
+          "y": 1,
+          "shape": "hexagon",
+          "requires": [
+            "age-bloom"
+          ],
+          "objectives": [
+            {
+              "type": "obtain",
+              "code": "game:forge"
+            }
+          ],
+          "rewards": [
+            {
+              "code": "game:charcoal",
+              "count": 32
+            }
+          ]
+        },
+        {
+          "code": "age-iron-pick",
+          "x": 3,
+          "y": 0,
+          "shape": "round",
+          "requires": [
+            "age-iron-ingots"
+          ],
+          "objectives": [
+            {
+              "type": "obtain",
+              "code": "game:pickaxe-iron"
+            }
+          ],
+          "rewards": [
+            {
+              "code": "game:ingot-iron",
+              "count": 4
+            }
+          ]
+        },
+        {
+          "code": "age-tower",
+          "x": 4,
+          "y": 0,
+          "shape": "star",
+          "icon": "createacolony:hut-guardtower",
+          "requires": [
+            "age-iron-pick"
+          ],
+          "objectives": [
+            {
+              "type": "building",
+              "code": "guardtower",
+              "level": 1
+            }
+          ],
+          "rewards": [
+            {
+              "code": "game:ingot-iron",
+              "count": 8
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "code": "steel",
+      "quests": [
+        {
+          "code": "age-blister",
+          "x": 0,
+          "y": 0,
+          "shape": "round",
+          "objectives": [
+            {
+              "type": "obtain",
+              "code": "game:ingot-blistersteel",
+              "count": 2
+            }
+          ],
+          "rewards": [
+            {
+              "code": "game:charcoal",
+              "count": 32
+            }
+          ]
+        },
+        {
+          "code": "age-steel",
+          "x": 1,
+          "y": 0,
+          "shape": "round",
+          "requires": [
+            "age-blister"
+          ],
+          "objectives": [
+            {
+              "type": "obtain",
+              "code": "game:ingot-steel",
+              "count": 2
+            }
+          ],
+          "rewards": [
+            {
+              "code": "game:ingot-steel",
+              "count": 1
+            }
+          ]
+        },
+        {
+          "code": "age-steel-pick",
+          "x": 2,
+          "y": 0,
+          "shape": "round",
+          "requires": [
+            "age-steel"
+          ],
+          "objectives": [
+            {
+              "type": "obtain",
+              "code": "game:pickaxe-steel"
+            }
+          ],
+          "rewards": [
+            {
+              "code": "game:gear-temporal",
+              "count": 1
+            }
+          ]
+        },
+        {
+          "code": "age-townhall-4",
+          "x": 3,
+          "y": 0,
+          "shape": "star",
+          "icon": "createacolony:townhall",
+          "requires": [
+            "age-steel-pick"
+          ],
+          "objectives": [
+            {
+              "type": "building",
+              "code": "townhall",
+              "level": 4
+            }
+          ],
+          "rewards": [
+            {
+              "code": "game:gear-temporal",
+              "count": 2
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
