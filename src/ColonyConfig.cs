@@ -138,6 +138,10 @@ public class ColonyConfig
     public int MinerLevelsPerHutLevel = 2;
     /// <summary>How long, in blocks, each tunnel out from a level of the shaft is.</summary>
     public int MinerTunnelLength = 12;
+    /// <summary>A miner puts a torch down where it works when the light there is below this (0 to 24; monsters can spawn at 7 and below). 0 turns torches off.</summary>
+    public int MinerTorchLight = 8;
+    /// <summary>How many torches a miner takes from the hut's storage, and asks couriers for when there are none.</summary>
+    public int MinerTorchesCarried = 8;
 
     // Quarry
     /// <summary>The pit beside the Quarry goes this many blocks out from its middle at hut level 1 (2 makes a 5 by 5 pit)...</summary>
