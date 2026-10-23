@@ -482,18 +482,20 @@ public class GuiDialogHut : GuiDialog
             composer.AddStaticText(number.ToString(), numberFont.WithOrientation(EnumTextOrientation.Center), ElementBounds.Fixed(6, y + 10, 34, 28));
             if (level.Working) composer.AddHoverText(Lang.Get("createacolony:levels-working"), GuiKit.Detail(), 200, ElementBounds.Fixed(6, y + 8, 34, 30));
             string title = Lang.Get("createacolony:levels-row", number, Math.Max(0, hutY - level.Y));
-            if (snapshot.MineLevel == number) title += "  " + Lang.Get("createacolony:levels-chosen");
-            if (snapshot.RepairLevel == number) title += "  " + Lang.Get("createacolony:levels-repairing");
             string detail = Lang.Get("createacolony:levels-detail", level.Sections, level.Left);
             composer
                 .AddStaticText(title, GuiKit.Body(), ElementBounds.Fixed(48, y + 4, Width - 300, 22))
                 .AddStaticText(detail, GuiKit.Detail().WithColor(level.Left == 0 ? GuiKit.GoodColor : GuiKit.MutedColor), ElementBounds.Fixed(48, y + 26, Width - 300, 20));
-            if (Officer)
-            {
-                if (snapshot.MineLevel != number)
-                    composer.AddSmallButton(Lang.Get("createacolony:levels-mine-here"), () => SendText(ColonyAction.SetMineLevel, id, number.ToString()), ElementBounds.Fixed(Width - 250, y + 10, 120, 28));
+            // The chosen and repairing levels show a label where their button would be, so the title never wraps.
+            var tag = GuiKit.Body().WithOrientation(EnumTextOrientation.Center);
+            if (snapshot.MineLevel == number)
+                composer.AddStaticText(Lang.Get("createacolony:levels-chosen"), tag.Clone().WithColor(GuiKit.GoodColor), ElementBounds.Fixed(Width - 250, y + 14, 120, 22));
+            else if (Officer)
+                composer.AddSmallButton(Lang.Get("createacolony:levels-mine-here"), () => SendText(ColonyAction.SetMineLevel, id, number.ToString()), ElementBounds.Fixed(Width - 250, y + 10, 120, 28));
+            if (snapshot.RepairLevel == number)
+                composer.AddStaticText(Lang.Get("createacolony:levels-repairing"), tag.Clone().WithColor(GuiKit.WarnColor), ElementBounds.Fixed(Width - 120, y + 14, 110, 22));
+            else if (Officer)
                 composer.AddSmallButton(Lang.Get("createacolony:levels-repair"), () => SendText(ColonyAction.RepairMineLevel, id, number.ToString()), ElementBounds.Fixed(Width - 120, y + 10, 110, 28));
-            }
             y += LevelRowHeight;
         }
         AddPager(composer, pages, y + 14);
