@@ -150,8 +150,8 @@ placed in for every level, also after you change packs. Your choice is saved wit
   buildings for the Town Hall, Builder, Farmer, Forester (Lumberjack), Cook, Residence, Guard Tower,
   Warehouse and Miner; the other buildings are the same as in Medieval Oak.
 - **Dev's Builds** (`blueprints/devsbuilds/`): Aaron's own buildings: Town Hall 1 to 4, Builder's Hut 1
-  to 4, Guard Tower 1 to 5, Cook's Hut 1 and 2 (new ones in 0.60.0) and Residence 1 in three types:
-  Standard, Medium and Small (0.60.0). Other buildings have no blueprint in this pack yet, and the list
+  to 4, Guard Tower 1 to 5, Cook's Hut 1 and 2 (new ones in 0.60.0) and Residence 1 in two types:
+  Medium and Small (0.60.0; the older Standard house was removed in 0.60.1). Other buildings have no blueprint in this pack yet, and the list
   says so.
 
 The old **Testing** style and its sample blueprints were removed in 0.46.0. Buildings that were placed
@@ -472,7 +472,8 @@ Smithing skill grows with both jobs.
 ### Building types and new Dev's Builds (0.60.0)
 - Buildings can have several types per level, picked in the placement window (see "Building types" above).
 - Dev's Builds: new Cook's Hut levels 1 and 2 (replacing the old level 1), and Small and Medium houses for
-  the Residence level 1 beside the Standard one.
+  the Residence level 1. 0.60.1 removes the older Standard house; Dev's Builds houses placed with it use
+  the first remaining type (Medium).
 
 ### Survival Handbook pages (0.59.0)
 - Seven guide pages in the game's Survival Handbook (Guides), titled "Vintage Colonies: 1 - Getting Started" to
