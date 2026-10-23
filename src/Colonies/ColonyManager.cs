@@ -98,6 +98,11 @@ public partial class ColonyManager : ModSystem
             if ((config.SkillCapByBuildingLevel ?? Array.Empty<int>()).SequenceEqual(new[] { 4, 6, 8, 10 })) config.SkillCapByBuildingLevel = fresh.SkillCapByBuildingLevel;
             if (config.SkillEffectMax == 2f) config.SkillEffectMax = fresh.SkillEffectMax;
         }
+        if (config.ConfigVersion < 4)
+        {
+            // 0.73.0: the new mineshaft entrance goes down two levels by itself, so its stairs no longer repeat.
+            if (config.MinerEntranceRepeatsPerHutLevel == 1) config.MinerEntranceRepeatsPerHutLevel = 0;
+        }
         config.ConfigVersion = ColonyConfig.CurrentConfigVersion;
     }
 

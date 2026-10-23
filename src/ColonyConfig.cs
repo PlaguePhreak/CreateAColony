@@ -7,7 +7,7 @@ public class ColonyConfig
 {
     public const string FileName = "createacolony.json";
     /// <summary>Bumped when a default changes in a way old config files should pick up; see ColonyManager.UpgradeConfig.</summary>
-    public const int CurrentConfigVersion = 3;
+    public const int CurrentConfigVersion = 4;
 
     /// <summary>Which defaults this file has been brought up to. Files from before 0.33.0 have none, so read as 0.</summary>
     public int ConfigVersion;
@@ -163,8 +163,11 @@ public class ColonyConfig
     public int MinerFillDepth = 6;
     /// <summary>Mineshaft sections (cross, tee, straight) a Miner's Hut's mineshaft may grow per hut level, when the style has mineshaft pieces.</summary>
     public int MinerSectionsPerHutLevel = 4;
-    /// <summary>How many times a mineshaft entrance's stairs repeat further down for each level of the Miner's Hut.</summary>
-    public int MinerEntranceRepeatsPerHutLevel = 1;
+    /// <summary>
+    /// How many times a mineshaft entrance's stairs repeat further down for each level of the Miner's Hut. 0 (since
+    /// 0.73.0): the entrance is used as drawn, as Aaron's current one already has tunnel starts on two levels.
+    /// </summary>
+    public int MinerEntranceRepeatsPerHutLevel = 0;
     /// <summary>
     /// How far, in blocks, a miner's node search with its prospecting pick reaches, as the pick's node search
     /// mode does for a player. 0 goes by the world's own setting for the pick, or 8 when it has none.

@@ -418,22 +418,23 @@ public class BlueprintLibrary
         bool entrance = name == MineEntrance;
         bool Empty(int x, int y, int z) => !blocks.TryGetValue((x, y, z), out var b) || b.Id == 0;
 
-        // The entrance's ground layer: the highest layer whose edge is mostly natural ground. It goes at the
-        // height of the ground beside the hut, and it and everything below it repeat downwards to go deeper.
+        // The entrance's ground layer: the highest layer whose edge is mostly filled in, by natural ground or by
+        // a deck built over it (a fence round the top stands above it). It goes at the height of the ground
+        // beside the hut; with MinerEntranceRepeatsPerHutLevel, it and everything below it repeat to go deeper.
         int ground = sy - 1;
         if (entrance)
         {
             for (int y = sy - 1; y >= 0; y--)
             {
-                int edge = 0, natural = 0;
+                int edge = 0, filled = 0;
                 for (int x = 0; x < sx; x++)
                 for (int z = 0; z < sz; z++)
                 {
                     if (x != 0 && z != 0 && x != sx - 1 && z != sz - 1) continue;
                     edge++;
-                    if (blocks.TryGetValue((x, y, z), out var b) && IsNaturalGround(b)) natural++;
+                    if (blocks.TryGetValue((x, y, z), out var b) && b.Id != 0 && !IsWaypoint(b)) filled++;
                 }
-                if (natural * 2 < edge) continue;
+                if (filled * 2 < edge) continue;
                 ground = y;
                 break;
             }
@@ -502,7 +503,8 @@ public class BlueprintLibrary
         if (entrance)
         {
             // Where tunnels start off the entrance's stairs: a row of two or more Mine waypoints along an edge, at
-            // or under the ground layer, in place of the landing's floor. The tunnel's floor goes level with them.
+            // or under the ground layer. The tunnel's floor goes level with the landing: the waypoints' own layer
+            // when they stand in place of its floor, the layer above when they sit under a built floor.
             foreach (var face in BlockFacing.HORIZONTALS)
             {
                 int length = face.Axis == EnumAxis.X ? sz : sx;
@@ -516,7 +518,15 @@ public class BlueprintLibrary
                         bool mark = i < length && blocks.TryGetValue((x, y, z), out var b) && IsWaypoint(b);
                         if (mark && start < 0) start = i;
                         if (mark || start < 0) continue;
-                        if (i - start >= 2) AddOpen(face, (start, i - 1), y);
+                        if (i - start >= 2)
+                        {
+                            bool underFloor = Enumerable.Range(start, i - start).All(j =>
+                            {
+                                var (fx, fz) = (face == BlockFacing.EAST ? sx - 1 : face == BlockFacing.WEST ? 0 : j, face == BlockFacing.SOUTH ? sz - 1 : face == BlockFacing.NORTH ? 0 : j);
+                                return blocks.TryGetValue((fx, y + 1, fz), out var above) && above.Id != 0 && !IsNaturalGround(above) && !IsWaypoint(above);
+                            });
+                            AddOpen(face, (start, i - 1), underFloor ? y + 1 : y);
+                        }
                         start = -1;
                     }
                 }
