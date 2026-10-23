@@ -158,6 +158,7 @@ public partial class ColonyNetwork : ModSystem
             ColonyAction.SetWorkRadius or ColonyAction.SetEscort or ColonyAction.SetCollectBerries => WorkAreaAction(colony, role, packet),
             ColonyAction.SetPotteryKeep => PotteryAction(colony, role, packet),
             ColonyAction.SetKitchenKeep => KitchenAction(colony, role, packet),
+            ColonyAction.SetCraftKeep => CraftAction(colony, role, packet),
             ColonyAction.SetMineOre or ColonyAction.SetMineProspected or ColonyAction.NewMine => MiningAction(colony, role, packet),
             ColonyAction.WelcomeVisitor or ColonyAction.TurnAwayVisitor => VisitorAction(colony, role, packet),
             ColonyAction.RecallCitizen => RecallCitizen(colony, role, packet.CitizenId),
@@ -357,6 +358,57 @@ public partial class ColonyNetwork : ModSystem
         string key = packet.Text[..bar];
         if (!Manager.KitchenKinds().Any(k => k.Key == key) && Manager.MealRecipe(key) == null) return "createacolony:bad-building";
         Manager.SetKitchenKeep(colony, building, key, keep);
+        return null;
+    }
+
+    /// <summary>The "keep in stock" tab of a crafter hut: each metal for a Smelter, each thing the anvil can make for a Blacksmith.</summary>
+    void AddCraftRows(HutSnapshot snapshot, Colony colony, Building building, string craftTab)
+    {
+        snapshot.CraftTab = craftTab;
+        snapshot.KeepChoices = Manager.Config.CraftKeepChoices.ToList();
+        if (building.Type == BuildingTypes.Smelter)
+        {
+            var smelter = Manager.WorkerAt(colony, building, Jobs.Smelter);
+            foreach (var kind in Manager.SmeltKinds())
+            {
+                snapshot.Craft.Add(new PotteryView
+                {
+                    Key = kind.Key,
+                    Stack = kind.Sample.ToBytes(),
+                    Keep = Manager.CraftKeep(building, kind.Key),
+                    Have = Manager.SmeltStock(colony, building, kind, smelter),
+                    Clay = kind.UnitsPer.Keys.Min(code => ColonyManager.PiecesPerIngot(kind, code))
+                });
+            }
+        }
+        else if (building.Type == BuildingTypes.Blacksmith)
+        {
+            var smith = Manager.WorkerAt(colony, building, Jobs.Blacksmith);
+            foreach (var kind in Manager.SmithRows(colony, building, smith))
+            {
+                snapshot.Craft.Add(new PotteryView
+                {
+                    Key = kind.Key,
+                    Stack = kind.Sample.ToBytes(),
+                    Keep = Manager.CraftKeep(building, kind.Key),
+                    Have = Manager.SmithStock(colony, building, kind, smith),
+                    Clay = kind.Ingots
+                });
+            }
+        }
+    }
+
+    /// <summary>How many of a thing a crafter hut keeps in stock.</summary>
+    string? CraftAction(Colony colony, ColonyRole role, ColonyActionPacket packet)
+    {
+        if (role < ColonyRole.Officer) return "createacolony:denied-officer";
+        var building = colony.Buildings.Find(b => b.BuildingId == packet.BuildingId);
+        if (building == null || ColonyManager.CraftTabOf(building.Type) == null) return "createacolony:bad-building";
+        int bar = packet.Text.LastIndexOf('|');
+        if (bar <= 0 || !int.TryParse(packet.Text[(bar + 1)..], out int keep) || keep < 0 || keep > 999) return "createacolony:bad-building";
+        string key = packet.Text[..bar];
+        if (!Manager.CraftKeys(building).Contains(key)) return "createacolony:bad-building";
+        Manager.SetCraftKeep(colony, building, key, keep);
         return null;
     }
 
@@ -719,7 +771,8 @@ public partial class ColonyNetwork : ModSystem
                 containers.Sum(c => c.Inventory.Count(s => s.Empty)), containers.Sum(c => c.Inventory.Count));
         }
         if (building.Type is BuildingTypes.Forester or BuildingTypes.Farmer or BuildingTypes.Potter or BuildingTypes.Cook
-            or BuildingTypes.Prospector or BuildingTypes.Miner or BuildingTypes.Quarry) snapshot.Info = Manager.WorkerHutInfo(colony, building);
+            or BuildingTypes.Prospector or BuildingTypes.Miner or BuildingTypes.Quarry
+            or BuildingTypes.Smelter or BuildingTypes.Blacksmith) snapshot.Info = Manager.WorkerHutInfo(colony, building);
         if (building.Type == BuildingTypes.Tavern)
         {
             snapshot.IsTavern = true;
@@ -808,6 +861,7 @@ public partial class ColonyNetwork : ModSystem
                 });
             }
         }
+        if (ColonyManager.CraftTabOf(building.Type) is { } craftTab) AddCraftRows(snapshot, colony, building, craftTab);
         if (!snapshot.IsBuilderHut) return snapshot;
 
         foreach (var order in colony.Buildings.Where(b => b.HasWorkOrder).OrderBy(b => b.BuildingId))

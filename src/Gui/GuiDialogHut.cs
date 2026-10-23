@@ -39,6 +39,8 @@ public class GuiDialogHut : GuiDialog
     const int ResidentsTab = 12;
     const int OreTab = 13;
     const int QuarryTab = 14;
+    /// <summary>A crafter hut's "keep in stock" tab (Smelting, Smithing).</summary>
+    const int CraftTab = 15;
     const int OreRowsPerPage = 6;
     const double OreRowHeight = 44;
     /// <summary>Households shown per page of a Residence's Residents tab.</summary>
@@ -91,6 +93,7 @@ public class GuiDialogHut : GuiDialog
         if (snapshot.IsGatherHut) tabs.Add((WorkAreaTab, "tab-workarea"));
         if (snapshot.IsPotterHut) tabs.Add((PotteryTab, "tab-pottery"));
         if (snapshot.IsCookHut) tabs.Add((KitchenTab, "tab-kitchen"));
+        if (snapshot.CraftTab.Length > 0) tabs.Add((CraftTab, "tab-" + snapshot.CraftTab));
         if (snapshot.IsTavern) tabs.Add((RecruitsTab, "tab-recruits"));
         if (snapshot.IsResidence) tabs.Add((ResidentsTab, "tab-residents"));
         if (snapshot.IsOreHut) tabs.Add((OreTab, "tab-ore"));
@@ -132,6 +135,7 @@ public class GuiDialogHut : GuiDialog
             case WorkAreaTab: ComposeWorkArea(composer); break;
             case PotteryTab: ComposeKeepList(composer, snapshot.Pottery, "pottery", ColonyAction.SetPotteryKeep); break;
             case KitchenTab: ComposeKeepList(composer, snapshot.Kitchen, "kitchen", ColonyAction.SetKitchenKeep); break;
+            case CraftTab: ComposeKeepList(composer, snapshot.Craft, snapshot.CraftTab, ColonyAction.SetCraftKeep); break;
             case RecruitsTab: ComposeRecruits(composer); break;
             case ResidentsTab: ComposeResidents(composer); break;
             case OreTab: ComposeOre(composer); break;

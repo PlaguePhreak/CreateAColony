@@ -222,6 +222,11 @@ public class Building
     [ProtoMember(60)] public List<BlockPos> SiteEntrances = new();
     /// <summary>A Miner's Hut: entrances of finished mines the miner still has to fill back in.</summary>
     [ProtoMember(61)] public List<BlockPos> MineSeals = new();
+    // 70-79 for the crafter huts (Smelter, Blacksmith and the ones to come).
+    /// <summary>A crafter hut: how many of each thing to keep in stock, by key (see ColonyManager.Crafting.cs).</summary>
+    [ProtoMember(70)] public Dictionary<string, int> CraftKeep = new();
+    /// <summary>An officer has set CraftKeep; until then the config defaults apply.</summary>
+    [ProtoMember(71)] public bool CraftChosen;
 
     public bool HasWorkOrder => TargetLevel > Level;
 }

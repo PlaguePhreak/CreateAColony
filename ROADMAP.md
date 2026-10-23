@@ -1,6 +1,6 @@
 # Create a Colony: roadmap
 
-Create a Colony brings the ideas of the Minecraft mod MineColonies to Vintage Story. This page shows what the mod has today (version 0.49.0), what it does not have yet, and the order we plan to build it in. It comes from a side-by-side check against the MineColonies wiki. Plans can change as things get tested in game.
+Create a Colony brings the ideas of the Minecraft mod MineColonies to Vintage Story. This page shows what the mod has today (version 0.50.0), what it does not have yet, and the order we plan to build it in. It comes from a side-by-side check against the MineColonies wiki. Plans can change as things get tested in game.
 
 Everything listed under "What we have" and "Partly done" has been tested in game.
 
@@ -20,6 +20,8 @@ Everything listed under "What we have" and "Partly done" has been tested in game
 - Cook: grilling and pot meals, harder meals as the Cooking skill grows *(tested)*
 - Guard Tower: guard, patrol and follow tasks, night watch, alarms, retreat and armor *(tested)*
 - Our own jobs: the Prospector (finds ore and marks the map) and the Potter (shapes clay and fires pit kilns) *(tested)*
+- Smelter's Hut: melts nuggets in a crucible over the fire pit and pours ingots into molds (0.50.0, placeholder model and building, not tested yet)
+- Blacksmith's Hut: heats ingots in the forge and makes tool heads and finished tools on the anvil (0.50.0, placeholder model and building, not tested yet)
 
 **Colony systems**
 - Colony land that grows with every hut and Town Hall level *(tested)*
@@ -52,14 +54,14 @@ Everything listed under "What we have" and "Partly done" has been tested in game
 ## Not built yet
 
 **Next, in this order**
-1. **Smelter**: melts copper and tin in the Potter's crucibles over a fire pit and pours ingots, later a bloomery for iron
+1. **Smelter** (started in 0.50.0): still to do are alloys such as bronze, and a bloomery for iron
 2. **Happiness**: food variety, a bed, safety, health, deaths and how full the colony is, added into one score; happy settlers work faster
 3. **A request list and the first crafter**: players can see and fill what workers need, and a Sawmill carpenter makes planks and boards for the Builder
 4. **Animal herders and a Tanner**: chickens, pigs, sheep and goats in pens for meat, eggs and hides, and a Tanner who makes leather in barrels
 5. **Ranged guards, a Barracks and a rally banner**, then **Raids**: now and then, enemies turn up and attack the player's colony. The player is warned in chat and on the Town Hall window. There are several raid factions, from bandits (who use the settler models) to the game's own monsters such as drifters and shivers.
 6. **Hospital and Graveyard**: a healer with poultices and bandages, and an undertaker who buries the dead
 7. **School, Library and University** with a **research tree** that unlocks faster work and new huts
-8. **Blacksmith**: makes and repairs tools and armor, with a simpler rule than the game's blow-by-blow anvil work
+8. **Blacksmith** (started in 0.50.0): still to do are repairs, armor, and making the tools workers ask for
 
 **Later**
 - More huts from MineColonies: Stonemason, Baker, Fisher, Beekeeper, Plantation (reeds and cattails), Composter, Crusher and Sifter (quern and panning), Florist, Dyer, Fletcher and Mechanic (windmills and gears)

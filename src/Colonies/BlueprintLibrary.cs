@@ -367,6 +367,8 @@ public static class BuildingTypes
     public const string Prospector = "prospector";
     public const string Miner = "miner";
     public const string Quarry = "quarry";
+    public const string Smelter = "smelter";
+    public const string Blacksmith = "blacksmith";
     /// <summary>Not a colony building: only used to find the supply camp's own blueprint.</summary>
     public const string SupplyCamp = "supplycamp";
 }

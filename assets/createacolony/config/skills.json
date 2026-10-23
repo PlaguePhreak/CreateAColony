@@ -12,7 +12,7 @@
 		{ "code": "farming", "job": "farmer", "xpPerWork": 1, "workSpeedPerLevel": 0.04 },
 		{ "code": "woodcutting", "job": "forester", "xpPerWork": 10, "strengthPerWork": 3, "workSpeedPerLevel": 0.04 },
 		{ "code": "pottery", "job": "potter", "xpPerWork": 2, "workSpeedPerLevel": 0.04 },
-		{ "code": "smithing", "job": "blacksmith", "xpPerWork": 5, "workSpeedPerLevel": 0.04 },
+		{ "code": "smithing", "job": "blacksmith", "alsoJobs": ["smelter"], "xpPerWork": 5, "workSpeedPerLevel": 0.04 },
 		{ "code": "cooking", "job": "cook", "xpPerWork": 3, "workSpeedPerLevel": 0.04 },
 		{ "code": "hauling", "job": "courier", "xpPerWork": 1, "workSpeedPerLevel": 0.04 },
 		{ "code": "fighting", "job": "guard", "xpPerWork": 5, "strengthPerWork": 1, "workSpeedPerLevel": 0.02 },

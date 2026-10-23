@@ -47,6 +47,8 @@ planks of any wood.
 | Prospector's Hut | 2 stones (any rock) + 7 planks |
 | Miner's Hut | 2 torches + 7 planks |
 | Quarry | 2 rock blocks (any) + 7 planks |
+| Smelter's Hut | 2 charcoal + 7 planks |
+| Blacksmith's Hut | 2 ingots (any metal) + 7 planks |
 | Supply Camp | 3 firewood over 2 sticks (unchanged) |
 | Colony Ledger | 4 paper (any), 2 leather, 2 charcoal: paper, leather, paper / charcoal, paper, charcoal / paper, leather, paper |
 | Drop-off | stick over a plank (unchanged) |
@@ -392,6 +394,29 @@ Forester's and Farmer's Huts have a **Work area** tab in their window (officers 
   into the hut storage and settlers eat from it a serving at a time; the emptied pot is used again. The
   Kitchen tab lists every meal with servings ready and to keep (`KitchenDefaultMealKeep`, 6). Meals come
   before grilling. Recipes that need water or another liquid are left to players.
+
+### The smelter and the blacksmith (0.50.0)
+Both huts have a simple placeholder model and a placeholder level 1 blueprint (an open plank shed with a fire
+pit or a forge), ready to be replaced by real buildings. Both are on the wand's Craftsmanship tab, and the
+Smithing skill grows with both jobs.
+- **Smelter's Hut** (2 charcoal + 7 planks). The smelter uses the game's own fire pit (the nearest within
+  `SmelterRadius`, 8), crucible and ingot molds. It sets up to `SmelterMolds` (4) fired ingot molds out beside
+  the fire pit, fills a fired crucible with one kind of nugget or metal bit (whole ingots only, up to
+  `SmelterIngotsPerBatch`, 4), puts it on the fire with fuel hot enough for the metal (charcoal or coal for
+  copper; it asks couriers for `SmelterFuelCode`, charcoal, when the warehouse has none), lets the game melt it,
+  and pours the metal into the molds. Cooled ingots come out of the molds into the hut storage. Metal that
+  cools in the crucible goes back on the fire. The Smelting tab lists every metal with ingots ready (warehouse,
+  hut, smelter, molds and crucible) and how many to keep (`SmelterDefaultKeep`: 4 copper, others 0). No
+  alloys (bronze) and no bloomery yet.
+- **Blacksmith's Hut** (2 ingots + 7 planks). The blacksmith needs a hammer, the game's forge (in the
+  blueprint) and an anvil placed by a player, both within `BlacksmithRadius` (8). It heats the ingots for a
+  piece in the forge with charcoal, takes them out once they are hot enough to work, and strikes the anvil
+  once per `BlacksmithVoxelsPerStrike` (8) voxels of the piece instead of moving voxels one by one. Cold
+  ingots go back in the forge. When the game has a 2-item crafting recipe that puts the piece on a handle (a
+  pickaxe head and a stick make a pickaxe) and the blacksmith has the handle, it makes the finished tool. What
+  can be made comes from the game's smithing recipes; the anvil's tier must be high enough for the metal.
+  The Smithing tab shows everything that can be made from the metals the colony has ingots of, with the
+  ingots each takes; nothing is kept until an officer picks something.
 
 ### Doors and gates
 

@@ -346,6 +346,10 @@ public class HutSnapshot
     /// <summary>For a Tavern: how many settlers the colony holds and how many it has (the Town Hall level sets the cap).</summary>
     [ProtoMember(65)] public int PopulationCap;
     [ProtoMember(66)] public int Population;
+    /// <summary>A crafter hut (Smelter, Blacksmith): the name of its "keep in stock" tab, also the start of its lang keys; empty for other huts.</summary>
+    [ProtoMember(80)] public string CraftTab = "";
+    /// <summary>The rows of that tab. Clay is how many of the input each one takes (nuggets per ingot, ingots per piece).</summary>
+    [ProtoMember(81)] public List<PotteryView> Craft = new();
 }
 
 /// <summary>One line of a hut's chest list: an item, how many there are, and which containers hold it.</summary>
@@ -612,7 +616,9 @@ public enum ColonyAction
     /// <summary>Forgets the Miner's Hut's site and tunnel, so the miner starts a new mine.</summary>
     NewMine = 53,
     /// <summary>Text is the asset pack (blueprint style) the player builds with from now on; opens the building list again.</summary>
-    WandPack = 54
+    WandPack = 54,
+    /// <summary>Text "key|amount": how many of a thing the crafter hut (Smelter, Blacksmith) with BuildingId keeps in stock.</summary>
+    SetCraftKeep = 70
 }
 
 /// <summary>The Builder's Wand building list: each building type with how many of its blocks the player carries.</summary>

@@ -52,7 +52,7 @@ public class BlockColonyHut : Block, IWandPlaceable
             ? Lang.GetL(player.LanguageCode, "createacolony:hut-placed-residence", name)
             : BuildingType == BuildingTypes.GuardTower
             ? Lang.GetL(player.LanguageCode, "createacolony:hut-placed-guardtower", name)
-            : BuildingType is BuildingTypes.Prospector or BuildingTypes.Miner or BuildingTypes.Quarry
+            : BuildingType is BuildingTypes.Prospector or BuildingTypes.Miner or BuildingTypes.Quarry or BuildingTypes.Smelter or BuildingTypes.Blacksmith
             ? Lang.GetL(player.LanguageCode, "createacolony:hut-placed-" + BuildingType, name)
             : BuildingType is BuildingTypes.Forester or BuildingTypes.Farmer
             ? Lang.GetL(player.LanguageCode, "createacolony:hut-placed-worker", name, Lang.GetL(player.LanguageCode, "createacolony:job-" + BuildingType))

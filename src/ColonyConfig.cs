@@ -196,6 +196,8 @@ public class ColonyConfig
         ["prospector"] = 30,
         ["miner"] = 30,
         ["quarry"] = 40,
+        ["smelter"] = 30,
+        ["blacksmith"] = 30,
     };
     /// <summary>
     /// How many blocks each side of a hut's square grows for every hut level above 1, so a hut near the edge of the
@@ -314,6 +316,54 @@ public class ColonyConfig
     public int KitchenDefaultMealKeep = 6;
     /// <summary>The "Keep in stock" amounts the Kitchen tab offers.</summary>
     public int[] KitchenKeepChoices = { 0, 2, 4, 8, 16, 32, 64 };
+
+    // Crafter huts (Smelter, Blacksmith)
+    /// <summary>The "Keep in stock" amounts the Smelting and Smithing tabs offer.</summary>
+    public int[] CraftKeepChoices = { 0, 1, 2, 4, 8, 16, 32, 64 };
+
+    // Smelter
+    /// <summary>Seconds a smelter takes to set out a mold, load the crucible, light the fire, pour or take ingots out.</summary>
+    public float SmelterSecondsPerStep = 3f;
+    /// <summary>How far from the Smelter's Hut, in blocks, the smelter looks for a fire pit.</summary>
+    public int SmelterRadius = 8;
+    /// <summary>How far from the fire pit, in blocks, the smelter sets out ingot molds and pours into them.</summary>
+    public int SmelterMoldRadius = 2;
+    /// <summary>How many ingot molds the smelter keeps set out beside the fire pit, when it has them.</summary>
+    public int SmelterMolds = 4;
+    /// <summary>The most ingots the smelter melts in one crucible (the crucible holds about 5 ingots of nuggets).</summary>
+    public int SmelterIngotsPerBatch = 4;
+    /// <summary>Fuel pieces the smelter puts in the fire pit at once.</summary>
+    public int SmelterFuel = 6;
+    /// <summary>What the smelter asks couriers for when the warehouse has no fuel hot enough.</summary>
+    public string SmelterFuelCode = "game:charcoal";
+    /// <summary>Fuel at least this hot stays at the Smelter's and Blacksmith's Huts (charcoal and coal).</summary>
+    public int SmelterKeepFuelTemperature = 1000;
+    /// <summary>Nuggets and metal bits a smelter keeps on hand; more goes back to the hut storage.</summary>
+    public int SmelterOreReserve = 100;
+    /// <summary>
+    /// How many ingots of each metal a new Smelter's Hut keeps in stock until an officer changes it, by ingot
+    /// code (wildcards allowed). Every other metal is 0.
+    /// </summary>
+    public System.Collections.Generic.Dictionary<string, int> SmelterDefaultKeep = new()
+    {
+        ["game:ingot-copper"] = 4
+    };
+
+    // Blacksmith
+    /// <summary>Seconds a blacksmith takes to load or fuel the forge, or take the hot ingots out.</summary>
+    public float BlacksmithSecondsPerStep = 2f;
+    /// <summary>Seconds between the blacksmith's hammer strikes on the anvil.</summary>
+    public float BlacksmithSecondsPerStrike = 1.5f;
+    /// <summary>Voxels of the piece each hammer strike stands for; bigger pieces take more strikes.</summary>
+    public int BlacksmithVoxelsPerStrike = 8;
+    /// <summary>How far from the Blacksmith's Hut, in blocks, the blacksmith looks for a forge and an anvil.</summary>
+    public int BlacksmithRadius = 8;
+    /// <summary>Charcoal the blacksmith keeps in the forge.</summary>
+    public int BlacksmithFuel = 4;
+    /// <summary>Pieces that take more ingots than this are left to players.</summary>
+    public int BlacksmithMaxIngots = 8;
+    /// <summary>What a new Blacksmith's Hut keeps in stock until an officer changes it, by code (wildcards allowed). Everything else is 0.</summary>
+    public System.Collections.Generic.Dictionary<string, int> BlacksmithDefaultKeep = new();
 
     // Recruiting
     /// <summary>How many settlers a built Tavern offers for hire each day.</summary>
