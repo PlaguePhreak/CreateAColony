@@ -1,7 +1,7 @@
 {
 	"code": "builderswand",
 	"class": "ItemBuildersWand",
-	"creativeinventory": { "general": ["*"] },
+	"creativeinventory": { "general": ["*"], "vintagecolonies": ["*"] },
 	"maxstacksize": 1,
 	"shape": { "base": "createacolony:item/builderswand" },
 	"guiTransform": { "rotation": { "x": 0, "y": 0, "z": -45 }, "origin": { "x": 0.5, "y": 0.5, "z": 0.5 }, "scale": 2.2 },

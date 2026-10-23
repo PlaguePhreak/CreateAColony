@@ -21,8 +21,8 @@ public class AiTaskSettlerBuilder : SettlerTaskBase
     const long WaitRetryMs = 15_000;
     /// <summary>How close a builder must stand to place or clear a block.</summary>
     const float WorkRange = 4.5f;
-    /// <summary>If no path gets closer, a builder still works on blocks this close, so it never gets stuck on its own walls.</summary>
-    const float StretchRange = 8f;
+    /// <summary>How far below a block a builder looks for the ground to stand on while working on it.</summary>
+    const int GroundSearchDepth = 12;
 
     enum Step { Fetch, Stash, FetchTool, Work, StepAside }
 
@@ -34,8 +34,10 @@ public class AiTaskSettlerBuilder : SettlerTaskBase
 
     bool walking;
     float workTime;
-    /// <summary>Set by Work when the builder stands where its next block goes.</summary>
-    BlockPos? stepAsideTo;
+    /// <summary>Set by Work when the builder stands where its next block goes: the spot to move to.</summary>
+    Vec3d? stepAsideTo;
+    /// <summary>While stepping aside: the block the builder must get its body out of.</summary>
+    BlockPos? clearOf;
     /// <summary>The animation playing while working on the current block.</summary>
     string? workAnim;
     long nextSearchMs;
@@ -55,6 +57,7 @@ public class AiTaskSettlerBuilder : SettlerTaskBase
         var colony = Colony;
         var citizen = Citizen;
         if (colony == null || citizen == null || citizen.JobCode != Jobs.Builder) return false;
+        if (manager!.IsBrokenDown(citizen)) return false; // too unhappy to work
 
         var hut = manager!.EnsureBuilderHut(colony, citizen);
         if (hut == null)
@@ -68,7 +71,7 @@ public class AiTaskSettlerBuilder : SettlerTaskBase
         if (order == null) return carrying && StashAt(colony, hut);
         orderId = order.BuildingId;
 
-        var blueprint = manager.Blueprints.Get(order.Type, order.TargetLevel, order.Rotation);
+        var blueprint = manager.Blueprints.Get(order, order.TargetLevel);
         if (blueprint == null)
         {
             manager.BuildStatus[order.BuildingId] = "no-blueprint";
@@ -94,15 +97,17 @@ public class AiTaskSettlerBuilder : SettlerTaskBase
             return false;
         }
 
-        var cost = manager.NextPlacement(colony, buildStep, pos).Cost;
-        var fits = cost == null ? null : ColonyManager.Matcher(cost.Value.Code);
-        if (fits == null || manager.PackCount(citizen, fits) > 0)
+        // Everything the next block costs must be in hand; a roof block takes its frame and materials together.
+        var costs = manager.NextPlacement(colony, buildStep, pos).Costs;
+        var missing = costs.Where(c => manager.PackCount(citizen, ColonyManager.Matcher(c.Code)) < c.Count).ToList();
+        if (missing.Count == 0)
         {
             manager.BuildStatus[order.BuildingId] = "building";
             return Go(Step.Work, pos);
         }
 
-        var source = manager.HutStorage(colony, hut).FirstOrDefault(c => c.Inventory.Any(s => !s.Empty && fits(s.Itemstack)));
+        var fits = missing.Select(c => ColonyManager.Matcher(c.Code)).ToList();
+        var source = manager.HutStorage(colony, hut).FirstOrDefault(c => c.Inventory.Any(s => !s.Empty && fits.Any(m => m(s.Itemstack))));
         if (source != null)
         {
             manager.BuildStatus[order.BuildingId] = "building";
@@ -132,6 +137,8 @@ public class AiTaskSettlerBuilder : SettlerTaskBase
     public override void StartExecute()
     {
         base.StartExecute();
+        stepAsideTo = null;
+        clearOf = null;
         BeginStep();
     }
 
@@ -141,8 +148,45 @@ public class AiTaskSettlerBuilder : SettlerTaskBase
         if (step != Step.Work && Colony is { } colony && Citizen is { } citizen) PutAwayHand(colony, citizen);
         var center = target.ToVec3d().Add(0.5, 0.5, 0.5);
         walking = !(step == Step.Work && entity.Pos.XYZ.DistanceTo(center) <= WorkRange);
-        float range = step switch { Step.Work => WorkRange - 1, Step.StepAside => 0.3f, _ => 1.5f };
-        if (walking) WalkTo(target.ToVec3d().Add(0.5, 0, 0.5), range);
+        if (!walking) return;
+        if (step == Step.StepAside && stepAsideTo != null)
+        {
+            WalkTo(stepAsideTo, 0.1f);
+            return;
+        }
+        if (step == Step.Work)
+        {
+            WalkTo(WorkSpot(), 1f);
+            return;
+        }
+        WalkTo(target.ToVec3d().Add(0.5, 0, 0.5), 1.5f);
+    }
+
+    /// <summary>
+    /// Where to stand to work on the target: on the ground below it, beside it. A block high up (a roof,
+    /// the top of a wall) is worked on from the ground underneath, within the builder's reach.
+    /// </summary>
+    Vec3d WorkSpot()
+    {
+        var ba = entity.World.BlockAccessor;
+        var ground = target.Copy();
+        for (int i = 0; i < GroundSearchDepth && ground.Y > 1; i++)
+        {
+            var below = ground.DownCopy();
+            var boxes = ba.GetBlock(below).GetCollisionBoxes(ba, below);
+            if (boxes != null && boxes.Length > 0) break;
+            ground = below;
+        }
+        return manager!.FreeSpotNear(entity, ground, 3, target) ?? target.ToVec3d().Add(0.5, 0, 0.5);
+    }
+
+    bool InReach() => entity.Pos.XYZ.DistanceTo(target.ToVec3d().Add(0.5, 0.5, 0.5)) <= manager!.Config.BuilderReach;
+
+    void MarkUnreachable()
+    {
+        var o = Colony?.Buildings.Find(b => b.BuildingId == orderId);
+        if (o != null) manager!.BuildStatus[o.BuildingId] = "unreachable";
+        nextSearchMs = entity.World.ElapsedMilliseconds + WaitRetryMs;
     }
 
     public override bool ContinueExecute(float dt)
@@ -151,11 +195,11 @@ public class AiTaskSettlerBuilder : SettlerTaskBase
         {
             if (PathFailed)
             {
-                if (step != Step.Work || entity.Pos.XYZ.DistanceTo(target.ToVec3d().Add(0.5, 0.5, 0.5)) > StretchRange)
+                // A failed step aside falls through: the StepAside step shuffles the builder over itself.
+                // If no path gets closer, a builder still works on blocks within reach, so it never gets stuck on its own walls.
+                if (step != Step.StepAside && (step != Step.Work || !InReach()))
                 {
-                    var o = Colony?.Buildings.Find(b => b.BuildingId == orderId);
-                    if (o != null) manager!.BuildStatus[o.BuildingId] = "unreachable";
-                    nextSearchMs = entity.World.ElapsedMilliseconds + WaitRetryMs;
+                    MarkUnreachable();
                     return false;
                 }
             }
@@ -166,6 +210,12 @@ public class AiTaskSettlerBuilder : SettlerTaskBase
             }
             StopWalking();
             walking = false;
+            // Standing on the ground below a block can still leave it out of reach (too high up).
+            if (step == Step.Work && !InReach())
+            {
+                MarkUnreachable();
+                return false;
+            }
         }
 
         var colony = Colony;
@@ -185,6 +235,15 @@ public class AiTaskSettlerBuilder : SettlerTaskBase
                 if (!manager!.PackEmpty(citizen)) return false;
                 break;
             case Step.StepAside:
+                // The pathfinder counts "close enough" as arrived, which can leave the builder half inside
+                // the block it wants to place. Shuffle the last bit over to the free spot.
+                if (clearOf != null && stepAsideTo != null && manager!.Overlaps(entity, clearOf)
+                    && entity.Pos.XYZ.DistanceTo(stepAsideTo) < 2.5)
+                {
+                    entity.TeleportToDouble(stepAsideTo.X, stepAsideTo.Y, stepAsideTo.Z);
+                }
+                stepAsideTo = null;
+                clearOf = null;
                 break;
             case Step.Work:
                 if (workAnim == null)
@@ -193,13 +252,13 @@ public class AiTaskSettlerBuilder : SettlerTaskBase
                     workAnim = PlayShapeAnimation(WorkAnimationCode(colony), "build");
                 }
                 workTime += dt;
-                if (workTime < manager!.Config.BuilderSecondsPerBlock) return true;
+                if (workTime < manager!.Config.BuilderSecondsPerBlock * manager.WorkTimeFactor(colony, citizen)) return true;
                 Work(colony, citizen);
                 StopWorkAnimation();
                 if (stepAsideTo != null)
                 {
-                    Go(Step.StepAside, stepAsideTo);
-                    stepAsideTo = null;
+                    clearOf = target.Copy();
+                    Go(Step.StepAside, stepAsideTo.AsBlockPos);
                     BeginStep();
                     return true;
                 }
@@ -221,26 +280,30 @@ public class AiTaskSettlerBuilder : SettlerTaskBase
         var order = colony.Buildings.Find(b => b.BuildingId == orderId);
         var hut = manager!.EnsureBuilderHut(colony, citizen);
         if (order == null || hut == null) return;
-        var blueprint = manager.Blueprints.Get(order.Type, order.TargetLevel, order.Rotation);
-        var cost = manager.NextPlacement(colony, buildStep, manager.StepPos(order, buildStep)).Cost;
-        if (blueprint == null || cost == null) return;
+        var blueprint = manager.Blueprints.Get(order, order.TargetLevel);
+        var costs = manager.NextPlacement(colony, buildStep, manager.StepPos(order, buildStep)).Costs;
+        if (blueprint == null || costs.Count == 0) return;
 
         var storage = manager.HutStorage(colony, hut).Cast<BlockEntityContainer>().ToList();
         var needs = manager.MaterialsNeeded(colony, order, blueprint);
         var matchers = needs.Keys.Select(ColonyManager.Matcher).ToList();
         manager.UnloadPack(colony, citizen, storage, s => !matchers.Any(m => m(s)) && !ColonyManager.IsBuilderTool(s));
 
-        var current = ColonyManager.Matcher(cost.Value.Code);
-        int currentNeed = needs.TryGetValue(cost.Value.Code, out var n) ? n.Count : cost.Value.Count;
-        if (Load(colony, citizen, storage, current, currentNeed) == 0 && manager.PackCount(citizen, current) == 0)
+        var nowMatchers = costs.Select(c => ColonyManager.Matcher(c.Code)).ToList();
+        foreach (var cost in costs)
         {
-            // Full of other materials: make room for the one needed right now.
-            manager.UnloadPack(colony, citizen, storage, s => !current(s) && !ColonyManager.IsBuilderTool(s));
-            Load(colony, citizen, storage, current, currentNeed);
+            var current = ColonyManager.Matcher(cost.Code);
+            int currentNeed = needs.TryGetValue(cost.Code, out var n) ? n.Count : cost.Count;
+            if (Load(colony, citizen, storage, current, currentNeed) == 0 && manager.PackCount(citizen, current) < cost.Count)
+            {
+                // Full of other materials: make room for what the next block needs right now.
+                manager.UnloadPack(colony, citizen, storage, s => !nowMatchers.Any(m => m(s)) && !ColonyManager.IsBuilderTool(s));
+                Load(colony, citizen, storage, current, currentNeed);
+            }
         }
         foreach (var (code, (_, count)) in needs)
         {
-            if (code == cost.Value.Code) continue;
+            if (costs.Any(c => c.Code == code)) continue;
             Load(colony, citizen, storage, ColonyManager.Matcher(code), count);
         }
     }
@@ -290,7 +353,7 @@ public class AiTaskSettlerBuilder : SettlerTaskBase
         var hand = Hand;
         if (hand == null) return;
         var current = entity.World.BlockAccessor.GetBlock(target);
-        bool clearing = current.Id != 0 && !manager!.KeepsBlock(colony, current, buildStep.BlockId);
+        bool clearing = current.Id != 0 && !manager!.KeepsBlock(colony, current, buildStep.BlockId, target);
         var need = clearing ? manager!.ToolNeededAt(colony, buildStep, target) : null;
         if (need == null)
         {
@@ -321,12 +384,13 @@ public class AiTaskSettlerBuilder : SettlerTaskBase
 
         var ba = entity.World.BlockAccessor;
         var current = ba.GetBlock(target);
-        if (current.Id != 0 && !manager.KeepsBlock(colony, current, buildStep.BlockId))
+        if (current.Id != 0 && !manager.KeepsBlock(colony, current, buildStep.BlockId, target))
         {
             var toolNeed = manager.ToolNeededAt(colony, buildStep, target);
             var hand = Hand;
             if (toolNeed != null && !ColonyManager.ToolFits(hand?.Itemstack, toolNeed.Value.Type, toolNeed.Value.Tier)) return;
             manager.BreakForBuild(colony, hut, target);
+            manager.GainWorkXp(colony, citizen, Jobs.Builder);
             // Every block cleared wears the tool down; a broken tool sends the builder back for another.
             if (toolNeed != null && hand?.Itemstack != null)
             {
@@ -336,21 +400,32 @@ public class AiTaskSettlerBuilder : SettlerTaskBase
         }
         if (buildStep.BlockId == 0) return;
 
-        var (place, cost) = manager.NextPlacement(colony, buildStep, target);
-        ItemStack? used = null;
-        if (cost != null)
+        var (place, costs) = manager.NextPlacement(colony, buildStep, target);
+        var paid = new List<ItemStack>();
+        foreach (var cost in costs)
         {
-            used = manager.TakeFromPack(colony, citizen, ColonyManager.Matcher(cost.Value.Code), 1);
-            if (used == null) return;
+            var taken = manager.TakeFromPack(colony, citizen, ColonyManager.Matcher(cost.Code), cost.Count);
+            if (taken != null) paid.Add(taken);
+            if (taken == null || taken.StackSize < cost.Count)
+            {
+                foreach (var stack in paid) manager.AddToPack(colony, citizen, stack);
+                return;
+            }
         }
+        var used = paid.FirstOrDefault();
         place = manager.SwapToMaterial(colony, place, used);
+        // A Master Mason now and then makes a block out of nothing: the materials go back in the pack.
+        if (manager.TraitAdd(citizen, "freeBlock") is var free && free > 0 && entity.World.Rand.NextDouble() < free)
+        {
+            foreach (var stack in paid) manager.AddToPack(colony, citizen, stack.Clone());
+        }
         if (manager.EntityInTheWay(place, target) is { } inTheWay)
         {
-            if (used != null) manager.AddToPack(colony, citizen, used);
-            if (inTheWay.EntityId == entity.EntityId && manager.FreeSpotNear(entity, entity.Pos.AsBlockPos, 3, target) is { } spot)
+            foreach (var stack in paid) manager.AddToPack(colony, citizen, stack);
+            if (inTheWay.EntityId == entity.EntityId && manager.FreeSpotNear(entity, target, 3, target) is { } spot)
             {
                 // Standing where the block goes: step out of the way first.
-                stepAsideTo = spot.AsBlockPos;
+                stepAsideTo = spot;
             }
             else
             {
@@ -360,15 +435,19 @@ public class AiTaskSettlerBuilder : SettlerTaskBase
             }
             return;
         }
-        manager.PlaceForBuild(place.Id, target);
+        var placedFrom = manager.PlacementStacks(buildStep, place, target, paid);
+        manager.PlaceForBuild(place.Id, target, placedFrom?.FirstOrDefault());
         manager.FinishPlacement(place, target);
+        if (place.Id == buildStep.BlockId) manager.RestoreSavedDetails(buildStep, target, placedFrom);
+        manager.GainWorkXp(colony, citizen, Jobs.Builder);
+        if (manager.EnsureBuilderHut(colony, citizen) is { } builderHut) manager.AddStat(builderHut, "blocks-placed");
     }
 
     /// <summary>What a player would play: the held tool's swing when clearing a block, the place motion when building.</summary>
     string WorkAnimationCode(Colony colony)
     {
         var current = entity.World.BlockAccessor.GetBlock(target);
-        bool clearing = current.Id != 0 && !manager!.KeepsBlock(colony, current, buildStep.BlockId);
+        bool clearing = current.Id != 0 && !manager!.KeepsBlock(colony, current, buildStep.BlockId, target);
         if (!clearing) return SettlerAnimations.PlayerAnimations.Contains("placeblock") ? "placeblock" : "interactstatic";
         var hand = Hand;
         return hand?.Itemstack?.Collectible.GetHeldTpHitAnimation(hand, entity) ?? "breakhand";

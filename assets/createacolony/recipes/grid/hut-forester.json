@@ -1,11 +1,10 @@
 {
-	"ingredientPattern": "SFS,PPP",
+	"ingredientPattern": "PXP,PXP,PPP",
 	"ingredients": {
 		"P": { "type": "item", "code": "game:plank-*" },
-		"S": { "type": "item", "code": "game:stick" },
-		"F": { "type": "item", "code": "game:firewood" }
+		"X": { "type": "item", "code": "game:firewood" }
 	},
 	"width": 3,
-	"height": 2,
+	"height": 3,
 	"output": { "type": "block", "code": "createacolony:hut-forester" }
 }

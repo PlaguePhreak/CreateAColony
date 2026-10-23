@@ -1,0 +1,67 @@
+{
+	// The traits settlers are born with, Project Zomboid style. Every settler has at least one good trait
+	// (points above 0) and one bad one (points below 0); quirks have 0 points. Each trait has a level
+	// from 0 to 20 (config TraitLevelMax): a good trait's effect grows 5% a level, a bad trait's
+	// penalty shrinks 4% a level, so a higher level is always better for the settler.
+	//
+	// Effects: a value like 1.15 on a "speed" key is a multiplier (15% faster), one like 0.8 is 20% slower.
+	// Other keys add to the game's number: maxHealth 6 is six more health, sleepEnd 2 wakes two hours later.
+	// Multiplier keys: workSpeed, walkSpeed, hunger, downedDays, regen, toolWear, variety, willpowerWait,
+	// swingSpeed, nightSwing, pairAfter, packSlots, learning (all skill XP), decay (skill decay). Adding keys:
+	// maxHealth, reckless, guardRange, retreatHealth, damageAdd, sleepStart, sleepEnd, childChance, freeBlock,
+	// cookLevel, mood (happiness points). Flags (1 = on): noPair, pairFirst, flees, incapable-<skill> (can
+	// never learn that skill or take its jobs).
+	// "job": the trait only works while the settler has that job; a settler has at most one job trait.
+	// "weight": how often it rolls. "inherited": children can get it from a parent. "earned": never rolled,
+	// only given by the game (Veteran after kills, Shaken after knock-outs). "conflicts": never together.
+	"traits": [
+		{ "code": "hardworker", "points": 3, "weight": 6, "inherited": true, "conflicts": ["lazy"], "effects": { "workSpeed": 1.15 } },
+		{ "code": "tough", "points": 3, "weight": 6, "inherited": true, "conflicts": ["frail"], "effects": { "maxHealth": 6 } },
+		{ "code": "lighteater", "points": 2, "weight": 8, "inherited": true, "conflicts": ["glutton"], "effects": { "hunger": 0.75 } },
+		{ "code": "fleetfooted", "points": 2, "weight": 8, "inherited": true, "conflicts": ["sluggish"], "effects": { "walkSpeed": 1.15 } },
+		{ "code": "fasthealer", "points": 2, "weight": 7, "inherited": true, "conflicts": ["slowhealer"], "effects": { "downedDays": 0.5, "regen": 2 } },
+		{ "code": "careful", "points": 1, "weight": 10, "inherited": true, "conflicts": ["clumsy"], "effects": { "toolWear": 0.7 } },
+		{ "code": "ironstomach", "points": 1, "weight": 10, "inherited": true, "conflicts": ["pickyeater"], "effects": { "variety": 0.5 } },
+		{ "code": "patient", "points": 1, "weight": 10, "inherited": false, "conflicts": ["reckless"], "effects": { "willpowerWait": 1.5 } },
+
+		{ "code": "lazy", "points": -3, "weight": 6, "inherited": true, "conflicts": ["hardworker"], "effects": { "workSpeed": 0.8 } },
+		{ "code": "frail", "points": -3, "weight": 6, "inherited": true, "conflicts": ["tough"], "effects": { "maxHealth": -6 } },
+		{ "code": "glutton", "points": -2, "weight": 8, "inherited": true, "conflicts": ["lighteater"], "effects": { "hunger": 1.35 } },
+		{ "code": "sluggish", "points": -2, "weight": 8, "inherited": true, "conflicts": ["fleetfooted"], "effects": { "walkSpeed": 0.85 } },
+		{ "code": "slowhealer", "points": -2, "weight": 7, "inherited": true, "conflicts": ["fasthealer"], "effects": { "downedDays": 2 } },
+		{ "code": "clumsy", "points": -2, "weight": 8, "inherited": false, "conflicts": ["careful"], "effects": { "toolWear": 1.5 } },
+		{ "code": "pickyeater", "points": -1, "weight": 10, "inherited": false, "conflicts": ["ironstomach"], "effects": { "variety": 2 } },
+		{ "code": "reckless", "points": -1, "weight": 10, "inherited": false, "conflicts": ["patient"], "effects": { "reckless": 0.2 } },
+		{ "code": "heavysleeper", "points": -1, "weight": 10, "inherited": true, "conflicts": ["earlyriser"], "effects": { "sleepEnd": 2 } },
+
+		{ "code": "mastermason", "points": 2, "weight": 4, "job": "builder", "inherited": true, "effects": { "workSpeed": 1.25, "freeBlock": 0.1 } },
+		{ "code": "greenthumb", "points": 2, "weight": 4, "job": "farmer", "inherited": true, "effects": { "workSpeed": 1.25 } },
+		{ "code": "lumberjack", "points": 2, "weight": 4, "job": "forester", "inherited": true, "effects": { "workSpeed": 1.25 } },
+		{ "code": "steadyhands", "points": 2, "weight": 4, "job": "potter", "inherited": true, "effects": { "workSpeed": 1.25 } },
+		{ "code": "goodcook", "points": 2, "weight": 4, "job": "cook", "inherited": true, "effects": { "workSpeed": 1.25, "cookLevel": 1 } },
+		{ "code": "packmule", "points": 2, "weight": 4, "job": "courier", "inherited": true, "effects": { "packSlots": 1.5 } },
+		{ "code": "prospectorseye", "points": 2, "weight": 3, "job": "prospector", "inherited": true, "effects": { "workSpeed": 1.25 } },
+		{ "code": "hardrock", "points": 2, "weight": 4, "job": "miner", "inherited": true, "effects": { "workSpeed": 1.25 } },
+		{ "code": "sharpeyed", "points": 2, "weight": 4, "job": "guard", "inherited": true, "effects": { "guardRange": 6 } },
+		{ "code": "brave", "points": 2, "weight": 4, "job": "guard", "inherited": true, "conflicts": ["cowardly", "shaken"], "effects": { "retreatHealth": -0.18 } },
+		{ "code": "cowardly", "points": -2, "weight": 6, "inherited": true, "conflicts": ["brave"], "effects": { "retreatHealth": 0.27, "flees": 1 } },
+
+		{ "code": "charming", "points": 1, "weight": 8, "inherited": true, "conflicts": ["loner"], "effects": { "pairAfter": 0.5, "pairFirst": 1 } },
+		{ "code": "fertile", "points": 1, "weight": 8, "inherited": true, "conflicts": ["loner"], "effects": { "childChance": 0.15 } },
+		{ "code": "loner", "points": -1, "weight": 6, "inherited": false, "conflicts": ["charming", "fertile"], "effects": { "noPair": 1 } },
+		{ "code": "earlyriser", "points": 0, "weight": 6, "inherited": true, "conflicts": ["nightowl", "heavysleeper"], "effects": { "sleepStart": -1, "sleepEnd": -2 } },
+		{ "code": "nightowl", "points": 0, "weight": 6, "inherited": true, "conflicts": ["earlyriser"], "effects": { "sleepStart": 3, "sleepEnd": 2, "nightSwing": 1.15 } },
+
+		{ "code": "fastlearner", "points": 2, "weight": 5, "inherited": true, "conflicts": ["slowlearner"], "effects": { "learning": 1.5 } },
+		{ "code": "slowlearner", "points": -2, "weight": 5, "inherited": true, "conflicts": ["fastlearner"], "effects": { "learning": 0.6 } },
+		{ "code": "goodmemory", "points": 1, "weight": 6, "inherited": true, "effects": { "decay": 0.5 } },
+		{ "code": "sanguine", "points": 1, "weight": 6, "inherited": true, "conflicts": ["melancholic"], "effects": { "mood": 8 } },
+		{ "code": "melancholic", "points": -1, "weight": 6, "inherited": true, "conflicts": ["sanguine"], "effects": { "mood": -8 } },
+		{ "code": "pacifist", "points": -2, "weight": 3, "inherited": true, "conflicts": ["brave", "sharpeyed", "veteran"], "effects": { "incapable-fighting": 1 } },
+		{ "code": "badback", "points": -2, "weight": 3, "inherited": true, "conflicts": ["lumberjack", "hardrock"], "effects": { "incapable-woodcutting": 1, "incapable-mining": 1 } },
+		{ "code": "hamfisted", "points": -2, "weight": 3, "inherited": true, "conflicts": ["goodcook", "steadyhands"], "effects": { "incapable-cooking": 1, "incapable-pottery": 1 } },
+
+		{ "code": "veteran", "points": 3, "weight": 0, "earned": true, "inherited": false, "effects": { "damageAdd": 1, "swingSpeed": 1.2 } },
+		{ "code": "shaken", "points": -1, "weight": 0, "earned": true, "inherited": false, "effects": { "workSpeed": 0.9, "retreatHealth": 0.27, "flees": 1 } }
+	]
+}

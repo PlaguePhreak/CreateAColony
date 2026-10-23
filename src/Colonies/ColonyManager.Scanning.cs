@@ -38,7 +38,13 @@ public partial class ColonyManager
     public int GatherRadius(Building hut)
     {
         if (hut.WorkRadius > 0) return hut.WorkRadius;
-        return hut.Type == BuildingTypes.Forester ? Config.ForesterRadius : Config.FarmerOrchardRadius;
+        return hut.Type switch
+        {
+            BuildingTypes.Forester => Config.ForesterRadius,
+            BuildingTypes.Prospector => Config.ProspectorRadius,
+            BuildingTypes.Miner => Config.MinerRadius,
+            _ => Config.FarmerOrchardRadius
+        };
     }
 
     public static bool IsGatherHut(string type) => GatherHuts.ContainsKey(type);

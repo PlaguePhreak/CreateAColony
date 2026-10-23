@@ -27,6 +27,12 @@ public class BlockFieldMarker : Block
             player.SendIngameError("createacolony-outside", Lang.Get("createacolony:marker-outside"));
             return false;
         }
+        // The scarecrow is two blocks tall, so the block above has to be free.
+        if (world.BlockAccessor.GetBlock(blockSel.Position.UpCopy()).Replaceable < 6000)
+        {
+            player.SendIngameError("createacolony-scarecrow-room", Lang.Get("createacolony:marker-no-room"));
+            return false;
+        }
         if (!base.DoPlaceBlock(world, byPlayer, blockSel, byItemStack)) return false;
 
         manager.AddField(colony, blockSel.Position);

@@ -19,6 +19,13 @@ public class BlockColonyHut : Block, IWandPlaceable
     /// <summary>Huts are put down with the Builder's Wand, which shows the building first.</summary>
     public override bool DoPlaceBlock(IWorldAccessor world, IPlayer byPlayer, BlockSelection blockSel, ItemStack byItemStack)
     {
+        // With PlaceHutsByHand on it is only a block, for making blueprints: no colony, no building.
+        if (WandOnly.HandPlacing(world))
+        {
+            if (!base.DoPlaceBlock(world, byPlayer, blockSel, byItemStack)) return false;
+            if (world.BlockAccessor.GetBlockEntity(blockSel.Position) is BlockEntityColonyHut be) be.SetRotation(WandOnly.HandRotation(byPlayer));
+            return true;
+        }
         WandOnly.Tell(world, byPlayer);
         return false;
     }
@@ -35,8 +42,20 @@ public class BlockColonyHut : Block, IWandPlaceable
         manager.AddBuilding(colony, BuildingType, pos, rotation);
         if (world.BlockAccessor.GetBlockEntity(pos) is BlockEntityColonyHut hut) hut.SetRotation(rotation);
         string name = Lang.GetL(player.LanguageCode, "createacolony:building-" + BuildingType);
-        string message = BuildingType == BuildingTypes.Potter
+        string message = BuildingType == BuildingTypes.Tavern
+            ? Lang.GetL(player.LanguageCode, "createacolony:hut-placed-tavern", name)
+            : BuildingType == BuildingTypes.Potter
             ? Lang.GetL(player.LanguageCode, "createacolony:hut-placed-potter", name)
+            : BuildingType == BuildingTypes.Cook
+            ? Lang.GetL(player.LanguageCode, "createacolony:hut-placed-cook", name)
+            : BuildingType == BuildingTypes.Residence
+            ? Lang.GetL(player.LanguageCode, "createacolony:hut-placed-residence", name)
+            : BuildingType == BuildingTypes.GuardTower
+            ? Lang.GetL(player.LanguageCode, "createacolony:hut-placed-guardtower", name)
+            : BuildingType == BuildingTypes.Barracks
+            ? Lang.GetL(player.LanguageCode, "createacolony:hut-placed-barracks", name)
+            : BuildingType is BuildingTypes.Prospector or BuildingTypes.Miner or BuildingTypes.Quarry or BuildingTypes.Smelter or BuildingTypes.Blacksmith or BuildingTypes.Sawmill
+            ? Lang.GetL(player.LanguageCode, "createacolony:hut-placed-" + BuildingType, name)
             : BuildingType is BuildingTypes.Forester or BuildingTypes.Farmer
             ? Lang.GetL(player.LanguageCode, "createacolony:hut-placed-worker", name, Lang.GetL(player.LanguageCode, "createacolony:job-" + BuildingType))
             : Lang.GetL(player.LanguageCode, "createacolony:hut-placed", name);
@@ -63,6 +82,13 @@ public class BlockColonyHut : Block, IWandPlaceable
             world.Api.ModLoader.GetModSystem<ColonyNetwork>().RequestOpenHut(blockSel.Position);
         }
         return true;
+    }
+
+    /// <summary>Only some players may break it, and only when they mean to (see ColonyManager.BreakRefusal).</summary>
+    public override void OnBlockBroken(IWorldAccessor world, BlockPos pos, IPlayer byPlayer, float dropQuantityMultiplier = 1)
+    {
+        if (!ColonyBlockGuard.MayBreak(world, pos, byPlayer, townHall: false)) return;
+        base.OnBlockBroken(world, pos, byPlayer, dropQuantityMultiplier);
     }
 
     public override void OnBlockRemoved(IWorldAccessor world, BlockPos pos)

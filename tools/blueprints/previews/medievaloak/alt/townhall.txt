@@ -1,0 +1,154 @@
+Town Hall (Medieval Oak (Alt)), from MineColonies' alttownhall: what each level needs, one item per block
+
+medievaloakalt townhall level 1 (from alttownhall1): 27x20x33, 5428 blocks, 2 beds, 1 chests
+    left out: oak_trapdoor 4, white_carpet 3, light_gray_carpet 3, oak_wall_sign 2
+     4352  soil-medium-none
+      338  cobblestonestairs-shale
+      225  planks-oak-hor
+      194  log-placed-oak-ud
+       72  log-placed-oak-we
+       58  drystonefence-shale
+       48  cobblestone-shale
+       46  cobblestoneslab-shale
+       43  log-placed-oak-ns
+       18  stonepath-free
+       13  packeddirt
+       12  torch-basic-lit
+        4  bed-hay (half: 2 blocks = 1 bed)
+        1  chest
+        1  door-solid-oak
+        1  firepit-cold
+
+medievaloakalt townhall level 2 (from alttownhall2): 27x25x33, 5393 blocks, 2 beds, 3 chests
+    left out: oak_trapdoor 6, red_carpet 5, orange_carpet 5, oak_wall_sign 4, glass_pane 2, yellow_wall_banner 1, red_wall_banner 1
+     2731  soil-medium-none
+     1045  cobblestone-shale
+      292  cobblestonestairs-shale
+      254  planks-oak-hor
+      230  log-placed-oak-ud
+      229  cobblestoneslab-shale
+      185  plankstairs-oak
+      101  log-placed-oak-we
+       60  log-placed-oak-ns
+       54  stonepath-free
+       45  torch-basic-lit
+       41  drystonefence-shale
+       31  mudbrick-light
+       28  rockpolished-shale
+       17  plankslab-oak
+       15  packeddirt
+        6  barrel
+        4  bed-hay (half: 2 blocks = 1 bed)
+        3  chest
+        3  ladder-wood-oak-west
+        3  door-solid-oak
+        3  ladder-wood-oak-south
+        3  ladder-wood-oak-east
+        3  ladder-wood-oak-north
+        1  clayoven-east
+        1  firepit-cold
+        1  pole-banner-wall2-north
+
+medievaloakalt townhall level 3 (from alttownhall3): 33x29x33, 8475 blocks, 5 beds, 2 chests
+    left out: oak_button 26, gate_wood 15, red_carpet 8, orange_carpet 7, oak_trapdoor 5, yellow_wall_banner 3, red_wall_banner 3, rail 2 and more
+     3085  soil-medium-none
+     2841  cobblestone-shale
+      504  cobblestonestairs-shale
+      489  cobblestoneslab-shale
+      449  stonebricks-shale
+      196  planks-oak-hor
+      184  stonepath-free
+      138  log-placed-oak-ud
+      127  plankstairs-oak
+       98  stonebrickstairs-shale
+       90  log-placed-oak-we
+       78  drystonefence-shale
+       64  torch-basic-lit
+       52  log-placed-oak-ns
+       26  rockpolished-shale
+       12  mudbrick-light
+       10  bed-hay (half: 2 blocks = 1 bed)
+        8  plankslab-oak
+        7  ladder-wood-oak-west
+        4  hay-normal-ud
+        2  door-solid-oak
+        2  bookshelf
+        2  chest
+        1  roughtable-north
+        1  clayoven-east
+        1  ladder-wood-oak-north
+        1  pole-banner-wall2-north
+
+medievaloakalt townhall level 4 (from alttownhall4): 33x31x33, 8808 blocks, 6 beds, 2 chests
+    left out: short_grass 54, iron_bars 20, gate_iron 20, red_carpet 15, oak_trapdoor 11, oak_wall_sign 10, white_wall_banner 7, gray_carpet 5 and more
+     3825  cobblestone-shale
+     1539  stonebricks-shale
+     1037  soil-medium-none
+      591  stonebrickstairs-shale
+      575  cobblestoneslab-shale
+      428  cobblestonestairs-shale
+      101  mudbrick-light
+      101  soil-medium-normal
+       91  drystonefence-shale
+       82  rockpolished-shale
+       82  planks-oak-hor
+       74  plankstairs-oak
+       69  torch-basic-lit
+       68  stonepath-free
+       22  log-placed-oak-we
+       20  lantern-small
+       19  bookshelf
+       13  log-placed-oak-ud
+       10  log-placed-oak-ns
+        6  storagevessel-red-fired
+        6  bed-hay (half: 2 blocks = 1 bed)
+        6  door-solid-oak
+        6  bed-wood (half: 2 blocks = 1 bed)
+        5  hay-normal-ud
+        5  plankslab-oak
+        4  roughtable-north
+        4  ladder-wood-oak-north
+        3  pole-banner-wall2-north
+        3  ladder-wood-oak-west
+        2  chest
+        2  firepit-cold
+        1  clayoven-east
+        1  barrel
+
+medievaloakalt townhall level 5 (from alttownhall5): 34x41x34, 11444 blocks, 11 beds, 16 chests
+    left out: iron_bars 32, red_carpet 31, vine 26, gate_iron 20, short_grass 14, white_wall_banner 13, orange_carpet 11, dark_oak_wall_sign 10 and more
+     3839  cobblestone-shale
+     3224  stonebricks-shale
+     1013  soil-medium-none
+      830  stonebrickstairs-shale
+      726  cobblestoneslab-shale
+      508  cobblestonestairs-shale
+      200  drystonefence-shale
+      188  plankstairs-oak
+      156  mudbrick-light
+      133  rockpolished-shale
+       92  torch-basic-lit
+       81  stonepath-free
+       78  log-placed-oak-ud
+       61  planks-oak-hor
+       36  bookshelf
+       32  log-placed-oak-ns
+       28  lantern-small
+       26  plankslab-oak
+       24  log-placed-oak-we
+       22  soil-medium-normal
+       17  barrel
+       16  chest
+       16  door-solid-oak
+       14  bed-hay (half: 2 blocks = 1 bed)
+       14  ladder-wood-oak-west
+       11  ladder-wood-oak-north
+        8  bed-wood (half: 2 blocks = 1 bed)
+        6  storagevessel-red-fired
+        5  roughtable-north
+        5  hay-normal-ud
+        5  ladder-wood-oak-south
+        5  ladder-wood-oak-east
+        3  firepit-cold
+        3  pole-banner-wall2-north
+        2  clayoven-east

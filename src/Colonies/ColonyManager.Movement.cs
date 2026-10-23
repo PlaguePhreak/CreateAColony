@@ -26,6 +26,10 @@ public partial class ColonyManager
         return null;
     }
 
+    /// <summary>True when the entity's body is inside the block space at pos.</summary>
+    public bool Overlaps(Entity entity, BlockPos pos) =>
+        BodyAt(entity, entity.Pos.X, entity.Pos.Y, entity.Pos.Z).Intersects(new Cuboidd(pos.X, pos.Y, pos.Z, pos.X + 1, pos.Y + 1, pos.Z + 1));
+
     /// <summary>
     /// The nearest spot around a position where the entity can stand: its body fits, there is floor under
     /// it, and it does not overlap the block at avoid. Null if there is none within the radius.

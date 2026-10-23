@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using Vintagestory.API.Common;
 using Vintagestory.API.MathTools;
+using Vintagestory.GameContent;
 
 namespace CreateAColony.Colonies;
 
@@ -27,8 +28,12 @@ public partial class ColonyManager
         _ => null
     };
 
+    /// <summary>
+    /// True for a tool of this type and at least this tier. A prospecting pick never counts as a pickaxe,
+    /// so builders and miners leave it for the prospector.
+    /// </summary>
     public static bool ToolFits(ItemStack? stack, EnumTool type, int tier) =>
-        stack != null && stack.Collectible.Tool == type && stack.Collectible.ToolTier >= tier;
+        stack != null && stack.Collectible.Tool == type && stack.Collectible.ToolTier >= tier && !IsProspectingPick(stack);
 
     public static bool IsBuilderTool(ItemStack stack) => stack.Collectible.Tool is { } t && BuilderTools.Contains(t);
 
@@ -46,7 +51,7 @@ public partial class ColonyManager
     {
         if (!Config.BuildersNeedTools) return null;
         var block = sapi.World.BlockAccessor.GetBlock(pos);
-        if (block.Id == 0 || block.IsLiquid() || KeepsBlock(colony, block, step.BlockId)) return null;
+        if (block.Id == 0 || block.IsLiquid() || KeepsBlock(colony, block, step.BlockId, pos)) return null;
         return ToolFor(block) is { } type ? new ToolNeed(type, block.RequiredMiningTier) : null;
     }
 

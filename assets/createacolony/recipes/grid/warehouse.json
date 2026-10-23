@@ -1,10 +1,10 @@
 {
-	"ingredientPattern": "PSP,PPP",
+	"ingredientPattern": "PXP,PXP,PPP",
 	"ingredients": {
 		"P": { "type": "item", "code": "game:plank-*" },
-		"S": { "type": "item", "code": "game:stick" }
+		"X": { "type": "block", "code": "game:chest-east" }
 	},
 	"width": 3,
-	"height": 2,
+	"height": 3,
 	"output": { "type": "block", "code": "createacolony:warehouse" }
 }

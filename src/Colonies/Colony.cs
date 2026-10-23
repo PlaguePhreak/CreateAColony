@@ -47,8 +47,79 @@ public class CitizenRecord
     [ProtoMember(14)] public List<byte[]> Pack = new();
     /// <summary>Bags the settler wears; each adds its slots to the inventory.</summary>
     [ProtoMember(15)] public List<byte[]> Bags = new();
+    /// <summary>A wanderer asking to join: it has no job until an officer welcomes it, and leaves if nobody does.</summary>
+    [ProtoMember(16)] public bool Visitor;
+    /// <summary>When a visitor nobody welcomed gives up and leaves.</summary>
+    [ProtoMember(17)] public double VisitorUntilTotalDays;
+    /// <summary>Food groups (EnumFoodCategory) of the settler's last few meals, oldest first.</summary>
+    [ProtoMember(18)] public List<int> RecentFood = new();
+    /// <summary>Armor the settler wears (helmet, body, legs), serialized stacks; it takes the blows first.</summary>
+    [ProtoMember(19)] public List<byte[]> Armor = new();
+    /// <summary>The family name, also the last word of Name; children take one of their parents'.</summary>
+    [ProtoMember(20)] public string Surname = "";
+    /// <summary>The settler this one shares a home with, 0 if single. Stays set after the partner dies.</summary>
+    [ProtoMember(21)] public int PartnerId;
+    /// <summary>A child's mother and father (citizen ids); empty for settlers who came from outside.</summary>
+    [ProtoMember(22)] public List<int> ParentIds = new();
+    /// <summary>When the settler joined the colony or was born; 0 in older saves, which counts as long ago.</summary>
+    [ProtoMember(23)] public double JoinedTotalDays;
+    /// <summary>A child grows up at this time; 0 for adults.</summary>
+    [ProtoMember(24)] public double GrowsUpTotalDays;
+    /// <summary>When this couple last had a child, so the next one waits a while.</summary>
+    [ProtoMember(25)] public double LastChildTotalDays;
+    /// <summary>When a settler died for good (permadeath); 0 if alive, or dead before 0.33.0 recorded it.</summary>
+    [ProtoMember(26)] public double DiedTotalDays;
+    /// <summary>Whether a dead settler has been buried. Nothing sets it yet: burial and mourning are coming later.</summary>
+    [ProtoMember(27)] public bool Buried;
+    /// <summary>XP in each skill, by skill code (config/skills.json); the level follows from it. See ColonyManager.Skills.cs.</summary>
+    [ProtoMember(28)] public Dictionary<string, int> SkillXp = new();
+    /// <summary>Whether starting skills were rolled, so settlers from saves before skills get theirs once.</summary>
+    [ProtoMember(29)] public bool SkillsRolled;
+    /// <summary>Traits they were born with or earned, each with its level (config/colonytraits.json; ColonyManager.Traits.cs). 30-34 are traits; the settler inventory thread uses 40+.</summary>
+    [ProtoMember(30)] public List<TraitRecord> Traits = new();
+    /// <summary>Whether traits were rolled, so settlers from saves before traits get theirs once.</summary>
+    [ProtoMember(31)] public bool TraitsRolled;
+    /// <summary>Kills as a guard, for the earned Veteran trait.</summary>
+    [ProtoMember(32)] public int Kills;
+    /// <summary>When the settler was knocked out lately (total days), for the earned Shaken trait.</summary>
+    [ProtoMember(33)] public List<double> DownedDays = new();
+    /// <summary>While Shaken: when it fades, if they are not knocked out again before then.</summary>
+    [ProtoMember(34)] public double ShakenUntilTotalDays;
+    // 30-39 are left for the traits and quest work.
+    /// <summary>
+    /// The tool bar, kept apart from the inventory: weapon, three tools, offhand (see ColonyManager.Gear.cs).
+    /// Serialized stacks, an empty array where a slot is empty.
+    /// </summary>
+    [ProtoMember(40)] public List<byte[]> ToolBar = new();
+    /// <summary>Clothes worn, by the game's dress slot (EnumCharacterDressType 0-11); an empty array where the slot is empty.</summary>
+    [ProtoMember(41)] public List<byte[]> Clothes = new();
+    /// <summary>Set once the settler got its starting (Commoner) clothes, so clothes a player takes off stay off.</summary>
+    [ProtoMember(42)] public bool Dressed;
+    /// <summary>The settler's look from the player character creator: skin part code to chosen variant.</summary>
+    [ProtoMember(43)] public Dictionary<string, string> Skin = new();
+    /// <summary>Food the settler carries to eat on the go, kept apart from the inventory so it is never unloaded with the harvest.</summary>
+    [ProtoMember(44)] public List<byte[]> Lunch = new();
+    /// <summary>Passions by skill code: 1 = Interested (one flame), 2 = Burning (two flames). 50-59 are skills and happiness.</summary>
+    [ProtoMember(50)] public Dictionary<string, int> Passions = new();
+    /// <summary>Whether passions were rolled, so settlers from saves before passions get theirs once.</summary>
+    [ProtoMember(51)] public bool PassionsRolled;
+    /// <summary>XP gained in each skill on SkillXpDay, for the daily soft cap.</summary>
+    [ProtoMember(52)] public Dictionary<string, int> SkillXpToday = new();
+    [ProtoMember(53)] public int SkillXpDay;
+    /// <summary>Mood from 0 to 100; -1 until first set (starts at 50). See ColonyManager.Happiness.cs.</summary>
+    [ProtoMember(54, IsRequired = true)] public float Happiness = -1f;
+    /// <summary>Thoughts that last a while: a good meal, a death in the family, being knocked out.</summary>
+    [ProtoMember(55)] public List<ThoughtRecord> Thoughts = new();
+    /// <summary>While above the current time: too unhappy to work, sulking.</summary>
+    [ProtoMember(56)] public double BreakdownUntilTotalDays;
+    // 60-69 are job settings.
+    /// <summary>What the settler does at a hut that has more than one kind of work: a Prospector's Hut's ProspectorRoles.</summary>
+    [ProtoMember(60)] public int WorkRole;
+    /// <summary>A prospector on Mine ore: its own trip to prospected ore, kept apart from its hut mate's.</summary>
+    [ProtoMember(61)] public MineTrip Trip = new();
 
     public bool IsDowned => DownedUntilTotalDays > 0;
+    public bool IsChild => GrowsUpTotalDays > 0;
 }
 
 /// <summary>
@@ -111,8 +182,244 @@ public class Building
     [ProtoMember(17)] public BlockPos? KilnPos;
     /// <summary>Where a potter shapes clay.</summary>
     [ProtoMember(18)] public BlockPos? FormPos;
+    /// <summary>A Tavern: the settlers who can be hired there today.</summary>
+    [ProtoMember(19)] public List<RecruitOffer> Recruits = new();
+    /// <summary>The in-game day the Tavern's recruits arrived; a new day brings new ones.</summary>
+    [ProtoMember(20, IsRequired = true)] public int RecruitDay = -1;
+    /// <summary>A Cook's Hut: how many of each cooked food to keep in stock, by the cooked food's code.</summary>
+    [ProtoMember(21)] public Dictionary<string, int> KitchenKeep = new();
+    /// <summary>An officer has set KitchenKeep; until then the config default applies to every food.</summary>
+    [ProtoMember(22)] public bool KitchenChosen;
+    /// <summary>The blueprint style the building is built in (see BlueprintStyles); empty in older saves means Testing.</summary>
+    [ProtoMember(23)] public string Style = "";
+    /// <summary>A name the players gave the building; empty uses the type's name.</summary>
+    [ProtoMember(24)] public string CustomName = "";
+    /// <summary>How soon couriers come to take things away from this hut, 1 to 10 (10 first); 0 means never.</summary>
+    [ProtoMember(25, IsRequired = true)] public int PickupPriority = 5;
+    /// <summary>An officer pressed Request pickup now: the next courier free takes everything in the hut's storage.</summary>
+    [ProtoMember(26)] public bool PickupNow;
+    /// <summary>A Guard Tower: what its guards do (see GuardTasks).</summary>
+    [ProtoMember(27)] public int GuardTask;
+    /// <summary>A Guard Tower: where its guards stand on the Guard task; null means at the tower.</summary>
+    [ProtoMember(28)] public BlockPos? GuardSpot;
+    /// <summary>A Guard Tower: guards on the Patrol task walk PatrolPoints instead of from hut to hut.</summary>
+    [ProtoMember(29)] public bool PatrolManual;
+    [ProtoMember(30)] public List<BlockPos> PatrolPoints = new();
+    /// <summary>A Guard Tower: the player its guards follow on the Follow task.</summary>
+    [ProtoMember(31)] public string FollowPlayerUid = "";
+    [ProtoMember(32)] public bool FollowTight;
+    /// <summary>A Guard Tower: badly hurt guards walk back to the tower until they have healed.</summary>
+    [ProtoMember(33, IsRequired = true)] public bool Retreat = true;
+    /// <summary>A Guard Tower: creatures (entity code paths) its guards leave alone; all others are fought.</summary>
+    [ProtoMember(34)] public List<string> HostilesOff = new();
+    /// <summary>Items couriers keep at least this many of in the hut's storage.</summary>
+    [ProtoMember(35)] public List<MinStockEntry> MinStock = new();
+    /// <summary>Counts per in-game day for the Statistics tab, for the last 100 days.</summary>
+    [ProtoMember(36)] public List<StatEntry> Stats = new();
+    /// <summary>All-time totals for the Statistics tab.</summary>
+    [ProtoMember(37)] public Dictionary<string, int> StatTotals = new();
+    /// <summary>A Miner's Hut: the ore its miner digs for (a deposit code such as "nativecopper"); empty means the best the prospectors found.</summary>
+    [ProtoMember(38)] public string MineOre = "";
+    // 39-43 held the Miner's Hut's trip to prospected ore before 0.62.0; it is in Trip now (see AfterLoad).
+    [ProtoMember(39)] BlockPos? oldMineSite;
+    [ProtoMember(40)] string oldMineSiteOre = "";
+    [ProtoMember(41)] BlockPos? oldMineEntrance;
+    [ProtoMember(42)] BlockPos? oldMineEnd;
+    [ProtoMember(43)] BlockPos? oldMineTarget;
+    /// <summary>A Quarry: the middle of its pit beside the hut, in the air just above the ground; the top layer of the pit is the ground under it.</summary>
+    [ProtoMember(44)] public BlockPos? QuarryCenter;
+    /// <summary>A Miner's Hut: the miner goes off to dig ore the colony's prospectors found before working its own shaft.</summary>
+    [ProtoMember(45, IsRequired = true)] public bool MineProspected = true;
+    /// <summary>A Miner's Hut: the middle of its shaft beside the hut, at the height a settler stands on the ground there.</summary>
+    [ProtoMember(46)] public BlockPos? ShaftPos;
+    /// <summary>Which of its type's variants the building is (a small or a medium house; see BlueprintLibrary.Variants); "" is the first.</summary>
+    [ProtoMember(47)] public string Variant = "";
+    /// <summary>A Miner's Hut: its miner's trip to ore the colony's prospectors found. (Prospectors on Mine ore keep their own, on CitizenRecord.)</summary>
+    [ProtoMember(48)] public MineTrip Trip = new();
+    /// <summary>A Miner's Hut: the sections its mineshaft has grown so far, in the order they were dug, after its entrance.</summary>
+    [ProtoMember(49)] public List<MineSection> Sections = new();
+    /// <summary>A Miner's Hut: where its mineshaft's entrance comes up beside the hut, at the height a settler stands on the ground there.</summary>
+    [ProtoMember(50)] public BlockPos? MineshaftPos;
+    /// <summary>A Miner's Hut: the level of the mineshaft (1 is the top stair loop) new sections go on first; 0 lets the miner pick.</summary>
+    [ProtoMember(51)] public int MineLevel;
+    /// <summary>A Miner's Hut: a level the miner puts back as it was before anything else; 0 when none was asked for.</summary>
+    [ProtoMember(52)] public int RepairLevel;
+    /// <summary>A Miner's Hut: how many levels deep the mineshaft goes at most; 0 goes as deep as the hut's level allows.</summary>
+    [ProtoMember(53)] public int MaxMineLevels;
+    /// <summary>A Miner's Hut: what the miner fills holes in the mineshaft floor with (see MineFillBlocks); "none" leaves them.</summary>
+    [ProtoMember(54, IsRequired = true)] public string FillBlock = MineFillBlocks.Soil;
+    /// <summary>A Miner's Hut: the guards (citizen ids) that patrol its mine, from Guard Towers set to Patrol mine.</summary>
+    [ProtoMember(55)] public List<int> MineGuards = new();
+    // 56-59 left free for other building fields.
+    // 60 and 61 held the trip's entrances and the mines to fill in before 0.62.0.
+    [ProtoMember(60)] List<BlockPos> oldSiteEntrances = new();
+    [ProtoMember(61)] List<BlockPos> oldMineSeals = new();
+    // 70-79 for the crafter huts (Smelter, Blacksmith, Sawmill and the ones to come).
+    /// <summary>A crafter hut: how many of each thing to keep in stock, by key (see ColonyManager.Crafting.cs).</summary>
+    [ProtoMember(70)] public Dictionary<string, int> CraftKeep = new();
+    /// <summary>An officer has set CraftKeep; until then the config defaults apply.</summary>
+    [ProtoMember(71)] public bool CraftChosen;
 
     public bool HasWorkOrder => TargetLevel > Level;
+
+    /// <summary>Moves a Miner's Hut's trip from where saves before 0.62.0 kept it into Trip.</summary>
+    [ProtoAfterDeserialization]
+    void AfterLoad()
+    {
+        Trip ??= new MineTrip();
+        if (oldMineSite != null || oldMineSeals.Count > 0 || oldSiteEntrances.Count > 0)
+        {
+            Trip.Site = oldMineSite;
+            Trip.SiteOre = oldMineSiteOre;
+            Trip.Entrance = oldMineEntrance;
+            Trip.End = oldMineEnd;
+            Trip.Target = oldMineTarget;
+            Trip.Entrances.AddRange(oldSiteEntrances);
+            Trip.Seals.AddRange(oldMineSeals);
+        }
+        oldMineSite = oldMineEntrance = oldMineEnd = oldMineTarget = null;
+        oldMineSiteOre = "";
+        oldSiteEntrances.Clear();
+        oldMineSeals.Clear();
+    }
+}
+
+/// <summary>
+/// A miner's trip to ore the colony's prospectors found: the reading it works and the ore it digs there,
+/// the staircase down to it, and the finished mines it still has to fill back in. A Miner's Hut keeps one
+/// for its miner, and every prospector on Mine ore keeps its own.
+/// </summary>
+[ProtoContract]
+public class MineTrip
+{
+    /// <summary>The prospecting reading (OreSite position) being worked, and the ore dug there.</summary>
+    [ProtoMember(1)] public BlockPos? Site;
+    [ProtoMember(2)] public string SiteOre = "";
+    /// <summary>Where the staircase starts at the surface (the spot to stand on).</summary>
+    [ProtoMember(3)] public BlockPos? Entrance;
+    /// <summary>The far end of the tunnel dug so far (the spot to stand on); new tunnels start from here.</summary>
+    [ProtoMember(4)] public BlockPos? End;
+    /// <summary>The ore block being tunnelled towards.</summary>
+    [ProtoMember(5)] public BlockPos? Target;
+    /// <summary>The surface entrances of the staircases dug at the site.</summary>
+    [ProtoMember(6)] public List<BlockPos> Entrances = new();
+    /// <summary>Entrances of finished mines still to be filled back in.</summary>
+    [ProtoMember(7)] public List<BlockPos> Seals = new();
+}
+
+/// <summary>One section of a Miner's Hut's mineshaft: which piece (cross, tee, straight), turned how far, and where its bottom middle is.</summary>
+[ProtoContract]
+public class MineSection
+{
+    [ProtoMember(1)] public string Name = "";
+    [ProtoMember(2)] public int Rotation;
+    [ProtoMember(3)] public BlockPos Origin = new BlockPos(0);
+}
+
+/// <summary>What each of a Prospector's Hut's prospectors does (CitizenRecord.WorkRole).</summary>
+public static class ProspectorRoles
+{
+    /// <summary>Walks the land taking readings with the prospecting pick.</summary>
+    public const int Find = 0;
+    /// <summary>Goes to the best readings with a pickaxe and digs the ore out, as a Miner's Hut's miner does.</summary>
+    public const int Mine = 1;
+}
+
+/// <summary>What a Guard Tower's guards do.</summary>
+public static class GuardTasks
+{
+    /// <summary>Stand at the guard spot (or the tower) and fight what comes near.</summary>
+    public const int Guard = 0;
+    /// <summary>Walk from patrol point to patrol point, or from hut to hut, fighting on the way.</summary>
+    public const int Patrol = 1;
+    /// <summary>Follow a player as a bodyguard, even outside the colony.</summary>
+    public const int Follow = 2;
+    /// <summary>Go with the miner of the Miner's Hut that took them on its Guards tab (Guard Towers only, as in MineColonies).</summary>
+    public const int PatrolMine = 3;
+}
+
+/// <summary>What a miner fills holes in its mineshaft floor with (Building.FillBlock), and the block placed for each.</summary>
+public static class MineFillBlocks
+{
+    public const string None = "none";
+    public const string Soil = "soil";
+    public const string Cobblestone = "cobblestone";
+    public const string Gravel = "gravel";
+    public static readonly string[] All = { Soil, Cobblestone, Gravel, None };
+
+    /// <summary>The block code placed; null for None. Any rock will do when "any wood or stone" is on.</summary>
+    public static string? BlockCode(string fill) => fill switch
+    {
+        Soil => "game:soil-medium-none",
+        Cobblestone => "game:cobblestone-granite",
+        Gravel => "game:gravel-granite",
+        _ => null
+    };
+}
+
+/// <summary>"Keep at least Count of this item here."</summary>
+[ProtoContract]
+public class MinStockEntry
+{
+    /// <summary>One of the item, serialized, so the window can show it and couriers can match it.</summary>
+    [ProtoMember(1)] public byte[] Stack = System.Array.Empty<byte>();
+    [ProtoMember(2)] public string Code = "";
+    [ProtoMember(3)] public int Count;
+}
+
+/// <summary>How many times something happened at a building on one in-game day.</summary>
+[ProtoContract]
+public class StatEntry
+{
+    [ProtoMember(1)] public string Key = "";
+    [ProtoMember(2)] public int Day;
+    [ProtoMember(3)] public int Count;
+}
+
+/// <summary>One line of the Town Hall's event log: a lang key and its arguments, filled in by the reader's own language.</summary>
+[ProtoContract]
+public class ColonyEvent
+{
+    [ProtoMember(1)] public double TotalDays;
+    [ProtoMember(2)] public string Key = "";
+    /// <summary>An argument starting with "@" is itself a lang key, such as "@building-farmer".</summary>
+    [ProtoMember(3)] public List<string> Args = new();
+}
+
+/// <summary>Someone at the Tavern who joins the colony for a price in rusty gears.</summary>
+[ProtoContract]
+public class RecruitOffer
+{
+    [ProtoMember(1)] public string Name = "";
+    [ProtoMember(2)] public string Sex = "male";
+    [ProtoMember(3)] public int Cost;
+    /// <summary>The skills they would bring, rolled when the offer is made and shown before hiring.</summary>
+    [ProtoMember(4)] public Dictionary<string, int> SkillXp = new();
+    /// <summary>Their traits, rolled with the offer; the price follows the trait score.</summary>
+    [ProtoMember(5)] public List<TraitRecord> Traits = new();
+    /// <summary>Their passions (skill code to 1 or 2 flames), shown before hiring.</summary>
+    [ProtoMember(6)] public Dictionary<string, int> Passions = new();
+}
+
+/// <summary>A thought that lasts a while and adds to a settler's mood (ColonyManager.Happiness.cs).</summary>
+[ProtoContract]
+public class ThoughtRecord
+{
+    /// <summary>The thought's code: "meal", "knockedout", "death", "passion" and so on.</summary>
+    [ProtoMember(1)] public string Code = "";
+    /// <summary>Mood points it adds (negative to take away).</summary>
+    [ProtoMember(2)] public int Mood;
+    [ProtoMember(3)] public double UntilTotalDays;
+}
+
+/// <summary>One trait of a settler: which, and how far it has grown (0 to TraitLevelMax).</summary>
+[ProtoContract]
+public class TraitRecord
+{
+    [ProtoMember(1)] public string Code = "";
+    [ProtoMember(2)] public int Level;
+    /// <summary>Trait XP towards the next level; level L to L+1 costs (L+1) x TraitXpPerLevel.</summary>
+    [ProtoMember(3)] public int Xp;
 }
 
 /// <summary>
@@ -127,6 +434,54 @@ public class FieldRecord
     [ProtoMember(2)] public string Seed = "";
     /// <summary>The farmer looking after this field, 0 if none yet.</summary>
     [ProtoMember(3)] public int FarmerCitizenId;
+}
+
+/// <summary>
+/// One reading a prospector took with the game's prospecting pick (density mode): the spot, and how much
+/// of each ore lies in the ground around it, exactly as the pick would tell a player.
+/// </summary>
+[ProtoContract]
+public class OreSite
+{
+    /// <summary>The ground surface where the reading was taken.</summary>
+    [ProtoMember(1)] public BlockPos Pos = new BlockPos(0);
+    [ProtoMember(2)] public double TotalDays;
+    [ProtoMember(3)] public List<OreFind> Ores = new();
+    /// <summary>Ores a miner has dug out here, or found none of close enough to reach.</summary>
+    [ProtoMember(4)] public List<string> MinedOut = new();
+}
+
+/// <summary>One ore in a reading: the deposit code, the pick's density factor (0 to 1) and parts per thousand.</summary>
+[ProtoContract]
+public class OreFind
+{
+    [ProtoMember(1)] public string Code = "";
+    [ProtoMember(2)] public double Factor;
+    [ProtoMember(3)] public double Ppt;
+}
+
+/// <summary>
+/// What is saved about one quest for a player or a colony: whether it was accepted and when it was
+/// claimed. Everything else (locked, counting, complete) is worked out from the world each time.
+/// </summary>
+[ProtoContract]
+public class QuestRecord
+{
+    [ProtoMember(1)] public bool Accepted;
+    [ProtoMember(2)] public double AcceptedTotalDays;
+    [ProtoMember(3)] public bool Claimed;
+    [ProtoMember(4)] public double ClaimedTotalDays;
+    /// <summary>The player was told the quest is ready to claim, so they are not told again.</summary>
+    [ProtoMember(5)] public bool Notified;
+}
+
+/// <summary>One player's own quests (the base game groups and the Story prologue), saved on the world under the player's uid.</summary>
+[ProtoContract]
+public class PlayerQuests
+{
+    [ProtoMember(1)] public Dictionary<string, QuestRecord> Quests = new();
+    /// <summary>Quest codes the player chose to track in the quest book.</summary>
+    [ProtoMember(2)] public List<string> Tracked = new();
 }
 
 [ProtoContract]
@@ -144,11 +499,8 @@ public class Colony
     [ProtoMember(8)] public List<CitizenRecord> Citizens = new();
     [ProtoMember(9, IsRequired = true)] public int NextCitizenId = 1;
     [ProtoMember(10)] public double FoundedTotalDays;
-    /// <summary>Position of the colony's single supply camp, or null if none is placed.</summary>
-    [ProtoMember(11)] public BlockPos? SupplyCampPos;
-    /// <summary>Kept on the colony, not the block, so breaking and re-placing the camp cannot reset it.</summary>
-    [ProtoMember(12)] public int SupplyDeliveriesTaken;
-    [ProtoMember(13, IsRequired = true)] public int LastSupplyDay = -1;
+    // 11 to 13 held the old supply camp's daily deliveries (up to 0.31). The camp no longer belongs to a
+    // colony; the numbers stay taken so old saves still load.
 
     /// <summary>Position of the colony's warehouse marker; chests around it form the warehouse.</summary>
     [ProtoMember(14)] public BlockPos? WarehousePos;
@@ -162,6 +514,28 @@ public class Colony
     [ProtoMember(20, IsRequired = true)] public bool AnyWoodOrStone = true;
     /// <summary>Fields marked out with Field markers, for farmers.</summary>
     [ProtoMember(21)] public List<FieldRecord> Fields = new();
+    /// <summary>The owner's Permadeath switch; null until changed, so the server config decides.</summary>
+    [ProtoMember(22)] public bool? Permadeath;
+    /// <summary>When the next wanderer may come asking to join; 0 until first worked out.</summary>
+    [ProtoMember(23)] public double NextWandererTotalDays;
+    /// <summary>The Town Hall's event log, oldest first, the newest ColonyManager.MaxEvents kept.</summary>
+    [ProtoMember(24)] public List<ColonyEvent> Events = new();
+    /// <summary>The colony banner set on the Town Hall's Banners tab (one banner, serialized), or null.</summary>
+    [ProtoMember(25)] public byte[]? BannerStack;
+    /// <summary>Puts the colony banner on each building as soon as a builder finishes it.</summary>
+    [ProtoMember(26)] public bool BannerOnNew;
+    /// <summary>The last in-game day couples and births were looked at.</summary>
+    [ProtoMember(27, IsRequired = true)] public int LastFamilyDay = -1;
+    /// <summary>Readings the colony's prospectors took with the game's prospecting pick, oldest first.</summary>
+    [ProtoMember(28)] public List<OreSite> OreSites = new();
+    /// <summary>The last in-game day traits earned their daily XP; -1 until the first tick.</summary>
+    [ProtoMember(35, IsRequired = true)] public int LastTraitDay = -1; // 29 to 34 are left to the quests branch
+    /// <summary>The last in-game day skills decayed. 50-59 are skills and happiness.</summary>
+    [ProtoMember(50, IsRequired = true)] public int LastSkillDay = -1;
+    /// <summary>When moods last moved (total hours); 0 until the first happiness tick.</summary>
+    [ProtoMember(51)] public double LastMoodTotalHours;
+    /// <summary>The colony's quests (the Story and The Colony groups), by quest code: accepted and claimed ones only.</summary>
+    [ProtoMember(29)] public Dictionary<string, QuestRecord> Quests = new();
 
     public string OwnerUid => Members.Find(m => m.Role == ColonyRole.Owner)?.PlayerUid ?? "";
 

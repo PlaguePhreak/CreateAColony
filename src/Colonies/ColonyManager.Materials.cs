@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using Vintagestory.API.Common;
 using Vintagestory.API.MathTools;
 using Vintagestory.GameContent;
@@ -9,8 +10,9 @@ namespace CreateAColony.Colonies;
 /// <summary>
 /// What a builder spends on each block of a blueprint, and what counts as built. Most blocks cost the
 /// block itself. A fire pit is made the way a player makes one: dry grass on the ground, then four
-/// firewood added one at a time. When the colony allows it, any wood or stone type will do in place
-/// of the one the blueprint asks for, and the builder places the block in the type it brought.
+/// firewood added one at a time, and daub as a wattle fence with raw daub put on it coat by coat. When the
+/// colony allows it, any wood or stone type (or daub colour) will do in place of the one the blueprint asks
+/// for, and the builder places the block in the type it brought.
 /// </summary>
 public partial class ColonyManager
 {
@@ -22,6 +24,8 @@ public partial class ColonyManager
     /// <summary>A fire pit's stage once it is finished (cold, lit or burnt out); 1 to 4 are under construction.</summary>
     const int FirepitReady = 5;
     const int FirepitFirewood = 4;
+    /// <summary>The variant of a fence that says which of its sides join a neighbour.</summary>
+    const string FenceJoins = "type";
 
     readonly Dictionary<(int BlockId, bool AnyType), MaterialCost?> pickCostCache = new();
 
@@ -32,15 +36,47 @@ public partial class ColonyManager
 
     /// <summary>
     /// True when the block standing there will do for the blueprint's block: a finished fire pit (cold,
-    /// lit or burnt out all count), or the same block in another wood or stone when the colony allows it.
+    /// lit or burnt out all count), a fence however it is joined to its neighbours, or the same block in
+    /// another wood or stone when the colony allows it.
     /// </summary>
-    public bool Fulfils(Colony colony, Block current, int targetId)
+    public bool Fulfils(Colony colony, Block current, int targetId, BlockPos pos)
     {
         if (current.Id == 0 || targetId == 0) return false;
         var target = sapi.World.GetBlock(targetId);
         if (target == null) return false;
+        target = VariedDaub(target, pos);
+        // A Stone Bake Oven block is the same block whether its fire is lit or the oven is hot (ColonyManager.StoneOven.cs).
+        if (IsStoneOvenBlock(target) || IsStoneOvenBlock(current)) return OvenRestingBlock(current).Id == OvenRestingBlock(target).Id
+            || (colony.AnyWoodOrStone && SameButStone(OvenRestingBlock(current), OvenRestingBlock(target)));
         if (current is BlockFirepit have && target is BlockFirepit want) return have.Stage >= Math.Min(want.Stage, FirepitReady);
-        if (!colony.AnyWoodOrStone) return false;
+        // Daub is built up coat by coat (ColonyManager.WattleDaub.cs): a smoother coat, or another colour when any will do, counts.
+        bool daubFits = DaubFulfils(colony, current, target, out bool isDaub);
+        if (isDaub) return daubFits;
+        // A fence's code says which sides it joins ("type": n, ew, nesw, empty...), and the game changes it
+        // as neighbours are built. The blueprint's joins are from wherever it was saved, so they never count.
+        if (current is BlockFence && target is BlockFence && VariantOf(current, FenceJoins) is { } joins
+            && sapi.World.GetBlock(target.CodeWithVariant(FenceJoins, joins)) is { } joined)
+        {
+            if (joined.Id == current.Id) return true;
+            target = joined;
+        }
+        // A gate or door is the same one open or shut, and with or without snow on it: settlers open gates as they
+        // walk through, so a gate saved closed must not be torn down and put back each time it is opened.
+        if (current is BlockBaseDoor && target is BlockBaseDoor && SameIgnoring(current, target, "state", "cover")) return true;
+        // A torch is a torch, lit or burned out.
+        if (IsTorch(target) && IsTorch(current) && LitTorch(current.Code).Equals(LitTorch(target.Code))) return true;
+        // Ground in a blueprint is any soil: grass comes and goes, and how fertile it is depends on the spot. Natural
+        // ground of another kind (rock, gravel, sand) will do too, so builders do not dig out stone to put dirt there.
+        if (IsSoil(target) && (IsSoil(current) || IsNaturalGround(current))) return true;
+        // A VS Roofing roof block turns bare or filled by itself as its materials load; either one is the roof.
+        if (target.Code.Domain == RoofingDomain && VariantOf(current, "type") is { } roofState
+            && target.CodeWithVariant("type", roofState).Equals(current.Code)) return true;
+        return colony.AnyWoodOrStone && SameButStone(current, target);
+    }
+
+    /// <summary>True when the two blocks differ only in their wood or stone.</summary>
+    static bool SameButStone(Block current, Block target)
+    {
         foreach (string v in SwappableVariants)
         {
             string? theirs = VariantOf(current, v);
@@ -50,52 +86,93 @@ public partial class ColonyManager
     }
 
     /// <summary>True when the block is a half-built step towards the blueprint's block, so it must not be torn down.</summary>
-    public bool InProgress(Block current, int targetId) =>
-        current is BlockFirepit pit && pit.Stage < FirepitReady && sapi.World.GetBlock(targetId) is BlockFirepit;
+    public bool InProgress(Colony colony, Block current, int targetId, BlockPos pos) =>
+        current is BlockFirepit pit && !IsStoneOvenBlock(pit) && pit.Stage < FirepitReady && sapi.World.GetBlock(targetId) is BlockFirepit want && !IsStoneOvenBlock(want)
+        || DaubInProgress(colony, current, VariedDaub(sapi.World.GetBlock(targetId), pos));
+
+    /// <summary>True when the two blocks' codes differ at most in the given variant groups.</summary>
+    bool SameIgnoring(Block current, Block target, params string[] groups)
+    {
+        var keep = groups.Where(g => current.Variant.ContainsKey(g) && target.Variant.ContainsKey(g)).ToArray();
+        if (keep.Length == 0) return current.Code.Equals(target.Code);
+        var values = keep.Select(g => current.Variant[g]).ToArray();
+        return target.CodeWithVariants(keep, values).Equals(current.Code);
+    }
 
     /// <summary>True when a builder leaves this block standing for the step.</summary>
-    public bool KeepsBlock(Colony colony, Block current, int targetId) =>
-        current.Id == targetId || Fulfils(colony, current, targetId) || InProgress(current, targetId);
+    public bool KeepsBlock(Colony colony, Block current, int targetId, BlockPos pos) =>
+        current.Id == targetId || Fulfils(colony, current, targetId, pos) || InProgress(colony, current, targetId, pos);
+
+    /// <summary>Rock, gravel, sand, clay and other natural ground blocks.</summary>
+    static bool IsNaturalGround(Block block) => block.SideSolid.All && block.BlockMaterial is EnumBlockMaterial.Soil
+        or EnumBlockMaterial.Gravel or EnumBlockMaterial.Sand or EnumBlockMaterial.Stone;
+
+    /// <summary>A vanilla torch (lit, extinct or burned out), on the ground or a wall.</summary>
+    public static bool IsTorch(Block block) => block.Code?.Domain == "game" && block.Code.Path.StartsWith("torch-");
+
+    /// <summary>The lit version of a torch's code: torches burn out by themselves, so blueprints ask for lit ones.</summary>
+    public static AssetLocation LitTorch(AssetLocation code) =>
+        new(code.Domain, code.Path.Replace("-burnedout-", "-lit-").Replace("-extinct-", "-lit-"));
+
+    /// <summary>Plain soil blocks (soil-medium-normal and the like), not farmland, packed dirt or rammed earth.</summary>
+    static bool IsSoil(Block block) => block.Code?.Domain == "game" && block.Code.Path.StartsWith("soil-");
 
     // ---- What to place and what it costs --------------------------------------------------
 
-    /// <summary>The next block to place on the way to the step's block, and what placing it costs (null: nothing).</summary>
-    public (Block Place, MaterialCost? Cost) NextPlacement(Colony colony, BuildStep step, BlockPos pos)
+    /// <summary>
+    /// The next block to place on the way to the step's block, and everything placing it costs (empty:
+    /// nothing). Most blocks cost one item; a roof block from VS Roofing costs its frame and materials, and a
+    /// furniture block or banner pole its item in the blueprint's wood and colours (plus the pole's banner).
+    /// </summary>
+    public (Block Place, IReadOnlyList<MaterialCost> Costs) NextPlacement(Colony colony, BuildStep step, BlockPos pos)
     {
         var target = sapi.World.GetBlock(step.BlockId);
-        if (target is BlockFirepit)
+        // An oven's heat source goes down with its fire out and its other blocks cold, as they come from crafting.
+        target = OvenRestingBlock(target);
+        if (target is BlockFirepit && !IsStoneOvenBlock(target))
         {
-            if (sapi.World.BlockAccessor.GetBlock(pos) is BlockFirepit pit && pit.Stage < FirepitReady)
+            if (sapi.World.BlockAccessor.GetBlock(pos) is BlockFirepit pit && !IsStoneOvenBlock(pit) && pit.Stage < FirepitReady)
             {
                 var next = sapi.World.GetBlock(pit.CodeWithParts(pit.NextStageCodePart)) ?? target;
-                return (next, ItemCost("game:firewood", 1));
+                return (next, Costs(ItemCost("game:firewood", 1)));
             }
             var start = sapi.World.GetBlock(new AssetLocation("game:firepit-construct1"));
-            if (start != null) return (start, ItemCost("game:drygrass", 1));
+            if (start != null) return (start, Costs(ItemCost("game:drygrass", 1)));
         }
-        return (target, PickCost(colony, target, pos));
+        if (DaubPlacement(colony, VariedDaub(target, pos), pos) is { } daub) return daub;
+        if (Config.BuildersNeedMaterials && (PlacedItemCosts(step, target, pos, colony.AnyWoodOrStone) ?? SavedCost(step, target)) is { } saved) return (target, saved);
+        return (target, Costs(PickCost(colony, target, pos)));
     }
+
+    static IReadOnlyList<MaterialCost> Costs(MaterialCost? cost) =>
+        cost is { } one ? new[] { one } : Array.Empty<MaterialCost>();
 
     /// <summary>Everything still to pay for one step, for the "Items needed" list and courier requests.</summary>
     public IEnumerable<MaterialCost> RemainingCost(Colony colony, BuildStep step, BlockPos pos)
     {
         var target = sapi.World.GetBlock(step.BlockId);
-        if (target is BlockFirepit && ItemCost("game:firewood", 1) is { } firewood)
+        if (target is BlockFirepit && !IsStoneOvenBlock(target) && ItemCost("game:firewood", 1) is { } firewood)
         {
             var current = sapi.World.BlockAccessor.GetBlock(pos);
-            int stage = current is BlockFirepit pit ? pit.Stage : 0;
+            int stage = current is BlockFirepit pit && !IsStoneOvenBlock(pit) ? pit.Stage : 0;
             int wood = stage == 0 ? FirepitFirewood : FirepitReady - stage;
             if (stage == 0 && ItemCost("game:drygrass", 1) is { } grass) yield return grass;
             if (wood > 0) yield return firewood with { Count = wood };
             yield break;
         }
-        if (PickCost(colony, target, pos) is { } cost) yield return cost;
+        if (DaubRemaining(colony, VariedDaub(target, pos), pos) is { } daub)
+        {
+            foreach (var cost in daub) yield return cost;
+            yield break;
+        }
+        foreach (var cost in NextPlacement(colony, step, pos).Costs) yield return cost;
     }
 
     /// <summary>The block actually placed: the blueprint's, or the same block in the wood or stone the builder brought.</summary>
     public Block SwapToMaterial(Colony colony, Block place, ItemStack? used)
     {
         if (!colony.AnyWoodOrStone || used == null) return place;
+        if (SwapDaubColor(place, used) is { } recoloured) return recoloured;
         foreach (string v in SwappableVariants)
         {
             string? brought = VariantOf(used.Collectible, v);
@@ -109,7 +186,7 @@ public partial class ColonyManager
     /// <summary>A finished fire pit gets its firewood as fuel, as when a player builds one.</summary>
     public void FinishPlacement(Block placed, BlockPos pos)
     {
-        if (placed is not BlockFirepit { Stage: FirepitReady }) return;
+        if (placed is not BlockFirepit { Stage: FirepitReady } || IsStoneOvenBlock(placed)) return;
         if (sapi.World.BlockAccessor.GetBlockEntity(pos) is not BlockEntityFirepit be || !be.Inventory[0].Empty) return;
         var firewood = sapi.World.GetItem(new AssetLocation("game:firewood"));
         if (firewood == null) return;
@@ -132,10 +209,19 @@ public partial class ColonyManager
         var key = (block.Id, colony.AnyWoodOrStone);
         if (pickCostCache.TryGetValue(key, out var cached)) return cached;
 
-        ItemStack? stack;
+        // Soil with grass on it cannot be picked up as such; any soil will do to fill a hole in the ground.
+        if (IsSoil(block))
+        {
+            var bare = sapi.World.GetBlock(new AssetLocation("game:soil-medium-none")) ?? block;
+            var soil = new MaterialCost("game:soil-*", new ItemStack(bare), 1);
+            pickCostCache[key] = soil;
+            return soil;
+        }
+
+        ItemStack? stack = OvenItemStack(block);
         try
         {
-            stack = block.OnPickBlock(sapi.World, pos);
+            stack ??= block.OnPickBlock(sapi.World, pos);
         }
         catch (Exception)
         {

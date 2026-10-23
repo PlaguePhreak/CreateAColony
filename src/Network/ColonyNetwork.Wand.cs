@@ -19,10 +19,11 @@ namespace CreateAColony.Network;
 /// </summary>
 public partial class ColonyNetwork
 {
-    /// <summary>Building types put down with the wand, in the order the list shows them.</summary>
-    static readonly string[] WandTypes = { BuildingTypes.TownHall, BuildingTypes.Builder, BuildingTypes.Warehouse, BuildingTypes.Forester, BuildingTypes.Farmer, BuildingTypes.Potter };
+    /// <summary>Building types put down with the wand, tab by tab.</summary>
+    static readonly string[] WandTypes = BuildingCategories.All.SelectMany(c => c.Types).ToArray();
 
-    record Planned(string Type, BlockPos Pos, int Rotation);
+    /// <summary>A building being planned; Level is the one previewed (0 = the highest), Variant which of the type's buildings.</summary>
+    record Planned(string Type, BlockPos Pos, int Rotation, string Style, int Level = 0, string Variant = "");
 
     readonly Dictionary<string, Planned> planned = new();
     /// <summary>Where a player started planning, while they pick from the list.</summary>
@@ -43,9 +44,20 @@ public partial class ColonyNetwork
                 if (plan != null) wandSpots[uid] = plan.Pos.Copy();
                 SendChooser(player);
                 return;
+            case ColonyAction.WandPack:
+                Manager.SetPack(uid, packet.Text);
+                SendChooser(player);
+                return;
             case ColonyAction.WandChoose:
-                if (!WandTypes.Contains(packet.Text) || !wandSpots.TryGetValue(uid, out var at)) return;
-                plan = new Planned(packet.Text, at, plan?.Rotation ?? ColonyManager.RotationFor(player));
+                // Text is "type|style"; the style is the player's asset pack, which the server knows best.
+                var chosen = packet.Text.Split('|');
+                string type = chosen[0], pack = Manager.PackOf(uid);
+                string style = BlueprintStyles.Normalize(pack != "" ? pack : chosen.Length > 1 ? chosen[1] : null);
+                if (!WandTypes.Contains(type) || !wandSpots.TryGetValue(uid, out var at)) return;
+                // Change building keeps the variant when the same type is picked again.
+                string from = Manager.Blueprints.StyleFor(style, type);
+                string variant = Manager.Blueprints.VariantFor(from, type, plan?.Type == type ? plan.Variant : "");
+                plan = new Planned(type, at, plan?.Rotation ?? Manager.RotationFor(player, type, from, variant), style, 0, variant);
                 planned[uid] = plan;
                 SendPlanned(player, plan, true);
                 return;
@@ -70,6 +82,14 @@ public partial class ColonyNetwork
                 break;
             case ColonyAction.PlacementHeight:
                 plan = plan with { Pos = plan.Pos.UpCopy(packet.Text == "-1" ? -1 : 1) };
+                break;
+            case ColonyAction.PlacementLevel:
+                var forLevels = new Building { Type = plan.Type, Style = plan.Style, Variant = plan.Variant };
+                int max = Manager.Blueprints.MaxLevel(forLevels);
+                plan = plan with { Level = StepLevel(PreviewLevel(plan.Level, max), max, packet.Text) };
+                break;
+            case ColonyAction.PlacementVariant:
+                plan = plan with { Variant = StepVariant(Manager.Blueprints.StyleFor(plan.Style, plan.Type), plan.Type, plan.Variant, packet.Text), Level = 0 };
                 break;
             case ColonyAction.PlacementNudge:
                 var moved = new Building { HutPos = plan.Pos.Copy() };
@@ -102,6 +122,12 @@ public partial class ColonyNetwork
 
         string? error = placeable.PlaceByWand(player, plan.Pos, plan.Rotation);
         if (error != null) return error;
+        if (Manager.GetAt(plan.Pos) is { } colony && Manager.GetBuilding(colony, plan.Pos) is { } building)
+        {
+            building.Style = plan.Style;
+            building.Variant = plan.Variant;
+            Manager.MarkDirty(colony);
+        }
         if (slot != null && player.WorldData.CurrentGameMode != EnumGameMode.Creative)
         {
             slot.TakeOut(1);
@@ -133,35 +159,52 @@ public partial class ColonyNetwork
     void SendChooser(IServerPlayer player)
     {
         var snapshot = new WandChooserSnapshot();
+        if (planned.TryGetValue(player.PlayerUID, out var plan)) snapshot.Style = plan.Style;
+        snapshot.Pack = Manager.PackOf(player.PlayerUID);
         foreach (var type in WandTypes)
         {
             snapshot.Types.Add(type);
             snapshot.Have.Add(HutCount(player, type));
+            foreach (var style in BlueprintStyles.All)
+            {
+                string from = Manager.Blueprints.StyleFor(style, type);
+                if (Manager.Blueprints.MaxLevel(from, type) > 0) snapshot.WithBlueprints.Add(type + "|" + style);
+                int variants = Manager.Blueprints.Variants(from, type).Count;
+                if (variants > 1) snapshot.VariantCounts.Add($"{type}|{style}|{variants}");
+            }
         }
         serverChannel!.SendPacket(snapshot, player);
     }
 
     void SendPlanned(IServerPlayer player, Planned plan, bool openWindow)
     {
-        int level = Manager.Blueprints.MaxLevel(plan.Type);
-        var blueprint = level > 0 ? Manager.Blueprints.Get(plan.Type, level, plan.Rotation) : null;
-        var building = new Building { Type = plan.Type, HutPos = plan.Pos.Copy(), Rotation = plan.Rotation };
-        var outline = blueprint == null ? (new List<BlockPos>(), new List<int>(), 0, 0) : Manager.Outline(building, blueprint, MaxOutlineBlocks);
+        var building = new Building { Type = plan.Type, HutPos = plan.Pos.Copy(), Rotation = plan.Rotation, Style = plan.Style, Variant = plan.Variant };
+        int max = Manager.Blueprints.MaxLevel(building);
+        int level = PreviewLevel(plan.Level, max);
+        var blueprint = level > 0 ? Manager.Blueprints.Get(building, level) : null;
+        var outline = PreviewBuilding(player, building, blueprint);
         // The spot the building's block goes, in yellow.
-        outline.Item1.Add(plan.Pos.Copy());
-        outline.Item2.Add(ColorUtil.ColorFromRgba(255, 220, 60, 160));
-        sapi!.World.HighlightBlocks(player, OutlineSlot, outline.Item1, outline.Item2, EnumHighlightBlocksMode.Absolute, EnumHighlightShape.Arbitrary);
+        outline.Positions.Add(plan.Pos.Copy());
+        outline.Colors.Add(ColorUtil.ColorFromRgba(255, 220, 60, 160));
+        sapi!.World.HighlightBlocks(player, OutlineSlot, outline.Positions, outline.Colors, EnumHighlightBlocksMode.Absolute, EnumHighlightShape.Arbitrary);
 
         serverChannel!.SendPacket(new PlacementSnapshot
         {
             Type = plan.Type,
             Rotation = plan.Rotation,
             ShownLevel = blueprint == null ? 0 : level,
-            Blocks = outline.Item4,
-            Blocked = outline.Item3,
+            MaxLevel = max,
+            Blocks = outline.Total,
+            Blocked = outline.Blocked,
+            Overlaps = outline.Overlaps,
+            OverlapsLater = outline.OverlapsLater,
+            Nearby = outline.Nearby,
             CanAdjust = true,
             CanOrder = true,
             Planned = true,
+            Style = plan.Style,
+            Variant = Manager.Blueprints.VariantFor(Manager.Blueprints.StyleFor(plan.Style, plan.Type), plan.Type, plan.Variant),
+            Variants = Manager.Blueprints.Variants(Manager.Blueprints.StyleFor(plan.Style, plan.Type), plan.Type),
             Have = HutCount(player, plan.Type),
             OpenWindow = openWindow
         }, player);

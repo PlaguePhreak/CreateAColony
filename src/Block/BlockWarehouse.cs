@@ -17,6 +17,8 @@ public class BlockWarehouse : Block, IWandPlaceable
     /// <summary>The Warehouse is put down with the Builder's Wand, which shows the building first.</summary>
     public override bool DoPlaceBlock(IWorldAccessor world, IPlayer byPlayer, BlockSelection blockSel, ItemStack byItemStack)
     {
+        // With PlaceHutsByHand on it is only a block, for making blueprints: no colony, no building.
+        if (WandOnly.HandPlacing(world)) return base.DoPlaceBlock(world, byPlayer, blockSel, byItemStack);
         WandOnly.Tell(world, byPlayer);
         return false;
     }

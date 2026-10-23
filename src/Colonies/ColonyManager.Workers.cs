@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using CreateAColony.Settlers;
 using Vintagestory.API.Common;
 using Vintagestory.API.Config;
 using Vintagestory.API.MathTools;
@@ -26,31 +27,87 @@ public partial class ColonyManager
     {
         [BuildingTypes.Forester] = new WorkerHutKind(Jobs.Forester, EnumTool.Axe, IsTreeSeed, _ => false),
         [BuildingTypes.Farmer] = new WorkerHutKind(Jobs.Farmer, EnumTool.Hoe, IsCropSeed, s => IsWateringCan(s) || IsFertilizer(s)),
+        // The prospecting pick is matched by its class, not a tool type (see IsProspectingPick).
+        [BuildingTypes.Prospector] = new WorkerHutKind(Jobs.Prospector, EnumTool.Probe, _ => false, IsProspectingPick),
+        [BuildingTypes.Miner] = new WorkerHutKind(Jobs.Miner, EnumTool.Pickaxe, _ => false, _ => false),
+        [BuildingTypes.Quarry] = new WorkerHutKind(Jobs.Quarrier, EnumTool.Pickaxe, _ => false, _ => false),
     };
 
     /// <summary>Huts a settler works from, whose chests are never warehouse storage.</summary>
-    public static bool IsWorkerHut(string type) => type is BuildingTypes.Builder or BuildingTypes.Potter || GatherHuts.ContainsKey(type);
+    public static bool IsWorkerHut(string type) => JobOf(type) != null;
+
+    /// <summary>The job of the settlers who work from a hut of this type, or null for buildings nobody works at.</summary>
+    public static string? JobOf(string type) => type switch
+    {
+        BuildingTypes.Builder => Jobs.Builder,
+        BuildingTypes.Potter => Jobs.Potter,
+        BuildingTypes.Cook => Jobs.Cook,
+        BuildingTypes.Smelter => Jobs.Smelter,
+        BuildingTypes.Blacksmith => Jobs.Blacksmith,
+        BuildingTypes.Sawmill => Jobs.Sawyer,
+        BuildingTypes.GuardTower => Jobs.Guard,
+        BuildingTypes.Barracks => Jobs.Guard,
+        _ => GatherHuts.TryGetValue(type, out var kind) ? kind.Job : null
+    };
+
+    /// <summary>How many settlers can work from this building at once.</summary>
+    public static int WorkerSlots(Building hut) => IsGuardPost(hut.Type) ? GuardSlots(hut)
+        : hut.Type == BuildingTypes.Prospector ? ProspectorSlots : JobOf(hut.Type) == null ? 0 : 1;
+
+    /// <summary>A Prospector's Hut takes two prospectors, each finding ore or mining it (CitizenRecord.WorkRole).</summary>
+    public const int ProspectorSlots = 2;
+
+    /// <summary>
+    /// Sets what a hut's worker does, at a hut whose workers each pick their work: a prospector finds ore or
+    /// mines it. The settler goes back to the hut first, to swap its tools.
+    /// </summary>
+    public string? SetWorkRole(Colony colony, Building hut, CitizenRecord worker, int role)
+    {
+        if (hut.Type != BuildingTypes.Prospector || role is not (ProspectorRoles.Find or ProspectorRoles.Mine)) return "createacolony:bad-building";
+        if (!WorkersAt(colony, hut).Contains(worker)) return "createacolony:bad-citizen";
+        if (worker.WorkRole == role) return null;
+        worker.WorkRole = role;
+        LogEvent(colony, role == ProspectorRoles.Mine ? "event-prospector-mines" : "event-prospector-finds", worker.Name);
+        MarkDirty(colony);
+        return null;
+    }
+
+    /// <summary>The living settlers working from this hut.</summary>
+    public List<CitizenRecord> WorkersAt(Colony colony, Building hut)
+    {
+        string? job = JobOf(hut.Type);
+        return job == null ? new List<CitizenRecord>()
+            : colony.Citizens.Where(c => c.Alive && c.JobCode == job && c.WorkplacePos != null && c.WorkplacePos.Equals(hut.HutPos)).OrderBy(c => c.CitizenId).ToList();
+    }
+
+    /// <summary>Huts with their own storage (and a Storage button): the worker huts and the Tavern, where gears can be left for hiring.</summary>
+    public static bool HasOwnStorage(string type) => IsWorkerHut(type) || type == BuildingTypes.Tavern;
 
     /// <summary>What each forester's or farmer's hut is waiting on, for the hut window. Not saved: workers refresh it.</summary>
     public readonly Dictionary<int, string> WorkStatus = new();
+    /// <summary>The same for each worker, by citizen id, for huts with more than one (a Prospector's Hut).</summary>
+    public readonly Dictionary<int, string> WorkerStatus = new();
 
     /// <summary>How many seeds a job keeps on hand.</summary>
     public int SeedReserve(string job) => job switch
     {
         Jobs.Farmer => Config.FarmerSeedReserve,
         Jobs.Potter => Config.PotterClayReserve,
+        Jobs.Cook => Config.CookRawReserve,
+        Jobs.Smelter => Config.SmelterOreReserve,
+        Jobs.Blacksmith => 0,
+        Jobs.Sawyer => 0,
         _ => Config.ForesterSeedReserve
     };
 
-    /// <summary>The hut of this type a worker works from, assigning a free one if needed.</summary>
+    /// <summary>The hut of this type a worker works from, assigning one with a free place if needed.</summary>
     public Building? EnsureWorkplace(Colony colony, CitizenRecord worker, string hutType)
     {
         if (worker.WorkplacePos != null && GetBuilding(colony, worker.WorkplacePos) is { } hut && hut.Type == hutType) return hut;
 
-        var taken = new HashSet<BlockPos>(colony.Citizens
-            .Where(c => c.Alive && c != worker && c.JobCode == worker.JobCode && c.WorkplacePos != null)
-            .Select(c => c.WorkplacePos!));
-        var free = colony.Buildings.Find(b => b.Type == hutType && !taken.Contains(b.HutPos));
+        var free = colony.Buildings.Where(b => b.Type == hutType).OrderBy(b => b.BuildingId)
+            .FirstOrDefault(b => colony.Citizens.Count(c => c.Alive && c != worker && c.JobCode == worker.JobCode
+                && c.WorkplacePos != null && c.WorkplacePos.Equals(b.HutPos)) < WorkerSlots(b));
         if (free != null || worker.WorkplacePos != null)
         {
             worker.WorkplacePos = free?.HutPos.Copy();
@@ -70,6 +127,11 @@ public partial class ColonyManager
     System.Func<ItemStack, bool> WorkerHutJunk(Colony colony, Building hut)
     {
         if (hut.Type == BuildingTypes.Potter) return PotterHutJunk();
+        if (hut.Type == BuildingTypes.Cook) return CookHutJunk();
+        if (hut.Type == BuildingTypes.Smelter) return SmelterHutJunk();
+        if (hut.Type == BuildingTypes.Blacksmith) return BlacksmithHutJunk();
+        if (hut.Type == BuildingTypes.Sawmill) return SawmillHutJunk(hut);
+        if (IsGuardPost(hut.Type)) return GuardTowerJunk(hut);
         var kind = GatherHuts[hut.Type];
         var worker = WorkerAt(colony, hut, kind.Job);
         bool keepSeeds = worker != null && PackCount(worker, kind.Stock) < SeedReserve(kind.Job);
@@ -111,6 +173,10 @@ public partial class ColonyManager
     public void StoreHarvest(Colony colony, Building hut, CitizenRecord worker, IEnumerable<ItemStack> drops, BlockPos at)
     {
         var storage = HutStorage(colony, hut).ToList();
+        // A skilled farmer, forester, miner or potter sometimes gets one more of the biggest stack (yield perk).
+        var list = drops.Where(d => d != null && d.StackSize > 0).ToList();
+        if (list.Count > 0 && RollPerk(colony, worker, "yield")) list.OrderByDescending(d => d.StackSize).First().StackSize++;
+        drops = list;
         foreach (var drop in drops)
         {
             if (drop == null || drop.StackSize <= 0) continue;
@@ -125,21 +191,42 @@ public partial class ColonyManager
     }
 
     /// <summary>Wears the tool in the worker's hand down by one use; a tool that breaks leaves the hand empty.</summary>
-    public static void WearTool(EntityAgent worker, ItemSlot hand)
+    public void WearTool(EntityAgent worker, ItemSlot hand)
     {
         if (hand.Itemstack == null) return;
+        // Careful settlers skip some of the wear, Clumsy ones add some (trait toolWear).
+        // A skilled builder wears tools less too (Building perk).
+        float wear = worker is EntitySettler s && FindCitizen(s.ColonyId, s.CitizenId) is { } c
+            ? TraitMult(c, "toolWear") * (GetById(s.ColonyId) is { } home ? SkillPerk(home, c, "toolWear") : 1f) : 1f;
+        double roll = sapi.World.Rand.NextDouble();
+        if (wear < 1f && roll < 1f - wear) return;
         hand.Itemstack.Collectible.DamageItem(worker.World, worker, hand);
+        if (wear > 1f && roll < wear - 1f && hand.Itemstack != null) hand.Itemstack.Collectible.DamageItem(worker.World, worker, hand);
         hand.MarkDirty();
     }
 
     /// <summary>Lines for a Forester's or Farmer's Hut window: who works here, what they are up to, and how the job works.</summary>
     public string WorkerHutInfo(Colony colony, Building hut)
     {
-        string job = hut.Type == BuildingTypes.Potter ? Jobs.Potter : GatherHuts.TryGetValue(hut.Type, out var kind) ? kind.Job : "";
-        if (job.Length == 0) return "";
+        string job = JobOf(hut.Type) ?? "";
+        if (job.Length == 0 || job == Jobs.Builder) return "";
+        if (IsGuardPost(hut.Type)) return GuardTowerInfo(colony, hut);
         var lines = new List<string>();
         var worker = WorkerAt(colony, hut, job);
-        if (worker == null)
+        if (hut.Type == BuildingTypes.Prospector)
+        {
+            // Two prospectors, each with its own work and status.
+            var workers = WorkersAt(colony, hut);
+            if (workers.Count == 0) lines.Add(Lang.Get("createacolony:hut-no-worker", Lang.Get("createacolony:job-" + job)));
+            foreach (var w in workers)
+            {
+                string status = WorkerStatus.TryGetValue(w.CitizenId, out var ws) ? ws : "starting";
+                lines.Add(Lang.Get("createacolony:prospector-worker", w.Name, Lang.Get("createacolony:prospector-role-" + w.WorkRole),
+                    Lang.Get("createacolony:workstatus-" + status)));
+                if (w.WorkRole == ProspectorRoles.Mine && TripInfo(colony, hut, w.Trip) is { } trip) lines.Add(trip);
+            }
+        }
+        else if (worker == null)
         {
             lines.Add(Lang.Get("createacolony:hut-no-worker", Lang.Get("createacolony:job-" + job)));
         }
@@ -155,6 +242,17 @@ public partial class ColonyManager
             lines.Add(Lang.Get("createacolony:hut-fields", mine, colony.Fields.Count));
         }
         if (hut.Type == BuildingTypes.Potter) lines.Add(KilnInfo(colony, hut));
+        if (hut.Type == BuildingTypes.Cook)
+        {
+            lines.Add(FirepitInfo(colony, hut));
+            if (OvenInfo(colony, hut) is { } oven) lines.Add(oven);
+        }
+        if (hut.Type == BuildingTypes.Smelter) lines.Add(SmelterInfo(colony, hut));
+        if (hut.Type == BuildingTypes.Blacksmith) lines.Add(BlacksmithInfo(hut));
+        if (hut.Type == BuildingTypes.Sawmill) lines.Add(SawmillInfo(hut));
+        if (hut.Type == BuildingTypes.Prospector) lines.Add(ProspectorInfo(colony, hut));
+        if (hut.Type == BuildingTypes.Miner) lines.Add(MineInfo(colony, hut));
+        if (hut.Type == BuildingTypes.Quarry) lines.Add(QuarryInfo(hut));
         lines.Add("");
         lines.Add(Lang.Get("createacolony:hint-" + hut.Type, GatherRadius(hut)));
         return string.Join("<br>", lines);

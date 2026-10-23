@@ -5,6 +5,7 @@ using Vintagestory.API.Common;
 using Vintagestory.API.Config;
 using Vintagestory.API.MathTools;
 using Vintagestory.API.Server;
+using Vintagestory.API.Util;
 using Vintagestory.GameContent;
 
 namespace CreateAColony.Colonies;
@@ -20,7 +21,7 @@ public partial class ColonyManager
     public const int HutStorageRadius = 2;
 
     BlueprintLibrary? blueprints;
-    public BlueprintLibrary Blueprints => blueprints ??= new BlueprintLibrary(sapi);
+    public BlueprintLibrary Blueprints => blueprints ??= new BlueprintLibrary(sapi, Config);
 
 
     /// <summary>What each work order is waiting on, for the Town Hall window. Not saved: builders refresh it.</summary>
@@ -37,7 +38,9 @@ public partial class ColonyManager
 
         var building = new Building { BuildingId = colony.NextBuildingId++, Type = type, HutPos = hutPos.Copy(), Rotation = rotation };
         colony.Buildings.Add(building);
+        LogEvent(colony, "event-placed", "@building-" + type);
         MarkDirty(colony);
+        RefreshClaim(colony);
         return building;
     }
 
@@ -46,9 +49,11 @@ public partial class ColonyManager
         var building = GetBuilding(colony, hutPos);
         if (building == null) return;
         colony.Buildings.Remove(building);
+        LogEvent(colony, "event-removed", BuildingName(building));
         CancelBuildRequests(colony, building);
         foreach (var c in colony.Citizens.Where(c => c.WorkplacePos != null && c.WorkplacePos.Equals(hutPos))) c.WorkplacePos = null;
         MarkDirty(colony);
+        RefreshClaim(colony);
     }
 
     /// <summary>Colonies saved before buildings existed get their Town Hall and Warehouse as buildings.</summary>
@@ -68,12 +73,27 @@ public partial class ColonyManager
         return facing.HorizontalAngleIndex * 90 % 360;
     }
 
-    /// <summary>A hut's storage: the hut block's own inventory first, then any chests next to it.</summary>
-    public IEnumerable<BlockEntityGenericTypedContainer> HutStorage(Colony colony, Building building)
+    /// <summary>
+    /// Blueprint rotation for a building type: one with a door is turned so the door's side faces the player
+    /// placing it. Turning a blueprint by 90 moves each side one step clockwise (east to south).
+    /// </summary>
+    public int RotationFor(IPlayer player, string type, string style = BlueprintStyles.Default, string variant = "")
+    {
+        if (Blueprints.Get(style, type, 1, 0, variant)?.Front is not { } front) return RotationFor(player);
+        int towards = BlockFacing.HorizontalFromYaw(player.Entity.Pos.Yaw).HorizontalAngleIndex;
+        return GameMath.Mod(front - towards, 4) * 90;
+    }
+
+    /// <summary>
+    /// A hut's storage: the hut block's own inventory first, then every storage block (chests, trunks, crates,
+    /// clay storage vessels, other mods' storage) inside the building its blueprint makes, nearest the hut first.
+    /// A hut without a blueprint uses the storage within HutStorageRadius of its block.
+    /// </summary>
+    public IEnumerable<BlockEntityContainer> HutStorage(Colony colony, Building building)
     {
         var ba = sapi.World.BlockAccessor;
         var hut = building.HutPos;
-        if (ba.GetBlockEntity(hut) is BlockEntityGenericTypedContainer own)
+        if (ba.GetBlockEntity(hut) is BlockEntityContainer own)
         {
             yield return own;
         }
@@ -81,16 +101,57 @@ public partial class ColonyManager
         {
             // Huts placed before they had their own storage get it now.
             ba.SpawnBlockEntity(entityClass, hut);
-            if (ba.GetBlockEntity(hut) is BlockEntityGenericTypedContainer added) yield return added;
+            if (ba.GetBlockEntity(hut) is BlockEntityContainer added) yield return added;
         }
-        for (int dx = -HutStorageRadius; dx <= HutStorageRadius; dx++)
-        for (int dy = -1; dy <= 1; dy++)
-        for (int dz = -HutStorageRadius; dz <= HutStorageRadius; dz++)
+        foreach (var pos in StorageSpots(colony, building))
         {
-            if (dx == 0 && dy == 0 && dz == 0) continue;
-            if (ba.GetBlockEntity(hut.AddCopy(dx, dy, dz)) is BlockEntityGenericTypedContainer c) yield return c;
+            if (ba.GetBlockEntity(pos) is BlockEntityContainer c && IsStorageVessel(c)) yield return c;
         }
     }
+
+    /// <summary>Where a building's storage blocks stand, looked up again every StorageRescanMs (finding them means looking through the whole building).</summary>
+    readonly Dictionary<int, (List<BlockPos> Spots, long AtMs)> storageSpots = new();
+    const long StorageRescanMs = 5000;
+
+    List<BlockPos> StorageSpots(Colony colony, Building building)
+    {
+        long now = sapi.World.ElapsedMilliseconds;
+        if (storageSpots.TryGetValue(building.BuildingId, out var cached) && now - cached.AtMs < StorageRescanMs && now >= cached.AtMs) return cached.Spots;
+
+        var hut = building.HutPos;
+        bool hasBlueprint = Blueprints.Get(building, Math.Max(1, building.Level)) is { Steps.Count: > 0 };
+        var (min, max) = hasBlueprint ? BuildingBox(building)
+            : (hut.AddCopy(-HutStorageRadius, -HutStorageRadius, -HutStorageRadius), hut.AddCopy(HutStorageRadius, HutStorageRadius, HutStorageRadius));
+        // Other buildings' hut blocks and the drop-off points are never this hut's storage.
+        var notOurs = new HashSet<BlockPos>(colony.Buildings.Where(b => b != building).Select(b => b.HutPos));
+        notOurs.UnionWith(DropOffContainers(colony).Select(c => c.Pos));
+        var spots = FindBlockEntities<BlockEntityContainer>(new Cuboidi(min.X, min.Y, min.Z, max.X, max.Y, max.Z))
+            .Where(c => !c.Pos.Equals(hut) && !notOurs.Contains(c.Pos) && IsStorageVessel(c))
+            .Select(c => c.Pos.Copy())
+            .OrderBy(p => p.DistanceSqTo(hut.X, hut.Y, hut.Z))
+            .ToList();
+        storageSpots[building.BuildingId] = (spots, now);
+        return spots;
+    }
+
+    /// <summary>
+    /// True for blocks made to store things: chests, trunks, crates, clay storage vessels and other mods' storage
+    /// blocks (by their class name, or the config's HutStorageBlocks), but not fire pits, ovens, shelves or barrels.
+    /// </summary>
+    public bool IsStorageVessel(BlockEntityContainer c)
+    {
+        if (c is BlockEntityGenericTypedContainer or BlockEntityGenericContainer or BlockEntityCrate) return true; // chests, trunks, clay storage vessels, crates
+        var code = c.Block?.Code;
+        if (code != null && (Config.HutStorageBlocks ?? Array.Empty<string>()).Any(p => WildcardUtil.Match(new AssetLocation(p), code))) return true;
+        // Food Shelves' baskets and cabinets are the Cook's serving shelves (ColonyManager.FoodShelves.cs).
+        if (code?.Domain == "foodshelves") return false;
+        string name = c.GetType().Name;
+        if (NotStorageNames.Any(n => name.Contains(n, StringComparison.OrdinalIgnoreCase))) return false;
+        return StorageNames.Any(n => name.Contains(n, StringComparison.OrdinalIgnoreCase));
+    }
+
+    static readonly string[] StorageNames = { "Chest", "Trunk", "Crate", "Vessel", "Storage", "Basket", "Cabinet", "Drawer", "Coffer", "Box" };
+    static readonly string[] NotStorageNames = { "Firepit", "Oven", "Kiln", "Forge", "Display", "Shelf", "Barrel", "Quern", "Bloomery", "Mold", "Trough", "Rack", "Pot", "Bucket", "Bowl" };
 
     // ---- Work orders ----------------------------------------------------------------------
 
@@ -99,7 +160,7 @@ public partial class ColonyManager
     {
         if (building.HasWorkOrder) return "createacolony:build-already";
         int next = building.Level + 1;
-        if (Blueprints.Get(building.Type, next, building.Rotation) == null) return "createacolony:build-no-blueprint";
+        if (Blueprints.Get(building, next) == null) return "createacolony:build-no-blueprint";
 
         building.TargetLevel = next;
         building.Cursor = 0;
@@ -148,7 +209,10 @@ public partial class ColonyManager
         BuildStatus.Remove(building.BuildingId);
         CancelBuildRequests(colony, building);
         MarkDirty(colony);
+        RefreshClaim(colony);
 
+        LogEvent(colony, "event-built", "@building-" + building.Type, building.Level.ToString());
+        if (colony.BannerOnNew) ReplaceBanners(colony, new[] { building });
         string message = Lang.Get("createacolony:build-finished", Lang.Get("createacolony:building-" + building.Type), building.Level);
         foreach (var member in colony.Members)
         {
@@ -181,17 +245,25 @@ public partial class ColonyManager
     public BlockPos StepPos(Building building, BuildStep step) => building.HutPos.AddCopy(step.Dx + building.XOffset, step.Dy + building.YOffset, step.Dz + building.ZOffset);
 
     /// <summary>
-    /// True when the world already matches the step, or the step must not be touched: outside the
-    /// claim, a hut block, or a container (a chest full of the player's things is never torn down).
+    /// True when the world already matches the step, or the step must not be touched: in someone else's
+    /// land claim, a hut block, or a container (a chest full of the player's things is never torn down).
+    /// A hut only claims land once it is built, so its blueprint may reach past the colony's claim into
+    /// unclaimed land; builders build there too.
     /// </summary>
     public bool IsStepDone(Colony colony, BuildStep step, BlockPos pos)
     {
-        if (!ClaimArea(colony.TownHallPos, colony.ClaimRadius).ContainsOrTouches(pos)) return true;
+        if (!CanWorkAt(colony, pos)) return true;
         var ba = sapi.World.BlockAccessor;
         var current = ba.GetBlock(pos);
-        if (current.Id == step.BlockId || Fulfils(colony, current, step.BlockId)) return true;
+        if (current.Id == step.BlockId || Fulfils(colony, current, step.BlockId, pos)) return true;
         if (GetBuilding(colony, pos) != null) return true;
+        // A half-built fire pit already has its container (the fuel slot), but the firewood still has to go on.
+        // A wattle fence or a first coat of daub waits for more daub the same way.
+        if (InProgress(colony, current, step.BlockId, pos)) return false;
         if (ba.GetBlockEntity(pos) is BlockEntityContainer) return true;
+        // The top half of a door belongs to the door below it; clearing it would break the door. The same goes
+        // for the other cells of a furniture shelf.
+        if (step.BlockId == 0 && (current is BlockMultiblock || IsFurnitureCell(pos))) return true;
         // Water and lava are left alone when clearing; builders do not drain lakes.
         if (step.BlockId == 0 && current.IsLiquid()) return true;
         return false;
@@ -265,11 +337,24 @@ public partial class ColonyManager
     /// </summary>
     public (BlockEntityContainer Chest, System.Func<ItemStack, bool> IsJunk)? FindHutJunk(Colony colony)
     {
-        foreach (var hut in colony.Buildings.Where(b => IsWorkerHut(b.Type)))
+        foreach (var hut in HutsForPickup(colony).ToList())
         {
-            var isJunk = hut.Type == BuildingTypes.Builder ? BuilderHutJunk(colony, hut) : WorkerHutJunk(colony, hut);
+            // Request pickup now: everything goes, until the hut's storage is empty.
+            System.Func<ItemStack, bool> isJunk = hut.PickupNow ? _ => true
+                : hut.Type == BuildingTypes.Builder ? BuilderHutJunk(colony, hut) : WorkerHutJunk(colony, hut);
+            // What the Minimum stock tab keeps stays, unless everything was asked for.
+            if (!hut.PickupNow && hut.MinStock.Count > 0)
+            {
+                var junk = isJunk;
+                isJunk = s => junk(s) && !IsMinStock(hut, s);
+            }
             var chest = HutStorage(colony, hut).FirstOrDefault(c => c.Inventory.Any(s => !s.Empty && isJunk(s.Itemstack)));
             if (chest != null) return (chest, isJunk);
+            if (hut.PickupNow)
+            {
+                hut.PickupNow = false;
+                MarkDirty(colony);
+            }
         }
         return null;
     }
@@ -280,7 +365,7 @@ public partial class ColonyManager
         var needed = new List<System.Func<ItemStack, bool>>();
         var builder = colony.Citizens.Find(c => c.Alive && c.JobCode == Jobs.Builder && c.WorkplacePos != null && c.WorkplacePos.Equals(hut.HutPos));
         var order = builder == null ? null : colony.Buildings.Find(b => b.HasWorkOrder && b.BuilderCitizenId == builder.CitizenId);
-        var blueprint = order == null ? null : Blueprints.Get(order.Type, order.TargetLevel, order.Rotation);
+        var blueprint = order == null ? null : Blueprints.Get(order, order.TargetLevel);
         if (blueprint != null) needed.AddRange(MaterialsNeeded(colony, order!, blueprint).Keys.Select(Matcher));
         return s => !needed.Any(m => m(s)) && !IsBuilderTool(s);
     }
@@ -317,19 +402,56 @@ public partial class ColonyManager
         }
     }
 
-    public void PlaceForBuild(int blockId, BlockPos pos)
+    public void PlaceForBuild(int blockId, BlockPos pos, ItemStack? fromItem = null)
     {
         var ba = sapi.World.BlockAccessor;
         var block = sapi.World.GetBlock(blockId);
-        ba.SetBlock(blockId, pos);
+        // A fence joins the neighbours it has here, as when a player places one.
+        if (block is BlockFence fence && sapi.World.GetBlock(fence.CodeWithVariant("type", fence.GetOrientations(sapi.World, pos))) is { } joined)
+        {
+            block = joined;
+            blockId = joined.Id;
+        }
+        // Furniture and banner poles go down from their item, which gives them their wood and puts down their other parts.
+        if (fromItem != null) ba.SetBlock(blockId, pos, fromItem);
+        else ba.SetBlock(blockId, pos);
         ba.TriggerNeighbourBlockUpdate(pos);
         if (block.Sounds?.Place != null) sapi.World.PlaySoundAt(block.Sounds.Place, pos, 0);
     }
 
-    /// <summary>Done and total steps, for the progress bar.</summary>
-    public (int Done, int Total) Progress(Colony colony, Building building, Blueprint blueprint)
+    bool IsFurnitureCell(BlockPos pos) => sapi.World.BlockAccessor.GetBlockEntity(pos)?.GetType().Name == "BlockEntityFurnitureDisplayCell";
+
+    /// <summary>Done and total steps, for the progress bar. Open windows refresh every few seconds, so it is cached briefly.</summary>
+    public (int Done, int Total) Progress(Colony colony, Building building, Blueprint blueprint) =>
+        ForWindow(colony, building, blueprint, "progress", () =>
+        {
+            int done = blueprint.Steps.Count(s => IsStepDone(colony, s, StepPos(building, s)));
+            return (done, blueprint.Steps.Count);
+        });
+
+    /// <summary>What is still needed for an open window: the same as MaterialsNeeded, cached briefly.</summary>
+    public Dictionary<string, (ItemStack Sample, int Count)> MaterialsForWindow(Colony colony, Building building, Blueprint blueprint) =>
+        ForWindow(colony, building, blueprint, "materials", () => MaterialsNeeded(colony, building, blueprint));
+
+    /// <summary>The tools still needed, for an open window, cached briefly.</summary>
+    public HashSet<ToolNeed> ToolsForWindow(Colony colony, Building building, Blueprint blueprint) =>
+        ForWindow(colony, building, blueprint, "tools", () => ToolsNeeded(colony, building, blueprint));
+
+    /// <summary>
+    /// Window figures, by colony, building and what they are. Each walks the whole blueprint, and windows ask
+    /// for them every few seconds while a building is under way; a few seconds old is fine to look at.
+    /// </summary>
+    readonly Dictionary<(string, int, string), (Blueprint Blueprint, long AtMs, object Value)> windowCache = new();
+    const long WindowCacheMs = 5000;
+
+    T ForWindow<T>(Colony colony, Building building, Blueprint blueprint, string what, Func<T> compute) where T : notnull
     {
-        int done = blueprint.Steps.Count(s => IsStepDone(colony, s, StepPos(building, s)));
-        return (done, blueprint.Steps.Count);
+        var key = (colony.ColonyId, building.BuildingId, what);
+        long now = sapi.World.ElapsedMilliseconds;
+        if (windowCache.TryGetValue(key, out var hit) && hit.Blueprint == blueprint && now - hit.AtMs < WindowCacheMs) return (T)hit.Value;
+        var value = compute();
+        if (windowCache.Count > 500) windowCache.Clear();
+        windowCache[key] = (blueprint, now, value);
+        return value;
     }
 }

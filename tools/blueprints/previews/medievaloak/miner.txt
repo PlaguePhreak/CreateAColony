@@ -1,0 +1,101 @@
+Miner's Hut (Medieval Oak), from MineColonies' miner: what each level needs, one item per block
+
+medievaloak miner level 1 (from miner1): 13x10x15, 428 blocks, 0 beds, 0 chests
+    the Mine waypoint at (0, -6, -7) (the bottom of the shaft ladder)
+    no door (open-sided in MineColonies), so it is placed facing the way it was drawn
+      239  soil-medium-none
+       83  cobblestone-shale
+       26  drystonefence-shale
+       22  log-placed-oak-ud
+       19  packeddirt
+       15  planks-oak-hor
+        8  torch-basic-lit
+        7  cobblestoneslab-shale
+        5  log-placed-oak-ns
+        2  ladder-wood-oak-north
+
+medievaloak miner level 2 (from miner2): 14x13x15, 635 blocks, 0 beds, 0 chests
+    the Mine waypoint at (0, -6, -7) (the bottom of the shaft ladder)
+    no door (open-sided in MineColonies), so it is placed facing the way it was drawn
+      150  soil-medium-none
+      110  cobblestone-shale
+       94  log-placed-oak-ud
+       56  packeddirt
+       51  drystonefence-shale
+       40  log-placed-oak-ns
+       37  cobblestoneslab-shale
+       28  log-placed-oak-we
+       26  cobblestonestairs-shale
+       24  planks-oak-hor
+       14  torch-basic-lit
+        2  ladder-wood-oak-north
+        1  roughtable-north
+
+medievaloak miner level 3 (from miner3): 15x16x16, 968 blocks, 0 beds, 3 chests
+    left out: oak_trapdoor 4, oak_button 4
+    the Mine waypoint at (0, -6, -7) (the bottom of the shaft ladder)
+    no door (open-sided in MineColonies), so it is placed facing the way it was drawn
+      289  cobblestone-shale
+      180  soil-medium-none
+      128  log-placed-oak-ud
+       69  planks-oak-hor
+       66  drystonefence-shale
+       64  cobblestoneslab-shale
+       50  log-placed-oak-we
+       50  log-placed-oak-ns
+       36  cobblestonestairs-shale
+       16  torch-basic-lit
+        9  rockpolished-shale
+        3  chest
+        2  ladder-wood-oak-north
+        2  plankstairs-oak
+        1  roughtable-north
+        1  barrel
+
+medievaloak miner level 4 (from miner4): 16x16x18, 1208 blocks, 0 beds, 4 chests
+    left out: oak_trapdoor 4, rail 3, oak_wall_sign 2, iron_bars 2
+    the Mine waypoint at (0, -6, -7) (the bottom of the shaft ladder)
+    no door (open-sided in MineColonies), so it is placed facing the way it was drawn
+      421  cobblestone-shale
+      157  log-placed-oak-ud
+      111  soil-medium-none
+       80  planks-oak-hor
+       78  cobblestoneslab-shale
+       78  drystonefence-shale
+       60  log-placed-oak-ns
+       54  log-placed-oak-we
+       50  stonebricks-shale
+       36  cobblestonestairs-shale
+       26  rockpolished-shale
+       24  plankstairs-oak
+       18  torch-basic-lit
+        4  chest
+        3  barrel
+        2  ladder-wood-oak-north
+        2  roughtable-north
+        2  lantern-small
+
+medievaloak miner level 5 (from miner5): 17x16x18, 1600 blocks, 0 beds, 7 chests
+    left out: rail 12, oak_trapdoor 8, oak_wall_sign 2, iron_bars 2, stone_button 2, oak_button 2, potted_dead_bush 1
+    the Mine waypoint at (0, -6, -7) (the bottom of the shaft ladder)
+    no door (open-sided in MineColonies), so it is placed facing the way it was drawn
+      516  cobblestone-shale
+      180  log-placed-oak-ud
+      127  drystonefence-shale
+      126  cobblestoneslab-shale
+      104  stonebricks-shale
+      101  soil-medium-none
+       76  log-placed-oak-we
+       72  log-placed-oak-ns
+       58  planks-oak-hor
+       56  rockpolished-shale
+       56  plankstairs-oak
+       55  cobblestonestairs-shale
+       26  stonebrickstairs-shale
+       14  lantern-small
+        8  barrel
+        8  plankslab-oak
+        7  chest
+        4  torch-basic-lit
+        2  ladder-wood-oak-north
+        2  roughtable-north

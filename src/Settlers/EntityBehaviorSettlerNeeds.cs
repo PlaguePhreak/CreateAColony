@@ -49,12 +49,12 @@ public class EntityBehaviorSettlerNeeds : EntityBehavior
         double hours = System.Math.Clamp(nowHours - lastHours, 0, 6);
 
         if (citizen.Saturation < 0) citizen.Saturation = config.SaturationMax;
-        citizen.Saturation = System.Math.Max(0, citizen.Saturation - (float)(config.HungerPerDay / 24.0 * hours));
+        citizen.Saturation = System.Math.Max(0, citizen.Saturation - (float)(config.HungerPerDay * manager.TraitMult(citizen, "hunger") * manager.HungerPerkFor(settler.ColonyId, citizen) / 24.0 * hours)); // Light Eater, Glutton, Fitness perk
         entity.WatchedAttributes.SetFloat("createacolony:saturation", citizen.Saturation);
 
         // Vanilla health regen ignores hunger for non-players, so slow it down ourselves the same way
         // players work: full speed above 75% food, tapering to nothing when starving.
-        float regen = (float)System.Math.Clamp(citizen.Saturation / config.SaturationMax / 0.75, 0, 1);
+        float regen = (float)System.Math.Clamp(citizen.Saturation / config.SaturationMax / 0.75, 0, 1) * manager.TraitMult(citizen, "regen"); // Fast Healer
         if (System.Math.Abs(entity.WatchedAttributes.GetFloat("regenSpeed", 1) - regen) > 0.01f)
         {
             entity.WatchedAttributes.SetFloat("regenSpeed", regen);

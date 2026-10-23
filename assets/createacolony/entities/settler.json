@@ -6,15 +6,20 @@
 	"eyeHeight": 1.6,
 	"hitboxSize": { "x": 0.6, "y": 1.85 },
 	"deadHitboxSize": { "x": 0.75, "y": 0.5 },
+	// SettlerLooks (src/Settlers/SettlerLooks.cs) copies the player's model, textures and skin parts
+	// (the player character creator) in here when the game loads, and adds the "extraskinnable" behavior.
+	// What is written below is only the fallback if the player's entity cannot be read.
 	"attributes": {
-		"outfitConfigFileName": "game:villageraccessories-{sex}"
+		"mainTextureCode": "skin1"
 	},
 	"client": {
 		"renderer": "Shape",
 		// Humanoid model from VS Village (MIT), see THIRD_PARTY_NOTICES.md. Uses vanilla skin textures.
 		"shape": { "base": "createacolony:entity/humanoid/settler-{sex}" },
+		"textures": { "skin1": { "base": "game:entity/humanoid/villagerbody/skin/normal3" } },
 		"behaviors": [
 			{ "code": "villagerinventory" },
+			{ "code": "seraphinventory" },
 			{ "code": "nametag", "showtagonlywhentargeted": true },
 			{ "code": "repulseagents" },
 			{ "code": "controlledphysics", "stepHeight": 1.1 },
@@ -34,6 +39,7 @@
 	"server": {
 		"behaviors": [
 			{ "code": "villagerinventory" },
+			{ "code": "seraphinventory" },
 			{ "code": "nametag", "showtagonlywhentargeted": true },
 			{ "code": "repulseagents" },
 			{ "code": "controlledphysics", "stepHeight": 1.1 },
@@ -44,16 +50,30 @@
 				"code": "taskai",
 				"aitasks": [
 					// Highest priority wins. Job work sits between eating and wandering; each job task only runs for its own job.
+					// Runs from a creature that hurt it (not guards): home or to a guard, see AiTaskSettlerFlee.
+					{ "code": "settlerflee", "animation": "walk", "animationSpeed": 1.6, "priority": 3.5, "movespeed": 0.034 },
 					{ "code": "settlershelter", "animation": "walk", "priority": 3.0, "movespeed": 0.025 },
 					{ "code": "settlersleep", "animation": "walk", "priority": 2.0, "movespeed": 0.018 },
 					{ "code": "settlereat", "animation": "walk", "priority": 1.5, "movespeed": 0.02 },
+					// Settlers without a job: look after their home first, then help with hauling (settlercourier).
+					{ "code": "settlerchores", "animation": "walk", "priority": 1.25, "movespeed": 0.02 },
 					{ "code": "settlercourier", "animation": "walk", "priority": 1.2, "movespeed": 0.022 },
 					{ "code": "settlerbuilder", "animation": "walk", "priority": 1.2, "movespeed": 0.02 },
 					{ "code": "settlerforester", "animation": "walk", "priority": 1.2, "movespeed": 0.02 },
 					{ "code": "settlerfarmer", "animation": "walk", "priority": 1.2, "movespeed": 0.02 },
 					{ "code": "settlerpotter", "animation": "walk", "priority": 1.2, "movespeed": 0.02 },
+					{ "code": "settlercook", "animation": "walk", "priority": 1.2, "movespeed": 0.02 },
+					{ "code": "settlerprospector", "animation": "walk", "priority": 1.2, "movespeed": 0.02 },
+					{ "code": "settlerminer", "animation": "walk", "priority": 1.2, "movespeed": 0.02 },
+					{ "code": "settlerprospectorminer", "animation": "walk", "priority": 1.2, "movespeed": 0.02 },
+					{ "code": "settlerquarrier", "animation": "walk", "priority": 1.2, "movespeed": 0.02 },
+					{ "code": "settlersmelter", "animation": "walk", "priority": 1.2, "movespeed": 0.02 },
+					{ "code": "settlerblacksmith", "animation": "walk", "priority": 1.2, "movespeed": 0.02 },
+					{ "code": "settlersawyer", "animation": "walk", "priority": 1.2, "movespeed": 0.02 },
 					{ "code": "settlerguard", "animation": "walk", "priority": 1.2, "movespeed": 0.024 },
-					{ "code": "wander", "priority": 1.0, "movespeed": 0.012, "animation": "walk", "maxDistanceToSpawn": 12, "wanderRangeMin": 3, "wanderRangeMax": 10 },
+					{ "code": "settlervisitor", "animation": "walk", "priority": 1.1, "movespeed": 0.02 },
+					// Not the game's "wander": it walks straight into walls and teleports settlers back to where they spawned.
+					{ "code": "settleridle", "priority": 1.0, "movespeed": 0.012, "animation": "walk", "strollRadius": 6 },
 					{ "code": "lookaround", "priority": 0.5 }
 				]
 			}

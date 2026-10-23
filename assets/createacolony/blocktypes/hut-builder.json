@@ -11,11 +11,21 @@
 		"quantityColumns": { "hut": 5 },
 		"dialogTitleLangCode": { "hut": "createacolony:hut-storage" }
 	},
-	"creativeinventory": { "general": ["*"] },
+	"creativeinventory": { "general": ["*"], "vintagecolonies": ["*"] },
 	"blockmaterial": "Wood",
-	"drawtype": "cube",
-	// The seed of the Builder's Hut. Placeholder cube look.
-	"textures": { "all": { "base": "game:block/wood/table/aged/sides" }, "up": { "base": "game:block/wood/table/aged/top" }, "down": { "base": "game:block/wood/planks/aged1" } },
+	"drawtype": "json",
+	// The seed of the Builder's Hut. Simple model: a toolbox with a hammer and a plank.
+	"shape": { "base": "createacolony:block/hut-builder" },
+	"textures": {
+		"sides": { "base": "game:block/wood/table/aged/sides" },
+		"planks": { "base": "game:block/wood/planks/aged1" },
+		"metal": { "base": "game:block/metal/ingot/iron" },
+		"top": { "base": "game:block/wood/table/aged/top" }
+	},
+	"sideopaque": { "all": false },
+	"sidesolid": { "all": false },
+	"emitSideAo": { "all": false },
+	"lightAbsorption": 0,
 	"resistance": 2,
 	"sounds": { "place": "game:block/planks", "break": "game:block/planks", "hit": "game:block/planks" }
 }

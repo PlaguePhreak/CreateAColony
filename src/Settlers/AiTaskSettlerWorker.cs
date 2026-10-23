@@ -58,8 +58,20 @@ public abstract class AiTaskSettlerWorker : SettlerTaskBase
     /// <summary>What the settler is working on, for the settler window.</summary>
     protected abstract string DescribeWork();
 
+    /// <summary>
+    /// Work that comes before taking things to the hut storage, such as a cook putting what it cooked on the
+    /// kitchen shelves. Calls GoWork and returns true when there is some.
+    /// </summary>
+    protected virtual bool PlanFirst(Colony colony, CitizenRecord citizen, Building hut) => false;
+
+    /// <summary>For a hut whose workers each have their own kind of work (a Prospector's Hut): true when this task is that work.</summary>
+    protected virtual bool ForRole(int role) => true;
+
     /// <summary>Other things the worker keeps in its inventory instead of taking them to the hut.</summary>
     protected virtual bool AlsoKeeps(ItemStack stack) => false;
+
+    /// <summary>The tool to hold for the work at hand; the job's own tool unless the job picks per task (diggers: shovel or pickaxe).</summary>
+    protected virtual bool WantsInHand(ItemStack? stack) => IsToolStack(stack);
 
     /// <summary>Where to walk for the current target; the ground beside it unless a job says otherwise.</summary>
     protected virtual Vec3d WalkGoal() => target.ToVec3d().Add(0.5, 0, 0.5);
@@ -69,6 +81,15 @@ public abstract class AiTaskSettlerWorker : SettlerTaskBase
 
     /// <summary>True when the current work is done with the tool in hand, false when it is done bare-handed.</summary>
     protected virtual bool WorkNeedsTool => true;
+
+    /// <summary>True for the job's tool; most jobs go by tool type, the prospector by the prospecting pick itself.</summary>
+    protected virtual bool IsToolStack(ItemStack? stack) => ColonyManager.ToolFits(stack, Tool, 0);
+
+    /// <summary>Asks couriers to bring the job's tool to the hut.</summary>
+    protected virtual void RequestTool(Colony colony, Building hut) => manager!.EnsureToolRequest(colony, hut, hut, new ColonyManager.ToolNeed(Tool, 0));
+
+    /// <summary>True when the worker can work on the target from where it stands, without walking.</summary>
+    protected virtual bool CloseEnough() => entity.Pos.XYZ.DistanceTo(target.ToVec3d().Add(0.5, 0.5, 0.5)) <= workRange + 0.5;
 
     /// <summary>What a player would play for the current work.</summary>
     protected virtual string WorkAnimation(ItemSlot? hand) =>
@@ -85,7 +106,8 @@ public abstract class AiTaskSettlerWorker : SettlerTaskBase
     {
         var colony = Colony;
         var citizen = Citizen;
-        if (colony == null || citizen == null || citizen.JobCode != Job) return false;
+        if (colony == null || citizen == null || citizen.JobCode != Job || !ForRole(citizen.WorkRole)) return false;
+        if (manager!.IsBrokenDown(citizen)) return false; // too unhappy to work
 
         var hut = manager!.EnsureWorkplace(colony, citizen, HutType);
         if (hut == null) return false;
@@ -98,15 +120,23 @@ public abstract class AiTaskSettlerWorker : SettlerTaskBase
             return Wait();
         }
 
+        if (PlanFirst(colony, citizen, hut)) return true;
+
         // Hands full: take the harvest home first.
         if (manager.PackFull(citizen) && HasSurplus(citizen)) return Go(Step.Deposit, storage[0].Pos);
+        // Passing the hut: drop off what it does not need (a harvest, things picked up) on the way.
+        int near = manager.Config.DepositNearHut;
+        if (near > 0 && HasSurplus(citizen) && storage[0].Pos.DistanceSqTo(entity.Pos.X, entity.Pos.Y, entity.Pos.Z) < near * near)
+        {
+            return Go(Step.Deposit, storage[0].Pos);
+        }
 
         if (NeedsTool && !HasTool(citizen))
         {
-            var toolChest = storage.FirstOrDefault(c => c.Inventory.Any(s => ColonyManager.ToolFits(s.Itemstack, Tool, 0)));
+            var toolChest = storage.FirstOrDefault(c => c.Inventory.Any(s => IsToolStack(s.Itemstack)));
             if (toolChest != null) return Go(Step.FetchTool, toolChest.Pos);
             if (HasSurplus(citizen)) return Go(Step.Deposit, storage[0].Pos);
-            manager.EnsureToolRequest(colony, hut, hut, new ColonyManager.ToolNeed(Tool, 0));
+            RequestTool(colony, hut);
             SetStatus("needs-tool-" + Tool.ToString().ToLowerInvariant());
             return Wait();
         }
@@ -127,6 +157,7 @@ public abstract class AiTaskSettlerWorker : SettlerTaskBase
     protected void SetStatus(string status)
     {
         if (hutId != 0) manager!.WorkStatus[hutId] = status;
+        if (Citizen is { } citizen) manager!.WorkerStatus[citizen.CitizenId] = status;
     }
 
     bool Go(Step next, BlockPos pos)
@@ -155,10 +186,14 @@ public abstract class AiTaskSettlerWorker : SettlerTaskBase
         return false;
     }
 
-    bool IsMyTool(ItemStack s) => NeedsTool && s.Collectible.Tool == Tool;
+    /// <summary>Leaves a spot alone for a while, as if it could not be reached.</summary>
+    protected void MarkUnreachable(BlockPos pos) => unreachable[pos.Copy()] = entity.World.ElapsedMilliseconds + UnreachableForgetMs;
+
+    // A prospecting pick counts as a pickaxe to the game, but only jobs that use one (IsToolStack) keep it as their tool.
+    bool IsMyTool(ItemStack s) => NeedsTool && (IsToolStack(s) || s.Collectible.Tool == Tool && !ColonyManager.IsProspectingPick(s));
 
     bool HasTool(CitizenRecord citizen) =>
-        ColonyManager.ToolFits(Hand?.Itemstack, Tool, 0) || manager!.PackCount(citizen, s => ColonyManager.ToolFits(s, Tool, 0)) > 0;
+        IsToolStack(Hand?.Itemstack) || manager!.PackCount(citizen, s => IsToolStack(s)) > 0;
 
     /// <summary>True when the settler carries anything it does not keep: a harvest, or seeds beyond its stock.</summary>
     bool HasSurplus(CitizenRecord citizen)
@@ -178,8 +213,7 @@ public abstract class AiTaskSettlerWorker : SettlerTaskBase
     {
         workTime = 0;
         if (step != Step.Work && Colony is { } colony && Citizen is { } citizen) PutAwayHand(colony, citizen);
-        var center = target.ToVec3d().Add(0.5, 0.5, 0.5);
-        walking = !(step == Step.Work && entity.Pos.XYZ.DistanceTo(center) <= workRange + 0.5);
+        walking = !(step == Step.Work && CloseEnough());
         if (!walking) return;
         if (step == Step.Work) WalkTo(WalkGoal(), workRange, WalkGoal);
         else WalkTo(target.ToVec3d().Add(0.5, 0, 0.5), 1.5f);
@@ -216,7 +250,7 @@ public abstract class AiTaskSettlerWorker : SettlerTaskBase
         switch (step)
         {
             case Step.FetchTool:
-                if (!Take(colony, citizen, s => ColonyManager.ToolFits(s, Tool, 0), 1)) return Wait();
+                if (!Take(colony, citizen, s => IsToolStack(s), 1)) return Wait();
                 break;
             case Step.FetchSupplies:
                 if (!Take(colony, citizen, supplyMatch, supplyWant)) return Wait();
@@ -235,8 +269,10 @@ public abstract class AiTaskSettlerWorker : SettlerTaskBase
                     workAnim = PlayShapeAnimation(WorkAnimation(Hand), "build");
                 }
                 workTime += dt;
-                if (workTime < WorkSeconds) return true;
+                // A skilled worker gets the same work done in less time (ColonyManager.Skills.cs).
+                if (workTime < WorkSeconds * manager!.WorkTimeFactor(colony, citizen)) return true;
                 DoWork(colony, citizen, hut);
+                manager.GainWorkXp(colony, citizen, Jobs.WorkJob(citizen));
                 StopWorkAnimation();
                 break;
         }
@@ -296,8 +332,8 @@ public abstract class AiTaskSettlerWorker : SettlerTaskBase
             PutAwayHand(colony, citizen);
             return;
         }
-        if (ColonyManager.ToolFits(hand.Itemstack, Tool, 0)) return;
-        var tool = manager!.TakeFromPack(colony, citizen, s => ColonyManager.ToolFits(s, Tool, 0), 1);
+        if (WantsInHand(hand.Itemstack)) return;
+        var tool = manager!.TakeFromPack(colony, citizen, s => WantsInHand(s), 1);
         if (tool == null) return;
         PutAwayHand(colony, citizen);
         hand.Itemstack = tool;
@@ -305,7 +341,7 @@ public abstract class AiTaskSettlerWorker : SettlerTaskBase
     }
 
     /// <summary>True when the tool is in hand for work that needs it.</summary>
-    protected bool HoldsTool => ColonyManager.ToolFits(Hand?.Itemstack, Tool, 0);
+    protected bool HoldsTool => IsToolStack(Hand?.Itemstack);
 
     void StopWorkAnimation()
     {

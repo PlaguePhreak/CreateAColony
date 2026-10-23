@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using CreateAColony.Colonies;
 using Vintagestory.API.Common;
 using Vintagestory.API.Config;
@@ -18,6 +19,19 @@ public abstract class SettlerTaskBase : AiTaskBase
     /// <summary>A walking settler that has not moved this far in NoProgressMs plans a new path.</summary>
     const double ProgressDistance = 0.5;
     const long NoProgressMs = 4000;
+    /// <summary>
+    /// Times a walk plans again on the spot after bumping into something, before it counts as a failed try.
+    /// The game's walker gives up on a path as soon as the settler rubs against a wall corner, a door frame or
+    /// another settler for a moment; that used to count as "no path" and soon made settlers give up on their work.
+    /// </summary>
+    const int MaxStuckReplans = 4;
+    /// <summary>
+    /// How close the settler gets to each waypoint of a path before heading for the next one. The game's walker
+    /// uses the walk's arrival range for every waypoint and looks up to three waypoints ahead, so with a range
+    /// of 1.5 to 2.5 blocks settlers cut corners and walked into wall edges and blocks at head height that the
+    /// path went around. Arriving at the goal itself is checked here with the walk's own range.
+    /// </summary>
+    const float WaypointRange = 0.75f;
 
     protected readonly float moveSpeed;
     protected readonly ColonyManager? manager;
@@ -44,9 +58,24 @@ public abstract class SettlerTaskBase : AiTaskBase
     bool arrived;
     bool failed;
     int attempts;
+    int stuckReplans;
     long retryAtMs;
     Vec3d lastProgressPos = new();
     long lastProgressMs;
+
+    enum LadderPhase { None, ToStart, Climbing }
+    LadderPhase ladderPhase;
+    LadderClimb? ladder;
+    /// <summary>Ladders that did not work out on this walk, so the next try picks another.</summary>
+    readonly List<BlockPos> triedLadders = new();
+    int seenRelocations;
+    Willpower? willpower;
+
+    /// <summary>The settler's Willpower (see Willpower.cs), told where the walk is going and how it goes.</summary>
+    Willpower? Will => CountsForWillpower ? willpower ??= entity.GetBehavior<EntityBehaviorColonyCitizen>()?.Willpower : null;
+
+    /// <summary>False for walks that do not matter (an idle stroll): failing them never builds Willpower.</summary>
+    protected virtual bool CountsForWillpower => true;
 
     protected SettlerTaskBase(EntityAgent entity, JsonObject taskConfig, JsonObject aiConfig) : base(entity, taskConfig, aiConfig)
     {
@@ -57,6 +86,9 @@ public abstract class SettlerTaskBase : AiTaskBase
     protected Colony? Colony => entity is EntitySettler s && s.ColonyId != null ? manager?.GetById(s.ColonyId) : null;
 
     protected CitizenRecord? Citizen => entity is EntitySettler s ? manager?.FindCitizen(s.ColonyId, s.CitizenId) : null;
+
+    /// <summary>A guard with a monster close by or an alarm to answer leaves what it is doing (eating, sleeping, sheltering).</summary>
+    protected bool CalledToArms => manager != null && manager.GuardCalled(entity, Colony, Citizen);
 
     /// <summary>
     /// Starts walking to a position. Check Arrived / PathFailed from ContinueExecute and call KeepWalking.
@@ -70,6 +102,13 @@ public abstract class SettlerTaskBase : AiTaskBase
         refreshGoal = refresh;
         arrived = false;
         legTry = 0;
+        EndLadder();
+        triedLadders.Clear();
+        if (Will is { } will)
+        {
+            will.Heading(target, range);
+            seenRelocations = will.Relocations;
+        }
         // StopWalking ends the walk animation, so every new leg starts it again; otherwise settlers glide.
         if (animMeta != null) entity.AnimManager.StartAnimation(animMeta);
         StartLeg();
@@ -79,6 +118,7 @@ public abstract class SettlerTaskBase : AiTaskBase
     void StartLeg()
     {
         attempts = 0;
+        stuckReplans = 0;
         failed = false;
         legDone = false;
         var here = entity.Pos.XYZ;
@@ -86,7 +126,11 @@ public abstract class SettlerTaskBase : AiTaskBase
         onLeg = System.Math.Sqrt(dx * dx + dz * dz) > LegLength + 4;
         if (!onLeg)
         {
-            if (refreshGoal != null) finalGoal = refreshGoal();
+            if (refreshGoal != null)
+            {
+                finalGoal = refreshGoal();
+                Will?.Heading(finalGoal, finalRange);
+            }
             goal = finalGoal;
             goalRange = finalRange;
             StartPath();
@@ -106,6 +150,7 @@ public abstract class SettlerTaskBase : AiTaskBase
         }
         failed = true;
         attempts = MaxPathAttempts;
+        Will?.NoPathFound();
     }
 
     /// <summary>A free spot with floor under it on the surface near a point, or null where the land is not loaded or there is none.</summary>
@@ -121,13 +166,59 @@ public abstract class SettlerTaskBase : AiTaskBase
 
     protected bool Arrived => arrived || (finalGoal != null && entity.Pos.SquareDistanceTo(finalGoal) <= (finalRange + 0.6f) * (finalRange + 0.6f));
 
+    /// <summary>True as soon as one path search or walk has failed, before the retries.</summary>
+    protected bool PathFailedOnce => failed;
+
     /// <summary>True once the target could not be reached after several attempts.</summary>
     protected bool PathFailed => failed && attempts >= MaxPathAttempts && (!onLeg || legTry >= Legs.Length);
+
+    /// <summary>The settler's step height as its entity file sets it, before any stair boost.</summary>
+    float? baseStepHeight;
+    /// <summary>How much higher a settler may step after bumping into something on the lower half of a stair or a slab.</summary>
+    const float HalfBlockStepBoost = 0.5f;
+    /// <summary>How long the boost lasts: stepping up rises a little each tick, so it must outlast the climb.</summary>
+    const long StepBoostMs = 2000;
+    long stepBoostUntilMs;
+
+    /// <summary>
+    /// The pathfinder counts a stair as a whole block, so it plans a step from a stair onto the block a level
+    /// above it. A settler standing on the stair's lower half is then half a block short and walks into the
+    /// wall. When it bumps into something there, it may step half a block higher for a moment, long enough
+    /// to rise all the way (the boost must not end as soon as its feet leave the stair's lower half).
+    /// </summary>
+    void StepUpFromStairs()
+    {
+        if (entity.GetBehavior<EntityBehaviorControlledPhysics>() is not { } physics) return;
+        baseStepHeight ??= physics.StepHeight;
+        long now = entity.World.ElapsedMilliseconds;
+        double feet = entity.Pos.Y - System.Math.Floor(entity.Pos.Y);
+        if (entity.OnGround && entity.CollidedHorizontally && feet > 0.3 && feet < 0.9) stepBoostUntilMs = now + StepBoostMs;
+        physics.StepHeight = now < stepBoostUntilMs ? baseStepHeight.Value + HalfBlockStepBoost : baseStepHeight.Value;
+    }
 
     /// <summary>Retries a stuck path after a short pause. Call every ContinueExecute while walking.</summary>
     protected void KeepWalking()
     {
         if (goal == null || arrived) return;
+        StepUpFromStairs();
+        if (Will is { } will && will.Relocations != seenRelocations)
+        {
+            // Willpower moved the settler: plan the walk again from the new spot.
+            seenRelocations = will.Relocations;
+            EndLadder();
+            legTry = 0;
+            StartLeg();
+            return;
+        }
+        if (ladderPhase == LadderPhase.Climbing)
+        {
+            if (!ladder!.Tick(entity, moveSpeed, out bool climbFailed)) return;
+            if (climbFailed) triedLadders.Add(ladder.Column);
+            EndLadder();
+            legTry = 0;
+            StartLeg();
+            return;
+        }
         if (legDone)
         {
             legTry = 0;
@@ -135,6 +226,14 @@ public abstract class SettlerTaskBase : AiTaskBase
             return;
         }
         long now = entity.World.ElapsedMilliseconds;
+        // Within the walk's range of the goal (or of a stretch's end): arrived, even though the walker only
+        // counts a waypoint as reached much closer than that.
+        if (!failed && ladderPhase == LadderPhase.None && entity.Pos.SquareDistanceTo(goal) <= goalRange * goalRange)
+        {
+            pathTraverser.Stop();
+            OnArrived();
+            return;
+        }
         if (failed)
         {
             if (onLeg)
@@ -174,13 +273,32 @@ public abstract class SettlerTaskBase : AiTaskBase
         lastProgressMs = entity.World.ElapsedMilliseconds;
         // A search still running would make the traverser ignore this one without a word.
         pathTraverser.Stop();
-        if (!pathTraverser.NavigateTo_Async(goal!, moveSpeed, goalRange, OnArrived, OnPathFailed, OnPathFailed, 2000, 1)) OnPathFailed();
+        // NavigateTo_Async already called OnPathFailed itself when it returns false: do not count that twice.
+        pathTraverser.NavigateTo_Async(goal!, moveSpeed, System.Math.Min(goalRange, WaypointRange), OnArrived, OnStuck, OnPathFailed, 2000, 1);
     }
 
     void OnArrived()
     {
-        if (onLeg) legDone = true;
+        if (ladderPhase == LadderPhase.ToStart) StartClimbing();
+        else if (onLeg) legDone = true;
         else arrived = true;
+    }
+
+    /// <summary>The walker stopped because the settler is not getting anywhere along the path it was given.</summary>
+    void OnStuck()
+    {
+        pathTraverser.Stop();
+        if (ladderPhase != LadderPhase.ToStart && stuckReplans < MaxStuckReplans)
+        {
+            // Bumped into something on the way: plan again from where it stands, straight away, without
+            // using up one of the tries. Each search also picks a new line through the blocks.
+            stuckReplans++;
+            if (manager?.PathDebug == true) manager.Mod.Logger.Notification("[pathing] settler {0} bumped into something at {1}, planning again ({2})", entity.EntityId, entity.Pos.AsBlockPos, stuckReplans);
+            attempts--;
+            StartPath();
+            return;
+        }
+        OnPathFailed();
     }
 
     void OnPathFailed()
@@ -188,15 +306,73 @@ public abstract class SettlerTaskBase : AiTaskBase
         // With no path the traverser still starts walking straight at the goal, into whatever is in
         // the way; stop that, it is how settlers ended up pressed into walls.
         pathTraverser.Stop();
+        if (ladderPhase == LadderPhase.ToStart)
+        {
+            // Could not get to the ladder: try the walk again without it.
+            triedLadders.Add(ladder!.Column);
+            EndLadder();
+            legTry = 0;
+            StartLeg();
+            return;
+        }
+        if (!onLeg && TryLadder()) return;
         failed = true;
         retryAtMs = entity.World.ElapsedMilliseconds + RetryDelayMs * (attempts - 1);
+        if (!onLeg) Will?.NoPathFound();
     }
 
-    public override bool CanContinueExecute() => pathTraverser.Ready;
+    /// <summary>
+    /// No path to a goal well above or below: look for a ladder that leads there and walk to it. The game's
+    /// pathfinder does not climb ladders, so the climb itself is steered by LadderClimb.
+    /// </summary>
+    bool TryLadder()
+    {
+        if (manager == null || !manager.Config.LadderClimbing || goal == null) return false;
+        var climb = LadderClimb.Find(manager, entity, goal, System.Math.Max(2, manager.Config.LadderSearchRadius), triedLadders);
+        if (climb == null) return false;
+        ladder = climb;
+        if (manager.PathDebug) manager.Mod.Logger.Notification("[pathing] settler {0} at {1} climbs the ladder at {2} towards {3}", entity.EntityId, entity.Pos.AsBlockPos, climb.Column, goal.AsBlockPos);
+        if (entity.Pos.SquareDistanceTo(climb.Start) < 0.8 * 0.8)
+        {
+            StartClimbing();
+            return true;
+        }
+        // Until the climb, the walk goes to the ladder; StartLeg sets the real goal again afterwards.
+        ladderPhase = LadderPhase.ToStart;
+        goal = climb.Start;
+        goalRange = 0.5f;
+        attempts = 0;
+        StartPath();
+        return true;
+    }
+
+    void StartClimbing()
+    {
+        pathTraverser.Stop();
+        ladderPhase = LadderPhase.Climbing;
+        ladder!.Begin(entity);
+        failed = false;
+    }
+
+    void EndLadder()
+    {
+        if (ladderPhase == LadderPhase.Climbing) entity.Controls.WalkVector.Set(0, 0, 0);
+        ladderPhase = LadderPhase.None;
+        ladder = null;
+    }
+
+    /// <summary>
+    /// While a path search runs the task waits. When it is not walking it always carries on: the game's check
+    /// alone is also false for a settler that has never walked since it was loaded, so a job that started
+    /// without walking (a builder already standing at its building after the world loaded) never ran.
+    /// </summary>
+    public override bool CanContinueExecute() => goal == null || pathTraverser.Ready;
 
     public override void FinishExecute(bool cancelled)
     {
         pathTraverser.Stop();
+        EndLadder();
+        Will?.Stopped();
         goal = null;
         finalGoal = null;
         base.FinishExecute(cancelled);
@@ -206,6 +382,9 @@ public abstract class SettlerTaskBase : AiTaskBase
     protected void StopWalking()
     {
         pathTraverser.Stop();
+        EndLadder();
+        Will?.Stopped();
+        goal = null;
         if (animMeta != null) entity.AnimManager.StopAnimation(animMeta.Code);
     }
 
@@ -227,7 +406,7 @@ public abstract class SettlerTaskBase : AiTaskBase
     protected void SyncHand()
     {
         Hand?.MarkDirty();
-        entity.GetBehavior<EntityBehaviorContainer>()?.storeInv();
+        entity.GetBehavior<EntityBehaviorVillagerInv>()?.storeInv();
     }
 
     protected void PutAwayHand(Colony colony, CitizenRecord citizen)

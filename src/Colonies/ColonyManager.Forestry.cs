@@ -149,6 +149,7 @@ public partial class ColonyManager
 
         if (felled > 35) sapi.World.PlaySoundAt(new AssetLocation("sounds/effect/treefell"), trunk, -0.25, null, false, 32, GameMath.Clamp(felled / 100f, 0.25f, 1));
         StoreHarvest(colony, hut, worker, drops, trunk);
+        AddStat(hut, "trees-felled");
         return wood;
     }
 

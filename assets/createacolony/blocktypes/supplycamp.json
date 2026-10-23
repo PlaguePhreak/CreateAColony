@@ -1,11 +1,30 @@
 {
 	"code": "supplycamp",
 	"class": "BlockSupplyCamp",
-	"creativeinventory": { "general": ["*"] },
+	"entityClass": "GenericTypedContainer",
+	"attributes": {
+		// The camp's own storage, opened with right-click like a chest.
+		"defaultType": "camp",
+		"inventoryClassName": "supplycamp",
+		"quantitySlots": { "camp": 16 },
+		"quantityColumns": { "camp": 4 },
+		"dialogTitleLangCode": { "camp": "createacolony:supplycamp-storage" }
+	},
+	"creativeinventory": { "general": ["*"], "vintagecolonies": ["*"] },
 	"blockmaterial": "Wood",
-	"drawtype": "cube",
-	// Placeholder look: a plank cube using a vanilla texture. Swap for a crate-and-tent model later.
-	"textures": { "all": { "base": "game:block/wood/planks/aged1" } },
+	"drawtype": "json",
+	// The supply camp a new colony starts from. Simple model: a crate, a sack and a small tent.
+	"shape": { "base": "createacolony:block/supplycamp" },
+	"textures": {
+		"sides": { "base": "game:block/wood/table/aged/sides" },
+		"planks": { "base": "game:block/wood/planks/aged1" },
+		"cloth": { "base": "game:block/cloth/linen/blue" },
+		"top": { "base": "game:block/wood/table/aged/top" }
+	},
+	"sideopaque": { "all": false },
+	"sidesolid": { "all": false },
+	"emitSideAo": { "all": false },
+	"lightAbsorption": 0,
 	"resistance": 2,
 	"maxStackSize": 1,
 	"sounds": { "place": "game:block/planks", "break": "game:block/planks", "hit": "game:block/planks" }

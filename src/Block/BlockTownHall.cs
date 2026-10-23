@@ -17,6 +17,13 @@ public class BlockTownHall : Block, IWandPlaceable
     /// <summary>The Town Hall is put down with the Builder's Wand, which shows the building first.</summary>
     public override bool DoPlaceBlock(IWorldAccessor world, IPlayer byPlayer, BlockSelection blockSel, ItemStack byItemStack)
     {
+        // With PlaceHutsByHand on it is only a block, for making blueprints: no colony, no building.
+        if (WandOnly.HandPlacing(world))
+        {
+            if (!base.DoPlaceBlock(world, byPlayer, blockSel, byItemStack)) return false;
+            if (world.BlockAccessor.GetBlockEntity(blockSel.Position) is BlockEntityTownHall be) be.SetRotation(WandOnly.HandRotation(byPlayer));
+            return true;
+        }
         WandOnly.Tell(world, byPlayer);
         return false;
     }
@@ -53,6 +60,13 @@ public class BlockTownHall : Block, IWandPlaceable
             world.Api.ModLoader.GetModSystem<ColonyNetwork>().RequestOpen(blockSel.Position);
         }
         return true;
+    }
+
+    /// <summary>Only some players may break it, and only when they mean to (see ColonyManager.BreakRefusal).</summary>
+    public override void OnBlockBroken(IWorldAccessor world, BlockPos pos, IPlayer byPlayer, float dropQuantityMultiplier = 1)
+    {
+        if (!ColonyBlockGuard.MayBreak(world, pos, byPlayer, townHall: true)) return;
+        base.OnBlockBroken(world, pos, byPlayer, dropQuantityMultiplier);
     }
 
     public override void OnBlockRemoved(IWorldAccessor world, BlockPos pos)

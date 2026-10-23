@@ -1,0 +1,16 @@
+{
+	// Names new settlers are given, picked at random. Add or remove names freely; a name already used
+	// in the colony is skipped while there are others left.
+	"male": [
+		"Aldric", "Bram", "Cedric", "Dunstan", "Edmund", "Fenwick", "Godric", "Hamon", "Ivo", "Jory",
+		"Kester", "Leofric", "Merek", "Nyle", "Osric", "Percival", "Quentin", "Rowan", "Silas", "Tobin",
+		"Ulric", "Wystan", "Alaric", "Benedict", "Corin", "Darian", "Elric", "Florian", "Garrick", "Hollis",
+		"Jasper", "Lorcan", "Milo", "Oswin", "Piers", "Randall", "Thorne", "Wendel", "Anselm", "Bertram"
+	],
+	"female": [
+		"Adela", "Brenna", "Cecily", "Delphine", "Edith", "Fiora", "Gwendolyn", "Hilda", "Isolde", "Joan",
+		"Katrin", "Linnea", "Maud", "Nessa", "Orla", "Petra", "Rosalind", "Sibyl", "Tamsin", "Ursula",
+		"Wilda", "Agnes", "Beatrix", "Clemence", "Dagny", "Elowen", "Freya", "Greta", "Helka", "Ingrid",
+		"Juliana", "Lettice", "Mirabel", "Odette", "Philippa", "Rowena", "Signe", "Thea", "Willa", "Ysolde"
+	]
+}

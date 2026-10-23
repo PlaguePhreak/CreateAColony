@@ -1,0 +1,120 @@
+Miner's Hut (Medieval Oak (Alt)), from MineColonies' altminer: what each level needs, one item per block
+
+medievaloakalt miner level 1 (from altminer1): 15x12x16, 461 blocks, 0 beds, 0 chests
+    the Mine waypoint at (0, -6, -7) (the bottom of the shaft ladder)
+    no door (open-sided in MineColonies), so it is placed facing the way it was drawn
+      185  soil-medium-none
+       93  cobblestone-shale
+       81  packeddirt
+       41  drystonefence-shale
+       27  cobblestoneslab-shale
+        8  torch-basic-lit
+        8  log-placed-oak-ud
+        7  cobblestonestairs-shale
+        6  planks-oak-hor
+        2  ladder-wood-oak-north
+        1  log-placed-oak-ns
+
+medievaloakalt miner level 2 (from altminer2): 15x12x17, 531 blocks, 0 beds, 0 chests
+    left out: chain 2, oak_button 2
+    the Mine waypoint at (0, -6, -7) (the bottom of the shaft ladder)
+    no door (open-sided in MineColonies), so it is placed facing the way it was drawn
+      167  soil-medium-none
+      118  cobblestone-shale
+       69  packeddirt
+       46  drystonefence-shale
+       36  cobblestonestairs-shale
+       24  plankstairs-oak
+       23  log-placed-oak-ud
+        9  torch-basic-lit
+        9  log-placed-oak-ns
+        8  log-placed-oak-we
+        6  planks-oak-hor
+        5  plankslab-oak
+        4  cobblestoneslab-shale
+        2  ladder-wood-oak-north
+        2  debarkedlog-oak-ud
+        1  roughtable-north
+
+medievaloakalt miner level 3 (from altminer3): 16x12x17, 811 blocks, 0 beds, 2 chests
+    left out: oak_trapdoor 4, chain 2
+    the Mine waypoint at (0, -6, -7) (the bottom of the shaft ladder)
+      205  cobblestone-shale
+      157  soil-medium-none
+       77  drystonefence-shale
+       73  planks-oak-hor
+       63  packeddirt
+       50  cobblestonestairs-shale
+       48  plankstairs-oak
+       31  log-placed-oak-ud
+       24  cobblestoneslab-shale
+       22  log-placed-oak-ns
+       15  mudbrick-light
+       14  torch-basic-lit
+       11  log-placed-oak-we
+        6  plankslab-oak
+        4  barrel
+        2  ladder-wood-oak-north
+        2  chest
+        1  clayoven-east
+        1  roughtable-north
+        1  door-solid-oak
+        1  debarkedlog-oak-ud
+
+medievaloakalt miner level 4 (from altminer4): 17x14x18, 1108 blocks, 0 beds, 5 chests
+    left out: oak_trapdoor 4, stone_button 3, glass_pane 3, chain 2, lever 1, redstone_ore 1
+    the Mine waypoint at (0, -6, -7) (the bottom of the shaft ladder)
+      217  cobblestone-shale
+      152  soil-medium-none
+      116  plankstairs-oak
+      104  drystonefence-shale
+       93  cobblestonestairs-shale
+       74  log-placed-oak-ud
+       72  planks-oak-hor
+       54  mudbrick-light
+       40  log-placed-oak-ns
+       37  log-placed-oak-we
+       24  stonepath-free
+       22  cobblestoneslab-shale
+       21  rockpolished-shale
+       18  plankslab-oak
+       16  stonebricks-shale
+       13  torch-basic-lit
+        7  barrel
+        5  chest
+        4  door-solid-oak
+        4  debarkedlog-oak-ud
+        4  lantern-small
+        2  ladder-wood-oak-north
+        1  storagevessel-red-fired
+        1  clayoven-east
+        1  roughtable-north
+
+medievaloakalt miner level 5 (from altminer5): 17x15x18, 1252 blocks, 0 beds, 8 chests
+    left out: glass_pane 6, chain 6, oak_trapdoor 4, stone_button 2, lever 1, potted_oak_sapling 1
+    the Mine waypoint at (0, -6, -7) (the bottom of the shaft ladder)
+      229  stonebricks-shale
+      149  soil-medium-none
+      123  cobblestone-shale
+      120  stonebrickstairs-shale
+      107  drystonefence-shale
+       64  plankstairs-oak
+       61  rockpolished-shale
+       61  log-placed-oak-ud
+       51  cobblestonestairs-shale
+       45  cobblestoneslab-shale
+       45  log-placed-oak-ns
+       42  planks-oak-hor
+       37  log-placed-oak-we
+       28  mudbrick-light
+       21  stonepath-free
+       16  barrel
+       12  plankslab-oak
+        8  chest
+        8  torch-basic-lit
+        8  lantern-small
+        4  door-solid-oak
+        3  debarkedlog-oak-ud
+        2  ladder-wood-oak-north
+        1  clayoven-east
+        1  roughtable-north

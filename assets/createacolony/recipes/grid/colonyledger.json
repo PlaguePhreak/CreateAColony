@@ -1,0 +1,12 @@
+{
+	// Expensive on purpose: the first Ledger comes free with your supply camp.
+	"ingredientPattern": "PLP,CPC,PLP",
+	"ingredients": {
+		"L": { "type": "item", "code": "game:leather-normal-plain" },
+		"P": { "type": "item", "code": "game:paper-*" },
+		"C": { "type": "item", "code": "game:charcoal" }
+	},
+	"width": 3,
+	"height": 3,
+	"output": { "type": "item", "code": "createacolony:colonyledger" }
+}

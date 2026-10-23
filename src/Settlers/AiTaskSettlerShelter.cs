@@ -15,7 +15,10 @@ public class AiTaskSettlerShelter : SettlerTaskBase
 
     public override bool ShouldExecute()
     {
-        return manager != null && Citizen != null && manager.IsStormNear();
+        var citizen = Citizen;
+        var colony = Colony;
+        return manager != null && citizen != null && colony != null && manager.IsStormNear()
+            && !manager.StaysOutInStorms(colony, citizen) && !CalledToArms;
     }
 
     public override void StartExecute()
@@ -28,7 +31,7 @@ public class AiTaskSettlerShelter : SettlerTaskBase
 
     public override bool ContinueExecute(float dt)
     {
-        if (!manager!.IsStormNear()) return false;
+        if (!manager!.IsStormNear() || CalledToArms) return false;
 
         if (Arrived || PathFailed)
         {

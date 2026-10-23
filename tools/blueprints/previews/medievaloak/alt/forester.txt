@@ -1,0 +1,95 @@
+Forester's Hut (Medieval Oak (Alt)), from MineColonies' altlumberjack: what each level needs, one item per block
+
+medievaloakalt forester level 1 (from altlumberjack1): 17x9x11, 789 blocks, 0 beds, 0 chests
+    no door (open-sided in MineColonies), so it is placed facing the way it was drawn
+      614  soil-medium-none
+       70  cobblestonestairs-shale
+       25  packeddirt
+       24  log-placed-oak-ud
+       18  log-placed-oak-ns
+       16  drystonefence-shale
+       12  log-placed-oak-we
+        8  planks-oak-hor
+        1  torch-basic-lit
+
+medievaloakalt forester level 2 (from altlumberjack2): 17x10x11, 1038 blocks, 0 beds, 0 chests
+    left out: short_grass 5, rail 4, oak_trapdoor 2, potted_oak_sapling 1
+    no door (open-sided in MineColonies), so it is placed facing the way it was drawn
+      653  soil-medium-none
+       77  cobblestonestairs-shale
+       59  planks-oak-hor
+       44  cobblestoneslab-shale
+       43  log-placed-oak-ud
+       41  log-placed-oak-we
+       31  packeddirt
+       29  drystonefence-shale
+       27  soil-medium-normal
+       26  log-placed-oak-ns
+        4  torch-basic-lit
+        3  stonepath-free
+
+medievaloakalt forester level 3 (from altlumberjack3): 17x11x11, 1220 blocks, 0 beds, 0 chests
+    left out: short_grass 11, rail 6, potted_jungle_sapling 1, potted_oak_sapling 1, potted_birch_sapling 1, potted_spruce_sapling 1
+      677  soil-medium-none
+      112  cobblestonestairs-shale
+       70  log-placed-oak-ud
+       59  planks-oak-hor
+       52  plankstairs-oak
+       51  log-placed-oak-we
+       41  cobblestone-shale
+       39  log-placed-oak-ns
+       36  mudbrick-light
+       29  packeddirt
+       21  drystonefence-shale
+       15  soil-medium-normal
+        6  torch-basic-lit
+        3  stonepath-free
+        3  barrel
+        2  plankslab-oak
+        1  door-solid-oak
+        1  cobblestoneslab-shale
+
+medievaloakalt forester level 4 (from altlumberjack4): 17x12x11, 1286 blocks, 0 beds, 0 chests
+    left out: short_grass 13, rail 6, potted_oak_sapling 2, potted_jungle_sapling 1, potted_dark_oak_sapling 1, chain 1, potted_birch_sapling 1, potted_spruce_sapling 1
+      684  soil-medium-none
+       87  plankstairs-oak
+       82  cobblestonestairs-shale
+       72  cobblestone-shale
+       70  log-placed-oak-ud
+       64  log-placed-oak-we
+       57  log-placed-oak-ns
+       32  mudbrick-light
+       30  stonebricks-shale
+       23  drystonefence-shale
+       21  planks-oak-hor
+       19  soil-medium-normal
+       12  stonepath-free
+        9  packeddirt
+        8  cobblestoneslab-shale
+        7  barrel
+        4  lantern-small
+        2  torch-basic-lit
+        1  door-solid-oak
+
+medievaloakalt forester level 5 (from altlumberjack5): 17x13x11, 1354 blocks, 0 beds, 0 chests
+    left out: short_grass 13, rail 6, potted_oak_sapling 3, chain 2, potted_acacia_sapling 1, potted_jungle_sapling 1, potted_dark_oak_sapling 1, potted_birch_sapling 1 and more
+      683  soil-medium-none
+      103  cobblestone-shale
+       93  plankstairs-oak
+       79  log-placed-oak-we
+       73  stonebricks-shale
+       70  cobblestonestairs-shale
+       52  log-placed-oak-ud
+       51  log-placed-oak-ns
+       21  stonepath-free
+       21  drystonefence-shale
+       21  planks-oak-hor
+       20  soil-medium-normal
+       20  mudbrick-light
+       16  stonebrickstairs-shale
+       10  barrel
+       10  cobblestoneslab-shale
+        4  lantern-small
+        2  torch-basic-lit
+        2  rockpolished-shale
+        1  door-solid-oak
