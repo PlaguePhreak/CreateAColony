@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using CreateAColony.Colonies;
 using Vintagestory.API.Common;
 using Vintagestory.API.Datastructures;
@@ -16,12 +17,17 @@ public class AiTaskSettlerEat : SettlerTaskBase
 {
     const float EatSeconds = 3f;
     const long NoFoodRetryMs = 30_000;
+    /// <summary>After failing to reach food, the settler waits this long before looking again.</summary>
+    const long UnreachableRetryMs = 5_000;
+    /// <summary>Food that could not be reached is left alone for this long, so the settler tries other food.</summary>
+    const long UnreachableForgetMs = 120_000;
 
     BlockPos? containerPos;
     float eatTime;
     bool eating;
     long nextSearchMs;
     string? eatingName;
+    readonly Dictionary<BlockPos, long> unreachable = new();
 
     public AiTaskSettlerEat(EntityAgent entity, JsonObject taskConfig, JsonObject aiConfig) : base(entity, taskConfig, aiConfig) { }
 
@@ -32,7 +38,7 @@ public class AiTaskSettlerEat : SettlerTaskBase
         var needs = entity.GetBehavior<EntityBehaviorSettlerNeeds>();
         if (citizen == null || needs == null || !needs.IsHungry(manager.Config, citizen) || CalledToArms) return false;
 
-        var food = manager.FindFood(Colony!, citizen, entity);
+        var food = manager.FindFood(Colony!, citizen, entity, IsUnreachable);
         if (food == null)
         {
             nextSearchMs = entity.World.ElapsedMilliseconds + NoFoodRetryMs;
@@ -53,7 +59,16 @@ public class AiTaskSettlerEat : SettlerTaskBase
 
     public override bool ContinueExecute(float dt)
     {
-        if (PathFailed || (!eating && CalledToArms)) return false;
+        if (PathFailed)
+        {
+            // A hungry settler that cannot reach the nearest food used to try the same food again straight away,
+            // forever, and never got back to work. Try other food (or work) first.
+            long now = entity.World.ElapsedMilliseconds;
+            unreachable[containerPos!.Copy()] = now + UnreachableForgetMs;
+            nextSearchMs = now + UnreachableRetryMs;
+            return false;
+        }
+        if (!eating && CalledToArms) return false;
 
         if (!eating)
         {
@@ -70,6 +85,14 @@ public class AiTaskSettlerEat : SettlerTaskBase
 
         eatTime += dt;
         return eatTime < EatSeconds;
+    }
+
+    bool IsUnreachable(BlockPos pos)
+    {
+        if (!unreachable.TryGetValue(pos, out long until)) return false;
+        if (entity.World.ElapsedMilliseconds < until) return true;
+        unreachable.Remove(pos);
+        return false;
     }
 
     bool TakeFood()

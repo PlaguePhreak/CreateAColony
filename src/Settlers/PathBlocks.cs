@@ -62,8 +62,8 @@ public static class PathBlocks
         return IsPath(ba.GetBlockRaw(x, (int)(pos.InternalY - 0.05), z).Id) || IsPath(ba.GetBlockRaw(x, (int)(pos.InternalY + 0.01), z).Id);
     }
 
-    // The pathfinder's own block reader, which it fills as it searches.
-    static AccessTools.FieldRef<AStar, ICachingBlockAccessor>? blockAccess;
+    // The pathfinder's own block reader, which it fills as it searches. StepCheck reads blocks with it too.
+    internal static AccessTools.FieldRef<AStar, ICachingBlockAccessor>? blockAccess;
     [ThreadStatic] static BlockPos? tmpPos;
 
     public static void Patch(Harmony harmony)

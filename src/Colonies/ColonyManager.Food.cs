@@ -38,13 +38,14 @@ public partial class ColonyManager
         public IBlockEntityMealContainer? Placed;
     }
 
-    /// <summary>The best food in the colony for this settler, weighing variety against distance.</summary>
-    public FoodChoice? FindFood(Colony colony, CitizenRecord citizen, EntityAgent eater)
+    /// <summary>The best food in the colony for this settler, weighing variety against distance. Containers skip says yes to are left out.</summary>
+    public FoodChoice? FindFood(Colony colony, CitizenRecord citizen, EntityAgent eater, System.Func<BlockPos, bool>? skip = null)
     {
         FoodChoice? best = null;
         float bestValue = 0;
         foreach (var container in FindBlockEntities<BlockEntityContainer>(colony))
         {
+            if (skip != null && skip(container.Pos)) continue;
             var choice = FindFoodIn(container, citizen, eater);
             if (choice == null) continue;
             float dist = (float)Math.Sqrt(container.Pos.DistanceSqTo(eater.Pos.X, eater.Pos.Y, eater.Pos.Z));

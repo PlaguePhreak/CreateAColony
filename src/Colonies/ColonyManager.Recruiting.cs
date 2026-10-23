@@ -286,8 +286,9 @@ public partial class ColonyManager
     }
 
     /// <summary>
-    /// Makes the spot a settler wanders around (the vanilla wander task stays near where the entity
-    /// spawned) the given position, so a wanderer settles in at the Town Hall rather than at the border.
+    /// Makes the spot a settler without a workplace hangs about (AiTaskSettlerIdle reads it) the given
+    /// position, so a wanderer settles in at the Town Hall rather than at the border. The game's wander task,
+    /// which older settler files used, reads the same spot.
     /// </summary>
     public static void SetWanderHome(EntityAgent entity, Vec3d pos)
     {

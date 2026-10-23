@@ -49,7 +49,7 @@
 					{ "code": "settlershelter", "animation": "walk", "priority": 3.0, "movespeed": 0.025 },
 					{ "code": "settlersleep", "animation": "walk", "priority": 2.0, "movespeed": 0.018 },
 					{ "code": "settlereat", "animation": "walk", "priority": 1.5, "movespeed": 0.02 },
-					{ "code": "wander", "priority": 1.0, "movespeed": 0.012, "animation": "walk", "maxDistanceToSpawn": 10, "wanderRangeMin": 2, "wanderRangeMax": 8 },
+					{ "code": "settleridle", "priority": 1.0, "movespeed": 0.012, "animation": "walk", "strollRadius": 5 },
 					{ "code": "lookaround", "priority": 0.5 }
 				]
 			}

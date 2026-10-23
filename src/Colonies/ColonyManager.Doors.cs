@@ -35,6 +35,7 @@ public partial class ColonyManager
         DoorPathing.Patch(harmony);
         PathBlocks.Init(sapi.World, Config);
         PathBlocks.Patch(harmony);
+        StepCheck.Patch(harmony);
         sapi.Event.RegisterGameTickListener(OnDoorTick, DoorTickMs);
     }
 
@@ -92,10 +93,15 @@ public partial class ColonyManager
         }
     }
 
-    /// <summary>True while a creature is in or right next to the doorway, so closing would hit it.</summary>
+    /// <summary>
+    /// True while a creature is in the doorway or within a step of it, so closing would hit it or shut the door
+    /// in the face of a settler about to walk through. (Only right next to it, the door used to close on settlers
+    /// that had slowed down to turn into it, and they walked into the closed door.)
+    /// </summary>
     bool DoorBlocked(BlockPos door)
     {
-        var area = new Cuboidd(door.X - 0.4, door.Y, door.Z - 0.4, door.X + 1.4, door.Y + 2, door.Z + 1.4);
+        const double margin = 0.9;
+        var area = new Cuboidd(door.X - margin, door.Y, door.Z - margin, door.X + 1 + margin, door.Y + 2, door.Z + 1 + margin);
         return sapi.World.GetEntitiesAround(door.ToVec3d().Add(0.5, 0.5, 0.5), 3, 3, e => e is EntityAgent && e.Alive)
             .Any(e => e.CollisionBox.ToDouble().Translate(e.Pos.X, e.Pos.Y, e.Pos.Z).Intersects(area));
     }
