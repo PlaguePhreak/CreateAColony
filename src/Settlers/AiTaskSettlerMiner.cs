@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using CreateAColony.Colonies;
 using Vintagestory.API.Common;
@@ -9,9 +10,10 @@ using Vintagestory.GameContent;
 namespace CreateAColony.Settlers;
 
 /// <summary>
-/// A miner works from a Miner's Hut: it goes to the best ore the colony's prospectors found, digs a
-/// staircase down to it with a pickaxe and digs the ore out, block by block, as a player would. Rock
-/// and ore go into its inventory and from there to the hut's storage.
+/// A miner works from a Miner's Hut: it digs a shaft beside the hut with a pickaxe, level by level, and
+/// digs out the ore it finds there, block by block, as a player would. With "Go to prospected ore" on, it
+/// first goes to good ore the colony's prospectors found and digs that out. Rock and ore go into its
+/// inventory and from there to the hut's storage.
 /// </summary>
 public class AiTaskSettlerMiner : AiTaskSettlerDigger
 {
@@ -30,7 +32,8 @@ public class AiTaskSettlerMiner : AiTaskSettlerDigger
     protected override bool PlanWork(Colony colony, CitizenRecord citizen, Building hut, List<BlockEntityContainer> storage)
     {
         if (FetchBetterPick(citizen, storage)) return true;
-        var next = manager!.NextMineJob(colony, hut, IsUnreachable, out string status);
+        var at = new BlockPos((int)Math.Floor(entity.Pos.X), (int)Math.Round(entity.Pos.Y), (int)Math.Floor(entity.Pos.Z));
+        var next = manager!.NextMineJob(colony, hut, at, IsUnreachable, out string status);
         SetStatus(status);
         if (next is not { } found) return false;
         job = found;

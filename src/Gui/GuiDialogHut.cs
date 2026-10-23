@@ -148,6 +148,7 @@ public class GuiDialogHut : GuiDialog
         SingleComposer = composer.EndChildElements().Compose();
         SingleComposer.GetSwitch("anytype")?.SetValue(snapshot.AnyWoodOrStone);
         SingleComposer.GetSwitch("escort")?.SetValue(snapshot.Escort);
+        SingleComposer.GetSwitch("mineprospected")?.SetValue(snapshot.MineProspected);
         SingleComposer.GetSwitch("berries")?.SetValue(snapshot.CollectBerries);
         SingleComposer.GetSwitch("retreat")?.SetValue(snapshot.Retreat);
         for (int i = 0; SingleComposer.GetSwitch("hostile-" + i) is { } toggle; i++) toggle.SetValue(hostileSwitchStates[i]);
@@ -683,6 +684,27 @@ public class GuiDialogHut : GuiDialog
         string job = Lang.Get("createacolony:job-" + snapshot.Job);
         double y = 30;
 
+        // The Quarry digs right beside itself, so it has no range to set.
+        if (snapshot.Building.Type != BuildingTypes.Quarry) y = ComposeWorkRange(composer, job, officer, y);
+
+        y = composer.Section(Lang.Get("createacolony:workarea-escort"), y, Width);
+        y = AddSetting(composer, "escort", ColonyAction.SetEscort, snapshot.Escort, y);
+        string guard = !snapshot.Escort ? Lang.Get("createacolony:workarea-escort-hint")
+            : snapshot.GuardName.Length > 0 ? Lang.Get("createacolony:workarea-escort-by", snapshot.GuardName)
+            : Lang.Get("createacolony:workarea-escort-none", snapshot.GuardCount);
+        y = composer.Text(guard, snapshot.Escort && snapshot.GuardName.Length == 0 ? GuiKit.Detail().WithColor(GuiKit.WarnColor) : GuiKit.Muted(), 0, y, Width, 14);
+
+        if (farmer)
+        {
+            y = composer.Section(Lang.Get("createacolony:workarea-berries"), y, Width);
+            y = AddSetting(composer, "berries", ColonyAction.SetCollectBerries, snapshot.CollectBerries, y);
+            composer.Text(Lang.Get("createacolony:workarea-berries-hint"), GuiKit.Muted(), 0, y, Width);
+        }
+    }
+
+    /// <summary>The Work area tab's range: how far out the worker goes, with buttons for officers.</summary>
+    double ComposeWorkRange(GuiComposer composer, string job, bool officer, double y)
+    {
         y = composer.Section(Lang.Get("createacolony:workarea-range", job), y, Width);
         string range = Lang.Get("createacolony:workarea-blocks", snapshot.WorkRadius);
         if (officer)
@@ -700,20 +722,7 @@ public class GuiDialogHut : GuiDialog
         }
         y += 36;
         y = composer.Text(Lang.Get("createacolony:workarea-range-hint-" + snapshot.Building.Type), GuiKit.Muted(), 0, y, Width, 14);
-
-        y = composer.Section(Lang.Get("createacolony:workarea-escort"), y, Width);
-        y = AddSetting(composer, "escort", ColonyAction.SetEscort, snapshot.Escort, y);
-        string guard = !snapshot.Escort ? Lang.Get("createacolony:workarea-escort-hint")
-            : snapshot.GuardName.Length > 0 ? Lang.Get("createacolony:workarea-escort-by", snapshot.GuardName)
-            : Lang.Get("createacolony:workarea-escort-none", snapshot.GuardCount);
-        y = composer.Text(guard, snapshot.Escort && snapshot.GuardName.Length == 0 ? GuiKit.Detail().WithColor(GuiKit.WarnColor) : GuiKit.Muted(), 0, y, Width, 14);
-
-        if (farmer)
-        {
-            y = composer.Section(Lang.Get("createacolony:workarea-berries"), y, Width);
-            y = AddSetting(composer, "berries", ColonyAction.SetCollectBerries, snapshot.CollectBerries, y);
-            composer.Text(Lang.Get("createacolony:workarea-berries-hint"), GuiKit.Muted(), 0, y, Width);
-        }
+        return y;
     }
 
     /// <summary>
@@ -728,6 +737,9 @@ public class GuiDialogHut : GuiDialog
         double y = composer.Text(Lang.Get(miner ? "createacolony:ore-hint-miner" : "createacolony:ore-hint-prospector", snapshot.OreReadings), GuiKit.Muted(), 0, 30, Width, 10);
         if (miner)
         {
+            y = composer.Section(Lang.Get("createacolony:ore-trips"), y, Width);
+            y = AddSetting(composer, "mineprospected", ColonyAction.SetMineProspected, snapshot.MineProspected, y);
+            y = composer.Text(Lang.Get("createacolony:ore-trips-hint"), GuiKit.Muted(), 0, y, Width, 10);
             string choice = snapshot.MineOre.Length == 0 ? Lang.Get("createacolony:mine-any-ore") : Lang.Get("ore-" + snapshot.MineOre);
             composer.AddStaticText(Lang.Get("createacolony:ore-digging-for", choice), GuiKit.Body(), ElementBounds.Fixed(0, y + 5, Width - 300, 25));
             if (officer)
@@ -744,12 +756,14 @@ public class GuiDialogHut : GuiDialog
             composer.Text(Lang.Get("createacolony:ore-none"), GuiKit.Body(), 0, y, Width);
             return;
         }
-        int pages = (snapshot.Ores.Count + OreRowsPerPage - 1) / OreRowsPerPage;
+        // The Miner's Hut has its settings above the list, so fewer rows fit.
+        int perPage = miner ? OreRowsPerPage - 2 : OreRowsPerPage;
+        int pages = (snapshot.Ores.Count + perPage - 1) / perPage;
         page = Math.Clamp(page, 0, pages - 1);
-        int shown = Math.Min(OreRowsPerPage, snapshot.Ores.Count - page * OreRowsPerPage);
+        int shown = Math.Min(perPage, snapshot.Ores.Count - page * perPage);
         composer.AddInset(ElementBounds.Fixed(0, y, Width, shown * OreRowHeight + 8), 3, 0.8f);
         y += 4;
-        foreach (var ore in snapshot.Ores.Skip(page * OreRowsPerPage).Take(OreRowsPerPage))
+        foreach (var ore in snapshot.Ores.Skip(page * perPage).Take(perPage))
         {
             string density = Lang.Get("propick-density-" + new[] { "verypoor", "poor", "decent", "high", "veryhigh", "ultrahigh" }[(int)GameMath.Clamp(ore.Best * 7.5, 0, 5)]);
             bool chosen = miner && snapshot.MineOre == ore.Code;
@@ -769,17 +783,12 @@ public class GuiDialogHut : GuiDialog
         AddPager(composer, pages, y + 14);
     }
 
-    /// <summary>The Quarry tab: where the pit is, how it is dug, and Forget pit.</summary>
+    /// <summary>The Quarry tab: where the pit is and how it is dug.</summary>
     void ComposeQuarry(GuiComposer composer)
     {
         double y = 30;
         y = composer.Rich(snapshot.PitInfo, GuiKit.Body(), 0, y, Width, 10);
-        y = composer.Text(Lang.Get("createacolony:quarry-hint"), GuiKit.Muted(), 0, y, Width, 10);
-        if (Officer && snapshot.HasPit)
-        {
-            int id = BuildingId;
-            composer.AddSmallButton(Lang.Get("createacolony:quarry-forget"), () => Send(ColonyAction.ClearQuarry, id), ElementBounds.Fixed(0, y, 180, 28));
-        }
+        composer.Text(Lang.Get("createacolony:quarry-hint"), GuiKit.Muted(), 0, y, Width, 10);
     }
 
     /// <summary>

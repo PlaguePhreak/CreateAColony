@@ -55,7 +55,6 @@ public class CreateAColonyModSystem : ModSystem
         api.RegisterBlockClass("BlockColonyHut", typeof(BlockColonyHut));
         api.RegisterBlockEntityClass("ColonyHut", typeof(BlockEntityColonyHut));
         api.RegisterBlockClass("BlockFieldMarker", typeof(BlockFieldMarker));
-        api.RegisterBlockClass("BlockQuarryMarker", typeof(BlockQuarryMarker));
         api.RegisterItemClass("ItemBuildersWand", typeof(Items.ItemBuildersWand));
         api.RegisterItemClass("ItemGuardScepter", typeof(Items.ItemGuardScepter));
 

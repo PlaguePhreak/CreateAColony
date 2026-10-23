@@ -254,9 +254,10 @@ public class HutSnapshot
     /// <summary>A Miner's Hut: the ore its miner digs for, empty for the best found.</summary>
     [ProtoMember(58)] public string MineOre = "";
     [ProtoMember(59)] public int OreReadings;
+    /// <summary>A Miner's Hut: its miner goes to ore the prospectors found before working its shaft.</summary>
+    [ProtoMember(61)] public bool MineProspected;
     /// <summary>A Quarry, whose window has a Quarry tab.</summary>
     [ProtoMember(60)] public bool IsQuarry;
-    [ProtoMember(61)] public bool HasPit;
     [ProtoMember(62)] public string PitInfo = "";
 }
 
@@ -459,8 +460,8 @@ public enum ColonyAction
     PlacementLevel = 50,
     /// <summary>Text is the ore (deposit code) the Miner's Hut with BuildingId digs for; empty for the best found.</summary>
     SetMineOre = 51,
-    /// <summary>Forgets the pit of the Quarry with BuildingId, so it waits for a new Quarry marker.</summary>
-    ClearQuarry = 52,
+    /// <summary>Turns "Go to prospected ore" on (Text "1") or off for the Miner's Hut with BuildingId.</summary>
+    SetMineProspected = 52,
     /// <summary>Forgets the Miner's Hut's site and tunnel, so the miner starts a new mine.</summary>
     NewMine = 53
 }

@@ -117,18 +117,26 @@ public class ColonyConfig
     public int MinerOreSearchRadius = 12;
     /// <summary>Seconds a miner takes to dig one block of rock; ore takes half as long again.</summary>
     public float MinerSecondsPerBlock = 2.5f;
-    /// <summary>How far, in blocks, a miner reaches from the end of its tunnel to dig ore around it.</summary>
+    /// <summary>How far, in blocks, a miner reaches from where it stands to dig ore around it.</summary>
     public int MinerReach = 3;
+    /// <summary>With "Go to prospected ore" on, the miner only leaves its shaft for readings at least this strong ("decent" starts at 0.267), unless an ore is chosen on the Ore tab.</summary>
+    public double MinerTripMinFactor = 0.267;
+    /// <summary>Levels of the Miner's Hut's shaft per hut level. Each level is one turn of the spiral staircase, 8 blocks deeper, with a tunnel out from each side.</summary>
+    public int MinerLevelsPerHutLevel = 2;
+    /// <summary>How long, in blocks, each tunnel out from a level of the shaft is.</summary>
+    public int MinerTunnelLength = 12;
 
     // Quarry
-    /// <summary>The Quarry's pit, in blocks along each side; odd numbers keep the Quarry marker in the middle.</summary>
-    public int QuarrySize = 9;
-    /// <summary>How many layers deep the pit goes. A staircase runs around the pit's edge, so this is at most four times QuarrySize less a few.</summary>
-    public int QuarryDepth = 12;
-    /// <summary>Solid blocks up to this high above the ground under the marker are cleared too, so a pit on a slope is open to the sky.</summary>
+    /// <summary>The pit beside the Quarry goes this many blocks out from its middle at hut level 1 (2 makes a 5 by 5 pit)...</summary>
+    public int QuarryRadius = 2;
+    /// <summary>...and this many more for each level above that...</summary>
+    public int QuarryRadiusPerLevel = 1;
+    /// <summary>...up to this many (6 makes a 13 by 13 pit).</summary>
+    public int QuarryMaxRadius = 6;
+    /// <summary>How many layers deep the pit goes for each hut level. A staircase runs around the pit's edge, so a small pit cannot go very deep.</summary>
+    public int QuarryDepthPerLevel = 6;
+    /// <summary>Solid blocks up to this high above the pit's top layer are cleared too, so a pit on a slope is open to the sky.</summary>
     public int QuarryClearAbove = 4;
-    /// <summary>How far from the Quarry a Quarry marker may be placed to belong to it.</summary>
-    public int QuarryMarkerRange = 48;
     /// <summary>Seconds a quarrier takes to dig one block.</summary>
     public float QuarrySecondsPerBlock = 2f;
 
