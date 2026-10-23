@@ -35,6 +35,7 @@ public partial class ColonyManager
         DoorPathing.Patch(harmony);
         PathBlocks.Init(sapi.World, Config);
         PathBlocks.Patch(harmony);
+        StepCheck.Init(Config);
         StepCheck.Patch(harmony);
         sapi.Event.RegisterGameTickListener(OnDoorTick, DoorTickMs);
     }

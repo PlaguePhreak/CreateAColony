@@ -345,6 +345,11 @@ public class ColonyConfig
     public bool LadderClimbing = true;
     /// <summary>How far around itself, in blocks, a settler looks for a ladder to climb.</summary>
     public int LadderSearchRadius = 8;
+    /// <summary>
+    /// The deepest drop, in blocks, a settler's path may walk down. Anything deeper (a hole, a cliff edge, a pit
+    /// kiln shaft) is planned around, or climbed by ladder. The game's own limit for creatures is 4.
+    /// </summary>
+    public int MaxDropHeight = 2;
 
     // Getting stuck: Willpower
     /// <summary>

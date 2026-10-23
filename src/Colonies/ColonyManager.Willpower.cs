@@ -42,7 +42,7 @@ public partial class ColonyManager
     /// <summary>
     /// True when the settler cannot walk TrappedEscapeDistance blocks away from where it stands: walls all
     /// around, a pit it cannot step out of. Closed doors count as open, settlers open them. It walks the
-    /// spots around the settler like the pathfinder does (step up one block, drop down up to three), but
+    /// spots around the settler like the pathfinder does (step up one block, drop down up to MaxDropHeight), but
     /// stops after TrappedSearchLimit spots, so a large closed room also counts as open.
     /// </summary>
     public bool IsTrapped(Entity entity) => IsTrapped(entity, entity.Pos.AsBlockPos);
@@ -54,7 +54,8 @@ public partial class ColonyManager
         var seen = new HashSet<BlockPos> { start };
         var queue = new Queue<BlockPos>();
         queue.Enqueue(start);
-        int[] heights = { 0, 1, -1, -2, -3 };
+        // Up one block, or down as far as a settler's path may drop (config MaxDropHeight).
+        var heights = new[] { 0, 1 }.Concat(Enumerable.Range(1, Math.Max(1, Config.MaxDropHeight)).Select(d => -d)).ToArray();
         while (queue.Count > 0 && seen.Count < TrappedSearchLimit)
         {
             var at = queue.Dequeue();

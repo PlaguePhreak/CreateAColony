@@ -19,15 +19,22 @@ namespace CreateAColony.Settlers;
 /// spot before a step (a low roof edge, a floating block, a beam) stops the climb, and the settler walked into
 /// it over and over. A step up is refused unless the settler's whole body fits at the new height over the
 /// spot it starts from and halfway across.
+///
+/// Drops are limited too: a path may walk down at most MaxDropHeight blocks (2) at a time, where the game allows 4.
 /// </summary>
 public static class StepCheck
 {
     /// <summary>A little room for blocks whose top is a hair above a whole number.</summary>
     const double Tolerance = 0.05;
 
+    /// <summary>Config MaxDropHeight: deeper drops are refused. Set once on the main thread when the server starts.</summary>
+    static int maxDrop = 2;
+
     [ThreadStatic] static BlockPos? tmpPos;
     [ThreadStatic] static Vec3d? tmpVec;
     [ThreadStatic] static CollisionTester? collisionTester;
+
+    public static void Init(ColonyConfig config) => maxDrop = Math.Max(1, config.MaxDropHeight);
 
     public static void Patch(Harmony harmony)
     {
@@ -41,8 +48,16 @@ public static class StepCheck
 
     static void After(AStar __instance, PathNode node, float stepHeight, Cuboidf entityCollBox, Cardinal fromDir, int __state, ref bool __result)
     {
+        if (!__result || !DoorPathing.Planning) return;
+        // node only ends up lower when the pathfinder walked off an edge; it goes down by the blocks fallen.
+        // The game lets creatures drop 4 blocks, deep enough that settlers walked into holes and pits.
+        if (__state - node.Y > maxDrop)
+        {
+            __result = false;
+            return;
+        }
         // node only ends up higher when the pathfinder stepped up onto the block in front.
-        if (!__result || node.Y <= __state || !DoorPathing.Planning || PathBlocks.blockAccess == null) return;
+        if (node.Y <= __state || PathBlocks.blockAccess == null) return;
         var ba = PathBlocks.blockAccess(__instance);
         if (ba == null) return;
         var pos = tmpPos ??= new BlockPos(0);
