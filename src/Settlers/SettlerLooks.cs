@@ -174,14 +174,19 @@ public class SettlerLooks : ModSystem
         return true;
     }
 
-    /// <summary>Adds the player character creator's behavior after the clothing behavior it needs.</summary>
+    /// <summary>
+    /// Adds the player character creator's behavior BEFORE the inventory behaviors, in the order the game's own
+    /// player bot uses: the face and hair are put on the model first, then clothes and armor go over them and
+    /// hide what they cover. The other way round, armor broke the model (no face, no animations).
+    /// </summary>
     static void AddSkinBehavior(JArray? behaviors)
     {
-        if (behaviors == null || behaviors.Any(b => (string?)b["code"] == "extraskinnable")) return;
-        int at = behaviors.ToList().FindIndex(b => (string?)b["code"] == "seraphinventory");
+        if (behaviors == null) return;
+        foreach (var old in behaviors.Where(b => (string?)b["code"] == "extraskinnable").ToList()) old.Remove();
+        int at = behaviors.ToList().FindIndex(b => (string?)b["code"] is "villagerinventory" or "seraphinventory");
         var entry = new JObject { ["code"] = "extraskinnable" };
         if (at < 0) behaviors.Add(entry);
-        else behaviors.Insert(at + 1, entry);
+        else behaviors.Insert(at, entry);
     }
 
     /// <summary>Gives asset paths in copied player JSON the game's domain, since in this mod's files a bare path means this mod.</summary>

@@ -27,6 +27,8 @@ public class AiTaskSettlerCourier : SettlerTaskBase
     long nextSearchMs;
     /// <summary>Delivering a settler's own leftovers to its hut rather than the warehouse.</summary>
     bool toHut;
+    /// <summary>When a settler without a hut started carrying things, so it saves them up for one trip to the warehouse.</summary>
+    long carryingSinceMs = -1;
 
     public AiTaskSettlerCourier(EntityAgent entity, JsonObject taskConfig, JsonObject aiConfig) : base(entity, taskConfig, aiConfig) { }
 
@@ -38,10 +40,33 @@ public class AiTaskSettlerCourier : SettlerTaskBase
         // A settler whose courier job was taken away still puts its last load back first.
         // Builders, foresters and farmers carry their own tools and supplies, so their loads are left to them.
         if (citizen == null || colony == null || Jobs.CarriesOwnLoad(citizen.JobCode)) return false;
-        if (citizen.JobCode != Jobs.Courier && manager.PackEmpty(citizen)) return false;
+        if (citizen.JobCode != Jobs.Courier && manager.PackEmpty(citizen))
+        {
+            carryingSinceMs = -1;
+            return false;
+        }
+        if (SavingUp(colony, citizen))
+        {
+            nextSearchMs = entity.World.ElapsedMilliseconds + IdleRetryMs;
+            return false;
+        }
 
         nextSearchMs = entity.World.ElapsedMilliseconds + IdleRetryMs;
         return Plan(colony, citizen);
+    }
+
+    /// <summary>
+    /// A settler without a job hut does not walk to the warehouse for every item it picks up: it waits until its
+    /// pack is full or it has carried things for LooseItemsDepositSeconds. With no warehouse it keeps them.
+    /// </summary>
+    bool SavingUp(Colony colony, CitizenRecord citizen)
+    {
+        if (citizen.JobCode == Jobs.Courier || OwnHutChest(colony, citizen) != null) return false;
+        if (colony.Requests.Exists(r => r.LeasedByCitizenId == citizen.CitizenId)) return false;
+        long now = entity.World.ElapsedMilliseconds;
+        if (carryingSinceMs < 0) carryingSinceMs = now;
+        if (colony.WarehousePos == null) return true;
+        return !manager!.PackFull(citizen) && now - carryingSinceMs < manager.Config.LooseItemsDepositSeconds * 1000;
     }
 
     BlockPos? OwnHutChest(Colony colony, CitizenRecord citizen) =>
