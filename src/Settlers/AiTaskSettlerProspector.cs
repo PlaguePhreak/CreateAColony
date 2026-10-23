@@ -10,7 +10,7 @@ using ItemMatch = System.Func<Vintagestory.API.Common.ItemStack, bool>;
 namespace CreateAColony.Settlers;
 
 /// <summary>
-/// A prospector works from a Prospector's Hut: it walks a grid of spots around the hut and taps the
+/// A prospector works from a Prospector's Hut: it wanders around the hut, heading where readings look best, and taps the
 /// ground at each with a prospecting pick, taking the same density reading a player would. Miners dig
 /// where the readings are best, and every colony member sees the readings on their ore map.
 /// </summary>
