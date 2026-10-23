@@ -301,7 +301,6 @@ public class ColonySnapshot
     /// <summary>The receiving player's own role, so the window can hide buttons they may not use.</summary>
     [ProtoMember(6)] public int ViewerRole;
     [ProtoMember(7)] public int BedCount;
-    [ProtoMember(8)] public int SupplyDeliveriesLeft;
     /// <summary>True when this snapshot should open the window, false when it only refreshes an open one.</summary>
     [ProtoMember(9)] public bool OpenWindow;
     [ProtoMember(10)] public bool HasWarehouse;

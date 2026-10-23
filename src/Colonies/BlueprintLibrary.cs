@@ -292,6 +292,7 @@ public class BlueprintLibrary
     {
         BuildingTypes.TownHall => "createacolony:townhall",
         BuildingTypes.Warehouse => "createacolony:warehouse",
+        BuildingTypes.SupplyCamp => "createacolony:supplycamp",
         _ => $"createacolony:hut-{type}"
     };
 }
@@ -308,4 +309,6 @@ public static class BuildingTypes
     public const string Cook = "cook";
     public const string GuardTower = "guardtower";
     public const string Residence = "residence";
+    /// <summary>Not a colony building: only used to find the supply camp's own blueprint.</summary>
+    public const string SupplyCamp = "supplycamp";
 }

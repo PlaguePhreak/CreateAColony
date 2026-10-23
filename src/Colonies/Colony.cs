@@ -250,11 +250,8 @@ public class Colony
     [ProtoMember(8)] public List<CitizenRecord> Citizens = new();
     [ProtoMember(9, IsRequired = true)] public int NextCitizenId = 1;
     [ProtoMember(10)] public double FoundedTotalDays;
-    /// <summary>Position of the colony's single supply camp, or null if none is placed.</summary>
-    [ProtoMember(11)] public BlockPos? SupplyCampPos;
-    /// <summary>Kept on the colony, not the block, so breaking and re-placing the camp cannot reset it.</summary>
-    [ProtoMember(12)] public int SupplyDeliveriesTaken;
-    [ProtoMember(13, IsRequired = true)] public int LastSupplyDay = -1;
+    // 11 to 13 held the old supply camp's daily deliveries (up to 0.31). The camp no longer belongs to a
+    // colony; the numbers stay taken so old saves still load.
 
     /// <summary>Position of the colony's warehouse marker; chests around it form the warehouse.</summary>
     [ProtoMember(14)] public BlockPos? WarehousePos;

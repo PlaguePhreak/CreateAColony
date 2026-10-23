@@ -89,8 +89,12 @@ public partial class ColonyNetwork : ModSystem
     {
         if (sapi!.World.BlockAccessor.GetBlockEntity(req.Pos) is not BlockEntityTownHall { ColonyId: not null } be) return;
         var colony = Manager.GetById(be.ColonyId);
-        if (colony == null) return;
+        if (colony != null) OpenTownHall(player, colony);
+    }
 
+    /// <summary>Opens a colony's Town Hall window for a player, wherever they are (the Colony Ledger uses this).</summary>
+    public void OpenTownHall(IServerPlayer player, Colony colony)
+    {
         // Visitors may look but not change anything; the window hides controls by role.
         if (!viewersByColony.TryGetValue(colony.ColonyId, out var viewers)) viewersByColony[colony.ColonyId] = viewers = new();
         viewers.Add(player.PlayerUID);
@@ -388,7 +392,6 @@ public partial class ColonyNetwork : ModSystem
             Level = colony.Level,
             ViewerRole = (int)colony.RoleOf(viewerUid),
             BedCount = colony.Citizens.Count(c => c.Alive && c.HomeBedPos != null),
-            SupplyDeliveriesLeft = System.Math.Max(0, Manager.SupplyDeliveriesTotal - colony.SupplyDeliveriesTaken),
             OpenWindow = openWindow,
             HasWarehouse = colony.WarehousePos != null,
             WarehouseChests = Manager.WarehouseContainers(colony).Count(),

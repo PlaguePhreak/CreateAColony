@@ -193,8 +193,7 @@ public class GuiDialogTownHall : GuiDialog
         left = composer.Row(Lang.Get("createacolony:stat-settlers"), alive.ToString(), pad, left, column);
         composer.Row(Lang.Get("createacolony:stat-hungry"), hungry.ToString(), pad, left, column, hungry > 0 ? GuiKit.WarnColor : null);
         right = composer.Row(Lang.Get("createacolony:stat-beds"), snapshot.BedCount.ToString(), 2 * pad + column, right, column);
-        right = composer.Row(Lang.Get("createacolony:stat-members"), snapshot.Members.Count.ToString(), 2 * pad + column, right, column);
-        composer.Row(Lang.Get("createacolony:stat-supplies"), snapshot.SupplyDeliveriesLeft.ToString(), 2 * pad + column, right, column);
+        composer.Row(Lang.Get("createacolony:stat-members"), snapshot.Members.Count.ToString(), 2 * pad + column, right, column);
         y += 3 * 24 + 2 * pad + 10;
 
         int visitors = snapshot.Citizens.Count(c => c.Visitor);

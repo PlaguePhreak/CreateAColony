@@ -1,7 +1,15 @@
 {
-	// Total daily deliveries per colony. One delivery per in-game day.
-	"deliveries": 5,
+	// The supply camp hands these out once per player per world: the first camp a player places.
 	// Codes that do not exist in the game are skipped with a warning in the server log.
+
+	// Given straight to the player: what they need to found a colony.
+	"playerItems": [
+		{ "code": "createacolony:townhall", "quantity": 1 },
+		{ "code": "createacolony:hut-builder", "quantity": 1 },
+		{ "code": "createacolony:builderswand", "quantity": 1 },
+		{ "code": "createacolony:colonyledger", "quantity": 1 }
+	],
+	// Put into the camp's own storage (right-click the camp to open it). At most 16 stacks.
 	"items": [
 		{ "code": "game:firewood", "quantity": 16 },
 		{ "code": "game:stick", "quantity": 16 },

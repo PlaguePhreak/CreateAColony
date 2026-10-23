@@ -38,11 +38,6 @@ public partial class ColonyManager : ModSystem
 
     public IReadOnlyCollection<Colony> All => colonies.Values;
 
-    int? supplyDeliveriesTotal;
-
-    /// <summary>How many bundles a colony's supply camp hands out in total (from config/supplycamp.json).</summary>
-    public int SupplyDeliveriesTotal => supplyDeliveriesTotal ??= SupplyCampLoot.Load(sapi).Deliveries;
-
     public override bool ShouldLoad(EnumAppSide forSide) => forSide == EnumAppSide.Server;
 
     public override void StartServerSide(ICoreServerAPI api)
