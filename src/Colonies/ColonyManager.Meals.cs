@@ -98,7 +98,9 @@ public partial class ColonyManager
     public MealPlan? NextMeal(Colony colony, Building hut, CitizenRecord cook)
     {
         var pit = CookFirepit(colony, hut);
+        // Only the meals this cook knows at their level; see ColonyManager.Cooking.cs.
         var wanted = MealRecipes()
+            .Where(r => KnowsMeal(colony, cook, r))
             .Select(r => (Recipe: r, Short: MealKeep(hut, r) - MealStock(colony, hut, r, cook, pit)))
             .Where(w => w.Short > 0)
             .OrderByDescending(w => w.Short)

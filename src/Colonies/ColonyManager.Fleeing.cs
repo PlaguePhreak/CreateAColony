@@ -19,7 +19,7 @@ public partial class ColonyManager
     readonly Dictionary<long, (long Attacker, long Until, int Hits)> fleeing = new();
 
     /// <summary>True for settlers who run when hurt: everyone but guards, when FleeWhenAttacked is on.</summary>
-    public bool FleesWhenHurt(CitizenRecord citizen) => Config.FleeWhenAttacked && citizen.JobCode != Jobs.Guard && !citizen.IsDowned;
+    public bool FleesWhenHurt(CitizenRecord citizen) => (Config.FleeWhenAttacked || TraitFlag(citizen, "flees")) && citizen.JobCode != Jobs.Guard && !citizen.IsDowned;
 
     /// <summary>A creature that makes a settler run when it hurts it: any living creature but players and other settlers.</summary>
     static bool IsAttackerToFlee(Entity? e) => e is EntityAgent { Alive: true } && e is not EntityPlayer && e is not EntitySettler;

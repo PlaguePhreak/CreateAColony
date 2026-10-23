@@ -177,8 +177,8 @@ public partial class ColonyNetwork : ModSystem
         if (role < ColonyRole.Officer) return "createacolony:denied-officer";
         var visitor = colony.Citizens.Find(c => c.CitizenId == packet.CitizenId);
         if (visitor == null || !visitor.Alive || !visitor.Visitor) return "createacolony:bad-citizen";
-        if (packet.Action == ColonyAction.WelcomeVisitor) Manager.Welcome(colony, visitor);
-        else Manager.TurnAway(colony, visitor);
+        if (packet.Action == ColonyAction.WelcomeVisitor) return Manager.Welcome(colony, visitor);
+        Manager.TurnAway(colony, visitor);
         return null;
     }
 
@@ -411,6 +411,7 @@ public partial class ColonyNetwork : ModSystem
             ColonyId = colony.ColonyId,
             Name = colony.Name,
             Level = colony.Level,
+            PopulationCap = Manager.PopulationCap(colony),
             ViewerRole = (int)colony.RoleOf(viewerUid),
             BedCount = colony.Citizens.Count(c => c.Alive && c.HomeBedPos != null),
             OpenWindow = openWindow,
@@ -465,7 +466,8 @@ public partial class ColonyNetwork : ModSystem
                 GrowsUpHours = Manager.HoursToGrowUp(c),
                 DiedTotalDays = c.DiedTotalDays,
                 Buried = c.Buried,
-                VisitorHoursLeft = c.Visitor ? (int)System.Math.Ceiling(System.Math.Max(0, c.VisitorUntilTotalDays - sapi!.World.Calendar.TotalDays) * sapi.World.Calendar.HoursPerDay) : 0
+                VisitorHoursLeft = c.Visitor ? (int)System.Math.Ceiling(System.Math.Max(0, c.VisitorUntilTotalDays - sapi!.World.Calendar.TotalDays) * sapi.World.Calendar.HoursPerDay) : 0,
+                TraitsText = Manager.TraitsText(c)
             });
         }
 
@@ -630,9 +632,27 @@ public partial class ColonyNetwork : ModSystem
             FamilyNote = FamilyNote(colony, citizen),
             Surname = citizen.Surname,
             Skills = Manager.Config.Skills ? Manager.SkillInfos(colony, citizen)
-                .Select(s => new SkillView { Code = s.Code, Level = s.Level, Usable = s.Usable, Xp = s.Xp, NextXp = s.NextXp, LevelXp = s.LevelXp, CapNote = s.CapNote }).ToList() : new()
+                .Select(s => new SkillView { Code = s.Code, Level = s.Level, Usable = s.Usable, Xp = s.Xp, NextXp = s.NextXp, LevelXp = s.LevelXp, CapNote = s.CapNote }).ToList() : new(),
+            Traits = Manager.Config.Traits ? TraitViews(citizen) : new(),
+            TraitScore = Manager.TraitScore(citizen)
         };
         serverChannel!.SendPacket(snapshot, player);
+    }
+
+    /// <summary>A settler's traits for their window: good ones first, with what each does at its level.</summary>
+    List<TraitView> TraitViews(CitizenRecord citizen)
+    {
+        var list = new List<TraitView>();
+        foreach (var record in citizen.Traits.OrderByDescending(t => Manager.Trait(t.Code)?.Points ?? 0).ThenBy(t => t.Code))
+        {
+            if (Manager.Trait(record.Code) is not { } def) continue;
+            list.Add(new TraitView
+            {
+                Code = def.Code, Level = record.Level, Points = def.Points, Job = def.Job, Earned = def.Earned,
+                Active = Manager.TraitActive(citizen, record), Effects = Manager.TraitEffectText(def, record.Level)
+            });
+        }
+        return list;
     }
 
     HutSnapshot BuildHutSnapshot(Colony colony, Building building, string viewerUid, bool openWindow)
@@ -679,6 +699,9 @@ public partial class ColonyNetwork : ModSystem
                 snapshot.RecruitSkills = snapshot.Recruits.Select(r => string.Join(", ",
                     Manager.BestSkills(r.SkillXp).Select(s => Lang.Get("createacolony:skill-level", Lang.Get("createacolony:skill-" + s.Code), s.Level)))).ToList();
             }
+            if (Manager.Config.Traits) snapshot.RecruitTraits = snapshot.Recruits.Select(r => Manager.TraitsText(new CitizenRecord { Traits = r.Traits })).ToList();
+            snapshot.Population = Manager.Population(colony);
+            snapshot.PopulationCap = Manager.PopulationCap(colony);
             if (sapi!.World.PlayerByUid(viewerUid) is { } viewer)
             {
                 snapshot.Gears = Manager.GearsFor(viewer, colony, building);
@@ -736,16 +759,21 @@ public partial class ColonyNetwork : ModSystem
                     Have = Manager.KitchenStock(colony, building, kind, cook)
                 });
             }
+            int cookLevel = cook == null ? -1 : Manager.CookLevel(colony, cook);
             foreach (var recipe in Manager.MealRecipes())
             {
                 if (Manager.MealIcon(recipe) is not { } icon) continue;
+                int needs = Manager.MealLevel(recipe);
                 snapshot.Kitchen.Add(new PotteryView
                 {
                     Key = ColonyManager.MealKey(recipe),
                     Name = Manager.MealName(recipe),
                     Stack = icon.ToBytes(),
                     Keep = Manager.MealKeep(building, recipe),
-                    Have = Manager.MealStock(colony, building, recipe, cook)
+                    Have = Manager.MealStock(colony, building, recipe, cook),
+                    NeedsLevel = needs,
+                    CookLevel = Math.Max(0, cookLevel),
+                    Locked = cook != null && needs > cookLevel
                 });
             }
         }

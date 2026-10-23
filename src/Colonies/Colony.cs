@@ -75,6 +75,16 @@ public class CitizenRecord
     [ProtoMember(28)] public Dictionary<string, int> SkillXp = new();
     /// <summary>Whether starting skills were rolled, so settlers from saves before skills get theirs once.</summary>
     [ProtoMember(29)] public bool SkillsRolled;
+    /// <summary>Traits they were born with or earned, each with its level (config/traits.json; ColonyManager.Traits.cs). 30-34 are traits; the settler inventory thread uses 40+.</summary>
+    [ProtoMember(30)] public List<TraitRecord> Traits = new();
+    /// <summary>Whether traits were rolled, so settlers from saves before traits get theirs once.</summary>
+    [ProtoMember(31)] public bool TraitsRolled;
+    /// <summary>Kills as a guard, for the earned Veteran trait.</summary>
+    [ProtoMember(32)] public int Kills;
+    /// <summary>When the settler was knocked out lately (total days), for the earned Shaken trait.</summary>
+    [ProtoMember(33)] public List<double> DownedDays = new();
+    /// <summary>While Shaken: when it fades, if they are not knocked out again before then.</summary>
+    [ProtoMember(34)] public double ShakenUntilTotalDays;
 
     public bool IsDowned => DownedUntilTotalDays > 0;
     public bool IsChild => GrowsUpTotalDays > 0;
@@ -246,6 +256,18 @@ public class RecruitOffer
     [ProtoMember(3)] public int Cost;
     /// <summary>The skills they would bring, rolled when the offer is made and shown before hiring.</summary>
     [ProtoMember(4)] public Dictionary<string, int> SkillXp = new();
+    /// <summary>Their traits, rolled with the offer; the price follows the trait score.</summary>
+    [ProtoMember(5)] public List<TraitRecord> Traits = new();
+}
+
+/// <summary>One trait of a settler: which, and how far it has grown (0 to TraitLevelMax).</summary>
+[ProtoContract]
+public class TraitRecord
+{
+    [ProtoMember(1)] public string Code = "";
+    [ProtoMember(2)] public int Level;
+    /// <summary>Trait XP towards the next level; level L to L+1 costs (L+1) x TraitXpPerLevel.</summary>
+    [ProtoMember(3)] public int Xp;
 }
 
 /// <summary>
@@ -330,6 +352,8 @@ public class Colony
     [ProtoMember(27, IsRequired = true)] public int LastFamilyDay = -1;
     /// <summary>Readings the colony's prospectors took with the game's prospecting pick, oldest first.</summary>
     [ProtoMember(28)] public List<OreSite> OreSites = new();
+    /// <summary>The last in-game day traits earned their daily XP; -1 until the first tick.</summary>
+    [ProtoMember(35, IsRequired = true)] public int LastTraitDay = -1; // 29 to 34 are left to the quests branch
 
     public string OwnerUid => Members.Find(m => m.Role == ColonyRole.Owner)?.PlayerUid ?? "";
 

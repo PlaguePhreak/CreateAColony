@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using CreateAColony.Colonies;
@@ -120,6 +121,7 @@ public class AiTaskSettlerGuard : SettlerTaskBase
         protectee = player ?? (escorted == null ? null : entity.World.GetEntityById(escorted.EntityId));
         Vec3d center;
         float radius = m.Config.GuardThreatRadius;
+        float farther = m.TraitAdd(citizen, "guardRange"); // Sharp-eyed
         if (protectee != null) center = protectee.Pos.XYZ;
         else if (tower == null) center = colony.TownHallPos.ToVec3d().Add(0.5, 0, 0.5);
         else if (tower.GuardTask == GuardTasks.Patrol) center = entity.Pos.XYZ;
@@ -128,8 +130,9 @@ public class AiTaskSettlerGuard : SettlerTaskBase
             center = m.GuardHome(tower);
             radius = m.Config.GuardTowerRadius;
         }
+        radius = Math.Max(1, radius + farther);
 
-        var near = m.FindThreat(center, radius, tower) ?? m.FindThreat(entity.Pos.XYZ, m.Config.GuardThreatRadius, tower);
+        var near = m.FindThreat(center, radius, tower) ?? m.FindThreat(entity.Pos.XYZ, Math.Max(1, m.Config.GuardThreatRadius + farther), tower);
         var alarm = near == null ? m.AlarmFor(colony, entity, tower) : null;
         threat = near ?? alarm;
         if (threat != null)
@@ -191,7 +194,11 @@ public class AiTaskSettlerGuard : SettlerTaskBase
         var health = entity.WatchedAttributes.GetTreeAttribute("health");
         float max = health?.GetFloat("maxhealth") ?? 0;
         float share = max <= 0 ? 1 : health!.GetFloat("currenthealth") / max;
-        bool now = tower.Retreat && (retreating ? share < m.Config.GuardReturnHealth : share < m.Config.GuardRetreatHealth);
+        // Brave guards hold on longer, Cowardly and Shaken ones run sooner (trait retreatHealth).
+        float nerve = Citizen is { } c ? m.TraitAdd(c, "retreatHealth") : 0f;
+        float retreatAt = Math.Clamp(m.Config.GuardRetreatHealth + nerve, 0.05f, 0.95f);
+        float returnAt = Math.Max(retreatAt, m.Config.GuardReturnHealth + nerve);
+        bool now = tower.Retreat && (retreating ? share < returnAt : share < retreatAt);
         if (now && !retreating) m.AddStat(tower, "retreats");
         retreating = now;
         if (now) m.GuardsRetreating.Add(entity.EntityId);
@@ -256,6 +263,7 @@ public class AiTaskSettlerGuard : SettlerTaskBase
         var weapon = hand?.Itemstack is { } held && ColonyManager.IsWeapon(held) ? held : null;
         float damage = weapon != null ? ColonyManager.WeaponDamage(weapon) : manager!.Config.GuardFistDamage;
         damage *= manager!.DamageFactor(colony, citizen); // Fighting and Strength skills
+        damage += manager.TraitAdd(citizen, "damageAdd"); // Veteran
         target.ReceiveDamage(new DamageSource
         {
             Source = EnumDamageSource.Entity,
@@ -265,18 +273,19 @@ public class AiTaskSettlerGuard : SettlerTaskBase
             DamageTier = weapon?.Collectible.ToolTier ?? 0
         }, damage);
         if (!target.Alive && colony.Buildings.Find(b => b.BuildingId == towerId) is { } tower) manager!.AddStat(tower, "kill:" + target.Code.Path);
+        if (!target.Alive) manager!.CountKill(colony, citizen); // towards Veteran
         // Fighting XP for the hit, four hits' worth more for the kill.
         manager!.GainWorkXp(colony, citizen, Jobs.Guard, target.Alive ? 1 : 5);
         if (weapon != null && hand != null)
         {
-            ColonyManager.WearTool(entity, hand);
+            manager!.WearTool(entity, hand);
             SyncHand();
         }
 
         if (swingAnim != null) StopAnimation(swingAnim);
         swingAnim = PlayShapeAnimation(hand?.Itemstack?.Collectible.GetHeldTpHitAnimation(hand, entity) ?? "breakhand", "breakhand");
         swingLeft = SwingSeconds;
-        cooldown = manager!.Config.GuardSecondsPerHit * manager.WorkTimeFactor(colony, citizen); // Fighting skill swings faster
+        cooldown = manager!.Config.GuardSecondsPerHit * manager.WorkTimeFactor(colony, citizen) / manager.SwingFactor(colony, citizen); // Fighting skill and traits swing faster
     }
 
     bool HasWeapon(CitizenRecord citizen) =>

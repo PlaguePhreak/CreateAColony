@@ -117,6 +117,12 @@ public class CreateAColonyModSystem : ModSystem
                 .WithArgs(parsers.Word("settler"), parsers.OptionalWord("skill"), parsers.OptionalInt("level", 0))
                 .HandleWith(OnSkills)
             .EndSubCommand()
+            .BeginSubCommand("traits")
+                .WithDescription("Traits, for testing: show a settler's traits, add or remove one, or set its level")
+                .RequiresPrivilege(Privilege.controlserver)
+                .WithArgs(parsers.Word("settler"), parsers.OptionalWordRange("action", "add", "remove", "level"), parsers.OptionalWord("trait"), parsers.OptionalInt("level", 0))
+                .HandleWith(OnTraits)
+            .EndSubCommand()
             .BeginSubCommand("invite")
                 .WithDescription("Invite an online player to join your colony")
                 .WithArgs(parsers.OnlinePlayer("player"))
@@ -312,6 +318,47 @@ public class CreateAColonyModSystem : ModSystem
         var lines = manager.SkillInfos(colony, settler).Where(s => s.Level > 0)
             .Select(s => Lang.Get("createacolony:skill-level", Lang.Get("createacolony:skill-" + s.Code), s.Usable < s.Level ? Lang.Get("createacolony:skill-using", s.Level, s.Usable) : s.Level.ToString()));
         return TextCommandResult.Success(lines.Any() ? Lang.Get("createacolony:skills-cmd-line", settler.Name, string.Join(", ", lines)) : Lang.Get("createacolony:skills-cmd-none", settler.Name));
+    }
+
+    /// <summary>/colony traits Jon: lists Jon's traits; /colony traits Jon add brave 5, remove lazy, level tough 10.</summary>
+    TextCommandResult OnTraits(TextCommandCallingArgs args)
+    {
+        var player = (IServerPlayer)args.Caller.Player;
+        var manager = sapi!.ModLoader.GetModSystem<ColonyManager>();
+        var colony = manager.GetOwnedBy(player.PlayerUID);
+        if (colony == null) return TextCommandResult.Error(Lang.Get("createacolony:no-colony"));
+        if (!manager.Config.Traits) return TextCommandResult.Error(Lang.Get("createacolony:traits-cmd-off"));
+
+        string name = (string)args[0];
+        var settler = colony.Citizens.Find(c => c.Alive && !c.Visitor
+            && (c.Name.Equals(name, StringComparison.OrdinalIgnoreCase) || c.Name.Split(' ')[0].Equals(name, StringComparison.OrdinalIgnoreCase)));
+        if (settler == null) return TextCommandResult.Error(Lang.Get("createacolony:family-cmd-notfound", name));
+
+        if (args[1] is string action && action.Length > 0)
+        {
+            string code = (args[2] as string ?? "").ToLowerInvariant();
+            var trait = manager.Trait(code);
+            if (trait == null) return TextCommandResult.Error(Lang.Get("createacolony:traits-cmd-badtrait", code, string.Join(", ", manager.TraitDefs().Select(t => t.Code))));
+            int level = Math.Clamp((int)args[3], 0, manager.TraitLevelMax);
+            string traitName = Lang.Get("createacolony:trait-" + trait.Code);
+            if (action == "remove")
+            {
+                return manager.RemoveTrait(colony, settler, trait.Code) ? TextCommandResult.Success(Lang.Get("createacolony:traits-cmd-removed", settler.Name, traitName))
+                    : TextCommandResult.Error(Lang.Get("createacolony:traits-cmd-missing", settler.Name, traitName));
+            }
+            if (action == "level" && manager.TraitOf(settler, trait.Code) is { } have)
+            {
+                have.Level = level;
+                have.Xp = 0;
+                manager.MarkDirty(colony);
+            }
+            else manager.AddTrait(colony, settler, trait.Code, level, announce: false);
+            return TextCommandResult.Success(Lang.Get("createacolony:traits-cmd-set", settler.Name, traitName, level));
+        }
+
+        if (settler.Traits.Count == 0) return TextCommandResult.Success(Lang.Get("createacolony:traits-cmd-none", settler.Name));
+        string score = (manager.TraitScore(settler) >= 0 ? "+" : "") + manager.TraitScore(settler);
+        return TextCommandResult.Success(Lang.Get("createacolony:traits-cmd-line", settler.Name, score, manager.TraitsText(settler)));
     }
 
     TextCommandResult OnFamily(TextCommandCallingArgs args)

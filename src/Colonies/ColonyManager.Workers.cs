@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using CreateAColony.Settlers;
 using Vintagestory.API.Common;
 using Vintagestory.API.Config;
 using Vintagestory.API.MathTools;
@@ -155,10 +156,15 @@ public partial class ColonyManager
     }
 
     /// <summary>Wears the tool in the worker's hand down by one use; a tool that breaks leaves the hand empty.</summary>
-    public static void WearTool(EntityAgent worker, ItemSlot hand)
+    public void WearTool(EntityAgent worker, ItemSlot hand)
     {
         if (hand.Itemstack == null) return;
+        // Careful settlers skip some of the wear, Clumsy ones add some (trait toolWear).
+        float wear = worker is EntitySettler s && FindCitizen(s.ColonyId, s.CitizenId) is { } c ? TraitMult(c, "toolWear") : 1f;
+        double roll = sapi.World.Rand.NextDouble();
+        if (wear < 1f && roll < 1f - wear) return;
         hand.Itemstack.Collectible.DamageItem(worker.World, worker, hand);
+        if (wear > 1f && roll < wear - 1f && hand.Itemstack != null) hand.Itemstack.Collectible.DamageItem(worker.World, worker, hand);
         hand.MarkDirty();
     }
 

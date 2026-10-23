@@ -413,6 +413,11 @@ public class AiTaskSettlerBuilder : SettlerTaskBase
         }
         var used = paid.FirstOrDefault();
         place = manager.SwapToMaterial(colony, place, used);
+        // A Master Mason now and then makes a block out of nothing: the materials go back in the pack.
+        if (manager.TraitAdd(citizen, "freeBlock") is var free && free > 0 && entity.World.Rand.NextDouble() < free)
+        {
+            foreach (var stack in paid) manager.AddToPack(colony, citizen, stack.Clone());
+        }
         if (manager.EntityInTheWay(place, target) is { } inTheWay)
         {
             foreach (var stack in paid) manager.AddToPack(colony, citizen, stack);

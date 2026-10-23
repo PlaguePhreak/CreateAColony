@@ -65,6 +65,9 @@ public class Willpower
         this.entity = entity;
     }
 
+    /// <summary>Multiplies the threshold: a Patient settler waits longer before leaping (set from the trait each tick).</summary>
+    public double WaitFactor = 1;
+
     /// <summary>Fraction of the threshold reached, 0 to 1.</summary>
     public double Fraction => Threshold <= 0 ? 0 : Math.Min(1, Value / Threshold);
 
@@ -165,7 +168,7 @@ public class Willpower
         if (Value <= 0 || Threshold <= 0)
         {
             double jitter = Math.Clamp(config.WillpowerJitter, 0, 0.9);
-            Threshold = Math.Max(1, config.WillpowerSeconds) * (1 + (entity.World.Rand.NextDouble() * 2 - 1) * jitter);
+            Threshold = Math.Max(1, config.WillpowerSeconds) * WaitFactor * (1 + (entity.World.Rand.NextDouble() * 2 - 1) * jitter);
         }
         Value += seconds * (Trapped ? Math.Max(1, config.WillpowerTrappedRate) : 1);
         return Value >= Threshold;

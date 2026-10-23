@@ -208,13 +208,14 @@ public partial class ColonyManager
     /// Saturation, with each food group counted for less the more of the settler's recent meals had
     /// it. A settler who has eaten only bread lately values a bowl of fish stew well above more bread.
     /// </summary>
-    static float VarietyScore(FoodNutritionProperties[] props, CitizenRecord citizen)
+    float VarietyScore(FoodNutritionProperties[] props, CitizenRecord citizen)
     {
         float score = 0;
+        float fussy = TraitMult(citizen, "variety"); // Iron Stomach minds less, Picky Eater more
         foreach (var p in props)
         {
             int had = citizen.RecentFood.Count(c => c == (int)p.FoodCategory);
-            score += p.Satiety / (1 + had);
+            score += p.Satiety / (1 + had * fussy);
         }
         return score;
     }

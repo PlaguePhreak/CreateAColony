@@ -80,7 +80,8 @@ public partial class ColonyManager
 
     /// <summary>A settler who can pair up today.</summary>
     bool CanPair(Colony colony, CitizenRecord c, double now) =>
-        c.Alive && !c.Visitor && !c.IsChild && !c.IsDowned && IsSingle(colony, c) && now - c.JoinedTotalDays >= Config.FamilyCoupleAfterDays;
+        c.Alive && !c.Visitor && !c.IsChild && !c.IsDowned && IsSingle(colony, c) && !TraitFlag(c, "noPair") // Loner
+        && now - c.JoinedTotalDays >= Config.FamilyCoupleAfterDays * TraitMult(c, "pairAfter"); // Charming pairs sooner
 
     // ---- The daily family tick ------------------------------------------------------------
 
@@ -111,7 +112,8 @@ public partial class ColonyManager
     {
         for (int made = 0; made < Math.Max(0, Config.FamilyCouplesPerDay); made++)
         {
-            var singles = colony.Citizens.Where(c => CanPair(colony, c, now)).OrderBy(_ => sapi.World.Rand.Next()).ToList();
+            // Charming settlers are picked first.
+            var singles = colony.Citizens.Where(c => CanPair(colony, c, now)).OrderBy(_ => sapi.World.Rand.Next()).OrderByDescending(c => TraitFlag(c, "pairFirst")).ToList();
             CitizenRecord? a = null, b = null;
             foreach (var first in singles)
             {
@@ -193,6 +195,7 @@ public partial class ColonyManager
         if (children >= Config.FamilyMaxChildren) return "createacolony:family-enough-children";
         if (now - Math.Max(a.LastChildTotalDays, b.LastChildTotalDays) < Config.FamilyChildCooldownDays) return "createacolony:family-waiting";
         if (Config.FamilyMaxColonySize > 0 && colony.Citizens.Count(c => c.Alive && !c.Visitor) >= Config.FamilyMaxColonySize) return "createacolony:family-colony-full";
+        if (IsFull(colony)) return "createacolony:family-colony-full";
         if (Config.FamilyChildNeedsFreeBed && FreeBeds(colony) == 0) return "createacolony:family-no-bed";
         return null;
     }
@@ -204,7 +207,8 @@ public partial class ColonyManager
         {
             var father = PartnerOf(colony, mother)!;
             if (ChildBlocker(colony, mother, father, now) != null) continue;
-            if (sapi.World.Rand.NextDouble() >= Config.FamilyChildChancePerDay) continue;
+            double chance = Config.FamilyChildChancePerDay + TraitAdd(mother, "childChance") + TraitAdd(father, "childChance"); // Fertile
+            if (sapi.World.Rand.NextDouble() >= chance) continue;
             HaveChild(colony, mother, father);
         }
     }
@@ -224,6 +228,7 @@ public partial class ColonyManager
         if (child == null) return null;
         child.Surname = surname;
         child.ParentIds = new List<int> { mother.CitizenId, father.CitizenId };
+        InheritTraits(colony, child);
         mother.LastChildTotalDays = father.LastChildTotalDays = sapi.World.Calendar.TotalDays;
         EnsureBed(colony, child);
         KeepChildNearHome(colony, child);

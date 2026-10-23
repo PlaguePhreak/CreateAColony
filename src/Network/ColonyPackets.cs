@@ -35,6 +35,10 @@ public class CitizenView
     /// <summary>In a hut's worker lists: the settler's level in the hut's job skill, and the skill's code.</summary>
     [ProtoMember(15)] public int SkillLevel;
     [ProtoMember(16)] public string Skill = "";
+    /// <summary>Their traits in a line, "Hard Worker 3, Glutton 1", for the Town Hall and hut lists.</summary>
+    [ProtoMember(17)] public string TraitsText = "";
+    /// <summary>In a hut's worker lists: they have the job trait for this hut's job.</summary>
+    [ProtoMember(18)] public bool JobTrait;
 }
 
 /// <summary>One person in a family list: who, how they are related, and what they do.</summary>
@@ -149,6 +153,28 @@ public class CitizenSnapshot
     [ProtoMember(24)] public string Surname = "";
     /// <summary>Every skill with its level and how much of it counts here; empty when skills are off.</summary>
     [ProtoMember(25)] public List<SkillView> Skills = new();
+    /// <summary>Their traits with levels and effects, good first; empty when traits are off. (26-29 traits; 40+ the settler inventory thread.)</summary>
+    [ProtoMember(26)] public List<TraitView> Traits = new();
+    /// <summary>The sum of the traits' points.</summary>
+    [ProtoMember(27)] public int TraitScore;
+}
+
+/// <summary>One trait of a settler for the windows.</summary>
+[ProtoContract]
+public class TraitView
+{
+    [ProtoMember(1)] public string Code = "";
+    [ProtoMember(2)] public int Level;
+    /// <summary>Plus for a good trait, minus for a bad one, 0 for a quirk.</summary>
+    [ProtoMember(3)] public int Points;
+    /// <summary>The job a job trait helps, empty for the rest.</summary>
+    [ProtoMember(4)] public string Job = "";
+    /// <summary>False for a job trait that does nothing in the settler's current job, and for a Brave guard while Shaken.</summary>
+    [ProtoMember(5)] public bool Active = true;
+    /// <summary>What it does at this level, already in words, one line per effect.</summary>
+    [ProtoMember(6)] public string Effects = "";
+    /// <summary>An earned trait (Veteran, Shaken) rather than one they were born with.</summary>
+    [ProtoMember(7)] public bool Earned;
 }
 
 /// <summary>One skill of a settler for the windows: real level, usable level and what limits it.</summary>
@@ -286,6 +312,11 @@ public class HutSnapshot
     [ProtoMember(62)] public string PitInfo = "";
     /// <summary>For the Recruits tab: each offer's two best skills as "{0} {1}" lines, in the order of Recruits (empty when skills are off).</summary>
     [ProtoMember(63)] public List<string> RecruitSkills = new();
+    /// <summary>For the Recruits tab: each offer's traits as a line, in the order of Recruits (empty when traits are off).</summary>
+    [ProtoMember(64)] public List<string> RecruitTraits = new();
+    /// <summary>For a Tavern: how many settlers the colony holds and how many it has (the Town Hall level sets the cap).</summary>
+    [ProtoMember(65)] public int PopulationCap;
+    [ProtoMember(66)] public int Population;
 }
 
 /// <summary>One line of a hut's chest list: an item, how many there are, and which containers hold it.</summary>
@@ -331,6 +362,10 @@ public class PotteryView
     [ProtoMember(5)] public int Clay;
     /// <summary>The name to show, where the stack's own name would not say it (a pot meal shows a cooking pot).</summary>
     [ProtoMember(6)] public string? Name;
+    /// <summary>Kitchen: the Cooking level this meal takes, and the cook's usable level now (so a locked meal can say what is missing).</summary>
+    [ProtoMember(7)] public int NeedsLevel;
+    [ProtoMember(8)] public int CookLevel;
+    [ProtoMember(9)] public bool Locked;
 }
 
 [ProtoContract]
@@ -392,6 +427,8 @@ public class ColonySnapshot
     [ProtoMember(34)] public List<OreView> Ores = new();
     [ProtoMember(35)] public int OreReadings;
     [ProtoMember(36)] public int ProspectorHuts;
+    /// <summary>How many settlers the colony can hold (PopulationBase + PopulationPerTownHallLevel x Town Hall level).</summary>
+    [ProtoMember(45)] public int PopulationCap; // 37 to 44 are left to the quests branch
 }
 
 public enum ColonyAction

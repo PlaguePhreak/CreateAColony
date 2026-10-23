@@ -85,8 +85,9 @@ public partial class ColonyManager
     /// going and on or by Pathblocks. False when there is no spot (it tries again a second later) or the
     /// server already moved WillpowerMaxRelocationsPerSecond settlers this second.
     /// </summary>
-    public bool Relocate(EntityAgent entity, Willpower willpower, string? job)
+    public bool Relocate(EntityAgent entity, Willpower willpower, CitizenRecord? citizen)
     {
+        string? job = citizen?.JobCode;
         long second = sapi.World.ElapsedMilliseconds / 1000;
         if (second != relocationSecond)
         {
@@ -96,7 +97,7 @@ public partial class ColonyManager
         if (relocationsThisSecond >= Math.Max(1, Config.WillpowerMaxRelocationsPerSecond)) return false;
 
         // Now and then a settler leaps without looking. Guards never look out for monsters: they go where the fight is.
-        bool reckless = sapi.World.Rand.NextDouble() < Config.WillpowerRecklessChance;
+        bool reckless = sapi.World.Rand.NextDouble() < Config.WillpowerRecklessChance + (citizen == null ? 0 : TraitAdd(citizen, "reckless")); // Reckless trait
         bool mindMonsters = !reckless && job != Jobs.Guard;
         var goal = willpower.Goal ?? willpower.LastGoal;
         var from = entity.Pos.XYZ;

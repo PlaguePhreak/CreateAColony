@@ -77,7 +77,10 @@ public partial class ColonyManager
         for (int i = 0; i < Math.Max(0, Config.TavernRecruits); i++)
         {
             string sex = RandomSex();
-            tavern.Recruits.Add(new RecruitOffer { Name = RandomName(colony, sex), Sex = sex, Cost = sapi.World.Rand.Next(min, max + 1), SkillXp = RollStartingSkills() });
+            var skills = RollStartingSkills();
+            var rolled = RollTraits();
+            ApplyTraitSkillStart(skills, rolled);
+            tavern.Recruits.Add(new RecruitOffer { Name = RandomName(colony, sex), Sex = sex, Cost = RecruitPrice(sapi.World.Rand.Next(min, max + 1), rolled), SkillXp = skills, Traits = rolled });
         }
         MarkDirty(colony);
         return tavern.Recruits;
@@ -92,6 +95,7 @@ public partial class ColonyManager
             Config.Wanderers ? Lang.Get("createacolony:tavern-wanderers", WandererEveryDays(colony).ToString("0.#")) : Lang.Get("createacolony:tavern-no-wanderers"),
             Lang.Get("createacolony:tavern-beds", FreeBeds(colony))
         };
+        if (PopulationCap(colony) > 0) lines.Add(Lang.Get(IsFull(colony) ? "createacolony:tavern-full" : "createacolony:tavern-population", Population(colony), PopulationCap(colony)));
         return string.Join("<br>", lines);
     }
 
@@ -111,6 +115,7 @@ public partial class ColonyManager
     {
         var offer = TavernRecruits(colony, tavern).Find(r => r.Name == name);
         if (offer == null) return "createacolony:recruit-gone";
+        if (IsFull(colony)) return "createacolony:colony-full";
 
         bool free = player.WorldData.CurrentGameMode == EnumGameMode.Creative;
         if (!free && GearsFor(player, colony, tavern) < offer.Cost) return "createacolony:recruit-cant-afford";
@@ -135,6 +140,7 @@ public partial class ColonyManager
         if (record == null) return "createacolony:recruit-failed";
         // The skills the offer showed are the ones they bring.
         if (offer.SkillXp.Count > 0) record.SkillXp = new Dictionary<string, int>(offer.SkillXp);
+        if (offer.Traits.Count > 0) record.Traits = offer.Traits.Select(t => new TraitRecord { Code = t.Code, Level = t.Level }).ToList();
         TellMembers(colony, "createacolony:recruit-hired", record.Name, colony.Name, player.PlayerName);
         LogEvent(colony, "event-hired", record.Name, player.PlayerName);
         return null;
@@ -192,6 +198,7 @@ public partial class ColonyManager
         // One at a time, and only while there is a bed for them.
         if (colony.Citizens.Any(c => c.Visitor && c.Alive)) return;
         if (Config.WanderersNeedFreeBed && FreeBeds(colony) == 0) return;
+        if (IsFull(colony)) return;
         SpawnWanderer(colony);
     }
 
@@ -246,13 +253,15 @@ public partial class ColonyManager
     }
 
     /// <summary>An officer lets a visitor stay: from now on it is a settler like any other.</summary>
-    public void Welcome(Colony colony, CitizenRecord visitor)
+    public string? Welcome(Colony colony, CitizenRecord visitor)
     {
+        if (IsFull(colony)) return "createacolony:colony-full";
         visitor.Visitor = false;
         visitor.VisitorUntilTotalDays = 0;
         MarkDirty(colony);
         TellMembers(colony, "createacolony:visitor-welcomed", visitor.Name, colony.Name);
         LogEvent(colony, "event-welcomed", visitor.Name);
+        return null;
     }
 
     /// <summary>An officer turns a visitor away: it leaves at once.</summary>

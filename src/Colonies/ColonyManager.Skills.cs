@@ -105,7 +105,8 @@ public partial class ColonyManager
     {
         var skill = SkillForJob(job);
         if (skill == null || times <= 0) return;
-        AddSkillXp(colony, c, skill.Code, skill.XpPerWork * times);
+        // A matching job trait (Green Thumb for a farmer) makes the skill grow faster.
+        AddSkillXp(colony, c, skill.Code, (int)Math.Ceiling(skill.XpPerWork * times * TraitSkillXpFactor(c, job)));
         if (skill.StrengthPerWork > 0) AddSkillXp(colony, c, Strength, skill.StrengthPerWork * times);
     }
 
@@ -157,8 +158,18 @@ public partial class ColonyManager
     public float WorkTimeFactor(Colony colony, CitizenRecord c)
     {
         var skill = SkillForJob(c.JobCode);
-        if (skill == null || !Config.Skills) return 1f;
-        return ClampEffect(1f / (1f + skill.WorkSpeedPerLevel * UsableLevel(colony, c, skill.Code)));
+        float speed = Config.Skills && skill != null ? 1f + skill.WorkSpeedPerLevel * UsableLevel(colony, c, skill.Code) : 1f;
+        speed *= TraitMult(c, "workSpeed"); // Hard Worker, Lazy, the job traits, Shaken
+        return ClampEffect(1f / speed);
+    }
+
+    /// <summary>Divide a guard's time between swings by this: Veteran swings faster, Night Owl at night.</summary>
+    public float SwingFactor(Colony colony, CitizenRecord c)
+    {
+        float f = TraitMult(c, "swingSpeed");
+        float hour = sapi.World.Calendar.HourOfDay;
+        if (!InHours(hour, Config.SleepEndHour, Config.SleepStartHour)) f *= TraitMult(c, "nightSwing");
+        return ClampEffect(f);
     }
 
     /// <summary>Multiply a guard's damage by this: Fighting and Strength each add 3% a level.</summary>
@@ -170,11 +181,12 @@ public partial class ColonyManager
     {
         float f = 1f + 0.015f * UsableLevel(colony, c, Fitness);
         if (carrying && c.JobCode == Jobs.Courier) f += 0.04f * UsableLevel(colony, c, "hauling");
+        f *= TraitMult(c, "walkSpeed"); // Fleet-footed, Sluggish
         return ClampEffect(f);
     }
 
     /// <summary>Extra max health from Fitness: one point for every two usable levels.</summary>
-    public float HealthBonus(Colony colony, CitizenRecord c) => UsableLevel(colony, c, Fitness) / 2;
+    public float HealthBonus(Colony colony, CitizenRecord c) => UsableLevel(colony, c, Fitness) / 2 + (float)Math.Round(TraitAdd(c, "maxHealth")); // plus Tough, minus Frail
 
     /// <summary>Sets a settler's max health from their Fitness; the game's health behavior adds it to the base.</summary>
     public void ApplyHealthBonus(Colony colony, CitizenRecord c, Entity entity) =>

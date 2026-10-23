@@ -240,7 +240,8 @@ public class GuiDialogTownHall : GuiDialog
         composer.AddInset(ElementBounds.Fixed(0, y, Width, 3 * 24 + 2 * pad), 3, 0.8f);
         double left = y + pad, right = y + pad;
         left = composer.Row(Lang.Get("createacolony:stat-level"), snapshot.Level.ToString(), pad, left, column);
-        left = composer.Row(Lang.Get("createacolony:stat-settlers"), alive.ToString(), pad, left, column);
+        string settlers = snapshot.PopulationCap > 0 ? Lang.Get("createacolony:townhall-of", alive, snapshot.PopulationCap) : alive.ToString();
+        left = composer.Row(Lang.Get("createacolony:stat-settlers"), settlers, pad, left, column, snapshot.PopulationCap > 0 && alive >= snapshot.PopulationCap ? GuiKit.WarnColor : null);
         composer.Row(Lang.Get("createacolony:stat-hungry"), hungry.ToString(), pad, left, column, hungry > 0 ? GuiKit.WarnColor : null);
         right = composer.Row(Lang.Get("createacolony:stat-beds"), snapshot.BedCount.ToString(), 2 * pad + column, right, column);
         composer.Row(Lang.Get("createacolony:stat-members"), snapshot.Members.Count.ToString(), 2 * pad + column, right, column);
@@ -614,6 +615,7 @@ public class GuiDialogTownHall : GuiDialog
             composer
                 .AddStaticText(c.Name, c.State == "dead" ? GuiKit.Body().WithColor(GuiKit.MutedColor) : GuiKit.Body(), ElementBounds.Fixed(10, y + 6, 150, 25))
                 .AddStaticText(status, c.State == "hungry" ? GuiKit.Detail().WithColor(GuiKit.WarnColor) : GuiKit.Detail(), ElementBounds.Fixed(165, y + 8, 172, 25));
+            if (c.TraitsText.Length > 0) composer.AddHoverText(Lang.Get("createacolony:traits-hover", c.TraitsText), GuiKit.Detail(), 260, ElementBounds.Fixed(10, y + 6, 150, 25));
 
             if (c.Child && c.State != "dead")
             {
@@ -655,6 +657,7 @@ public class GuiDialogTownHall : GuiDialog
         composer
             .AddStaticText(c.Name, visitorFont, ElementBounds.Fixed(10, y + 6, 150, 25))
             .AddStaticText(Lang.Get("createacolony:visitor-status", c.VisitorHoursLeft), GuiKit.Detail(), ElementBounds.Fixed(165, y + 8, 172, 25));
+        if (c.TraitsText.Length > 0) composer.AddHoverText(Lang.Get("createacolony:traits-hover", c.TraitsText), GuiKit.Detail(), 260, ElementBounds.Fixed(10, y + 6, 150, 25));
         if (!Officer) return;
         int citizenId = c.CitizenId;
         composer
@@ -684,14 +687,17 @@ public class GuiDialogTownHall : GuiDialog
         int dead = snapshot.Citizens.Count(c => c.State == "dead");
         int days = Math.Max(0, (int)(capi.World.Calendar.TotalDays - snapshot.FoundedTotalDays));
 
-        composer.AddInset(ElementBounds.Fixed(0, y, Width, 4 * 24 + 12), 3, 0.8f);
+        int statRows = snapshot.PopulationCap > 0 ? 5 : 4;
+        composer.AddInset(ElementBounds.Fixed(0, y, Width, statRows * 24 + 12), 3, 0.8f);
         double row = y + 6;
         row = composer.Row(Lang.Get("createacolony:townhall-stat-settlers"), Lang.Get("createacolony:townhall-of", alive, snapshot.BedCount + snapshot.FreeBeds), 10, row, Width - 20,
             snapshot.FreeBeds == 0 ? GuiKit.WarnColor : null);
+        if (snapshot.PopulationCap > 0) row = composer.Row(Lang.Get("createacolony:townhall-stat-population"), Lang.Get("createacolony:townhall-of", alive, snapshot.PopulationCap), 10, row, Width - 20,
+            alive >= snapshot.PopulationCap ? GuiKit.WarnColor : null);
         row = composer.Row(Lang.Get("createacolony:townhall-stat-lost"), dead.ToString(), 10, row, Width - 20);
         row = composer.Row(Lang.Get("createacolony:townhall-stat-buildings"), snapshot.BuildingCount.ToString(), 10, row, Width - 20);
         composer.Row(Lang.Get("createacolony:townhall-stat-age"), Lang.Get("createacolony:townhall-days", days), 10, row, Width - 20);
-        y += 4 * 24 + 12 + 6;
+        y += statRows * 24 + 12 + 6;
         y = composer.Text(Lang.Get("createacolony:townhall-beds-hint"), GuiKit.Muted(), 0, y, Width, 10);
 
         y = composer.Section(Lang.Get("createacolony:townhall-jobs"), y, Width);

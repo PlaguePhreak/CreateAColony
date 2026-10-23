@@ -131,11 +131,12 @@ public partial class ColonyNetwork
             CitizenView View(CitizenRecord c) => new()
             {
                 CitizenId = c.CitizenId, Name = c.Name, Job = c.JobCode ?? "",
-                Skill = skill?.Code ?? "", SkillLevel = skill == null ? 0 : Manager.SkillLevel(c, skill.Code)
+                Skill = skill?.Code ?? "", SkillLevel = skill == null ? 0 : Manager.SkillLevel(c, skill.Code),
+                JobTrait = Manager.JobTraitFor(c, snapshot.Job).Length > 0
             };
             snapshot.Workers = workers.Select(View).ToList();
             snapshot.Candidates = colony.Citizens.Where(c => c.Alive && !c.Visitor && !c.IsChild && !workers.Contains(c))
-                .OrderBy(c => c.JobCode != null).ThenByDescending(c => skill == null ? 0 : Manager.SkillLevel(c, skill.Code)).ThenBy(c => c.Name)
+                .OrderBy(c => c.JobCode != null).ThenByDescending(c => Manager.JobTraitFor(c, snapshot.Job).Length > 0).ThenByDescending(c => skill == null ? 0 : Manager.SkillLevel(c, skill.Code)).ThenBy(c => c.Name)
                 .Select(View).ToList();
         }
         if (snapshot.HasStorage)

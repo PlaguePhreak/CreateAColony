@@ -71,7 +71,7 @@ public class GuiDialogCitizen : GuiDialog
         double x = 0;
         x = ComposeCharacter(composer, x, top) + Gap;
         x = ComposeStats(composer, x, top) + Gap;
-        if (snapshot.Skills.Count > 0) x = ComposeSkills(composer, x, top) + Gap;
+        if (snapshot.Skills.Count > 0 || snapshot.Traits.Count > 0) x = ComposeSkills(composer, x, top) + Gap;
         ComposeInventory(composer, x, top);
 
         SingleComposer = composer.EndChildElements().Compose();
@@ -185,6 +185,8 @@ public class GuiDialogCitizen : GuiDialog
         var value = CairoFont.WhiteDetailText().WithOrientation(EnumTextOrientation.Right);
         var capped = value.Clone().WithColor(GuiKit.WarnColor);
 
+        if (snapshot.Traits.Count > 0) y = ComposeTraits(composer, x, y, width) + 10;
+        if (snapshot.Skills.Count == 0) return x + width;
         composer.AddStaticText(Lang.Get("createacolony:citizen-tab-skills"), CairoFont.WhiteSmallishText(), ElementBounds.Fixed(x, y, width, 25));
         y += 36;
         if (snapshot.Child)
@@ -213,6 +215,42 @@ public class GuiDialogCitizen : GuiDialog
         }
         composer.Text(Lang.Get("createacolony:skills-hint"), GuiKit.Muted(), x, y + 4, width);
         return x + width;
+    }
+
+    /// <summary>
+    /// The Traits block above the skills: the trait score, then each trait with its level, green for good,
+    /// orange for bad, grey when it does nothing right now (a job trait in another job). Hovering a trait
+    /// says what it does at its level. Returns the y below the block.
+    /// </summary>
+    double ComposeTraits(GuiComposer composer, double x, double y, double width)
+    {
+        var good = CairoFont.WhiteDetailText().WithColor(GuiKit.GoodColor);
+        var bad = CairoFont.WhiteDetailText().WithColor(GuiKit.WarnColor);
+        var quirk = CairoFont.WhiteDetailText();
+        var idle = GuiKit.Muted();
+        var level = CairoFont.WhiteDetailText().WithOrientation(EnumTextOrientation.Right);
+
+        string score = (snapshot.TraitScore >= 0 ? "+" : "") + snapshot.TraitScore;
+        composer
+            .AddStaticText(Lang.Get("createacolony:citizen-tab-traits"), CairoFont.WhiteSmallishText(), ElementBounds.Fixed(x, y, width, 25))
+            .AddStaticText(Lang.Get("createacolony:trait-score", score), GuiKit.Muted().WithOrientation(EnumTextOrientation.Right), ElementBounds.Fixed(x, y + 4, width, 20));
+        y += 30;
+        foreach (var t in snapshot.Traits)
+        {
+            var font = !t.Active ? idle : t.Points > 0 ? good : t.Points < 0 ? bad : quirk;
+            string name = Lang.Get("createacolony:trait-" + t.Code);
+            if (t.Job.Length > 0) name = Lang.Get("createacolony:trait-job-name", name, Lang.Get("createacolony:job-" + t.Job));
+            composer
+                .AddStaticText(name, font, ElementBounds.Fixed(x, y, width - 40, 20))
+                .AddStaticText(t.Level.ToString(), t.Active ? level : level.Clone().WithColor(GuiKit.MutedColor), ElementBounds.Fixed(x, y, width, 20));
+            string hover = Lang.Get("createacolony:trait-desc-" + t.Code) + "\n" + t.Effects;
+            if (!t.Active) hover += "\n" + Lang.Get(snapshot.Child ? "createacolony:trait-child" : t.Code == "brave" ? "createacolony:trait-suppressed" : "createacolony:trait-idle", Lang.Get("createacolony:job-" + (t.Job.Length == 0 ? "none" : t.Job)));
+            if (t.Earned) hover += "\n" + Lang.Get("createacolony:trait-earned");
+            hover += "\n" + Lang.Get("createacolony:trait-level-hint", t.Level);
+            composer.AddHoverText(hover, CairoFont.WhiteDetailText(), 280, ElementBounds.Fixed(x, y, width, 20));
+            y += 21;
+        }
+        return y;
     }
 
     /// <summary>The Inventory panel: bags and the held item on top, the pack below, as the player's.</summary>

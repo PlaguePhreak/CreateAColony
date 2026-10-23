@@ -108,6 +108,7 @@ public class EntityBehaviorColonyCitizen : EntityBehavior
         if (entity is not EntitySettler settler || manager!.GetById(settler.ColonyId!) is not { } colony) return;
         settler.SkillWalkFactor = manager.WalkFactor(colony, record, !manager.PackEmpty(record));
         manager.ApplyHealthBonus(colony, record, entity);
+        Willpower.WaitFactor = manager.TraitMult(record, "willpowerWait"); // Patient
     }
 
     /// <summary>Once a second: adds up the ground covered; every FitnessBlocksPerXp blocks is one Fitness XP.</summary>
@@ -159,8 +160,10 @@ public class EntityBehaviorColonyCitizen : EntityBehavior
             else
             {
                 // Knocked out: the respawn pass (milestone 2) brings them back to the Town Hall after this time.
-                record.DownedUntilTotalDays = entity.World.Calendar.TotalDays + manager.Config.DownedRecoveryDays;
+                double now = entity.World.Calendar.TotalDays;
+                record.DownedUntilTotalDays = now + manager.Config.DownedRecoveryDays * manager.TraitMult(record, "downedDays"); // Fast / Slow Healer
                 if (colony != null) manager.LogEvent(colony, "event-downed", record.Name);
+                if (colony != null) manager.CountKnockOut(colony, record, now); // towards Shaken
             }
         }
         base.OnEntityDeath(damageSourceForDeath);
@@ -235,7 +238,7 @@ public class EntityBehaviorColonyCitizen : EntityBehavior
                 entity.Pos.AsBlockPos, Willpower.Reason, Willpower.Trapped ? ", trapped" : "", Willpower.Value, Willpower.Threshold);
         }
         if (!full || agent.MountedOn != null) return;
-        manager.Relocate(agent, Willpower, FindRecord()?.JobCode);
+        manager.Relocate(agent, Willpower, FindRecord());
     }
 
     CitizenRecord? FindRecord()

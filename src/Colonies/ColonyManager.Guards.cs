@@ -132,7 +132,10 @@ public partial class ColonyManager
     public bool IsSleepTime(Colony colony, CitizenRecord citizen, float hour)
     {
         if (OnNightWatch(colony, citizen)) return InHours(hour, Config.GuardSleepStartHour, Config.GuardSleepEndHour);
-        return InHours(hour, Config.SleepStartHour, Config.SleepEndHour);
+        // Early Riser, Night Owl and Heavy Sleeper shift the hours.
+        float start = (Config.SleepStartHour + TraitAdd(citizen, "sleepStart") + 24) % 24;
+        float end = (Config.SleepEndHour + TraitAdd(citizen, "sleepEnd") + 24) % 24;
+        return InHours(hour, start, end);
     }
 
     static bool InHours(float hour, float start, float end) => start > end ? hour >= start || hour < end : hour >= start && hour < end;

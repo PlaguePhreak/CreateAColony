@@ -29,7 +29,7 @@ public class GuiDialogHut : GuiDialog
     const double PotteryRowHeight = 44;
     const int RecruitsTab = 5;
     const int KitchenTab = 6;
-    const double RecruitRowHeight = 44;
+    const double RecruitRowHeight = 62;
     // A Guard Tower's tabs.
     const int ToolsTab = 7;
     const int HostilesTab = 8;
@@ -341,7 +341,7 @@ public class GuiDialogHut : GuiDialog
             composer
                 .AddStaticText(c.Name, GuiKit.Body(), ElementBounds.Fixed(10, y + 6, 190, 25))
                 .AddStaticText(now, GuiKit.Muted(), ElementBounds.Fixed(200, y + 8, 125, 22));
-            if (skill.Length > 0) composer.AddStaticText(skill, c.SkillLevel >= 3 ? GuiKit.Detail().WithColor(GuiKit.GoodColor) : GuiKit.Muted(), ElementBounds.Fixed(325, y + 8, 100, 22));
+            if (skill.Length > 0) composer.AddStaticText(skill, c.SkillLevel >= 3 || c.JobTrait ? GuiKit.Detail().WithColor(GuiKit.GoodColor) : GuiKit.Muted(), ElementBounds.Fixed(325, y + 8, 100, 22));
             if (!full) composer.AddSmallButton(Lang.Get("createacolony:manage-assign"), () => SendCitizen(ColonyAction.AssignWorker, id), ElementBounds.Fixed(Width - 130, y + 3, 120, 28));
             y += ListRowHeight;
         }
@@ -805,7 +805,8 @@ public class GuiDialogHut : GuiDialog
     {
         bool officer = ViewerRole >= ColonyRole.Officer;
         double y = composer.Text(Lang.Get("createacolony:" + prefix + "-hint"), GuiKit.Muted(), 0, 30, Width, 10);
-        var rows = list.OrderByDescending(p => p.Keep > 0).ThenBy(p => p.Key).ToList();
+        // Meals the cook cannot make yet sink to the bottom.
+        var rows = list.OrderBy(p => p.Locked).ThenByDescending(p => p.Keep > 0).ThenBy(p => p.Key).ToList();
         if (rows.Count == 0)
         {
             composer.Text(Lang.Get("createacolony:" + prefix + "-none"), GuiKit.Body(), 0, y, Width);
@@ -822,11 +823,15 @@ public class GuiDialogHut : GuiDialog
             if (!stack.ResolveBlockOrItem(capi.World)) continue;
             var countFont = CairoFont.WhiteDetailText().WithColor(row.Keep == 0 ? GuiKit.MutedColor
                 : row.Have >= row.Keep ? GuiKit.GoodColor : GuiKit.WarnColor);
+            // A locked meal shows greyed, with the Cooking level it takes ("Needs Cooking 6").
+            string have = Lang.Get("createacolony:" + prefix + "-have", row.Have, row.Clay);
+            if (row.Locked) have = Lang.Get("createacolony:kitchen-needs-level", row.NeedsLevel, row.CookLevel) + "  " + have;
+            else if (row.NeedsLevel > 0) have = Lang.Get("createacolony:kitchen-level", row.NeedsLevel) + "  " + have;
             composer.AddRichtext(new RichTextComponentBase[]
             {
                 new ItemstackTextComponent(capi, stack, 38, 10),
-                new RichTextComponent(capi, (row.Name ?? stack.GetName()) + "\n", CairoFont.WhiteSmallText()) { VerticalAlign = EnumVerticalAlign.Top },
-                new RichTextComponent(capi, Lang.Get("createacolony:" + prefix + "-have", row.Have, row.Clay), countFont)
+                new RichTextComponent(capi, (row.Name ?? stack.GetName()) + "\n", row.Locked ? CairoFont.WhiteSmallText().WithColor(GuiKit.MutedColor) : CairoFont.WhiteSmallText()) { VerticalAlign = EnumVerticalAlign.Top },
+                new RichTextComponent(capi, have, row.Locked ? CairoFont.WhiteDetailText().WithColor(GuiKit.WarnColor) : countFont)
             }, ElementBounds.Fixed(6, y, 330, PotteryRowHeight));
 
             string keep = Lang.Get("createacolony:" + prefix + "-keep", row.Keep);
@@ -892,7 +897,8 @@ public class GuiDialogHut : GuiDialog
 
     /// <summary>"Farming 3" for a worker list row, or nothing when skills are off.</summary>
     static string SkillText(CitizenView c) =>
-        c.Skill.Length == 0 ? "" : Lang.Get("createacolony:skill-level", Lang.Get("createacolony:skill-" + c.Skill), c.SkillLevel);
+        (c.Skill.Length == 0 ? "" : Lang.Get("createacolony:skill-level", Lang.Get("createacolony:skill-" + c.Skill), c.SkillLevel))
+        + (c.JobTrait ? " " + Lang.Get("createacolony:job-trait-mark") : "");
 
     void ComposeRecruits(GuiComposer composer)
     {
@@ -920,8 +926,12 @@ public class GuiDialogHut : GuiDialog
             composer.Text(Lang.Get("createacolony:recruits-none"), GuiKit.Body(), 0, y, Width);
             return;
         }
+        if (snapshot.PopulationCap > 0 && snapshot.Population >= snapshot.PopulationCap)
+        {
+            y = composer.Text(Lang.Get("createacolony:recruits-full", snapshot.Population, snapshot.PopulationCap), GuiKit.Detail().WithColor(GuiKit.WarnColor), 0, y, Width, 8);
+        }
 
-        bool canHire = ViewerRole >= ColonyRole.Member;
+        bool canHire = ViewerRole >= ColonyRole.Member && !(snapshot.PopulationCap > 0 && snapshot.Population >= snapshot.PopulationCap);
         composer.AddInset(ElementBounds.Fixed(0, y, Width, snapshot.Recruits.Count * RecruitRowHeight + 8), 3, 0.8f);
         y += 4;
         for (int i = 0; i < snapshot.Recruits.Count; i++)
@@ -931,11 +941,14 @@ public class GuiDialogHut : GuiDialog
             var costFont = CairoFont.WhiteDetailText().WithColor(afford ? GuiKit.GoodColor : GuiKit.WarnColor);
             // What they know comes after the price: "Farming 3, Strength 2".
             string skills = i < snapshot.RecruitSkills.Count && snapshot.RecruitSkills[i].Length > 0 ? "   " + snapshot.RecruitSkills[i] : "";
+            // Their traits on a third line: what they were born with sets the price.
+            string traits = i < snapshot.RecruitTraits.Count && snapshot.RecruitTraits[i].Length > 0 ? "\n" + snapshot.RecruitTraits[i] : "";
             composer.AddRichtext(new RichTextComponentBase[]
             {
                 new RichTextComponent(capi, r.Name + "\n", GuiKit.Body()),
                 new RichTextComponent(capi, Lang.Get("createacolony:recruit-line", Lang.Get("createacolony:sex-" + r.Sex), r.Cost), costFont),
-                new RichTextComponent(capi, skills, GuiKit.Muted())
+                new RichTextComponent(capi, skills, GuiKit.Muted()),
+                new RichTextComponent(capi, traits, GuiKit.Detail())
             }, ElementBounds.Fixed(10, y + 2, Width - 150, RecruitRowHeight));
             if (canHire)
             {

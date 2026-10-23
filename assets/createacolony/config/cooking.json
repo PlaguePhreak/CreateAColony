@@ -1,0 +1,49 @@
+{
+	// Which Cooking level (the cook's usable level, see skills.json) a pot meal takes. Keys are the game's
+	// cooking recipe codes; recipes from other mods not listed here get a level from how many different
+	// ingredient types they take ("byIngredients": 1 or 2 types, 3 types, 4 or more). The Good Cook trait
+	// adds one level. Grilling in the fire pit (meat, fish, bread) never needs a level.
+	"byIngredients": [2, 2, 4, 6],
+	"levels": {
+		"porridge": 2,
+		"scrambledeggs": 3,
+		"soup": 3,
+		"vegetablestew": 4,
+		"meatystew": 6,
+		"jam": 6,
+		"augratin": 8,
+
+		// A Culinary Artillery / Expanded Foods, for when the cook learns their stations.
+		"bonebroth": 2,
+		"dough": 2,
+		"pasta": 3,
+		"syrup": 3,
+		"dumplings": 4,
+		"muffins": 4,
+		"salad": 4,
+		"riceandbeans": 4,
+		"compote": 4,
+		"lard": 5,
+		"gelatin": 5,
+		"sausage": 5,
+		"pemmican": 5,
+		"stuffedpepper": 5,
+		"hotpasta": 6,
+		"coldpasta": 6,
+		"yogurtmeal": 6,
+		"sushi": 6,
+		"vinegar": 7,
+		"pickled": 7,
+		"yogurt": 7,
+		"pie": 8,
+		"berrybread": 8,
+		"candy": 8,
+		"gozinaki": 8,
+		"cottagecheese": 8,
+		"curedsausage": 9,
+		"dressing": 9,
+		"peanutbutter": 9,
+		"fishsauce": 9,
+		"soysauce": 9
+	}
+}

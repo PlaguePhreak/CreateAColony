@@ -201,6 +201,8 @@ public partial class ColonyManager : ModSystem
             TickWanderers(colony, now);
             TickFamilies(colony, now);
             EnsureSkills(colony);
+            EnsureTraits(colony);
+            TickTraits(colony, now);
             EnsureMinStock(colony);
 
             foreach (var citizen in colony.Citizens.ToList())
@@ -371,6 +373,13 @@ public partial class ColonyManager : ModSystem
         };
         // Grown-ups from outside bring what they learned before; children start from nothing (see GrowUp).
         if (!child) record.SkillXp = RollStartingSkills();
+        // Traits too; children get theirs from their parents in HaveChild.
+        record.TraitsRolled = true;
+        if (!child)
+        {
+            record.Traits = RollTraits();
+            ApplyTraitSkillStart(record.SkillXp, record.Traits);
+        }
         colony.Citizens.Add(record);
         SpawnEntityFor(colony, record, at);
         return record;

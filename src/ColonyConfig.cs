@@ -436,4 +436,37 @@ public class ColonyConfig
     public int[] SkillCapByBuildingLevel = { 4, 6, 8, 10 };
     /// <summary>No skill effect multiplies a number by more than this (or less than one over it).</summary>
     public float SkillEffectMax = 2f;
+
+    // Traits (config/traits.json lists them; see ColonyManager.Traits.cs)
+    /// <summary>Settlers are born with traits: strengths and flaws that change how they work, eat, fight and live.</summary>
+    public bool Traits = true;
+    /// <summary>How many traits a settler from outside rolls (children inherit theirs and can have more than the max).</summary>
+    public int TraitsMin = 2;
+    public int TraitsMax = 10;
+    /// <summary>Every settler has at least this many good and this many bad traits.</summary>
+    public int TraitsMinGood = 1;
+    public int TraitsMinBad = 1;
+    /// <summary>Safety cap on a child's inherited traits, so the window stays readable (0 = none).</summary>
+    public int TraitsChildMax = 20;
+    /// <summary>The Tavern asks this many more rusty gears per point of trait score (and one more per 10 levels of good traits).</summary>
+    public int TraitGearsPerPoint = 1;
+    /// <summary>Chance a trait both parents have passes to a child, and a trait only one parent has.</summary>
+    public double TraitInheritShared = 0.75;
+    public double TraitInheritSingle = 0.35;
+    /// <summary>Fresh random traits every child gets on top of what it inherits.</summary>
+    public int TraitNewPerChild = 1;
+    /// <summary>The highest trait level. A good trait gets 5% stronger a level; a bad one loses 4% of its penalty a level.</summary>
+    public int TraitLevelMax = 20;
+    /// <summary>Trait XP cost per level step: level L to L+1 costs (L+1) times this. Every day gives 1 XP, 2 more on a day the trait was used.</summary>
+    public int TraitXpPerLevel = 3;
+    /// <summary>A guard becomes a Veteran after this many kills.</summary>
+    public int TraitVeteranKills = 25;
+    /// <summary>Knocked out this many times within TraitShakenDays makes a settler Shaken for TraitShakenDays.</summary>
+    public int TraitShakenCount = 3;
+    public double TraitShakenDays = 10;
+
+    // Population
+    /// <summary>Settlers the colony can hold: PopulationBase plus PopulationPerTownHallLevel for each Town Hall level (a freshly placed Town Hall is level 0).</summary>
+    public int PopulationBase = 20;
+    public int PopulationPerTownHallLevel = 5;
 }
