@@ -142,6 +142,8 @@ public class ColonyConfig
     public int MinerTorchLight = 8;
     /// <summary>How many torches a miner takes from the hut's storage, and asks couriers for when there are none.</summary>
     public int MinerTorchesCarried = 8;
+    /// <summary>When a mine at prospected ore is finished, the miner fills its staircase back in with dirt this many blocks down from the surface.</summary>
+    public int MinerFillDepth = 6;
 
     // Quarry
     /// <summary>The pit beside the Quarry goes this many blocks out from its middle at hut level 1 (2 makes a 5 by 5 pit)...</summary>
