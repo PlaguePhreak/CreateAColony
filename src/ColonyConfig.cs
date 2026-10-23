@@ -489,6 +489,11 @@ public class ColonyConfig
     public float PickUpDelaySeconds = 5f;
     /// <summary>An idle settler walks to items on the ground within this many blocks. 0: only what it walks over.</summary>
     public int PickUpRange = 10;
+    /// <summary>
+    /// A settler with no job hut keeps what it picks up until its pack is full or it has carried it this many
+    /// seconds, then takes it all to the warehouse in one trip (if the colony has one).
+    /// </summary>
+    public float LooseItemsDepositSeconds = 120f;
     /// <summary>Settlers carry food to eat on the go and snack while they work, so their stomach stays nearly full.</summary>
     public bool CarryFood = true;
     /// <summary>How much food a settler packs when it gets some, in saturation: 1200 is one full stomach.</summary>

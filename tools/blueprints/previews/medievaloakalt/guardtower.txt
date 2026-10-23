@@ -1,0 +1,103 @@
+Guard Tower (Medieval Oak (Alt)), from MineColonies' altguardtower: what each level needs, one item per block
+
+medievaloakalt guardtower level 1 (from altguardtower1): 11x16x11, 688 blocks, 1 beds, 1 chests
+    left out: oak_fence_gate 1
+    a chest for weapons at (-2, 0, 0)
+    a bed at (-1, 0, -2)
+    no door (open-sided in MineColonies), so it is placed facing the way it was drawn
+      386  soil-medium-none
+       77  drystonefence-shale
+       63  cobblestonestairs-shale
+       47  log-placed-oak-ud
+       46  cobblestone-shale
+       28  cobblestoneslab-shale
+       27  planks-oak-hor
+        7  ladder-wood-oak-south
+        2  packeddirt
+        2  bed-hay (half: 2 blocks = 1 bed)
+        1  chest
+        1  torch-basic-lit
+
+medievaloakalt guardtower level 2 (from altguardtower2): 11x18x11, 801 blocks, 1 beds, 1 chests
+    a chest for weapons at (-1, 0, -1)
+    a bed at (-1, 0, -2)
+      404  soil-medium-none
+      103  log-placed-oak-ud
+       94  cobblestone-shale
+       67  cobblestonestairs-shale
+       39  planks-oak-hor
+       35  cobblestoneslab-shale
+       24  drystonefence-shale
+        9  ladder-wood-oak-south
+        7  torch-basic-lit
+        6  log-placed-oak-we
+        4  packeddirt
+        3  stonepath-free
+        2  bed-hay (half: 2 blocks = 1 bed)
+        1  door-solid-oak
+        1  chest
+
+medievaloakalt guardtower level 3 (from altguardtower3): 7x20x11, 642 blocks, 1 beds, 1 chests
+    a chest for weapons at (0, 0, 1)
+      236  soil-medium-none
+      171  cobblestone-shale
+       69  log-placed-oak-ud
+       55  cobblestonestairs-shale
+       32  cobblestoneslab-shale
+       18  log-placed-oak-ns
+       14  stonepath-free
+        9  log-placed-oak-we
+        8  drystonefence-shale
+        8  rockpolished-shale
+        6  torch-basic-lit
+        4  ladder-wood-oak-south
+        3  ladder-wood-oak-west
+        3  ladder-wood-oak-north
+        2  bed-hay (half: 2 blocks = 1 bed)
+        1  door-solid-oak
+        1  chest
+
+medievaloakalt guardtower level 4 (from altguardtower4): 9x26x10, 801 blocks, 1 beds, 1 chests
+    a chest for weapons at (0, 0, -1)
+      272  cobblestone-shale
+      206  soil-medium-none
+      168  stonebricks-shale
+       40  cobblestoneslab-shale
+       39  stonebrickstairs-shale
+       22  cobblestonestairs-shale
+       14  ladder-wood-oak-north
+        8  stonepath-free
+        8  plankstairs-oak
+        5  lantern-small
+        5  drystonefence-shale
+        3  torch-basic-lit
+        2  door-solid-oak
+        2  bed-hay (half: 2 blocks = 1 bed)
+        2  plankslab-oak
+        1  chest
+        1  rockpolished-shale
+
+medievaloakalt guardtower level 5 (from altguardtower5): 11x29x11, 1089 blocks, 1 beds, 2 chests
+    left out: black_carpet 2, oak_wall_sign 2, oak_trapdoor 1
+      321  cobblestone-shale
+      279  stonebricks-shale
+      205  soil-medium-none
+       75  stonebrickstairs-shale
+       48  cobblestonestairs-shale
+       42  cobblestoneslab-shale
+       21  rockpolished-shale
+       15  log-placed-oak-we
+       13  drystonefence-shale
+       13  lantern-small
+       11  ladder-wood-oak-north
+       10  plankstairs-oak
+        8  debarkedlog-oak-ud
+        6  stonepath-free
+        5  barrel
+        5  ladder-wood-oak-south
+        2  planks-oak-hor
+        2  bed-wood (half: 2 blocks = 1 bed)
+        2  torch-basic-lit
+        2  chest
+        1  door-solid-oak
+        1  plankslab-oak

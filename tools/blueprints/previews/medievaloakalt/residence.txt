@@ -1,0 +1,130 @@
+Residence (Medieval Oak (Alt)), from MineColonies' altresidence: what each level needs, one item per block
+
+medievaloakalt residence level 1 (from altresidence1): 14x12x15, 782 blocks, 1 beds, 1 chests
+    left out: oak_wall_sign 2
+      235  soil-medium-none
+      162  cobblestone-shale
+      133  cobblestonestairs-shale
+       74  cobblestoneslab-shale
+       63  log-placed-oak-ud
+       27  packeddirt
+       26  drystonefence-shale
+       23  planks-oak-hor
+       13  log-placed-oak-we
+       13  log-placed-oak-ns
+        5  torch-basic-lit
+        2  bed-wood (half: 2 blocks = 1 bed)
+        1  clayoven-east
+        1  chest
+        1  roughtable-north
+        1  door-solid-oak
+
+medievaloakalt residence level 2 (from altresidence2): 14x14x15, 1119 blocks, 2 beds, 3 chests
+    left out: oak_wall_sign 5, glass_pane 2, oak_trapdoor 2
+      233  soil-medium-none
+      208  cobblestone-shale
+      136  planks-oak-hor
+      116  log-placed-oak-ud
+      111  cobblestonestairs-shale
+       72  cobblestoneslab-shale
+       41  drystonefence-shale
+       41  log-placed-oak-ns
+       41  plankstairs-oak
+       35  log-placed-oak-we
+       24  stonepath-free
+       14  packeddirt
+       11  mudbrick-light
+        8  plankslab-oak
+        7  rockpolished-shale
+        7  torch-basic-lit
+        4  bed-hay (half: 2 blocks = 1 bed)
+        3  chest
+        2  roughtable-north
+        1  clayoven-east
+        1  firepit-cold
+        1  door-solid-oak
+
+medievaloakalt residence level 3 (from altresidence3): 14x16x15, 1331 blocks, 3 beds, 2 chests
+    left out: light_gray_carpet 9, oak_wall_sign 9, glass_pane 2, oak_trapdoor 2, iron_bars 1, oak_pressure_plate 1, flower_pot 1
+      335  cobblestone-shale
+      210  soil-medium-none
+      136  cobblestonestairs-shale
+      116  plankstairs-oak
+      113  log-placed-oak-ud
+       96  stonebricks-shale
+       72  planks-oak-hor
+       66  log-placed-oak-ns
+       40  log-placed-oak-we
+       39  rockpolished-shale
+       24  mudbrick-light
+       21  cobblestoneslab-shale
+       13  drystonefence-shale
+       11  stonebrickstairs-shale
+        9  torch-basic-lit
+        6  stonepath-free
+        6  bed-hay (half: 2 blocks = 1 bed)
+        5  plankslab-oak
+        2  clayoven-east
+        2  chest
+        2  firepit-cold
+        2  roughtable-north
+        2  door-solid-oak
+
+medievaloakalt residence level 4 (from altresidence4): 14x16x15, 1675 blocks, 4 beds, 5 chests
+    left out: oak_wall_sign 15, gray_carpet 6, yellow_carpet 4, flower_pot 3, light_gray_stained_glass_pane 3, iron_bars 2, oak_trapdoor 2, oak_pressure_plate 1 and more
+      311  cobblestone-shale
+      275  stonebricks-shale
+      210  soil-medium-none
+      159  cobblestonestairs-shale
+      136  mudbrick-light
+      122  planks-oak-hor
+       95  plankstairs-oak
+       85  rockpolished-shale
+       70  log-placed-oak-ns
+       66  log-placed-oak-we
+       35  stonebrickstairs-shale
+       28  log-placed-oak-ud
+       26  drystonefence-shale
+       13  cobblestoneslab-shale
+        9  torch-basic-lit
+        8  bed-hay (half: 2 blocks = 1 bed)
+        5  stonepath-free
+        5  chest
+        4  bookshelf
+        2  clayoven-east
+        2  firepit-cold
+        2  roughtable-north
+        2  door-solid-oak
+        1  hay-normal-ud
+        1  lantern-small
+
+medievaloakalt residence level 5 (from altresidence5): 14x16x15, 1731 blocks, 5 beds, 9 chests
+    left out: oak_wall_sign 16, oak_trapdoor 12, brown_carpet 6, yellow_carpet 4, red_carpet 3, chain 3, gray_carpet 3, iron_bars 2 and more
+      395  stonebricks-shale
+      294  mudbrick-light
+      210  soil-medium-none
+      154  cobblestone-shale
+      113  cobblestonestairs-shale
+       98  planks-oak-hor
+       97  plankstairs-oak
+       74  stonebrickstairs-shale
+       73  log-placed-oak-ns
+       46  log-placed-oak-we
+       39  drystonefence-shale
+       29  cobblestoneslab-shale
+       24  rockpolished-shale
+       12  stonepath-free
+       12  log-placed-oak-ud
+       11  bookshelf
+       10  bed-hay (half: 2 blocks = 1 bed)
+        9  chest
+        5  lantern-small
+        5  plankslab-oak
+        4  torch-basic-lit
+        3  soil-medium-normal
+        2  clayoven-east
+        2  storagevessel-red-fired
+        2  firepit-cold
+        2  roughtable-north
+        2  door-solid-oak
+        1  hay-normal-ud

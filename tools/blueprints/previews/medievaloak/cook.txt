@@ -1,0 +1,137 @@
+Cook's Hut (Medieval Oak), from MineColonies' cook: what each level needs, one item per block
+
+medievaloak cook level 1 (from cook1): 23x13x24, 1712 blocks, 0 beds, 1 chests
+    left out: oak_pressure_plate 2
+      623  soil-medium-none
+      427  cobblestonestairs-shale
+      133  log-placed-oak-ud
+      125  planks-oak-hor
+      123  cobblestone-shale
+       63  packeddirt
+       60  log-placed-oak-we
+       50  log-placed-oak-ns
+       44  stonepath-free
+       31  drystonefence-shale
+       12  cobblestoneslab-shale
+       12  torch-basic-lit
+        2  door-solid-oak
+        1  hay-normal-ud
+        1  chest
+        1  firepit-cold
+        1  clayoven-east
+
+medievaloak cook level 2 (from cook2): 25x14x25, 2377 blocks, 0 beds, 2 chests
+    left out: glass_pane 10, oak_pressure_plate 4, oak_wall_sign 2
+      715  soil-medium-none
+      492  cobblestone-shale
+      271  plankstairs-oak
+      250  cobblestonestairs-shale
+       99  stonepath-free
+       83  log-placed-oak-ud
+       80  log-placed-oak-ns
+       77  log-placed-oak-we
+       68  mudbrick-light
+       66  drystonefence-shale
+       56  planks-oak-hor
+       39  packeddirt
+       22  cobblestoneslab-shale
+       22  plankslab-oak
+       13  torch-basic-lit
+        8  stonebricks-shale
+        5  barrel
+        2  chest
+        2  clayoven-east
+        2  door-solid-oak
+        1  hay-normal-ud
+        1  firepit-cold
+
+medievaloak cook level 3 (from cook3): 25x14x25, 3083 blocks, 2 beds, 4 chests
+    left out: oak_pressure_plate 11, black_stained_glass_pane 8, short_grass 6, oak_button 6, oak_trapdoor 6, glass_pane 6, oak_fence_gate 2, poppy 2 and more
+      699  soil-medium-none
+      508  cobblestone-shale
+      285  plankstairs-oak
+      211  cobblestonestairs-shale
+      179  stonebricks-shale
+      159  log-placed-oak-ns
+      140  planks-oak-hor
+      128  mudbrick-light
+      126  stonepath-free
+      126  log-placed-oak-we
+      120  log-placed-oak-ud
+      119  cobblestoneslab-shale
+       92  drystonefence-shale
+       59  plankslab-oak
+       45  stonebrickstairs-shale
+       34  torch-basic-lit
+       23  soil-medium-normal
+        5  door-solid-oak
+        5  barrel
+        4  chest
+        4  bed-hay (half: 2 blocks = 1 bed)
+        3  clayoven-east
+        1  hay-normal-ud
+        1  rockpolished-shale
+        1  firepit-cold
+
+medievaloak cook level 4 (from cook4): 25x19x25, 3809 blocks, 3 beds, 4 chests
+    left out: oak_trapdoor 25, light_gray_stained_glass_pane 24, oak_button 12, black_stained_glass_pane 9, oak_leaves 7, iron_bars 7, short_grass 6, oak_pressure_plate 6 and more
+      639  soil-medium-none
+      470  stonebricks-shale
+      417  plankstairs-oak
+      397  cobblestonestairs-shale
+      348  cobblestone-shale
+      210  mudbrick-light
+      194  log-placed-oak-ud
+      186  cobblestoneslab-shale
+      166  log-placed-oak-we
+      164  log-placed-oak-ns
+      122  drystonefence-shale
+      121  stonepath-free
+       85  planks-oak-hor
+       73  stonebrickstairs-shale
+       62  rockpolished-shale
+       41  torch-basic-lit
+       36  plankslab-oak
+       18  soil-medium-normal
+       11  barrel
+       10  door-solid-oak
+        6  bed-hay (half: 2 blocks = 1 bed)
+        5  clayoven-east
+        4  chest
+        4  lantern-small
+        4  bookshelf
+        2  hay-normal-ud
+        2  firepit-cold
+        1  storagevessel-red-fired
+
+medievaloak cook level 5 (from cook5): 25x21x25, 4176 blocks, 3 beds, 9 chests
+    left out: spruce_trapdoor 26, light_gray_stained_glass_pane 17, oak_button 14, flower_pot 12, chain 10, blockpaperwall 9, gray_stained_glass_pane 9, oak_leaves 8 and more
+      634  soil-medium-none
+      567  stonebricks-shale
+      487  plankstairs-oak
+      394  cobblestone-shale
+      381  cobblestonestairs-shale
+      245  log-placed-oak-ud
+      238  log-placed-oak-ns
+      219  log-placed-oak-we
+      205  mudbrick-light
+      175  cobblestoneslab-shale
+      169  stonebrickstairs-shale
+      105  rockpolished-shale
+      102  planks-oak-hor
+       99  drystonefence-shale
+       29  stonepath-free
+       24  lantern-small
+       19  soil-medium-normal
+       15  torch-basic-lit
+       11  door-solid-oak
+        9  chest
+        7  bookshelf
+        6  plankslab-oak
+        6  bed-hay (half: 2 blocks = 1 bed)
+        5  clayoven-east
+        4  debarkedlog-oak-ud
+        3  roughtable-north
+        2  hay-normal-ud
+        2  firepit-cold
+        2  storagevessel-red-fired

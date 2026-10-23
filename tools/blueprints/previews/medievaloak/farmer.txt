@@ -1,0 +1,111 @@
+Farmer's Hut (Medieval Oak), from MineColonies' farmer: what each level needs, one item per block
+
+medievaloak farmer level 1 (from farmer1): 21x9x22, 890 blocks, 0 beds, 0 chests
+    left out: oak_trapdoor 8, water 4
+    no door (open-sided in MineColonies), so it is placed facing the way it was drawn
+      621  soil-medium-none
+       95  drystonefence-shale
+       43  packeddirt
+       40  planks-oak-hor
+       21  cobblestone-shale
+       20  log-placed-oak-we
+       20  cobblestoneslab-shale
+       13  log-placed-oak-ud
+        8  cobblestonestairs-shale
+        5  log-placed-oak-ns
+        3  hay-normal-ud
+
+medievaloak farmer level 2 (from farmer2): 21x12x20, 1287 blocks, 0 beds, 0 chests
+    left out: oak_trapdoor 12, water 4
+      687  soil-medium-none
+      155  cobblestonestairs-shale
+       88  cobblestone-shale
+       88  drystonefence-shale
+       75  log-placed-oak-ud
+       65  planks-oak-hor
+       38  packeddirt
+       19  mudbrick-light
+       18  log-placed-oak-ns
+       15  cobblestoneslab-shale
+       14  log-placed-oak-we
+       12  stonepath-free
+        9  hay-normal-ud
+        1  door-solid-oak
+        1  torch-basic-lit
+
+medievaloak farmer level 3 (from farmer3): 21x15x21, 1621 blocks, 0 beds, 1 chests
+    left out: short_grass 15, water 4, oak_fence_gate 4, carved_pumpkin 2, glass_pane 1, oak_trapdoor 1
+      606  soil-medium-none
+      249  cobblestonestairs-shale
+      164  cobblestone-shale
+      133  log-placed-oak-ud
+      102  drystonefence-shale
+       64  stonepath-free
+       53  log-placed-oak-we
+       52  cobblestoneslab-shale
+       51  soil-medium-normal
+       37  mudbrick-light
+       26  log-placed-oak-ns
+       25  packeddirt
+       20  planks-oak-hor
+       14  rockpolished-shale
+       13  hay-normal-ud
+        6  torch-basic-lit
+        1  chest
+        1  storagevessel-red-fired
+        1  firepit-cold
+        1  door-solid-oak
+
+medievaloak farmer level 4 (from farmer4): 21x21x23, 1766 blocks, 0 beds, 2 chests
+    left out: short_grass 11, oak_leaves 7, pumpkin 6, melon 6, oak_fence_gate 4, oak_trapdoor 3, glass_pane 3, jack_o_lantern 1 and more
+      585  soil-medium-none
+      203  cobblestone-shale
+      191  cobblestonestairs-shale
+      130  drystonefence-shale
+       97  log-placed-oak-ud
+       89  stonepath-free
+       89  plankstairs-oak
+       69  cobblestoneslab-shale
+       53  stonebricks-shale
+       49  log-placed-oak-we
+       39  mudbrick-light
+       33  soil-medium-normal
+       30  hay-normal-ud
+       26  log-placed-oak-ns
+       23  rockpolished-shale
+       22  planks-oak-hor
+       16  plankslab-oak
+        8  stonebrickstairs-shale
+        4  lantern-small
+        3  torch-basic-lit
+        2  chest
+        1  storagevessel-red-fired
+        1  firepit-cold
+        1  door-solid-oak
+
+medievaloak farmer level 5 (from farmer5): 21x23x23, 1812 blocks, 0 beds, 3 chests
+    left out: oak_trapdoor 23, melon 12, short_grass 10, pumpkin 9, oak_leaves 7, oak_fence_gate 4, jack_o_lantern 3, oak_button 3 and more
+      600  soil-medium-none
+      171  cobblestonestairs-shale
+      168  stonebricks-shale
+      140  cobblestone-shale
+      114  drystonefence-shale
+      111  plankstairs-oak
+       88  log-placed-oak-ud
+       68  mudbrick-light
+       56  stonepath-free
+       54  cobblestoneslab-shale
+       50  hay-normal-ud
+       48  log-placed-oak-we
+       44  rockpolished-shale
+       27  log-placed-oak-ns
+       21  plankslab-oak
+       18  stonebrickstairs-shale
+       16  soil-medium-normal
+        4  lantern-small
+        3  storagevessel-red-fired
+        3  chest
+        3  torch-basic-lit
+        1  planks-oak-hor
+        1  firepit-cold
+        1  door-solid-oak

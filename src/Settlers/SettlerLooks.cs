@@ -24,6 +24,11 @@ public class SettlerLooks : ModSystem
     static readonly string[] SettlerTypes = { "createacolony:entities/settler.json", "createacolony:entities/settlerchild.json" };
     /// <summary>Animation source: the settler model whose animations (balanced-idle, balanced-walk...) the settler files use.</summary>
     const string AnimationSource = "createacolony:shapes/entity/humanoid/settler-male.json";
+    /// <summary>
+    /// The player's model, for the client: the game only loads entity types (player.json) on the server, which sends
+    /// them to the client later, so the client builds the settler model from the player model at its usual place.
+    /// </summary>
+    static readonly string[] ClientPlayerShapes = { "game:entity/humanoid/seraph-faceless", "game:entity/humanoid/seraph" };
     /// <summary>Player attributes the skin and clothing behaviors read.</summary>
     static readonly string[] PlayerAttributes = { "skinnableParts", "mainTextureCode", "skinBaseTextureKey", "disableElements" };
     /// <summary>Keys whose string values are asset paths, which need the game's domain written out once copied into this mod.</summary>
@@ -50,6 +55,8 @@ public class SettlerLooks : ModSystem
 
     static bool Apply(ICoreAPI api)
     {
+        if (api.Side == EnumAppSide.Client) return ApplyClient(api);
+
         var player = FindPlayerType(api);
         if (player == null)
         {
@@ -95,6 +102,24 @@ public class SettlerLooks : ModSystem
         return true;
     }
 
+    /// <summary>
+    /// The client only needs the settler model: the settler entity types, already given the player's look by the
+    /// server, come from the server. Without this the settler model stays empty and settlers are invisible.
+    /// </summary>
+    static bool ApplyClient(ICoreAPI api)
+    {
+        foreach (string shapeBase in ClientPlayerShapes)
+        {
+            if (BuildShape(api, shapeBase, quiet: true))
+            {
+                api.Logger.Notification("[createacolony] Settler model built from the player model {0}.", shapeBase);
+                return true;
+            }
+        }
+        api.Logger.Error("[createacolony] The player model was not found on the client; settlers will be invisible.");
+        return false;
+    }
+
     /// <summary>The game's player entity type, as JSON.</summary>
     static JObject? FindPlayerType(ICoreAPI api)
     {
@@ -120,14 +145,14 @@ public class SettlerLooks : ModSystem
     /// Writes the settler shape: the player's model plus the settler animations it lacks, keeping only the
     /// bones the player model has. False if the player's model could not be read.
     /// </summary>
-    static bool BuildShape(ICoreAPI api, string shapeBase)
+    static bool BuildShape(ICoreAPI api, string shapeBase, bool quiet = false)
     {
         var location = AssetLocation.Create(shapeBase, "game").WithPathPrefixOnce("shapes/").WithPathAppendixOnce(".json");
         var playerShape = api.Assets.TryGet(location);
         var target = api.Assets.TryGet(new AssetLocation(SettlerShape));
         if (playerShape == null || target == null)
         {
-            api.Logger.Warning("[createacolony] Player model {0} not found; settlers keep the villager model.", location);
+            if (!quiet) api.Logger.Warning("[createacolony] Player model {0} not found; settlers keep the villager model.", location);
             return false;
         }
 
@@ -149,14 +174,19 @@ public class SettlerLooks : ModSystem
         return true;
     }
 
-    /// <summary>Adds the player character creator's behavior after the clothing behavior it needs.</summary>
+    /// <summary>
+    /// Adds the player character creator's behavior BEFORE the inventory behaviors, in the order the game's own
+    /// player bot uses: the face and hair are put on the model first, then clothes and armor go over them and
+    /// hide what they cover. The other way round, armor broke the model (no face, no animations).
+    /// </summary>
     static void AddSkinBehavior(JArray? behaviors)
     {
-        if (behaviors == null || behaviors.Any(b => (string?)b["code"] == "extraskinnable")) return;
-        int at = behaviors.ToList().FindIndex(b => (string?)b["code"] == "seraphinventory");
+        if (behaviors == null) return;
+        foreach (var old in behaviors.Where(b => (string?)b["code"] == "extraskinnable").ToList()) old.Remove();
+        int at = behaviors.ToList().FindIndex(b => (string?)b["code"] is "villagerinventory" or "seraphinventory");
         var entry = new JObject { ["code"] = "extraskinnable" };
         if (at < 0) behaviors.Add(entry);
-        else behaviors.Insert(at + 1, entry);
+        else behaviors.Insert(at, entry);
     }
 
     /// <summary>Gives asset paths in copied player JSON the game's domain, since in this mod's files a bare path means this mod.</summary>

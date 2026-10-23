@@ -448,16 +448,19 @@ public partial class ColonyManager : ModSystem
     }
 
     /// <summary>
-    /// Buildings from before 0.46.0 may still be in the removed Testing style. Town Halls and Builder's Huts
-    /// have been built from Dev's Builds since 0.26.1, so they stay with it; everything else moves to the
-    /// default pack, which has every building.
+    /// Buildings may be in a pack that was removed: the Testing style (before 0.46.0), or 12th Century
+    /// Inspired and KCD2 Inspired (0.46.0 and 0.47.0). Town Halls and Builder's Huts from Testing have been
+    /// built from Dev's Builds since 0.26.1, so they stay with it; everything else moves to the default
+    /// pack, which has every building.
     /// </summary>
     static void MoveOffOldStyles(Colony colony)
     {
         foreach (var building in colony.Buildings)
         {
             if (BlueprintStyles.Exists(building.Style)) continue;
-            building.Style = building.Type is BuildingTypes.TownHall or BuildingTypes.Builder ? BlueprintStyles.DevsBuilds : BlueprintStyles.Default;
+            bool fromTesting = building.Style is null or "" or BlueprintStyles.OldTesting;
+            bool devs = fromTesting && building.Type is BuildingTypes.TownHall or BuildingTypes.Builder;
+            building.Style = devs ? BlueprintStyles.DevsBuilds : BlueprintStyles.Default;
         }
     }
 

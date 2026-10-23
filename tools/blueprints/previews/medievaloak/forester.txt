@@ -1,0 +1,93 @@
+Forester's Hut (Medieval Oak), from MineColonies' lumberjack: what each level needs, one item per block
+
+medievaloak forester level 1 (from lumberjack1): 14x7x14, 302 blocks, 0 beds, 0 chests
+    no door (open-sided in MineColonies), so it is placed facing the way it was drawn
+      246  soil-medium-none
+       25  cobblestoneslab-shale
+       14  drystonefence-shale
+       13  packeddirt
+        3  log-placed-oak-we
+
+medievaloak forester level 2 (from lumberjack2): 14x8x14, 481 blocks, 0 beds, 0 chests
+    left out: short_grass 19
+    no door (open-sided in MineColonies), so it is placed facing the way it was drawn
+      242  soil-medium-none
+       88  soil-medium-normal
+       38  cobblestoneslab-shale
+       32  cobblestonestairs-shale
+       23  packeddirt
+       16  log-placed-oak-ud
+       14  log-placed-oak-we
+       12  log-placed-oak-ns
+       10  drystonefence-shale
+        5  torch-basic-lit
+
+medievaloak forester level 3 (from lumberjack3): 14x10x14, 670 blocks, 0 beds, 0 chests
+    left out: short_grass 16, rail 6, oak_button 3, flower_pot 1, potted_birch_sapling 1, potted_spruce_sapling 1, potted_oak_sapling 1
+      253  soil-medium-none
+       67  soil-medium-normal
+       65  cobblestonestairs-shale
+       53  log-placed-oak-we
+       44  cobblestoneslab-shale
+       39  planks-oak-hor
+       34  log-placed-oak-ns
+       33  log-placed-oak-ud
+       20  plankstairs-oak
+       19  drystonefence-shale
+       15  packeddirt
+        9  stonepath-free
+        7  torch-basic-lit
+        5  plankslab-oak
+        2  ladder-wood-oak-south
+        2  ladder-wood-oak-north
+        1  door-solid-oak
+
+medievaloak forester level 4 (from lumberjack4): 14x10x14, 694 blocks, 0 beds, 1 chests
+    left out: short_grass 17, rail 10, oak_leaves 6, oak_trapdoor 6, composter 1, flower_pot 1, potted_birch_sapling 1, potted_spruce_sapling 1 and more
+      254  soil-medium-none
+       66  soil-medium-normal
+       58  plankstairs-oak
+       52  log-placed-oak-we
+       47  log-placed-oak-ns
+       41  planks-oak-hor
+       28  cobblestone-shale
+       28  log-placed-oak-ud
+       24  plankslab-oak
+       21  cobblestonestairs-shale
+       21  stonepath-free
+       16  cobblestoneslab-shale
+       14  drystonefence-shale
+        8  debarkedlog-oak-ud
+        6  torch-basic-lit
+        2  ladder-wood-oak-south
+        2  ladder-wood-oak-north
+        1  lantern-small
+        1  door-solid-oak
+        1  barrel
+        1  chest
+
+medievaloak forester level 5 (from lumberjack5): 14x13x14, 801 blocks, 0 beds, 1 chests
+    left out: rail 16, short_grass 14, oak_leaves 10, oak_trapdoor 10, oak_button 6, glass_pane 4, iron_bars 3, composter 2 and more
+      256  soil-medium-none
+       75  plankstairs-oak
+       67  log-placed-oak-we
+       51  log-placed-oak-ns
+       50  log-placed-oak-ud
+       49  cobblestone-shale
+       48  soil-medium-normal
+       48  cobblestonestairs-shale
+       27  stonebricks-shale
+       27  plankslab-oak
+       24  cobblestoneslab-shale
+       19  stonepath-free
+       16  planks-oak-hor
+       16  drystonefence-shale
+        9  rockpolished-shale
+        4  torch-basic-lit
+        3  lantern-small
+        2  ladder-wood-oak-south
+        2  ladder-wood-oak-north
+        2  stonebrickstairs-shale
+        2  barrel
+        1  door-solid-oak
+        1  chest

@@ -1,0 +1,131 @@
+Town Hall (Medieval Oak), from MineColonies' townhall: what each level needs, one item per block
+
+medievaloak townhall level 1 (from townhall1): 12x13x19, 1079 blocks, 0 beds, 1 chests
+    left out: oak_pressure_plate 1
+      712  soil-medium-none
+       94  planks-oak-hor
+       61  cobblestoneslab-shale
+       46  log-placed-oak-ud
+       41  log-placed-oak-we
+       31  log-placed-oak-ns
+       28  cobblestonestairs-shale
+       25  packeddirt
+       20  drystonefence-shale
+        6  ladder-wood-oak-north
+        5  torch-basic-lit
+        3  door-solid-oak
+        1  hay-normal-ud
+        1  chest
+        1  firepit-cold
+
+medievaloak townhall level 2 (from townhall2): 12x13x21, 1516 blocks, 1 beds, 2 chests
+    left out: stone_button 12, oak_trapdoor 5, glass_pane 4, oak_wall_sign 2, stone_pressure_plate 1
+      600  soil-medium-none
+      299  cobblestone-shale
+      201  cobblestonestairs-shale
+       80  cobblestoneslab-shale
+       77  planks-oak-hor
+       67  log-placed-oak-ud
+       54  log-placed-oak-we
+       38  log-placed-oak-ns
+       30  drystonefence-shale
+       17  mudbrick-light
+        9  packeddirt
+        8  torch-basic-lit
+        7  ladder-wood-oak-north
+        6  barrel
+        5  rockpolished-shale
+        5  door-solid-oak
+        2  hay-normal-ud
+        2  chest
+        2  bed-hay (half: 2 blocks = 1 bed)
+        1  firepit-cold
+
+medievaloak townhall level 3 (from townhall3): 12x16x21, 1886 blocks, 1 beds, 2 chests
+    left out: stone_button 12, oak_wall_sign 10, red_carpet 7, oak_trapdoor 5, oak_button 5, glass_pane 4, flower_pot 3, lectern 1 and more
+      488  soil-medium-none
+      367  cobblestone-shale
+      186  planks-oak-hor
+      181  cobblestonestairs-shale
+      151  log-placed-oak-ud
+       93  cobblestoneslab-shale
+       77  log-placed-oak-ns
+       76  log-placed-oak-we
+       66  mudbrick-light
+       64  plankstairs-oak
+       54  drystonefence-shale
+       21  torch-basic-lit
+       12  stonepath-free
+        9  rockpolished-shale
+        9  plankslab-oak
+        7  door-solid-oak
+        5  barrel
+        5  ladder-wood-oak-north
+        2  hay-normal-ud
+        2  chest
+        2  bed-wood (half: 2 blocks = 1 bed)
+        1  firepit-cold
+
+medievaloak townhall level 4 (from townhall4): 13x21x22, 2222 blocks, 1 beds, 3 chests
+    left out: iron_bars 13, oak_trapdoor 12, oak_wall_sign 12, oak_button 12, red_carpet 11, glass_pane 8, oak_leaves 6, yellow_wall_banner 6 and more
+      570  cobblestone-shale
+      342  soil-medium-none
+      215  cobblestonestairs-shale
+      160  stonebricks-shale
+      132  planks-oak-hor
+      129  log-placed-oak-we
+      120  plankstairs-oak
+      101  cobblestoneslab-shale
+       82  log-placed-oak-ns
+       76  mudbrick-light
+       69  log-placed-oak-ud
+       56  drystonefence-shale
+       36  plankslab-oak
+       29  torch-basic-lit
+       25  stonebrickstairs-shale
+       18  stonepath-free
+       17  rockpolished-shale
+        7  door-solid-oak
+        6  hay-normal-ud
+        6  ladder-wood-oak-north
+        5  barrel
+        4  bookshelf
+        3  chest
+        2  bed-wood (half: 2 blocks = 1 bed)
+        1  soil-medium-normal
+        1  firepit-cold
+        1  roughtable-north
+        1  lantern-small
+
+medievaloak townhall level 5 (from townhall5): 13x26x22, 2627 blocks, 1 beds, 3 chests
+    left out: oak_trapdoor 24, iron_bars 15, oak_leaves 14, red_carpet 14, oak_button 11, light_gray_stained_glass_pane 9, oak_wall_sign 7, yellow_carpet 6 and more
+      387  cobblestone-shale
+      383  stonebricks-shale
+      291  soil-medium-none
+      214  plankstairs-oak
+      184  cobblestoneslab-shale
+      179  planks-oak-hor
+      171  log-placed-oak-we
+      158  cobblestonestairs-shale
+      106  log-placed-oak-ud
+      106  mudbrick-light
+      102  stonebrickstairs-shale
+       85  log-placed-oak-ns
+       67  drystonefence-shale
+       43  rockpolished-shale
+       22  stonepath-free
+       20  debarkedlog-oak-ud
+       19  torch-basic-lit
+       17  hay-normal-ud
+       12  barrel
+       11  door-solid-oak
+       10  lantern-small
+        8  ladder-wood-oak-north
+        6  bookshelf
+        3  soil-medium-normal
+        3  chest
+        2  storagevessel-red-fired
+        2  bed-wood (half: 2 blocks = 1 bed)
+        2  plankslab-oak
+        1  firepit-cold
+        1  roughtable-north

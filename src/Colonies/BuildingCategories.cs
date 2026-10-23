@@ -27,16 +27,18 @@ public static class BuildingCategories
 /// </summary>
 public static class BlueprintStyles
 {
-    public const string TwelfthCentury = "twelfthcentury";
-    public const string Kcd2 = "kcd2";
+    /// <summary>MineColonies' Medieval Oak style, converted (0.48.0).</summary>
+    public const string MedievalOak = "medievaloak";
+    /// <summary>Medieval Oak's alternative buildings ("alt" in MineColonies), the others as in Medieval Oak.</summary>
+    public const string MedievalOakAlt = "medievaloakalt";
     public const string DevsBuilds = "devsbuilds";
     /// <summary>The old Testing style (blueprints/&lt;type&gt;/), removed in 0.46.0. Buildings saved with it move to a pack that still exists.</summary>
     public const string OldTesting = "testing";
 
-    public static readonly string[] All = { TwelfthCentury, Kcd2, DevsBuilds };
+    public static readonly string[] All = { MedievalOak, MedievalOakAlt, DevsBuilds };
 
     /// <summary>The pack for buildings and players with none (or one that no longer exists).</summary>
-    public const string Default = TwelfthCentury;
+    public const string Default = MedievalOak;
 
     public static bool Exists(string? style) => style != null && System.Array.IndexOf(All, style) >= 0;
 

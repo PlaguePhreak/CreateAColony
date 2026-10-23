@@ -11,7 +11,7 @@ COLOURS = [
     ("planks", (186, 140, 86)), ("packeddirt", (222, 206, 172)), ("mudbrick", (196, 170, 128)),
     ("rammed", (150, 128, 96)), ("stonebrick", (150, 150, 155)), ("cobblestonestairs", (112, 112, 118)),
     ("cobblestoneslab", (120, 120, 126)), ("cobblestone", (128, 128, 134)), ("rockpolished", (160, 160, 165)),
-    ("stonepath", (140, 138, 130)), ("hay", (214, 182, 92)), ("firepit", (70, 50, 40)), ("clayoven", (170, 90, 60)),
+    ("stonepath", (140, 138, 130)), ("soil-medium-none", (120, 92, 60)), ("hay", (214, 182, 92)), ("firepit", (70, 50, 40)), ("clayoven", (170, 90, 60)),
     ("barrel", (120, 80, 45)), ("storagevessel", (170, 70, 50)), ("basket", (190, 160, 100)), ("bookshelf", (120, 70, 40)),
     ("chest", (160, 110, 50)), ("bed-hay", (220, 200, 120)), ("bed-wood", (180, 40, 40)), ("ladder", (140, 100, 60)),
     ("woodenfence", (130, 95, 55)), ("drystonefence", (125, 125, 120)), ("wattle", (150, 115, 70)),

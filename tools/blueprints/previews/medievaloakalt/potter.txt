@@ -1,0 +1,109 @@
+Potter's Hut (Medieval Oak (Alt)), from MineColonies' glassblower: what each level needs, one item per block
+
+medievaloakalt potter level 1 (from glassblower1): 18x7x15, 474 blocks, 0 beds, 0 chests
+    left out: glass_pane 6, oak_trapdoor 3, glass 1
+      234  soil-medium-none
+       71  cobblestonestairs-shale
+       35  packeddirt
+       35  planks-oak-hor
+       31  log-placed-oak-ud
+       18  drystonefence-shale
+       12  cobblestone-shale
+       12  cobblestoneslab-shale
+        9  log-placed-oak-ns
+        6  log-placed-oak-we
+        3  door-solid-oak
+        2  torch-basic-lit
+        1  firepit-cold
+        1  clayoven-east
+
+medievaloakalt potter level 2 (from glassblower2): 18x8x15, 693 blocks, 0 beds, 0 chests
+    left out: glass 12, oak_trapdoor 9, glass_pane 6
+      132  cobblestone-shale
+      121  cobblestonestairs-shale
+       97  soil-medium-none
+       54  planks-oak-hor
+       42  cobblestoneslab-shale
+       37  plankslab-oak
+       36  packeddirt
+       36  stonepath-free
+       36  log-placed-oak-ud
+       35  log-placed-oak-ns
+       32  drystonefence-shale
+       15  log-placed-oak-we
+       10  torch-basic-lit
+        3  door-solid-oak
+        2  clayoven-east
+        1  firepit-cold
+
+medievaloakalt potter level 3 (from glassblower3): 18x10x15, 959 blocks, 0 beds, 0 chests
+    left out: oak_trapdoor 9, glass_pane 8, white_stained_glass 5, light_gray_stained_glass 4, glass 2, light_gray_carpet 2, oak_wall_sign 2, potted_poppy 1 and more
+      281  cobblestone-shale
+      139  cobblestoneslab-shale
+      101  cobblestonestairs-shale
+       91  plankstairs-oak
+       57  log-placed-oak-ud
+       54  log-placed-oak-ns
+       45  mudbrick-light
+       42  plankslab-oak
+       41  soil-medium-none
+       33  planks-oak-hor
+       19  log-placed-oak-we
+       10  stonebricks-shale
+        9  drystonefence-shale
+        8  torch-basic-lit
+        8  stonebrickstairs-shale
+        6  packeddirt
+        4  door-solid-oak
+        3  clayoven-east
+        2  roughtable-north
+        1  firepit-cold
+
+medievaloakalt potter level 4 (from glassblower4): 19x10x15, 1103 blocks, 0 beds, 0 chests
+    left out: light_gray_stained_glass_pane 10, light_gray_stained_glass 7, redstone_wall_torch 7, white_stained_glass 5, oak_trapdoor 3, gray_stained_glass 3, yellow_stained_glass_pane 3, red_stained_glass_pane 3 and more
+      284  stonebricks-shale
+      188  cobblestone-shale
+      120  cobblestonestairs-shale
+      120  plankstairs-oak
+       87  log-placed-oak-ns
+       72  stonebrickstairs-shale
+       55  cobblestoneslab-shale
+       44  soil-medium-none
+       38  log-placed-oak-ud
+       24  log-placed-oak-we
+       14  plankslab-oak
+       12  rockpolished-shale
+       11  drystonefence-shale
+        6  stonepath-free
+        6  planks-oak-hor
+        6  torch-basic-lit
+        4  clayoven-east
+        4  door-solid-oak
+        2  roughtable-north
+        1  firepit-cold
+
+medievaloakalt potter level 5 (from glassblower5): 19x11x15, 1185 blocks, 0 beds, 0 chests
+    left out: oak_leaves 16, white_stained_glass_pane 8, redstone_wall_torch 8, light_gray_stained_glass_pane 7, yellow_stained_glass_pane 6, red_stained_glass_pane 5, magenta_stained_glass_pane 5, brown_stained_glass_pane 4 and more
+      259  stonebricks-shale
+      128  cobblestone-shale
+      122  rockpolished-shale
+      120  cobblestonestairs-shale
+      109  plankstairs-oak
+       88  log-placed-oak-ns
+       85  stonebrickstairs-shale
+       52  log-placed-oak-ud
+       41  soil-medium-none
+       38  cobblestoneslab-shale
+       34  log-placed-oak-we
+       29  drystonefence-shale
+       27  mudbrick-light
+       14  plankslab-oak
+        6  stonepath-free
+        6  torch-basic-lit
+        5  planks-oak-hor
+        5  clayoven-east
+        4  door-solid-oak
+        3  roughtable-north
+        3  storagevessel-red-fired
+        1  hay-normal-ud
+        1  firepit-cold

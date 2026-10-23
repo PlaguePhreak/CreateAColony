@@ -101,9 +101,10 @@ game:plankslab-oak-down-free game:plankslab-oak-up-free game:cobblestoneslab-sha
 w4rd0sfurniture:roughtable-north w4rd0sfurniture:roughbench-west w4rd0sfurniture:roughstool-west
 w4rd0sfurniture:roughchairdining-north w4rd0sfurniture:roughchairdining-east
 w4rd0sfurniture:roughchairdining-south w4rd0sfurniture:roughchairdining-west
-heraldrybanners:pole-banner-wall2-north
+heraldrybanners:pole-banner-wall2-north heraldrybanners:pole-banner-wall2-east heraldrybanners:pole-banner-wall2-south
 createacolony:waypoint-mine createacolony:waypoint-quarry
 game:lantern-small-down game:lantern-small-north game:lantern-small-east game:lantern-small-south game:lantern-small-west
+game:soil-medium-none game:soil-medium-normal game:soil-medium-sparse game:soil-medium-verysparse
 """.split())
 for _half in ("up", "down"):
     for _side in ("north", "east", "south", "west"):
@@ -119,6 +120,9 @@ for _joins in ("e", "es", "ew", "n", "ne", "new", "ns", "nw", "s", "sw", "w"):
 
 # Vanilla variants of blocks Aaron's exports use, not seen in an export themselves.
 CONFIDENT = {chest(s) for s in ("north", "east", "south", "west")}
+# Ladders on the other walls, a torch and a lantern standing on the floor.
+CONFIDENT.update(f"game:ladder-wood-oak-{s}" for s in ("east", "south", "west"))
+CONFIDENT.update({"game:torch-basic-lit-up", "game:lantern-small-up"})
 for _joins in ("nesw", "esw", "nes", "new", "nsw"):
     CONFIDENT.update({FENCE.format(_joins), DRYSTONE.format(_joins), WATTLE.format(_joins)})
 CONFIDENT -= VERIFIED
@@ -156,7 +160,7 @@ def door_data(code, x, y, z, rot):
 
 
 # Lanterns as in Aaron's exports: copper, plain lining, quartz glass, turned to face out from the wall.
-LANTERN_ANGLE = {"south": 0.0, "west": -math.pi / 2, "north": -math.pi, "east": math.pi / 2, "down": -math.pi / 4}
+LANTERN_ANGLE = {"south": 0.0, "west": -math.pi / 2, "north": -math.pi, "east": math.pi / 2, "down": -math.pi / 4, "up": -math.pi / 4}
 
 
 def lantern_data(x, y, z, facing):
@@ -501,7 +505,7 @@ def hut_code(type):
     return f"createacolony:{type}" if type in ("townhall", "warehouse", "supplycamp") else HUT.format(type)
 
 
-def check(bp, type, needs=()):
+def check(bp, type, needs=(), door_needed=True):
     """The rules a blueprint must follow for the mod's builders. Returns a list of problems."""
     at = blocks_of(bp)
     problems = []
@@ -512,7 +516,7 @@ def check(bp, type, needs=()):
     if len(huts) != 1:
         problems.append(f"needs exactly one hut block, has {len(huts)}")
     doors = [p for p, c in at.items() if c.startswith("game:door-")]
-    if not doors and type != "supplycamp":
+    if not doors and type != "supplycamp" and door_needed:
         problems.append("no door")
     for (x, y, z) in doors:
         if at.get((x, y + 1, z)) != DOOR_TOP:
@@ -526,25 +530,38 @@ def check(bp, type, needs=()):
         if at.get((hx, hy + 1, hz)) is not None:
             problems.append("the hut block is covered")
     for (x, y, z), c in at.items():
-        if c.startswith("game:ladder-") and at.get((x, y, z - 1)) in (None, DOOR_TOP) or c.startswith("game:ladder-") and at.get((x, y, z - 1), "").startswith("game:ladder-"):
-            problems.append(f"ladder at {(x, y, z)} has nothing to hang on north of it")
+        if c.startswith("game:ladder-"):
+            side = c.rsplit("-", 1)[1]
+            dx, dz = SIDES[side]
+            behind = at.get((x + dx, y, z + dz))
+            if behind in (None, DOOR_TOP) or behind.startswith("game:ladder-"):
+                problems.append(f"ladder at {(x, y, z)} has nothing to hang on {side} of it")
         if c == "game:bed-hay-head-east" and at.get((x + 1, y, z)) != "game:bed-hay-feet-east":
             problems.append(f"hay bed at {(x, y, z)} has lost its foot end")
         if c == "game:bed-wood-head-north" and at.get((x, y, z - 1)) != "game:bed-wood-feet-north":
             problems.append(f"wooden bed at {(x, y, z)} has lost its foot end")
         if c == "game:lantern-small-down" and at.get((x, y + 1, z)) is None:
             problems.append(f"hanging lantern at {(x, y, z)} has nothing above it")
-        if c.startswith(("game:lantern-small-", "game:torch-basic-lit-")) and not c.endswith("-down"):
+        if c in ("game:lantern-small-up", "game:torch-basic-lit-up") and at.get((x, y - 1, z)) is None:
+            problems.append(f"{c.split(':')[1]} at {(x, y, z)} has nothing to stand on")
+        if c.startswith(("game:lantern-small-", "game:torch-basic-lit-")) and not c.endswith(("-down", "-up")):
             facing = c.rsplit("-", 1)[1]
             dx, dz = SIDES[OPPOSITE[facing]]
             if at.get((x + dx, y, z + dz)) in (None, DOOR_TOP):
                 problems.append(f"{c.split(':')[1]} at {(x, y, z)} has no wall behind it")
         if c.startswith("game:door-"):
-            for dz in (-1, 1):
+            # The door is in the wall on the side with more blocks beside it; nothing may stand in front or behind.
+            def solid(dx, dz):
+                return sum(1 for d in (-1, 1) for dy in (0, 1)
+                           if (at.get((x + d * dx, y + dy, z + d * dz)) or DOOR_TOP) != DOOR_TOP
+                           and not at[(x + d * dx, y + dy, z + d * dz)].startswith("game:door-"))
+            ax, az = (0, 1) if solid(1, 0) >= solid(0, 1) else (1, 0)
+            for d in (-1, 1):
                 for dy in (0, 1):
-                    other = at.get((x, y + dy, z + dz))
-                    if other and not other.startswith(("game:torch", "heraldry", "game:ladder-")):
-                        problems.append(f"door at {(x, y, z)} is blocked by {other} at {(x, y + dy, z + dz)}")
+                    p = (x + d * ax, y + dy, z + d * az)
+                    other = at.get(p)
+                    if other and not other.startswith(("game:torch", "heraldry", "game:ladder-", "game:lantern", "game:door-")) and other != DOOR_TOP:
+                        problems.append(f"door at {(x, y, z)} is blocked by {other} at {p}")
     for need in needs:
         if not any(need(c) for c in at.values()):
             problems.append(f"missing a work block ({need.__doc__})")

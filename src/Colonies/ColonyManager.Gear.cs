@@ -287,8 +287,8 @@ public partial class ColonyManager
     }
 
     /// <summary>
-    /// Picks up items lying within reach, like a player walking over them. Only settlers who have somewhere
-    /// to take them (a hut, or the warehouse for those without one) pick things up. Returns how many items.
+    /// Picks up items lying within reach, like a player walking over them. Workers take them to their hut;
+    /// settlers without a job carry them until they take a load to the warehouse (AiTaskSettlerCourier). Returns how many items.
     /// </summary>
     public int PickUpNearby(Colony colony, CitizenRecord citizen, EntityAgent settler, float range)
     {
@@ -320,8 +320,7 @@ public partial class ColonyManager
     }
 
     bool CanCollectItems(Colony colony, CitizenRecord citizen) =>
-        Config.SettlersPickUpItems && citizen.Alive && !citizen.Visitor && !citizen.IsChild && !citizen.IsDowned
-        && (citizen.WorkplacePos != null || colony.WarehousePos != null);
+        Config.SettlersPickUpItems && citizen.Alive && !citizen.Visitor && !citizen.IsChild && !citizen.IsDowned;
 
     /// <summary>Items a player dropped are left alone for a few seconds, so a settler does not snatch what was just thrown.</summary>
     bool Collectible(EntityItem item) =>
