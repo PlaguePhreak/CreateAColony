@@ -53,7 +53,11 @@ public partial class ColonyManager
     /// <summary>True when every slot holds something, so the next new kind of item has nowhere to go.</summary>
     public bool PackFull(CitizenRecord citizen) => PackItems(citizen).Count >= PackSlots(citizen);
 
-    public int PackCount(CitizenRecord citizen, ItemMatch match) => PackItems(citizen).Where(match).Sum(s => s.StackSize);
+    /// <summary>How many matching items the settler carries, in its inventory and on its tool bar.</summary>
+    public int PackCount(CitizenRecord citizen, ItemMatch match) => CarriedItems(citizen).Where(match).Sum(s => s.StackSize);
+
+    /// <summary>The inventory and the tool bar together, for jobs looking for a tool or weapon they carry.</summary>
+    public List<ItemStack> CarriedItems(CitizenRecord citizen) => PackItems(citizen).Concat(ToolBarItems(citizen).OfType<ItemStack>()).ToList();
 
     /// <summary>Stores the inventory back after stacks were changed in place; empty stacks are dropped.</summary>
     public void SavePack(Colony colony, CitizenRecord citizen, IEnumerable<ItemStack> stacks)
@@ -62,12 +66,20 @@ public partial class ColonyManager
         MarkDirty(colony);
     }
 
-    /// <summary>Puts as much of the stack as fits into the settler's inventory. The stack keeps what did not fit.</summary>
+    /// <summary>
+    /// Puts as much of the stack as fits into the settler's inventory. A tool, weapon or shield goes to its
+    /// free tool bar slot first. The stack keeps what did not fit.
+    /// </summary>
     public int AddToPack(Colony colony, CitizenRecord citizen, ItemStack stack)
     {
+        int moved = 0;
+        if (stack.StackSize > 0 && PutOnToolBar(colony, citizen, stack))
+        {
+            moved = 1;
+            if (stack.StackSize <= 0) return moved;
+        }
         var items = PackItems(citizen);
         int slots = PackSlots(citizen);
-        int moved = 0;
         foreach (var slot in items)
         {
             if (stack.StackSize <= 0) break;
@@ -90,9 +102,13 @@ public partial class ColonyManager
         return moved;
     }
 
-    /// <summary>Takes up to max items of one kind (the first match decides the kind) out of the settler's inventory.</summary>
+    /// <summary>
+    /// Takes up to max items of one kind (the first match decides the kind) out of the settler's inventory,
+    /// or a matching tool off its tool bar when the inventory has none.
+    /// </summary>
     public ItemStack? TakeFromPack(Colony colony, CitizenRecord citizen, ItemMatch match, int max)
     {
+        if (!PackItems(citizen).Any(match) && max > 0 && TakeFromToolBar(colony, citizen, match) is { } tool) return tool;
         var items = PackItems(citizen);
         ItemStack? taken = null;
         foreach (var slot in items)
@@ -134,12 +150,14 @@ public partial class ColonyManager
         return PackEmpty(citizen);
     }
 
-    /// <summary>Everything the settler has, for dropping where it died. Clears the inventory and bags.</summary>
+    /// <summary>Everything the settler has, for dropping where it died. Clears the inventory, bags, tool bar and packed food.</summary>
     public List<ItemStack> EmptyPackAndBags(Colony colony, CitizenRecord citizen)
     {
-        var all = PackItems(citizen).Concat(PackBags(citizen)).ToList();
+        var all = PackItems(citizen).Concat(PackBags(citizen)).Concat(ToolBarItems(citizen).OfType<ItemStack>()).Concat(LunchItems(citizen)).ToList();
         citizen.Pack.Clear();
         citizen.Bags.Clear();
+        citizen.ToolBar.Clear();
+        citizen.Lunch.Clear();
         MarkDirty(colony);
         return all;
     }

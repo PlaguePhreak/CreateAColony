@@ -422,4 +422,22 @@ public class ColonyConfig
     public int[] SkillCapByBuildingLevel = { 4, 6, 8, 10 };
     /// <summary>No skill effect multiplies a number by more than this (or less than one over it).</summary>
     public float SkillEffectMax = 2f;
+
+    // Settler gear and inventory (see ColonyManager.Gear.cs and ColonyManager.Lunch.cs)
+    /// <summary>The character class whose starting clothes new settlers wear ("commoner" is the game's default class).</summary>
+    public string SettlerClothesClass = "commoner";
+    /// <summary>Settlers pick up items lying near them and take them to their hut (or the warehouse).</summary>
+    public bool SettlersPickUpItems = true;
+    /// <summary>Settlers leave items alone for this long after they land, so they do not grab what a player just dropped.</summary>
+    public float PickUpDelaySeconds = 5f;
+    /// <summary>An idle settler walks to items on the ground within this many blocks. 0: only what it walks over.</summary>
+    public int PickUpRange = 10;
+    /// <summary>Settlers carry food to eat on the go and snack while they work, so their stomach stays nearly full.</summary>
+    public bool CarryFood = true;
+    /// <summary>How much food a settler packs when it gets some, in saturation: 1200 is one full stomach.</summary>
+    public float CarryFoodSaturation = 1200f;
+    /// <summary>In the dark settlers hold a lit torch they carry, and fetch one from their hut or the warehouse when they have none.</summary>
+    public bool CarryTorches = true;
+    /// <summary>Workers within this many blocks of their hut drop off what they do not need on their way past.</summary>
+    public int DepositNearHut = 8;
 }

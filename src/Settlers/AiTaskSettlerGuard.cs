@@ -287,7 +287,7 @@ public class AiTaskSettlerGuard : SettlerTaskBase
     {
         var hand = Hand;
         if (hand == null) return;
-        var best = manager!.PackItems(citizen).Where(ColonyManager.IsWeapon).OrderByDescending(ColonyManager.WeaponDamage).FirstOrDefault();
+        var best = manager!.CarriedItems(citizen).Where(ColonyManager.IsWeapon).OrderByDescending(ColonyManager.WeaponDamage).FirstOrDefault();
         if (best == null) return;
         if (hand.Itemstack is { } held && ColonyManager.IsWeapon(held) && ColonyManager.WeaponDamage(held) >= ColonyManager.WeaponDamage(best)) return;
         var weapon = manager.TakeFromPack(colony, citizen, s => s.Collectible.Code.Equals(best.Collectible.Code), 1);

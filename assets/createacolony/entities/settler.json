@@ -6,15 +6,20 @@
 	"eyeHeight": 1.6,
 	"hitboxSize": { "x": 0.6, "y": 1.85 },
 	"deadHitboxSize": { "x": 0.75, "y": 0.5 },
+	// SettlerLooks (src/Settlers/SettlerLooks.cs) copies the player's model, textures and skin parts
+	// (the player character creator) in here when the game loads, and adds the "extraskinnable" behavior.
+	// What is written below is only the fallback if the player's entity cannot be read.
 	"attributes": {
-		"outfitConfigFileName": "game:villageraccessories-{sex}"
+		"mainTextureCode": "skin1"
 	},
 	"client": {
 		"renderer": "Shape",
 		// Humanoid model from VS Village (MIT), see THIRD_PARTY_NOTICES.md. Uses vanilla skin textures.
 		"shape": { "base": "createacolony:entity/humanoid/settler-{sex}" },
+		"textures": { "skin1": { "base": "game:entity/humanoid/villagerbody/skin/normal3" } },
 		"behaviors": [
 			{ "code": "villagerinventory" },
+			{ "code": "seraphinventory" },
 			{ "code": "nametag", "showtagonlywhentargeted": true },
 			{ "code": "repulseagents" },
 			{ "code": "controlledphysics", "stepHeight": 1.1 },
@@ -34,6 +39,7 @@
 	"server": {
 		"behaviors": [
 			{ "code": "villagerinventory" },
+			{ "code": "seraphinventory" },
 			{ "code": "nametag", "showtagonlywhentargeted": true },
 			{ "code": "repulseagents" },
 			{ "code": "controlledphysics", "stepHeight": 1.1 },

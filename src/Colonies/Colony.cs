@@ -75,6 +75,20 @@ public class CitizenRecord
     [ProtoMember(28)] public Dictionary<string, int> SkillXp = new();
     /// <summary>Whether starting skills were rolled, so settlers from saves before skills get theirs once.</summary>
     [ProtoMember(29)] public bool SkillsRolled;
+    // 30-39 are left for the traits and quest work.
+    /// <summary>
+    /// The tool bar, kept apart from the inventory: weapon, three tools, offhand (see ColonyManager.Gear.cs).
+    /// Serialized stacks, an empty array where a slot is empty.
+    /// </summary>
+    [ProtoMember(40)] public List<byte[]> ToolBar = new();
+    /// <summary>Clothes worn, by the game's dress slot (EnumCharacterDressType 0-11); an empty array where the slot is empty.</summary>
+    [ProtoMember(41)] public List<byte[]> Clothes = new();
+    /// <summary>Set once the settler got its starting (Commoner) clothes, so clothes a player takes off stay off.</summary>
+    [ProtoMember(42)] public bool Dressed;
+    /// <summary>The settler's look from the player character creator: skin part code to chosen variant.</summary>
+    [ProtoMember(43)] public Dictionary<string, string> Skin = new();
+    /// <summary>Food the settler carries to eat on the go, kept apart from the inventory so it is never unloaded with the harvest.</summary>
+    [ProtoMember(44)] public List<byte[]> Lunch = new();
 
     public bool IsDowned => DownedUntilTotalDays > 0;
     public bool IsChild => GrowsUpTotalDays > 0;
