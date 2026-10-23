@@ -19,7 +19,7 @@ public class AiTaskSettlerQuarrier : AiTaskSettlerDigger
 
     protected override string Job => Jobs.Quarrier;
     protected override string HutType => BuildingTypes.Quarry;
-    protected override float WorkSeconds => manager!.Config.QuarrySecondsPerBlock;
+    protected override float WorkSeconds => ToolSeconds(manager!.Config.QuarrySecondsPerBlock);
 
     protected override bool PlanWork(Colony colony, CitizenRecord citizen, Building hut, List<BlockEntityContainer> storage)
     {

@@ -61,6 +61,9 @@ public abstract class AiTaskSettlerWorker : SettlerTaskBase
     /// <summary>Other things the worker keeps in its inventory instead of taking them to the hut.</summary>
     protected virtual bool AlsoKeeps(ItemStack stack) => false;
 
+    /// <summary>The tool to hold for the work at hand; the job's own tool unless the job picks per task (diggers: shovel or pickaxe).</summary>
+    protected virtual bool WantsInHand(ItemStack? stack) => IsToolStack(stack);
+
     /// <summary>Where to walk for the current target; the ground beside it unless a job says otherwise.</summary>
     protected virtual Vec3d WalkGoal() => target.ToVec3d().Add(0.5, 0, 0.5);
 
@@ -309,8 +312,8 @@ public abstract class AiTaskSettlerWorker : SettlerTaskBase
             PutAwayHand(colony, citizen);
             return;
         }
-        if (IsToolStack(hand.Itemstack)) return;
-        var tool = manager!.TakeFromPack(colony, citizen, s => IsToolStack(s), 1);
+        if (WantsInHand(hand.Itemstack)) return;
+        var tool = manager!.TakeFromPack(colony, citizen, s => WantsInHand(s), 1);
         if (tool == null) return;
         PutAwayHand(colony, citizen);
         hand.Itemstack = tool;
