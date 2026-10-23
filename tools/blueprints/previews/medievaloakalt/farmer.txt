@@ -1,0 +1,91 @@
+Farmer's Hut (Medieval Oak (Alt)), from MineColonies' altfarmer: what each level needs, one item per block
+
+medievaloakalt farmer level 1 (from altfarmer1): 11x4x14, 205 blocks, 0 beds, 0 chests
+    no door (open-sided in MineColonies), so it is placed facing the way it was drawn
+      129  soil-medium-none
+       21  packeddirt
+       16  drystonefence-shale
+       14  cobblestonestairs-shale
+       12  planks-oak-hor
+        8  log-placed-oak-ud
+        4  hay-normal-ud
+
+medievaloakalt farmer level 2 (from altfarmer2): 11x7x14, 352 blocks, 0 beds, 0 chests
+    no door (open-sided in MineColonies), so it is placed facing the way it was drawn
+      124  soil-medium-none
+       60  cobblestonestairs-shale
+       42  cobblestoneslab-shale
+       40  planks-oak-hor
+       28  drystonefence-shale
+       24  log-placed-oak-ud
+       22  packeddirt
+        8  hay-normal-ud
+        2  torch-basic-lit
+        1  roughtable-north
+
+medievaloakalt farmer level 3 (from altfarmer3): 15x9x18, 591 blocks, 0 beds, 0 chests
+    left out: carved_pumpkin 1
+    no door (open-sided in MineColonies), so it is placed facing the way it was drawn
+      129  soil-medium-none
+      116  cobblestonestairs-shale
+       92  planks-oak-hor
+       73  cobblestoneslab-shale
+       52  log-placed-oak-ud
+       30  drystonefence-shale
+       26  stonepath-free
+       20  cobblestone-shale
+       19  packeddirt
+       17  hay-normal-ud
+        6  log-placed-oak-we
+        4  mudbrick-light
+        3  torch-basic-lit
+        1  storagevessel-red-fired
+        1  barrel
+        1  roughtable-north
+
+medievaloakalt farmer level 4 (from altfarmer4): 13x12x18, 847 blocks, 0 beds, 0 chests
+    left out: carved_pumpkin 6, melon 2, flower_pot 1
+    no door (open-sided in MineColonies), so it is placed facing the way it was drawn
+      172  stonebrickstairs-shale
+      126  soil-medium-none
+       86  planks-oak-hor
+       80  cobblestone-shale
+       58  stonebricks-shale
+       56  log-placed-oak-ud
+       51  mudbrick-light
+       43  cobblestonestairs-shale
+       42  cobblestoneslab-shale
+       31  hay-normal-ud
+       24  log-placed-oak-we
+       20  drystonefence-shale
+       19  log-placed-oak-ns
+       18  stonepath-free
+        8  barrel
+        7  lantern-small
+        3  torch-basic-lit
+        1  storagevessel-red-fired
+        1  roughtable-north
+
+medievaloakalt farmer level 5 (from altfarmer5): 13x12x18, 916 blocks, 0 beds, 0 chests
+    left out: carved_pumpkin 10, melon 7, glass_pane 4, chain 3, oak_leaves 2, potted_oak_sapling 1, flower_pot 1
+    no door (open-sided in MineColonies), so it is placed facing the way it was drawn
+      199  stonebrickstairs-shale
+      125  soil-medium-none
+      102  stonebricks-shale
+       83  planks-oak-hor
+       69  mudbrick-light
+       63  log-placed-oak-ud
+       48  cobblestoneslab-shale
+       41  hay-normal-ud
+       37  cobblestone-shale
+       31  log-placed-oak-we
+       28  drystonefence-shale
+       16  stonepath-free
+       16  cobblestonestairs-shale
+       16  log-placed-oak-ns
+       12  rockpolished-shale
+       11  lantern-small
+       10  barrel
+        5  ladder-wood-oak-north
+        2  storagevessel-red-fired
+        1  roughtable-north

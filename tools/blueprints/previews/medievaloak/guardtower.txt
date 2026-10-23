@@ -1,0 +1,112 @@
+Guard Tower (Medieval Oak), from MineColonies' guardtower: what each level needs, one item per block
+
+medievaloak guardtower level 1 (from guardtower1): 5x14x6, 189 blocks, 1 beds, 1 chests
+    left out: oak_trapdoor 8, oak_button 2
+    a chest for weapons at (-1, 0, -1)
+    a bed at (0, 4, 1)
+      122  cobblestone-shale
+       18  log-placed-oak-ud
+       16  cobblestoneslab-shale
+        7  cobblestonestairs-shale
+        6  drystonefence-shale
+        4  packeddirt
+        4  ladder-wood-oak-east
+        4  log-placed-oak-ns
+        2  torch-basic-lit
+        2  bed-hay (half: 2 blocks = 1 bed)
+        1  door-solid-oak
+        1  chest
+
+medievaloak guardtower level 2 (from guardtower2): 5x17x6, 245 blocks, 1 beds, 1 chests
+    left out: oak_button 4, oak_trapdoor 2
+    a chest for weapons at (-1, 0, -1)
+    a bed at (0, 5, -1)
+       72  soil-medium-none
+       66  cobblestone-shale
+       41  cobblestonestairs-shale
+       20  log-placed-oak-ud
+       10  log-placed-oak-we
+       10  cobblestoneslab-shale
+        7  log-placed-oak-ns
+        5  ladder-wood-oak-south
+        4  planks-oak-hor
+        3  torch-basic-lit
+        2  bed-hay (half: 2 blocks = 1 bed)
+        1  door-solid-oak
+        1  chest
+        1  drystonefence-shale
+
+medievaloak guardtower level 3 (from guardtower3): 7x21x7, 431 blocks, 1 beds, 1 chests
+    a chest for weapons at (-1, 0, -1)
+    a bed at (0, 3, -3)
+      130  soil-medium-none
+       83  log-placed-oak-ud
+       68  cobblestonestairs-shale
+       61  cobblestone-shale
+       37  cobblestoneslab-shale
+       17  drystonefence-shale
+       11  log-placed-oak-we
+        8  log-placed-oak-ns
+        4  ladder-wood-oak-west
+        3  ladder-wood-oak-east
+        2  torch-basic-lit
+        2  bed-hay (half: 2 blocks = 1 bed)
+        1  stonepath-free
+        1  door-solid-oak
+        1  chest
+
+medievaloak guardtower level 4 (from guardtower4): 7x23x7, 485 blocks, 1 beds, 1 chests
+    left out: flower_pot 1
+    a chest for weapons at (-1, 0, 0)
+    a bed at (0, 3, -1)
+      236  cobblestone-shale
+       86  soil-medium-none
+       45  cobblestonestairs-shale
+       29  cobblestoneslab-shale
+       23  plankstairs-oak
+       13  log-placed-oak-ud
+        9  drystonefence-shale
+        6  rockpolished-shale
+        6  log-placed-oak-ns
+        5  plankslab-oak
+        4  torch-basic-lit
+        4  ladder-wood-oak-north
+        3  ladder-wood-oak-west
+        3  ladder-wood-oak-south
+        3  log-placed-oak-we
+        2  bed-hay (half: 2 blocks = 1 bed)
+        1  stonepath-free
+        1  door-solid-oak
+        1  chest
+        1  hay-normal-ud
+        1  barrel
+        1  pole-banner-wall2-north
+
+medievaloak guardtower level 5 (from guardtower5): 7x27x7, 609 blocks, 1 beds, 1 chests
+    left out: flower_pot 2, carved_pumpkin 1
+    a chest for weapons at (-1, 0, 0)
+      175  stonebricks-shale
+      137  cobblestone-shale
+       62  soil-medium-none
+       42  plankstairs-oak
+       37  cobblestoneslab-shale
+       33  stonebrickstairs-shale
+       17  plankslab-oak
+       17  log-placed-oak-ud
+       16  drystonefence-shale
+       15  cobblestonestairs-shale
+        9  torch-basic-lit
+        8  log-placed-oak-ns
+        6  rockpolished-shale
+        6  ladder-wood-oak-north
+        6  log-placed-oak-we
+        4  ladder-wood-oak-east
+        4  ladder-wood-oak-south
+        3  barrel
+        3  ladder-wood-oak-west
+        2  bed-wood (half: 2 blocks = 1 bed)
+        1  hay-normal-ud
+        1  door-solid-oak
+        1  chest
+        1  pole-banner-wall2-east
+        1  pole-banner-wall2-north

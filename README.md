@@ -118,7 +118,7 @@ Buildings grow from blueprints, which are ordinary WorldEdit exports. Build the 
 creative world with its hut block where the hut should stand, select it with WorldEdit, and run
 `/we export <name>`. Copy the file from `VintagestoryData/WorldEdit/` to
 `VintagestoryData/ModConfig/createacolony/blueprints/<pack>/<type>/level<N>.json`, where `<pack>` is
-`twelfthcentury`, `kcd2` or `devsbuilds`, `<type>` is the building (`townhall`, `builder`, `farmer`, `forester`,
+`medievaloak`, `medievaloakalt` or `devsbuilds`, `<type>` is the building (`townhall`, `builder`, `farmer`, `forester`,
 `cook`, `potter`, `residence`, `guardtower`, `tavern`, `warehouse`, `prospector`, `miner`, `quarry`) and
 `<N>` is 1 to 5. `/colony reloadblueprints` picks up changes without a restart. Blueprints in ModConfig
 override the ones shipped in `assets/createacolony/config/blueprints/`.
@@ -130,35 +130,30 @@ asks which pack you want; every building you place after that is built from that
 **Change pack** tab at the bottom of the wand's list picks another one. A building keeps the pack it was
 placed in for every level, also after you change packs. Your choice is saved with the world, per player.
 
-- **12th Century Inspired** (`blueprints/twelfthcentury/`, the default): every building, levels 1 to 5,
-  designed for the mod after buildings of the 1100s. Small buildings start as timber-framed cottages with
-  wattle and daub walls on a stone sill and thatched roofs; later levels add rooms, upper storeys, oak
-  shingle roofs, stone ground floors, and at level 5 stone halls and towers with battlements (a keep
-  tower on the Town Hall, a walled bailey on the Guard Tower, a stone tithe barn for the Warehouse).
-  Each level has what its hut needs: beds in the Residence (2, 4, 6, 8, 12), the Guard Tower and the
-  Tavern's rooms, chests in the Warehouse (4, 8, 12, 16, 20, all within its reach), a hearth in the Cook's
-  Hut and the Tavern (more fire pits and clay ovens later), the Mine waypoint under a headframe at the
-  Miner's Hut, and the Quarry waypoint well clear of the Quarry so the pit has room. The Supply Camp has a
-  one-level camp (a thatched shelter, two hay beds, a fire ring) put down with it. Tables, benches and
-  chairs come from W4RD0's Furniture and the pennants from Heraldry : Banners; without those mods they are
-  simply left out. Pictures of every level are in `tools/blueprints/previews/twelfthcentury/`.
-- **KCD2 Inspired** (`blueprints/kcd2/`, since 0.47.0): every building, levels 1 to 5, and the Supply
-  Camp, inspired by the Bohemian villages and towns of Kingdom Come: Deliverance II (around 1400). Timber
-  frames filled with pale cob, with braces under the wall plates, on stone sills; steep roofs (two blocks
-  up for each block in), thatch on village cottages and oak shingles in town; stone ground floors with a
-  jettied timber storey over them; stone chimneys on the hearths; wattle fences round gardens and yards;
-  copper lanterns from level 3. The Town Hall gets an arcade under its jettied front at level 4 and a stone tower
-  with a timber top storey at level 5; the Guard Tower is a wooden watchtower that becomes a stone tower
-  with a jettied timber fighting storey and a log palisade. The jobs' needs (beds, chests, hearths,
-  waypoints, the Warehouse's reach, open ground by the Potter's Hut) are met as in 12th Century Inspired.
-  Pictures are in `tools/blueprints/previews/kcd2/`.
+- **Medieval Oak** (`blueprints/medievaloak/`, the default since 0.48.0): MineColonies' Medieval Oak style,
+  converted from Aaron's copy of its `.blueprint` files by `tools/blueprints/convert_minecolonies.py`.
+  Every building, levels 1 to 5 (the Tavern has 3, as in MineColonies), and the Supply Camp. MineColonies
+  has no potter, prospector or quarry, so those use its closest workshops: the Glassblower for the
+  Potter's Hut, the Sifter for the Prospector's Hut and the Stonemason for the Quarry. What our jobs need
+  and MineColonies does not have is added: a fire pit in the Tavern (in place of an oven in the Cook's Hut
+  when it has none), the Mine waypoint at the bottom of the Miner's shaft ladder, the Quarry waypoint 8
+  blocks beyond the Stonemason's north wall so the pit misses the building, and a bed and a weapons
+  chest in Guard Towers without them. Some buildings are open-sided in MineColonies and have no door, so
+  they are placed the way they were drawn. The Warehouse's storage racks become chests, but only those
+  within the warehouse block's reach (`WarehouseRadius` 5, `WarehouseHeight` 3) count: 10 to 24 of them.
+  Pictures of every level are in `tools/blueprints/previews/medievaloak/`.
+- **Medieval Oak (Alt)** (`blueprints/medievaloakalt/`): MineColonies' alternative Medieval Oak
+  buildings for the Town Hall, Builder, Farmer, Forester (Lumberjack), Cook, Residence, Guard Tower,
+  Warehouse and Miner; the other buildings are the same as in Medieval Oak.
 - **Dev's Builds** (`blueprints/devsbuilds/`): Aaron's own buildings: Town Hall 1 to 4, Builder's Hut 1
   to 4, Guard Tower 1 to 5, Cook's Hut 1 and Residence 1 (since 0.46.0). Other buildings have no
   blueprint in this pack yet, and the list says so.
 
 The old **Testing** style and its sample blueprints were removed in 0.46.0. Buildings that were placed
 in it keep working: Town Halls and Builder's Huts (built from Dev's Builds since 0.26.1) move to Dev's
-Builds, everything else to 12th Century Inspired, which builds its next level. Since the Warehouse now
+Builds, everything else to the default pack, which builds its next level. The 12th Century Inspired
+(0.46.0) and KCD2 Inspired (0.47.0) packs were removed in 0.48.0 the same way: their buildings move to
+Medieval Oak, and players who had picked one are asked for a pack again. Since the Warehouse now
 has levels too, it still works as soon as it is placed, and keeps its land claim before it is built.
 
 The placement window's **Level down** and **Level up** buttons flip the preview through every level
@@ -173,17 +168,29 @@ torch counts as built whether it is lit or burned out. Items lying on the ground
 left out. Empty space below the hut's floor is dug out only when the blueprint has blocks both under
 and over it (a cellar); elsewhere the ground below the floor is left alone.
 
-### Making blueprints with the generator
+### Converting MineColonies blueprints
 
-`tools/blueprints/make_packs.py` (Python 3 with Pillow) makes the 12th Century Inspired pack from the
-designs in `tools/blueprints/designs.py` and the KCD2 Inspired pack from `tools/blueprints/designs_kcd2.py`
-(`make_packs.py kcd2` makes one pack, `make_packs.py kcd2 tavern` one building), built with the walls, roofs, doors and furniture in
-`tools/blueprints/kit.py`. Only blocks from Aaron's own exports (and a few plain variants of them, such
-as chests and other fence joins) may be used. Every level is checked before it is written: one hut block,
-doors with their top half and saved direction and nothing standing in their way, ladders, torches and lanterns with something
-behind them, whole beds, and the work blocks the hut needs. It prints how much of each level stays in
-place at the next one, and draws all five levels of each building, whole and cut away, in
-`tools/blueprints/previews/<pack>/`, with a list of what each level needs.
+`tools/blueprints/convert_minecolonies.py <style folder> [--library <out folder>]` (Python 3 with Pillow)
+turns a MineColonies style (`.blueprint` files, gzipped NBT) into the Medieval Oak packs. Each Minecraft
+block becomes the nearest block from Aaron's own exports (and a few plain variants of them, such as
+chests, other fence joins, ladders on other walls) in `tools/blueprints/kit.py`: oak for every wood,
+shale for every stone (natural stone as cobblestone, since rock cannot be carried), light mud brick for
+plaster and pale bricks, oak plank stairs for Domum Ornamentum shingles, and the infill of its timber
+frames as the frame block. Glass, carpets, plants, signs, redstone and other things with nothing close
+are left out, and the run lists them per building. Structurize's "keep what is there" placeholders are
+left out and its "solid ground" placeholder becomes soil. Beds lie the two ways the kit knows (hay beds
+east to west, wooden beds north to south), in the same two blocks.
+
+Every level is checked before it is written: one hut block with something under it and nothing on it,
+doors with their top half and saved direction and nothing standing in their way, ladders, torches and
+lanterns with something behind or under them, whole beds, and the work blocks the hut needs. Loose
+furnishings in a doorway are taken out and planks go behind a ladder with nothing to hang on. It draws
+all levels of each building, whole and cut away, in `tools/blueprints/previews/<pack>/`, with a list of
+what each level needs. With `--library` it also writes every blueprint in the style, the buildings this
+mod has no hut for too, as a plain WorldEdit export for `/we import`.
+
+The in-game `/colony importmc` (below) does the same for one file, matching each block against the
+installed game instead, so it can use other woods and rocks.
 
 `tools/blueprints/import_devsbuilds.py <folder>` copies Aaron's exports into Dev's Builds (files named
 like `TownHallLevel1.json`, `GuardTowerLevel5.json`). It checks the same things, adds a hut block where

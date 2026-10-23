@@ -1,0 +1,103 @@
+Prospector's Hut (Medieval Oak (Alt)), from MineColonies' sifter: what each level needs, one item per block
+
+medievaloakalt prospector level 1 (from sifter1): 11x8x16, 500 blocks, 0 beds, 0 chests
+    left out: water 62, oak_trapdoor 1, oak_pressure_plate 1
+    no door (open-sided in MineColonies), so it is placed facing the way it was drawn
+      295  soil-medium-none
+       48  cobblestonestairs-shale
+       36  planks-oak-hor
+       35  log-placed-oak-ud
+       30  cobblestoneslab-shale
+       16  drystonefence-shale
+       13  log-placed-oak-we
+       11  packeddirt
+       10  log-placed-oak-ns
+        4  torch-basic-lit
+        1  plankslab-oak
+
+medievaloakalt prospector level 2 (from sifter2): 11x9x16, 607 blocks, 0 beds, 0 chests
+    left out: water 71, oak_trapdoor 2, stone_pressure_plate 1
+      289  soil-medium-none
+       79  cobblestonestairs-shale
+       48  log-placed-oak-ud
+       47  planks-oak-hor
+       38  cobblestone-shale
+       38  cobblestoneslab-shale
+       16  log-placed-oak-we
+       15  drystonefence-shale
+       12  packeddirt
+       12  log-placed-oak-ns
+        4  torch-basic-lit
+        3  stonepath-free
+        3  plankslab-oak
+        1  door-solid-oak
+
+medievaloakalt prospector level 3 (from sifter3): 11x14x16, 778 blocks, 0 beds, 1 chests
+    left out: water 95, oak_trapdoor 11, glass_pane 4, oak_fence_gate 1, heavy_weighted_pressure_plate 1, potted_oak_sapling 1
+      197  soil-medium-none
+      149  cobblestone-shale
+      106  cobblestonestairs-shale
+       68  log-placed-oak-ud
+       66  cobblestoneslab-shale
+       51  planks-oak-hor
+       39  drystonefence-shale
+       20  packeddirt
+       20  log-placed-oak-we
+       20  log-placed-oak-ns
+       16  rockpolished-shale
+        5  plankslab-oak
+        5  stonepath-free
+        4  torch-basic-lit
+        4  mudbrick-light
+        4  stonebricks-shale
+        1  chest
+        1  door-solid-oak
+
+medievaloakalt prospector level 4 (from sifter4): 11x14x16, 907 blocks, 0 beds, 3 chests
+    left out: water 103, oak_trapdoor 16, iron_bars 11, glass_pane 7, oak_fence_gate 2, stone_button 2, dispenser 1, flower_pot 1 and more
+      190  soil-medium-none
+      110  cobblestone-shale
+       98  stonebricks-shale
+       84  log-placed-oak-ud
+       63  cobblestonestairs-shale
+       63  cobblestoneslab-shale
+       46  plankstairs-oak
+       45  log-placed-oak-we
+       35  log-placed-oak-ns
+       29  plankslab-oak
+       29  drystonefence-shale
+       27  mudbrick-light
+       24  stonebrickstairs-shale
+       17  stonepath-free
+       17  planks-oak-hor
+       15  rockpolished-shale
+        4  ladder-wood-oak-north
+        4  torch-basic-lit
+        3  chest
+        1  roughtable-north
+        1  door-solid-oak
+
+medievaloakalt prospector level 5 (from sifter5): 11x16x16, 1009 blocks, 0 beds, 5 chests
+    left out: water 103, oak_trapdoor 19, iron_bars 11, oak_leaves 5, light_gray_stained_glass_pane 4, light_weighted_pressure_plate 3, gray_stained_glass_pane 3, yellow_carpet 3 and more
+      189  soil-medium-none
+      186  stonebricks-shale
+       89  log-placed-oak-ud
+       85  cobblestoneslab-shale
+       71  cobblestone-shale
+       65  cobblestonestairs-shale
+       49  plankstairs-oak
+       43  log-placed-oak-we
+       38  stonebrickstairs-shale
+       34  log-placed-oak-ns
+       33  plankslab-oak
+       27  mudbrick-light
+       22  rockpolished-shale
+       22  drystonefence-shale
+       18  stonepath-free
+       18  planks-oak-hor
+        5  chest
+        5  torch-basic-lit
+        4  ladder-wood-oak-north
+        2  roughtable-north
+        1  door-solid-oak
+        1  storagevessel-red-fired

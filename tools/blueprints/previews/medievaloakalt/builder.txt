@@ -1,0 +1,117 @@
+Builder's Hut (Medieval Oak (Alt)), from MineColonies' altbuilder: what each level needs, one item per block
+
+medievaloakalt builder level 1 (from altbuilder1): 16x10x15, 1462 blocks, 0 beds, 1 chests
+     1061  soil-medium-none
+      142  cobblestonestairs-shale
+       81  packeddirt
+       62  planks-oak-hor
+       59  log-placed-oak-ud
+       19  cobblestoneslab-shale
+       11  log-placed-oak-ns
+        6  log-placed-oak-we
+        6  drystonefence-shale
+        4  barrel
+        3  door-solid-oak
+        2  torch-basic-lit
+        1  chest
+        1  roughtable-north
+
+medievaloakalt builder level 2 (from altbuilder2): 17x11x16, 1647 blocks, 0 beds, 5 chests
+    left out: short_grass 6, glass_pane 4, glass 2, oak_fence_gate 1
+      829  soil-medium-none
+      257  cobblestone-shale
+      163  cobblestonestairs-shale
+       99  packeddirt
+       61  cobblestoneslab-shale
+       57  planks-oak-hor
+       42  log-placed-oak-ud
+       40  mudbrick-light
+       19  log-placed-oak-ns
+       16  log-placed-oak-we
+       10  torch-basic-lit
+       10  soil-medium-normal
+        9  rockpolished-shale
+        8  stonepath-free
+        6  door-solid-oak
+        5  chest
+        4  drystonefence-shale
+        3  barrel
+        2  roughtable-north
+
+medievaloakalt builder level 3 (from altbuilder3): 17x16x16, 1896 blocks, 0 beds, 8 chests
+    left out: oak_button 10, short_grass 7, glass_pane 6, iron_bars 5, oak_leaves 5, chain 5, glass 3, oak_fence_gate 2 and more
+      729  soil-medium-none
+      343  cobblestone-shale
+      134  plankstairs-oak
+      120  cobblestonestairs-shale
+       66  log-placed-oak-ud
+       64  stonebricks-shale
+       60  stonepath-free
+       59  cobblestoneslab-shale
+       54  log-placed-oak-ns
+       54  log-placed-oak-we
+       37  mudbrick-light
+       35  packeddirt
+       32  planks-oak-hor
+       24  plankslab-oak
+       17  torch-basic-lit
+       12  stonebrickstairs-shale
+       11  soil-medium-normal
+       10  rockpolished-shale
+        8  chest
+        6  door-solid-oak
+        5  roughtable-north
+        5  drystonefence-shale
+        4  barrel
+
+medievaloakalt builder level 4 (from altbuilder4): 17x18x16, 2128 blocks, 0 beds, 17 chests
+    left out: oak_button 10, iron_bars 8, chain 8, oak_leaves 7, glass_pane 7, oak_trapdoor 6, short_grass 4, gray_stained_glass_pane 4 and more
+      646  soil-medium-none
+      278  cobblestone-shale
+      238  stonebricks-shale
+      144  cobblestonestairs-shale
+      125  plankstairs-oak
+       86  stonepath-free
+       77  cobblestoneslab-shale
+       70  mudbrick-light
+       70  log-placed-oak-ud
+       69  planks-oak-hor
+       65  log-placed-oak-ns
+       64  log-placed-oak-we
+       37  drystonefence-shale
+       32  stonebrickstairs-shale
+       30  plankslab-oak
+       17  chest
+       15  torch-basic-lit
+       14  rockpolished-shale
+       11  soil-medium-normal
+       11  lantern-small
+        8  door-solid-oak
+        7  barrel
+        5  roughtable-north
+
+medievaloakalt builder level 5 (from altbuilder5): 17x21x16, 2245 blocks, 0 beds, 20 chests
+    left out: chain 19, oak_trapdoor 17, oak_leaves 13, iron_bars 12, oak_button 12, glass_pane 12, tall_grass 6, gray_stained_glass_pane 4 and more
+      552  soil-medium-none
+      446  stonebricks-shale
+      206  cobblestone-shale
+      132  cobblestonestairs-shale
+      125  plankstairs-oak
+       99  cobblestoneslab-shale
+       95  log-placed-oak-ud
+       85  stonepath-free
+       81  log-placed-oak-we
+       77  log-placed-oak-ns
+       71  planks-oak-hor
+       60  drystonefence-shale
+       49  stonebrickstairs-shale
+       34  rockpolished-shale
+       30  plankslab-oak
+       20  chest
+       16  mudbrick-light
+       16  torch-basic-lit
+       11  soil-medium-normal
+       10  lantern-small
+        9  barrel
+        8  door-solid-oak
+        4  roughtable-north

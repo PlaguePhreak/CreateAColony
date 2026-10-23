@@ -1,0 +1,108 @@
+Warehouse (Medieval Oak (Alt)), from MineColonies' altwarehouse: what each level needs, one item per block
+
+medievaloakalt warehouse level 1 (from altwarehouse1): 17x8x28, 893 blocks, 0 beds, 4 chests (3 within the warehouse's reach)
+      179  soil-medium-none
+      139  cobblestoneslab-shale
+      123  planks-oak-hor
+      122  log-placed-oak-ud
+      121  cobblestonestairs-shale
+       51  packeddirt
+       42  drystonefence-shale
+       41  log-placed-oak-we
+       36  log-placed-oak-ns
+       14  cobblestone-shale
+       11  torch-basic-lit
+        4  chest
+        3  barrel
+        3  door-solid-oak
+
+medievaloakalt warehouse level 2 (from altwarehouse2): 17x11x27, 1413 blocks, 0 beds, 17 chests (12 within the warehouse's reach)
+      281  soil-medium-none
+      248  cobblestonestairs-shale
+      132  cobblestoneslab-shale
+      121  log-placed-oak-ud
+      112  log-placed-oak-ns
+      101  cobblestone-shale
+       96  planks-oak-hor
+       96  log-placed-oak-we
+       79  mudbrick-light
+       58  packeddirt
+       26  drystonefence-shale
+       17  chest
+       16  stonepath-free
+       13  torch-basic-lit
+        8  barrel
+        3  door-solid-oak
+        2  roughtable-north
+
+medievaloakalt warehouse level 3 (from altwarehouse3): 19x13x28, 2441 blocks, 0 beds, 39 chests (16 within the warehouse's reach)
+      632  cobblestone-shale
+      437  cobblestonestairs-shale
+      436  soil-medium-none
+      261  cobblestoneslab-shale
+      146  log-placed-oak-ud
+       75  log-placed-oak-we
+       75  debarkedlog-oak-ud
+       67  log-placed-oak-ns
+       65  drystonefence-shale
+       52  packeddirt
+       39  chest
+       37  stonepath-free
+       32  planks-oak-hor
+       30  mudbrick-light
+       29  torch-basic-lit
+       19  barrel
+        3  door-solid-oak
+        2  roughtable-north
+
+medievaloakalt warehouse level 4 (from altwarehouse4): 19x14x28, 2650 blocks, 0 beds, 63 chests (25 within the warehouse's reach)
+    left out: oak_leaves 29, oak_button 20, glass_pane 18, iron_bars 12, red_carpet 8, potted_oak_sapling 3, chain 2, flower_pot 1 and more
+      476  cobblestone-shale
+      466  stonebricks-shale
+      391  stonebrickstairs-shale
+      388  soil-medium-none
+      306  cobblestoneslab-shale
+      133  log-placed-oak-ud
+       69  cobblestonestairs-shale
+       63  chest
+       56  log-placed-oak-we
+       54  mudbrick-light
+       52  stonepath-free
+       51  rockpolished-shale
+       35  drystonefence-shale
+       32  log-placed-oak-ns
+       22  planks-oak-hor
+       18  barrel
+       16  lantern-small
+       12  torch-basic-lit
+        3  door-solid-oak
+        2  roughtable-north
+        1  storagevessel-red-fired
+
+medievaloakalt warehouse level 5 (from altwarehouse5): 19x15x28, 2923 blocks, 0 beds, 86 chests (25 within the warehouse's reach)
+    left out: oak_leaves 44, iron_bars 12, chain 11, red_carpet 9, light_gray_stained_glass_pane 8, glass_pane 8, oak_trapdoor 8, flower_pot 3 and more
+      572  stonebricks-shale
+      416  stonebrickstairs-shale
+      388  soil-medium-none
+      370  cobblestone-shale
+      265  mudbrick-light
+      243  cobblestoneslab-shale
+       99  log-placed-oak-ud
+       86  chest
+       83  log-placed-oak-ns
+       80  rockpolished-shale
+       73  log-placed-oak-we
+       46  plankstairs-oak
+       40  drystonefence-shale
+       38  stonepath-free
+       32  cobblestonestairs-shale
+       22  barrel
+       21  planks-oak-hor
+       12  torch-basic-lit
+        9  lantern-small
+        8  bookshelf
+        5  door-solid-oak
+        4  debarkedlog-oak-ud
+        2  roughtable-north
+        2  plankslab-oak
+        1  storagevessel-red-fired

@@ -1,0 +1,84 @@
+Tavern (Medieval Oak (Alt)), from MineColonies' tavern: what each level needs, one item per block
+
+medievaloakalt tavern level 1 (from tavern1): 13x14x15, 1680 blocks, 4 beds, 0 chests
+    left out: oak_leaves 5, oak_pressure_plate 4, oak_wall_sign 3
+    a fire pit at (0, 0, -1) (on the floor)
+     1082  soil-medium-none
+      156  planks-oak-hor
+      114  cobblestonestairs-shale
+       76  log-placed-oak-ud
+       75  cobblestoneslab-shale
+       42  log-placed-oak-we
+       37  drystonefence-shale
+       28  packeddirt
+       28  log-placed-oak-ns
+       13  barrel
+        7  torch-basic-lit
+        6  bed-hay (half: 2 blocks = 1 bed)
+        4  door-solid-oak
+        2  cobblestone-shale
+        2  bed-wood (half: 2 blocks = 1 bed)
+        1  debarkedlog-oak-ud
+        1  plankslab-oak
+        1  firepit-cold
+
+medievaloakalt tavern level 2 (from tavern2): 13x16x15, 1915 blocks, 4 beds, 1 chests
+    left out: oak_pressure_plate 4, oak_trapdoor 4, glass_pane 4, oak_wall_sign 3, flower_pot 3, oak_leaves 2, short_grass 2, iron_bars 1
+      981  soil-medium-none
+      176  cobblestone-shale
+      101  cobblestonestairs-shale
+      101  plankstairs-oak
+       95  planks-oak-hor
+       81  log-placed-oak-ud
+       71  mudbrick-light
+       51  log-placed-oak-we
+       49  cobblestoneslab-shale
+       47  log-placed-oak-ns
+       35  stonepath-free
+       31  drystonefence-shale
+       24  stonebricks-shale
+       16  barrel
+        9  debarkedlog-oak-ud
+        9  packeddirt
+        6  bed-hay (half: 2 blocks = 1 bed)
+        5  plankslab-oak
+        5  stonebrickstairs-shale
+        4  door-solid-oak
+        3  soil-medium-normal
+        3  lantern-small
+        2  bed-wood (half: 2 blocks = 1 bed)
+        2  torch-basic-lit
+        1  chest
+        1  hay-normal-ud
+        1  firepit-cold
+
+medievaloakalt tavern level 3 (from tavern3): 13x19x15, 2177 blocks, 4 beds, 3 chests
+    left out: red_carpet 8, oak_wall_sign 7, orange_carpet 5, oak_trapdoor 4, brown_carpet 3, black_stained_glass_pane 3, light_gray_stained_glass_pane 3, yellow_wall_banner 3 and more
+      567  soil-medium-none
+      376  stonebricks-shale
+      235  cobblestone-shale
+      121  planks-oak-hor
+      117  plankstairs-oak
+      115  log-placed-oak-ud
+      102  cobblestoneslab-shale
+       99  cobblestonestairs-shale
+       94  stonebrickstairs-shale
+       74  log-placed-oak-ns
+       62  log-placed-oak-we
+       55  barrel
+       51  drystonefence-shale
+       21  plankslab-oak
+       21  stonepath-free
+        9  rockpolished-shale
+        9  debarkedlog-oak-ud
+        8  lantern-small
+        6  torch-basic-lit
+        6  bed-wood (half: 2 blocks = 1 bed)
+        5  door-solid-oak
+        4  ladder-wood-oak-north
+        3  chest
+        3  soil-medium-normal
+        3  hay-normal-ud
+        2  firepit-cold
+        2  bed-hay (half: 2 blocks = 1 bed)
+        1  bookshelf

@@ -1,0 +1,116 @@
+Quarry (Medieval Oak), from MineColonies' stonemason: what each level needs, one item per block
+
+medievaloak quarry level 1 (from stonemason1): 16x9x28, 838 blocks, 0 beds, 0 chests
+    left out: oak_button 2, chain 1
+    the Quarry waypoint at (0, 0, -18), 8 blocks beyond the north wall, so the pit misses the building
+    no door (open-sided in MineColonies), so it is placed facing the way it was drawn
+      468  soil-medium-none
+      122  cobblestonestairs-shale
+       55  cobblestone-shale
+       49  packeddirt
+       46  log-placed-oak-ud
+       27  log-placed-oak-we
+       22  cobblestoneslab-shale
+       15  drystonefence-shale
+       15  log-placed-oak-ns
+        8  mudbrick-light
+        7  torch-basic-lit
+        1  stonepath-free
+        1  roughtable-north
+
+medievaloak quarry level 2 (from stonemason2): 16x11x28, 990 blocks, 0 beds, 0 chests
+    left out: oak_button 6, oak_trapdoor 4, chain 1
+    the Quarry waypoint at (0, 0, -18), 8 blocks beyond the north wall, so the pit misses the building
+    no door (open-sided in MineColonies), so it is placed facing the way it was drawn
+      436  soil-medium-none
+      168  cobblestonestairs-shale
+      135  cobblestone-shale
+       46  cobblestoneslab-shale
+       40  stonepath-free
+       34  drystonefence-shale
+       29  packeddirt
+       29  log-placed-oak-ns
+       27  log-placed-oak-we
+       23  log-placed-oak-ud
+        8  torch-basic-lit
+        6  mudbrick-light
+        3  rockpolished-shale
+        2  roughtable-north
+        2  planks-oak-hor
+
+medievaloak quarry level 3 (from stonemason3): 16x11x28, 1112 blocks, 0 beds, 0 chests
+    left out: oak_button 6, oak_trapdoor 5, chain 3, potted_white_tulip 1, lever 1
+    the Quarry waypoint at (0, 0, -18), 8 blocks beyond the north wall, so the pit misses the building
+      347  soil-medium-none
+      140  cobblestone-shale
+       84  cobblestonestairs-shale
+       79  plankstairs-oak
+       61  stonebricks-shale
+       58  log-placed-oak-ud
+       44  stonepath-free
+       43  planks-oak-hor
+       35  log-placed-oak-we
+       35  log-placed-oak-ns
+       32  stonebrickstairs-shale
+       31  drystonefence-shale
+       29  cobblestoneslab-shale
+       28  packeddirt
+       27  mudbrick-light
+       12  torch-basic-lit
+       10  plankslab-oak
+        6  ladder-wood-oak-south
+        4  rockpolished-shale
+        3  roughtable-north
+        1  door-solid-oak
+
+medievaloak quarry level 4 (from stonemason4): 16x13x28, 1344 blocks, 0 beds, 5 chests
+    left out: oak_trapdoor 7, oak_button 6, light_gray_stained_glass_pane 3, chain 3, oak_fence_gate 2, potted_pink_tulip 1, potted_white_tulip 1, potted_orange_tulip 1 and more
+    the Quarry waypoint at (0, 0, -18), 8 blocks beyond the north wall, so the pit misses the building
+      336  soil-medium-none
+      180  stonebricks-shale
+      126  cobblestone-shale
+      115  cobblestonestairs-shale
+      114  plankstairs-oak
+       68  log-placed-oak-ud
+       63  planks-oak-hor
+       54  log-placed-oak-ns
+       50  log-placed-oak-we
+       46  cobblestoneslab-shale
+       44  stonepath-free
+       37  mudbrick-light
+       31  drystonefence-shale
+       19  stonebrickstairs-shale
+       13  rockpolished-shale
+       13  plankslab-oak
+       11  torch-basic-lit
+        6  roughtable-north
+        5  chest
+        3  door-solid-oak
+        3  ladder-wood-oak-south
+        2  lantern-small
+
+medievaloak quarry level 5 (from stonemason5): 16x14x28, 1515 blocks, 0 beds, 6 chests
+    left out: oak_trapdoor 9, chain 4, oak_button 3, iron_bars 3, oak_fence_gate 2, light_gray_stained_glass_pane 2, potted_red_tulip 1, potted_pink_tulip 1 and more
+    the Quarry waypoint at (0, 0, -18), 8 blocks beyond the north wall, so the pit misses the building
+      328  soil-medium-none
+      228  stonebricks-shale
+      133  cobblestonestairs-shale
+      103  plankstairs-oak
+       82  cobblestoneslab-shale
+       79  cobblestone-shale
+       75  log-placed-oak-ud
+       68  drystonefence-shale
+       63  planks-oak-hor
+       59  rockpolished-shale
+       57  stonebrickstairs-shale
+       53  log-placed-oak-ns
+       50  log-placed-oak-we
+       49  stonepath-free
+       41  mudbrick-light
+       13  plankslab-oak
+        8  torch-basic-lit
+        6  roughtable-north
+        6  chest
+        4  ladder-wood-oak-north
+        3  door-solid-oak
+        2  lantern-small
