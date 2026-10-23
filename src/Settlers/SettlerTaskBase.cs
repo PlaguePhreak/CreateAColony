@@ -172,10 +172,32 @@ public abstract class SettlerTaskBase : AiTaskBase
     /// <summary>True once the target could not be reached after several attempts.</summary>
     protected bool PathFailed => failed && attempts >= MaxPathAttempts && (!onLeg || legTry >= Legs.Length);
 
+    /// <summary>The settler's step height as its entity file sets it, before any stair boost.</summary>
+    float? baseStepHeight;
+    /// <summary>How much higher a settler may step while it stands on the lower half of a stair or a slab.</summary>
+    const float HalfBlockStepBoost = 0.5f;
+
+    /// <summary>
+    /// The pathfinder counts a stair as a whole block, so it plans a step from a stair onto the block a level
+    /// above it. A settler standing on the stair's lower half is then half a block short and walks into the
+    /// wall. While it stands on a half-height surface and bumps into something, it may step that half block more.
+    /// </summary>
+    void StepUpFromStairs()
+    {
+        if (entity.GetBehavior<EntityBehaviorControlledPhysics>() is not { } physics) return;
+        baseStepHeight ??= physics.StepHeight;
+        double feet = entity.Pos.Y - System.Math.Floor(entity.Pos.Y);
+        bool onHalf = entity.OnGround && feet > 0.3 && feet < 0.9;
+        float want = onHalf && entity.CollidedHorizontally ? baseStepHeight.Value + HalfBlockStepBoost
+            : onHalf && physics.StepHeight > baseStepHeight.Value ? physics.StepHeight : baseStepHeight.Value;
+        physics.StepHeight = want;
+    }
+
     /// <summary>Retries a stuck path after a short pause. Call every ContinueExecute while walking.</summary>
     protected void KeepWalking()
     {
         if (goal == null || arrived) return;
+        StepUpFromStairs();
         if (Will is { } will && will.Relocations != seenRelocations)
         {
             // Willpower moved the settler: plan the walk again from the new spot.
