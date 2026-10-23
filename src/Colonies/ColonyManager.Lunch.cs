@@ -52,8 +52,20 @@ public partial class ColonyManager
 
     public bool IsLunchFood(ItemStack stack, EntityAgent eater) => LunchProps(stack, eater) != null;
 
-    /// <summary>True when the settler has packed food left.</summary>
-    public bool HasLunch(CitizenRecord citizen) => citizen.Lunch.Count > 0;
+    /// <summary>True when the settler has packed food left that it can eat.</summary>
+    public bool HasLunch(CitizenRecord citizen, EntityAgent eater) => Config.CarryFood && LunchItems(citizen).Any(s => LunchProps(s, eater) != null);
+
+    /// <summary>Packed food that went off (rot, or spoiled so far it would hurt) moves to the inventory, to be dropped off with the rest.</summary>
+    void ClearSpoiledLunch(Colony colony, CitizenRecord citizen, EntityAgent eater, List<ItemStack> items)
+    {
+        bool changed = false;
+        foreach (var stack in items.Where(s => LunchProps(s, eater) == null).ToList())
+        {
+            AddToPack(colony, citizen, stack);
+            if (stack.StackSize <= 0) changed = true;
+        }
+        if (changed) SaveLunch(colony, citizen, items);
+    }
 
     /// <summary>
     /// Eats one item of packed food when a whole bite fits in the stomach, or whenever the settler is
@@ -63,6 +75,7 @@ public partial class ColonyManager
     {
         if (!Config.CarryFood || citizen.Lunch.Count == 0 || citizen.Saturation < 0) return null;
         var items = LunchItems(citizen);
+        ClearSpoiledLunch(colony, citizen, eater, items);
         bool hungry = citizen.Saturation < Config.SaturationMax * Config.EatBelowFraction;
         ItemStack? best = null;
         FoodNutritionProperties[]? bestProps = null;

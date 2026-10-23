@@ -149,6 +149,30 @@ public class CitizenSnapshot
     [ProtoMember(24)] public string Surname = "";
     /// <summary>Every skill with its level and how much of it counts here; empty when skills are off.</summary>
     [ProtoMember(25)] public List<SkillView> Skills = new();
+    // 26-39 are left for the traits and quest work.
+    /// <summary>The tool bar by slot: weapon, three tools, offhand; an empty array where a slot is empty.</summary>
+    [ProtoMember(40)] public List<byte[]> ToolBar = new();
+    /// <summary>Clothes by the game's dress slot (0-11); an empty array where a slot is empty.</summary>
+    [ProtoMember(41)] public List<byte[]> Clothes = new();
+    /// <summary>Packed food, carried to eat on the go.</summary>
+    [ProtoMember(42)] public List<byte[]> Lunch = new();
+    /// <summary>True when the viewer may take and give the settler's things (colony members).</summary>
+    [ProtoMember(43)] public bool CanEdit;
+    /// <summary>The settler's character class, for the Character tab ("commoner").</summary>
+    [ProtoMember(44)] public string ClothesClass = "";
+}
+
+/// <summary>A click on a slot of the settler window: which settler, which area and slot, and how.</summary>
+[ProtoContract]
+public class SettlerSlotPacket
+{
+    [ProtoMember(1)] public string ColonyId = "";
+    [ProtoMember(2)] public int CitizenId;
+    /// <summary>ColonyManager.AreaPack and the like.</summary>
+    [ProtoMember(3)] public string Area = "";
+    [ProtoMember(4)] public int Index;
+    [ProtoMember(5)] public bool Right;
+    [ProtoMember(6)] public bool Shift;
 }
 
 /// <summary>One skill of a settler for the windows: real level, usable level and what limits it.</summary>

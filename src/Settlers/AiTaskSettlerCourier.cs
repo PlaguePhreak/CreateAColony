@@ -25,6 +25,8 @@ public class AiTaskSettlerCourier : SettlerTaskBase
     int requestId;
     System.Func<ItemStack, bool> pickupFilter = _ => true;
     long nextSearchMs;
+    /// <summary>Delivering a settler's own leftovers to its hut rather than the warehouse.</summary>
+    bool toHut;
 
     public AiTaskSettlerCourier(EntityAgent entity, JsonObject taskConfig, JsonObject aiConfig) : base(entity, taskConfig, aiConfig) { }
 
@@ -42,9 +44,14 @@ public class AiTaskSettlerCourier : SettlerTaskBase
         return Plan(colony, citizen);
     }
 
+    BlockPos? OwnHutChest(Colony colony, CitizenRecord citizen) =>
+        citizen.WorkplacePos != null && manager!.GetBuilding(colony, citizen.WorkplacePos) is { } hut && ColonyManager.HasOwnStorage(hut.Type)
+            ? manager.HutStorage(colony, hut).FirstOrDefault()?.Pos : null;
+
     bool Plan(Colony colony, CitizenRecord citizen)
     {
         requestId = 0;
+        toHut = false;
         if (!manager!.PackEmpty(citizen))
         {
             // Finish the delivery we were on, or bring the load back to the warehouse.
@@ -53,6 +60,12 @@ public class AiTaskSettlerCourier : SettlerTaskBase
             {
                 requestId = own.RequestId;
                 return Go(Step.Deliver, own.DestPos);
+            }
+            // Not a courier: what it carries goes to its own hut's storage when it has one.
+            if (citizen.JobCode != Jobs.Courier && OwnHutChest(colony, citizen) is { } hutChest)
+            {
+                toHut = true;
+                return Go(Step.Deliver, hutChest);
             }
             return Go(Step.Deliver, manager.WarehouseContainers(colony).FirstOrDefault()?.Pos);
         }
@@ -187,6 +200,12 @@ public class AiTaskSettlerCourier : SettlerTaskBase
             int moved = before - manager.PackCount(citizen, match);
             manager.RecordDelivery(colony, request, moved);
             blocked = manager.PackCount(citizen, match) > 0;
+        }
+        else if (toHut && citizen.WorkplacePos != null && manager.GetBuilding(colony, citizen.WorkplacePos) is { } hut)
+        {
+            manager.UnloadPack(colony, citizen, manager.HutStorage(colony, hut));
+            blocked = !manager.PackEmpty(citizen);
+            toHut = false;
         }
         else
         {

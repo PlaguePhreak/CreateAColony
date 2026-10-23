@@ -112,6 +112,12 @@ public abstract class AiTaskSettlerWorker : SettlerTaskBase
 
         // Hands full: take the harvest home first.
         if (manager.PackFull(citizen) && HasSurplus(citizen)) return Go(Step.Deposit, storage[0].Pos);
+        // Passing the hut: drop off what it does not need (a harvest, things picked up) on the way.
+        int near = manager.Config.DepositNearHut;
+        if (near > 0 && HasSurplus(citizen) && storage[0].Pos.DistanceSqTo(entity.Pos.X, entity.Pos.Y, entity.Pos.Z) < near * near)
+        {
+            return Go(Step.Deposit, storage[0].Pos);
+        }
 
         if (NeedsTool && !HasTool(citizen))
         {

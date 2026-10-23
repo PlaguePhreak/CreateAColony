@@ -381,7 +381,7 @@ public abstract class SettlerTaskBase : AiTaskBase
     protected void SyncHand()
     {
         Hand?.MarkDirty();
-        entity.GetBehavior<EntityBehaviorContainer>()?.storeInv();
+        entity.GetBehavior<EntityBehaviorVillagerInv>()?.storeInv();
     }
 
     protected void PutAwayHand(Colony colony, CitizenRecord citizen)

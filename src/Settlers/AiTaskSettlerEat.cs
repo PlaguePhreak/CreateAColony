@@ -12,6 +12,8 @@ namespace CreateAColony.Settlers;
 /// serving of a meal or one slice of pie (see ColonyManager.Food.cs). Food comes from the same chests,
 /// shelves and crocks the players use, so feeding the colony is part of the game. Settlers prefer food
 /// groups they have not eaten lately. With no food anywhere they try again later and eventually starve.
+/// Settlers carrying packed food eat that on the go instead (ColonyManager.Lunch.cs) and only come here once
+/// it is gone and they are hungry; here they pack food for later.
 /// </summary>
 public class AiTaskSettlerEat : SettlerTaskBase
 {
@@ -37,6 +39,8 @@ public class AiTaskSettlerEat : SettlerTaskBase
         var citizen = Citizen;
         var needs = entity.GetBehavior<EntityBehaviorSettlerNeeds>();
         if (citizen == null || needs == null || !needs.IsHungry(manager.Config, citizen) || CalledToArms) return false;
+        // With packed food left the settler eats on the go (EntityBehaviorColonyCitizen) and keeps working.
+        if (manager.HasLunch(citizen, entity)) return false;
 
         var food = manager.FindFood(Colony!, citizen, entity, IsUnreachable);
         if (food == null)
@@ -100,6 +104,8 @@ public class AiTaskSettlerEat : SettlerTaskBase
         var citizen = Citizen;
         if (citizen == null || entity.World.BlockAccessor.GetBlockEntity(containerPos!) is not BlockEntityContainer container) return false;
         eatingName = manager!.EatFood(Colony!, citizen, entity, container);
+        // Packs food for later while at the store, so the next meals are eaten on the go.
+        if (eatingName != null) manager.PackLunch(Colony!, citizen, entity, container);
         return eatingName != null;
     }
 

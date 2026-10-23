@@ -149,6 +149,16 @@ public partial class ColonyManager
         DressEntity(citizen);
     }
 
+    /// <summary>Takes all clothes off, for dropping where a settler died for good.</summary>
+    public List<ItemStack> TakeOffClothes(Colony colony, CitizenRecord citizen)
+    {
+        var all = WornClothes(citizen).OfType<ItemStack>().ToList();
+        citizen.Clothes.Clear();
+        MarkDirty(colony);
+        DressEntity(citizen);
+        return all;
+    }
+
     /// <summary>
     /// Dresses a settler who has not been dressed yet in the starting clothes of the config's character
     /// class (Commoner by default), the clothes a new player starts with.
