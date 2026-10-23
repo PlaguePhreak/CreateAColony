@@ -174,23 +174,26 @@ public abstract class SettlerTaskBase : AiTaskBase
 
     /// <summary>The settler's step height as its entity file sets it, before any stair boost.</summary>
     float? baseStepHeight;
-    /// <summary>How much higher a settler may step while it stands on the lower half of a stair or a slab.</summary>
+    /// <summary>How much higher a settler may step after bumping into something on the lower half of a stair or a slab.</summary>
     const float HalfBlockStepBoost = 0.5f;
+    /// <summary>How long the boost lasts: stepping up rises a little each tick, so it must outlast the climb.</summary>
+    const long StepBoostMs = 2000;
+    long stepBoostUntilMs;
 
     /// <summary>
     /// The pathfinder counts a stair as a whole block, so it plans a step from a stair onto the block a level
     /// above it. A settler standing on the stair's lower half is then half a block short and walks into the
-    /// wall. While it stands on a half-height surface and bumps into something, it may step that half block more.
+    /// wall. When it bumps into something there, it may step half a block higher for a moment, long enough
+    /// to rise all the way (the boost must not end as soon as its feet leave the stair's lower half).
     /// </summary>
     void StepUpFromStairs()
     {
         if (entity.GetBehavior<EntityBehaviorControlledPhysics>() is not { } physics) return;
         baseStepHeight ??= physics.StepHeight;
+        long now = entity.World.ElapsedMilliseconds;
         double feet = entity.Pos.Y - System.Math.Floor(entity.Pos.Y);
-        bool onHalf = entity.OnGround && feet > 0.3 && feet < 0.9;
-        float want = onHalf && entity.CollidedHorizontally ? baseStepHeight.Value + HalfBlockStepBoost
-            : onHalf && physics.StepHeight > baseStepHeight.Value ? physics.StepHeight : baseStepHeight.Value;
-        physics.StepHeight = want;
+        if (entity.OnGround && entity.CollidedHorizontally && feet > 0.3 && feet < 0.9) stepBoostUntilMs = now + StepBoostMs;
+        physics.StepHeight = now < stepBoostUntilMs ? baseStepHeight.Value + HalfBlockStepBoost : baseStepHeight.Value;
     }
 
     /// <summary>Retries a stuck path after a short pause. Call every ContinueExecute while walking.</summary>
