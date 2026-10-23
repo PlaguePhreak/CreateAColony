@@ -1,0 +1,65 @@
+Warehouse (12th Century Inspired): what each level needs, one item per block
+
+Level 1: 9 x 9 blocks, 10 high. 0 beds, 4 chests.
+      144  hay-normal-ud
+       47  cobblestone-shale
+       33  packeddirt
+       28  log-placed-oak-ud
+       25  rammed-light-plain
+       10  log-placed-oak-we
+       10  log-placed-oak-ns
+        4  chest
+        2  torch-basic-lit
+        1  stonepath-free
+        1  door-crude
+
+Level 2: 11 x 9 blocks, 10 high. 0 beds, 8 chests.
+      176  hay-normal-ud
+       55  cobblestone-shale
+       40  packeddirt
+       35  rammed-light-plain
+       31  log-placed-oak-ud
+       14  log-placed-oak-we
+       10  log-placed-oak-ns
+        8  chest
+        2  torch-basic-lit
+        1  stonepath-free
+        1  door-crude
+
+Level 3: 13 x 11 blocks, 11 high. 0 beds, 12 chests.
+      130  plankstairs-oak
+       95  packeddirt
+       70  cobblestone-shale
+       63  planks-oak-hor
+       39  log-placed-oak-ud
+       31  log-placed-oak-we
+       14  log-placed-oak-ns
+       12  chest
+        2  stonepath-free
+        2  door-solid-oak
+        2  torch-basic-lit
+
+Level 4: 13 x 11 blocks, 11 high. 0 beds, 16 chests.
+      130  plankstairs-oak
+       95  packeddirt
+       70  cobblestone-shale
+       63  planks-oak-hor
+       39  log-placed-oak-ud
+       31  log-placed-oak-we
+       16  chest
+       14  log-placed-oak-ns
+        2  stonepath-free
+        2  door-solid-oak
+        2  torch-basic-lit
+
+Level 5: 13 x 13 blocks, 12 high. 0 beds, 20 chests.
+      272  cobblestone-shale
+      156  plankstairs-oak
+       81  planks-oak-hor
+       20  chest
+       16  stonebricks-shale
+       13  log-placed-oak-we
+        6  cobblestonestairs-shale
+        2  stonepath-free
+        2  door-solid-oak
+        2  torch-basic-lit

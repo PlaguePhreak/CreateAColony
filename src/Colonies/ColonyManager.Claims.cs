@@ -54,11 +54,12 @@ public partial class ColonyManager
         BuildingCategories.All.Any(c => c.Code == "military" && Array.IndexOf(c.Types, type) >= 0);
 
     /// <summary>
-    /// A building claims land once it is built: the Town Hall at once, a hut when its first level is done, and a
-    /// building with nothing to build (no blueprints, like the Warehouse) as soon as it is placed.
+    /// A building claims land once it is built: the Town Hall and the Warehouse at once (the Warehouse works
+    /// before it has a building round it), a hut when its first level is done, and a building with nothing to
+    /// build (no blueprints) as soon as it is placed.
     /// </summary>
     bool ClaimsLand(Building building) =>
-        building.Type == BuildingTypes.TownHall || building.Level >= 1 || Blueprints.MaxLevel(building) == 0;
+        building.Type is BuildingTypes.TownHall or BuildingTypes.Warehouse || building.Level >= 1 || Blueprints.MaxLevel(building) == 0;
 
     /// <summary>A size by size square centred on a block, from ClaimDepthBelow under it to ClaimHeightAbove over it.</summary>
     Cuboidi ClaimArea(BlockPos center, int size)

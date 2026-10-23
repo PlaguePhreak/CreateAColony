@@ -117,19 +117,39 @@ All three are on the new Mining tab of the Builder's Wand and use placeholder bl
 Buildings grow from blueprints, which are ordinary WorldEdit exports. Build the structure in a
 creative world with its hut block where the hut should stand, select it with WorldEdit, and run
 `/we export <name>`. Copy the file from `VintagestoryData/WorldEdit/` to
-`VintagestoryData/ModConfig/createacolony/blueprints/<type>/level<N>.json`, where `<type>` is
-`builder`, `townhall`, `warehouse`, `forester`, `farmer` or `potter` and `<N>` is 1 to 5. `/colony reloadblueprints` picks up
-changes without a restart. Blueprints in ModConfig override the ones shipped in
-`assets/createacolony/config/blueprints/`.
+`VintagestoryData/ModConfig/createacolony/blueprints/<pack>/<type>/level<N>.json`, where `<pack>` is
+`twelfthcentury` or `devsbuilds`, `<type>` is the building (`townhall`, `builder`, `farmer`, `forester`,
+`cook`, `potter`, `residence`, `guardtower`, `tavern`, `warehouse`, `prospector`, `miner`, `quarry`) and
+`<N>` is 1 to 5. `/colony reloadblueprints` picks up changes without a restart. Blueprints in ModConfig
+override the ones shipped in `assets/createacolony/config/blueprints/`.
 
-Blueprints come in **styles**, picked with the tabs along the top of the Builder's Wand list. The
-folders above are the **Testing** style. **Dev's Builds** is the second style, with Aaron's own
-buildings (since 0.26.1 the Town Hall and Builder's Hut levels 1 to 4): its blueprints are in
-`blueprints/devsbuilds/<type>/level<N>.json`, in the mod or in
-`VintagestoryData/ModConfig/createacolony/blueprints/devsbuilds/`. A building keeps the style it was
-placed in for every level; a type with no blueprint in a style shows "no blueprint yet" in the list. A
-building whose style has no blueprints for its type (a Town Hall placed before 0.26.1, in Testing)
-uses the first style that has some, so older colonies keep upgrading.
+### Asset packs (0.46.0)
+
+Blueprints come in **asset packs**, as in MineColonies. The first time you use the Builder's Wand it
+asks which pack you want; every building you place after that is built from that pack. The
+**Change pack** tab at the bottom of the wand's list picks another one. A building keeps the pack it was
+placed in for every level, also after you change packs. Your choice is saved with the world, per player.
+
+- **12th Century Inspired** (`blueprints/twelfthcentury/`, the default): every building, levels 1 to 5,
+  designed for the mod after buildings of the 1100s. Small buildings start as timber-framed cottages with
+  wattle and daub walls on a stone sill and thatched roofs; later levels add rooms, upper storeys, oak
+  shingle roofs, stone ground floors, and at level 5 stone halls and towers with battlements (a keep
+  tower on the Town Hall, a walled bailey on the Guard Tower, a stone tithe barn for the Warehouse).
+  Each level has what its hut needs: beds in the Residence (2, 4, 6, 8, 12), the Guard Tower and the
+  Tavern's rooms, chests in the Warehouse (4, 8, 12, 16, 20, all within its reach), a hearth in the Cook's
+  Hut and the Tavern (more fire pits and clay ovens later), the Mine waypoint under a headframe at the
+  Miner's Hut, and the Quarry waypoint well clear of the Quarry so the pit has room. The Supply Camp has a
+  one-level camp (a thatched shelter, two hay beds, a fire ring) put down with it. Tables, benches and
+  chairs come from W4RD0's Furniture and the pennants from Heraldry : Banners; without those mods they are
+  simply left out. Pictures of every level are in `tools/blueprints/previews/twelfthcentury/`.
+- **Dev's Builds** (`blueprints/devsbuilds/`): Aaron's own buildings: Town Hall 1 to 4, Builder's Hut 1
+  to 4, Guard Tower 1 to 5, Cook's Hut 1 and Residence 1 (since 0.46.0). Other buildings have no
+  blueprint in this pack yet, and the list says so.
+
+The old **Testing** style and its sample blueprints were removed in 0.46.0. Buildings that were placed
+in it keep working: Town Halls and Builder's Huts (built from Dev's Builds since 0.26.1) move to Dev's
+Builds, everything else to 12th Century Inspired, which builds its next level. Since the Warehouse now
+has levels too, it still works as soon as it is placed, and keeps its land claim before it is built.
 
 The placement window's **Level down** and **Level up** buttons flip the preview through every level
 of the building, so you can see how big level 4 gets before you place level 1.
@@ -143,25 +163,21 @@ torch counts as built whether it is lit or burned out. Items lying on the ground
 left out. Empty space below the hut's floor is dug out only when the blueprint has blocks both under
 and over it (a cellar); elsewhere the ground below the floor is left alone.
 
-Since 0.25.0 the Town Hall and the Builder's Hut have four levels each, built by Aaron in game
-(now `blueprints/devsbuilds/townhall/level1-4.json` and `blueprints/devsbuilds/builder/level1-4.json`), with cellars, furniture
-from W4RD0's Furniture and a flag pole from Heraldry : Banners on the level 4 Town Hall. The 0.18.0
-Builder's Hut is kept as `blueprints/builder/level1-old-0.18.json` (the blueprint generator still cuts
-its cottages from it), and the old 5 x 4 x 5 sample as `blueprints/builder/level1-old-placeholder.json`
-(rename either to `level1.json` in ModConfig to use it).
-
-Since 0.19.0 the Forester's Hut and the Tavern also have thatched cottages for level 1, made from the
-Builder's Hut: a 7 x 7 x 9 log cabin for the Forester and an 11 x 7 x 9 wattle-and-daub hall with a fire
-pit hearth for the Tavern. Their old samples are kept as `level1-old-placeholder.json` too.
-
 ### Making blueprints with the generator
 
-`tools/blueprints/make_blueprints.py` (Python 3 with Pillow) makes those cottages. It cuts the Builder's
-Hut into slices across its length and repeats the middle slice to make a longer house, so the roof, frame
-and door are copied from blocks that work in game; only walls, windows and furniture change, and only to
-blocks in its `VERIFIED` list. It checks each building (one hut block, doors with their top half and
-direction, roof data on every roof block) before writing it, and draws a picture and a layer plan of
-each in `tools/blueprints/previews/`. New designs go in its `make` function.
+`tools/blueprints/make_twelfth.py` (Python 3 with Pillow) makes the 12th Century Inspired pack from the
+designs in `tools/blueprints/designs.py`, built with the walls, roofs, doors and furniture in
+`tools/blueprints/kit.py`. Only blocks from Aaron's own exports (and a few plain variants of them, such
+as chests and other fence joins) may be used. Every level is checked before it is written: one hut block,
+doors with their top half and saved direction and nothing standing in their way, ladders with something
+behind them, whole beds, and the work blocks the hut needs. It prints how much of each level stays in
+place at the next one, and draws all five levels of each building, whole and cut away, in
+`tools/blueprints/previews/twelfthcentury/`, with a list of what each level needs.
+
+`tools/blueprints/import_devsbuilds.py <folder>` copies Aaron's exports into Dev's Builds (files named
+like `TownHallLevel1.json`, `GuardTowerLevel5.json`). It checks the same things, adds a hut block where
+an export has none (the Cook's Hut), and warns when a level would line up better a few blocks off, which
+is how an export with the hut block in the wrong place shows up.
 
 ### VS Roofing roofs
 
@@ -284,8 +300,8 @@ The list is sorted into tabs down its left side, and it opens on the tab you use
 **Fundamentals** (Town Hall, Builder's Hut, Tavern), **Agriculture** (Farmer's and Forester's
 Huts), **Craftsmanship** (Potter's and Cook's Huts), **Infrastructure** (Warehouse), and
 **Education**, **Military**, **Walls** and **Decoration**, which are empty until their buildings
-are added. The tabs along the top pick the blueprint style (Testing or Dev's Builds), and the
-placement window shows which style the building uses.
+are added. The last tab, **Change pack**, picks the asset pack (see Asset packs above), and the
+placement window shows which pack the building uses.
 
 Right-clicking an existing hut, the Town Hall or the Warehouse with the wand shows its outline and
 lets you turn and move the building (up to 8 blocks up or down, 16 to the sides) until its first

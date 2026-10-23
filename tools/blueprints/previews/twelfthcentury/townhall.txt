@@ -1,0 +1,96 @@
+Town Hall (12th Century Inspired): what each level needs, one item per block
+
+Level 1: 13 x 9 blocks, 10 high. 0 beds, 1 chests.
+      208  hay-normal-ud
+       63  cobblestone-shale
+       45  rammed-light-plain
+       41  packeddirt
+       36  log-placed-oak-ud
+       18  log-placed-oak-we
+       10  log-placed-oak-ns
+        6  roughchairdining
+        3  roughtable-north
+        2  torch-basic-lit
+        1  stonepath-free
+        1  chest
+        1  roughbench-west
+        1  firepit-cold
+        1  door-crude
+
+Level 2: 17 x 9 blocks, 10 high. 0 beds, 2 chests.
+      272  hay-normal-ud
+       78  cobblestone-shale
+       65  rammed-light-plain
+       47  packeddirt
+       43  log-placed-oak-ud
+       26  log-placed-oak-we
+       12  roughchairdining
+       10  log-placed-oak-ns
+        6  roughtable-north
+        2  stonepath-free
+        2  chest
+        2  door-crude
+        2  torch-basic-lit
+        1  roughbench-west
+        1  firepit-cold
+
+Level 3: 17 x 9 blocks, 13 high. 0 beds, 3 chests.
+      140  plankstairs-oak
+      115  packeddirt
+       88  log-placed-oak-ud
+       79  cobblestone-shale
+       69  log-placed-oak-we
+       67  planks-oak-hor
+       65  rammed-light-plain
+       20  log-placed-oak-ns
+        7  roughchairdining
+        4  roughtable-north
+        3  chest
+        3  torch-basic-lit
+        1  stonepath-free
+        1  roughbench-west
+        1  bookshelf
+        1  firepit-cold
+        1  door-solid-oak
+        1  pole-banner-wall2-north
+
+Level 4: 17 x 12 blocks, 13 high. 0 beds, 3 chests.
+      190  cobblestone-shale
+      160  plankstairs-oak
+      132  planks-oak-hor
+       86  packeddirt
+       43  log-placed-oak-we
+       42  log-placed-oak-ud
+       28  stonebricks-shale
+       15  log-placed-oak-ns
+       10  stonepath-free
+        7  roughchairdining
+        4  roughtable-north
+        3  chest
+        3  torch-basic-lit
+        1  roughbench-west
+        1  bookshelf
+        1  firepit-cold
+        1  door-solid-oak
+        1  pole-banner-wall2-north
+
+Level 5: 22 x 12 blocks, 14 high. 0 beds, 3 chests.
+      437  cobblestone-shale
+      229  planks-oak-hor
+      150  plankstairs-oak
+       68  stonebricks-shale
+       67  packeddirt
+       42  log-placed-oak-we
+       35  log-placed-oak-ud
+       11  ladder-wood-oak-north
+       10  stonepath-free
+       10  log-placed-oak-ns
+        7  roughchairdining
+        4  roughtable-north
+        4  torch-basic-lit
+        3  chest
+        2  pole-banner-wall2-north
+        1  roughbench-west
+        1  bookshelf
+        1  firepit-cold
+        1  door-solid-oak

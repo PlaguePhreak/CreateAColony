@@ -1,0 +1,91 @@
+Prospector's Hut (12th Century Inspired): what each level needs, one item per block
+
+Level 1: 8 x 7 blocks, 9 high. 0 beds, 1 chests.
+       96  hay-normal-ud
+       35  cobblestone-shale
+       24  log-placed-oak-ud
+       19  packeddirt
+       12  rammed-light-plain
+        8  log-placed-oak-we
+        6  log-placed-oak-ns
+        1  stonepath-free
+        1  roughtable-north
+        1  roughchairdining
+        1  chest
+        1  door-crude
+        1  torch-basic-lit
+
+Level 2: 8 x 7 blocks, 9 high. 0 beds, 1 chests.
+       96  hay-normal-ud
+       35  cobblestone-shale
+       24  log-placed-oak-ud
+       19  packeddirt
+       12  rammed-light-plain
+        8  log-placed-oak-we
+        6  log-placed-oak-ns
+        2  stationarybasket-north
+        1  stonepath-free
+        1  roughtable-north
+        1  roughchairdining
+        1  chest
+        1  door-crude
+        1  torch-basic-lit
+
+Level 3: 10 x 7 blocks, 9 high. 0 beds, 2 chests.
+       60  plankstairs-oak
+       43  cobblestone-shale
+       43  packeddirt
+       28  log-placed-oak-ud
+       22  log-placed-oak-we
+       18  rammed-light-plain
+        6  log-placed-oak-ns
+        2  stationarybasket-north
+        2  chest
+        1  stonepath-free
+        1  roughtable-north
+        1  roughchairdining
+        1  bookshelf
+        1  door-crude
+        1  torch-basic-lit
+
+Level 4: 13 x 7 blocks, 12 high. 0 beds, 2 chests.
+       66  packeddirt
+       64  log-placed-oak-ud
+       60  plankstairs-oak
+       58  cobblestone-shale
+       28  log-placed-oak-we
+       19  rammed-light-plain
+       12  log-placed-oak-ns
+       10  ladder-wood-oak-north
+        8  woodenfence-oak
+        2  stonepath-free
+        2  stationarybasket-north
+        2  chest
+        1  roughtable-north
+        1  roughchairdining
+        1  bookshelf
+        1  door-crude
+        1  door-solid-oak
+        1  torch-basic-lit
+
+Level 5: 13 x 7 blocks, 15 high. 0 beds, 2 chests.
+      133  cobblestone-shale
+       64  plankstairs-oak
+       44  log-placed-oak-ud
+       23  packeddirt
+       19  rammed-light-plain
+       16  stonebricks-shale
+       16  log-placed-oak-we
+       10  ladder-wood-oak-north
+        6  log-placed-oak-ns
+        5  planks-oak-hor
+        4  woodenfence-oak
+        2  stonepath-free
+        2  stationarybasket-north
+        2  chest
+        1  roughtable-north
+        1  roughchairdining
+        1  bookshelf
+        1  door-crude
+        1  door-solid-oak
+        1  torch-basic-lit

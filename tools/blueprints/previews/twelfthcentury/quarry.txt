@@ -1,0 +1,87 @@
+Quarry (12th Century Inspired): what each level needs, one item per block
+
+Level 1: 9 x 15 blocks, 9 high. 0 beds, 1 chests.
+      108  hay-normal-ud
+       39  cobblestone-shale
+       24  log-placed-oak-ud
+       21  packeddirt
+       15  rammed-light-plain
+       10  log-placed-oak-we
+        6  log-placed-oak-ns
+        1  stonepath-free
+        1  barrel
+        1  chest
+        1  door-crude
+        1  torch-basic-lit
+
+Level 2: 15 x 15 blocks, 9 high. 0 beds, 1 chests.
+      187  hay-normal-ud
+       44  log-placed-oak-ud
+       40  cobblestone-shale
+       21  packeddirt
+       16  log-placed-oak-we
+       15  rammed-light-plain
+       12  log-placed-oak-ns
+        1  stonepath-free
+        1  barrel
+        1  chest
+        1  rockpolished-shale
+        1  door-crude
+        1  torch-basic-lit
+
+Level 3: 19 x 15 blocks, 9 high. 0 beds, 2 chests.
+       84  hay-normal-ud
+       66  plankstairs-oak
+       49  packeddirt
+       48  cobblestone-shale
+       48  log-placed-oak-ud
+       31  log-placed-oak-we
+       21  rammed-light-plain
+       12  drystonefence-shale
+       12  log-placed-oak-ns
+        2  chest
+        1  stonepath-free
+        1  barrel
+        1  roughtable-north
+        1  rockpolished-shale
+        1  door-crude
+        1  torch-basic-lit
+
+Level 4: 19 x 15 blocks, 9 high. 0 beds, 2 chests.
+      129  cobblestone-shale
+      108  plankstairs-oak
+       24  log-placed-oak-we
+       21  rammed-light-plain
+       20  log-placed-oak-ud
+       16  stonebricks-shale
+       12  drystonefence-shale
+        6  log-placed-oak-ns
+        2  chest
+        1  stonepath-free
+        1  barrel
+        1  roughtable-north
+        1  rockpolished-shale
+        1  door-crude
+        1  torch-basic-lit
+
+Level 5: 19 x 15 blocks, 12 high. 1 beds, 3 chests.
+      108  cobblestone-shale
+       66  cobblestonestairs-shale
+       50  packeddirt
+       48  log-placed-oak-ud
+       42  plankstairs-oak
+       27  log-placed-oak-we
+       21  rammed-light-plain
+       21  planks-oak-hor
+       16  stonebricks-shale
+       12  drystonefence-shale
+       12  log-placed-oak-ns
+        4  ladder-wood-oak-north
+        3  chest
+        2  bed-hay (half: 2 blocks = 1 bed)
+        1  stonepath-free
+        1  barrel
+        1  roughtable-north
+        1  rockpolished-shale
+        1  door-solid-oak
+        1  torch-basic-lit
