@@ -121,9 +121,10 @@ public class GuiDialogHut : GuiDialog
         bgBounds.BothSizing = ElementSizing.FitToChildren;
 
         var tabs = Tabs();
-        bool subView = currentTab is ManageView or ChestView or HelpView;
+        bool subView = currentTab is ManageView or ChestView or HelpView or ChooseResidentsView;
         if (!subView && !tabs.Any(t => t.Id == currentTab)) currentTab = 0;
-        int activeTab = subView ? 0 : currentTab;
+        // Choose residents is opened from the Residents tab, so that tab stays lit; the others belong to Main.
+        int activeTab = currentTab == ChooseResidentsView ? ResidentsTab : subView ? 0 : currentTab;
 
         var composer = capi.Gui.CreateCompo("createacolony-hut", dialogBounds)
             .AddShadedDialogBG(bgBounds)

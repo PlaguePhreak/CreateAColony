@@ -97,11 +97,11 @@ public partial class ColonyNetwork
 
     /// <summary>
     /// Sets the blocks of the player's current preview to air. The emptied chunks stay loaded so the client is
-    /// sent them empty; they are unloaded the next time round, once they have gone out.
+    /// sent them empty. They are not unloaded here: turning the building a few times quickly unloaded chunks
+    /// before their empty copy had gone out, and the client kept drawing the old turns. ForgetGhost frees them.
     /// </summary>
     void EmptyGhost(string uid, IMiniDimension dim)
     {
-        dim.UnloadUnusedServerChunks();
         if (!ghostBlocks.Remove(uid, out var old)) return;
         foreach (var (pos, fluid) in old)
         {
