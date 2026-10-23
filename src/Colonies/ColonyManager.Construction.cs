@@ -76,7 +76,7 @@ public partial class ColonyManager
     /// Blueprint rotation for a building type: one with a door is turned so the door's side faces the player
     /// placing it. Turning a blueprint by 90 moves each side one step clockwise (east to south).
     /// </summary>
-    public int RotationFor(IPlayer player, string type, string style = BlueprintStyles.Testing)
+    public int RotationFor(IPlayer player, string type, string style = BlueprintStyles.Default)
     {
         if (Blueprints.Get(style, type, 1, 0)?.Front is not { } front) return RotationFor(player);
         int towards = BlockFacing.HorizontalFromYaw(player.Entity.Pos.Yaw).HorizontalAngleIndex;

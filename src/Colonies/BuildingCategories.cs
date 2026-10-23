@@ -21,18 +21,26 @@ public static class BuildingCategories
 }
 
 /// <summary>
-/// Blueprint styles, the tabs along the top of the Builder's Wand list. Each style has its own set of
-/// blueprints; a building keeps the style it was placed in for all its levels.
+/// Blueprint styles, the asset packs of the Builder's Wand. Each pack has its own set of blueprints under
+/// blueprints/&lt;style&gt;/; a player picks the pack they build with, and a building keeps the pack it was
+/// placed in for all its levels.
 /// </summary>
 public static class BlueprintStyles
 {
-    public const string Testing = "testing";
+    public const string TwelfthCentury = "twelfthcentury";
     public const string DevsBuilds = "devsbuilds";
+    /// <summary>The old Testing style (blueprints/&lt;type&gt;/), removed in 0.46.0. Buildings saved with it move to a pack that still exists.</summary>
+    public const string OldTesting = "testing";
 
-    public static readonly string[] All = { Testing, DevsBuilds };
+    public static readonly string[] All = { TwelfthCentury, DevsBuilds };
 
-    public static string Normalize(string? style) => string.IsNullOrEmpty(style) || System.Array.IndexOf(All, style) < 0 ? Testing : style;
+    /// <summary>The pack for buildings and players with none (or one that no longer exists).</summary>
+    public const string Default = TwelfthCentury;
 
-    /// <summary>The style's folder under blueprints/; Testing uses the blueprints/&lt;type&gt; folders themselves.</summary>
-    public static string Folder(string style) => Normalize(style) == Testing ? "" : Normalize(style);
+    public static bool Exists(string? style) => style != null && System.Array.IndexOf(All, style) >= 0;
+
+    public static string Normalize(string? style) => Exists(style) ? style! : Default;
+
+    /// <summary>The style's folder under blueprints/.</summary>
+    public static string Folder(string style) => Normalize(style);
 }

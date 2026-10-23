@@ -44,10 +44,15 @@ public partial class ColonyNetwork
                 if (plan != null) wandSpots[uid] = plan.Pos.Copy();
                 SendChooser(player);
                 return;
+            case ColonyAction.WandPack:
+                Manager.SetPack(uid, packet.Text);
+                SendChooser(player);
+                return;
             case ColonyAction.WandChoose:
-                // Text is "type|style".
+                // Text is "type|style"; the style is the player's asset pack, which the server knows best.
                 var chosen = packet.Text.Split('|');
-                string type = chosen[0], style = BlueprintStyles.Normalize(chosen.Length > 1 ? chosen[1] : null);
+                string type = chosen[0], pack = Manager.PackOf(uid);
+                string style = BlueprintStyles.Normalize(pack != "" ? pack : chosen.Length > 1 ? chosen[1] : null);
                 if (!WandTypes.Contains(type) || !wandSpots.TryGetValue(uid, out var at)) return;
                 plan = new Planned(type, at, plan?.Rotation ?? Manager.RotationFor(player, type, style), style);
                 planned[uid] = plan;
@@ -148,6 +153,7 @@ public partial class ColonyNetwork
     {
         var snapshot = new WandChooserSnapshot();
         if (planned.TryGetValue(player.PlayerUID, out var plan)) snapshot.Style = plan.Style;
+        snapshot.Pack = Manager.PackOf(player.PlayerUID);
         foreach (var type in WandTypes)
         {
             snapshot.Types.Add(type);

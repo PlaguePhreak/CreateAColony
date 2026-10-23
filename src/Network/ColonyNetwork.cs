@@ -113,7 +113,7 @@ public partial class ColonyNetwork : ModSystem
     void OnAction(IServerPlayer player, ColonyActionPacket packet)
     {
         // A building planned with the wand has no colony or building yet.
-        if (packet.BuildingId == 0 && packet.Action is >= ColonyAction.OpenPlacement and <= ColonyAction.WandChange or ColonyAction.PlacementLevel)
+        if (packet.BuildingId == 0 && packet.Action is >= ColonyAction.OpenPlacement and <= ColonyAction.WandChange or ColonyAction.PlacementLevel or ColonyAction.WandPack)
         {
             PlannedAction(player, packet);
             return;

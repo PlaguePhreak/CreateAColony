@@ -435,6 +435,7 @@ public partial class ColonyManager : ModSystem
                 byte[] data = sapi.WorldManager.SaveGame.GetData(ColonyKeyPrefix + id);
                 if (data == null) continue;
                 var colony = SerializerUtil.Deserialize<Colony>(data);
+                MoveOffOldStyles(colony);
                 colonies[colony.ColonyId] = colony;
             }
             catch (Exception e)
@@ -444,6 +445,20 @@ public partial class ColonyManager : ModSystem
             }
         }
         Mod.Logger.Notification("Loaded {0} colonies", colonies.Count);
+    }
+
+    /// <summary>
+    /// Buildings from before 0.46.0 may still be in the removed Testing style. Town Halls and Builder's Huts
+    /// have been built from Dev's Builds since 0.26.1, so they stay with it; everything else moves to the
+    /// default pack, which has every building.
+    /// </summary>
+    static void MoveOffOldStyles(Colony colony)
+    {
+        foreach (var building in colony.Buildings)
+        {
+            if (BlueprintStyles.Exists(building.Style)) continue;
+            building.Style = building.Type is BuildingTypes.TownHall or BuildingTypes.Builder ? BlueprintStyles.DevsBuilds : BlueprintStyles.Default;
+        }
     }
 
     void OnGameWorldSave()

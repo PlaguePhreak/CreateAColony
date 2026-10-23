@@ -29,12 +29,14 @@ public partial class ColonyManager
 
     /// <summary>
     /// Puts the supply camp's own building around it at once, if there is a blueprint for it
-    /// (blueprints/supplycamp/level1.json, like the huts' Testing blueprints). Nothing is built where the
+    /// (blueprints/&lt;pack&gt;/supplycamp/level1.json, from the player's asset pack or else the default one). Nothing is built where the
     /// player may not build: then none of it is, and the lang key saying why is returned.
     /// </summary>
     public string? BuildSupplyCamp(IServerPlayer player, BlockPos campPos)
     {
-        var blueprint = Blueprints.Get(BlueprintStyles.Testing, BuildingTypes.SupplyCamp, 1, RotationFor(player, BuildingTypes.SupplyCamp));
+        string pack = PackOf(player.PlayerUID);
+        if (Blueprints.MaxLevel(pack, BuildingTypes.SupplyCamp) == 0) pack = BlueprintStyles.Default;
+        var blueprint = Blueprints.Get(pack, BuildingTypes.SupplyCamp, 1, RotationFor(player, BuildingTypes.SupplyCamp, pack));
         if (blueprint == null) return null;
 
         var ba = sapi.World.BlockAccessor;

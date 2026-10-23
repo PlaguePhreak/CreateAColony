@@ -604,7 +604,9 @@ public enum ColonyAction
     /// <summary>Turns "Go to prospected ore" on (Text "1") or off for the Miner's Hut with BuildingId.</summary>
     SetMineProspected = 52,
     /// <summary>Forgets the Miner's Hut's site and tunnel, so the miner starts a new mine.</summary>
-    NewMine = 53
+    NewMine = 53,
+    /// <summary>Text is the asset pack (blueprint style) the player builds with from now on; opens the building list again.</summary>
+    WandPack = 54
 }
 
 /// <summary>The Builder's Wand building list: each building type with how many of its blocks the player carries.</summary>
@@ -617,6 +619,8 @@ public class WandChooserSnapshot
     [ProtoMember(3)] public List<string> WithBlueprints = new();
     /// <summary>The style of the building being planned, when the list was reopened with Change building; empty otherwise.</summary>
     [ProtoMember(4)] public string Style = "";
+    /// <summary>The asset pack the player builds with; empty until they pick one, which the list asks for first.</summary>
+    [ProtoMember(5)] public string Pack = "";
 }
 
 /// <summary>
