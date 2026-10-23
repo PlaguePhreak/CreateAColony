@@ -150,6 +150,8 @@ public class ColonyConfig
     public int MinerTorchesCarried = 8;
     /// <summary>When a mine at prospected ore is finished, the miner fills its staircase back in with dirt this many blocks down from the surface.</summary>
     public int MinerFillDepth = 6;
+    /// <summary>Mineshaft sections (cross, tee, straight) a Miner's Hut's mineshaft may grow per hut level, when the style has mineshaft pieces.</summary>
+    public int MinerSectionsPerHutLevel = 4;
     /// <summary>
     /// How far, in blocks, a miner's node search with its prospecting pick reaches, as the pick's node search
     /// mode does for a player. 0 goes by the world's own setting for the pick, or 8 when it has none.

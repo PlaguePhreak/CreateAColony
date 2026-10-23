@@ -30,11 +30,12 @@ public class AiTaskSettlerMiner : AiTaskSettlerDigger
 
     protected override string Job => Jobs.Miner;
     protected override string HutType => BuildingTypes.Miner;
-    protected override float WorkSeconds => job.Kind == ColonyManager.MineWork.Travel ? 0.1f : job.Kind == ColonyManager.MineWork.Fill ? 0.75f
+    protected override float WorkSeconds => job.Kind == ColonyManager.MineWork.Travel ? 0.1f : job.Kind is ColonyManager.MineWork.Fill or ColonyManager.MineWork.Build ? 0.75f
         : job.Kind == ColonyManager.MineWork.Search ? manager!.Config.MinerNodeSearchSeconds : ToolSeconds(manager!.DigSeconds(target, manager.Config.MinerSecondsPerBlock));
 
     protected override bool PlanWork(Colony colony, CitizenRecord citizen, Building hut, List<BlockEntityContainer> storage)
     {
+        hutBuilding = hut;
         if (FetchBetterPick(citizen, storage)) return true;
         if (FetchTorches(colony, citizen, hut, storage)) return true;
         bool canSearch = false;
@@ -51,6 +52,23 @@ public class AiTaskSettlerMiner : AiTaskSettlerDigger
         SetStatus(status);
         if (next is not { } found) return false;
         job = found;
+        // A block to build for the mineshaft: first fetch what it costs from the hut's storage.
+        if (found is { Kind: ColonyManager.MineWork.Build, Step: { } step })
+        {
+            var missing = manager!.NextPlacement(colony, step, found.Block).Costs
+                .Where(c => manager.PackCount(citizen, ColonyManager.Matcher(c.Code)) < c.Count).ToList();
+            if (missing.Count > 0)
+            {
+                var fits = missing.Select(c => ColonyManager.Matcher(c.Code)).ToList();
+                var chest = storage.FirstOrDefault(c => c.Inventory.Any(slot => !slot.Empty && fits.Any(m => m(slot.Itemstack))));
+                if (chest == null)
+                {
+                    MarkUnreachable(found.Block); // someone took it meanwhile: build something else first
+                    return false;
+                }
+                return FetchSupplies(chest.Pos, s => fits.Any(m => m(s)), missing.Sum(c => c.Count) + 8);
+            }
+        }
         return GoWork(found.Block);
     }
 
@@ -62,14 +80,18 @@ public class AiTaskSettlerMiner : AiTaskSettlerDigger
 
     /// <summary>The next thing to dig or fill, and the status for the hut window.</summary>
     protected virtual ColonyManager.MineJob? NextJob(Colony colony, CitizenRecord citizen, Building hut, BlockPos at, bool canFill, bool canSearch, out string status) =>
-        manager!.NextMineJob(colony, hut, at, IsUnreachable, canFill, canSearch, out status);
+        manager!.NextMineJob(colony, hut, citizen, at, IsUnreachable, canFill, canSearch, out status);
 
     /// <summary>True while a finished mine waits to be filled in, so the dirt and stone it carries stay with it.</summary>
     bool filling;
 
     /// <summary>The miner keeps its torches and prospecting pick, too, and dirt and stone while it has a mine to fill in.</summary>
     protected override bool AlsoKeeps(ItemStack stack) =>
-        base.AlsoKeeps(stack) || ColonyManager.IsTorchStack(stack) || NodeSearches && ColonyManager.IsProspectingPick(stack) || filling && ColonyManager.IsFillStack(stack);
+        base.AlsoKeeps(stack) || ColonyManager.IsTorchStack(stack) || NodeSearches && ColonyManager.IsProspectingPick(stack) || filling && ColonyManager.IsFillStack(stack)
+        || NodeSearches && hutBuilding != null && manager!.IsMineshaftMaterial(hutBuilding, stack);
+
+    /// <summary>The hut last planned for, so what the mineshaft needs built from is kept.</summary>
+    Building? hutBuilding;
 
     /// <summary>
     /// True when the miner carries a prospecting pick for node searches. Otherwise it walks to fetch one
@@ -143,6 +165,11 @@ public class AiTaskSettlerMiner : AiTaskSettlerDigger
             manager!.FillBlock(colony, citizen, target);
             return;
         }
+        if (job.Kind == ColonyManager.MineWork.Build)
+        {
+            if (job.Step is { } step && !manager!.BuildMineshaftBlock(colony, citizen, entity, step, target)) MarkUnreachable(target);
+            return;
+        }
         if (job.Kind == ColonyManager.MineWork.Search)
         {
             if (Hand is { } pick) manager!.NodeSearch(colony, hut, entity, job.Stand, pick);
@@ -157,6 +184,7 @@ public class AiTaskSettlerMiner : AiTaskSettlerDigger
     }
 
     protected override string DescribeWork() => Lang.Get(job.Kind == ColonyManager.MineWork.Fill ? "createacolony:activity-miner-fill"
+        : job.Kind == ColonyManager.MineWork.Build ? "createacolony:activity-miner-build"
         : job.Kind == ColonyManager.MineWork.Search ? "createacolony:activity-miner-search"
         : job.Kind == ColonyManager.MineWork.Travel ? "createacolony:activity-miner-travel"
         : job.Ore ? "createacolony:activity-miner-ore" : "createacolony:activity-miner-tunnel");

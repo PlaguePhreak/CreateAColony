@@ -17,10 +17,10 @@ namespace CreateAColony.Colonies;
 /// </summary>
 public partial class ColonyManager
 {
-    public enum MineWork { Travel, Dig, Fill, Search }
+    public enum MineWork { Travel, Dig, Fill, Search, Build }
 
-    /// <summary>What a miner does next: walk to Stand, then (for Dig) dig out Block from there.</summary>
-    public readonly record struct MineJob(MineWork Kind, BlockPos Block, BlockPos Stand, bool Ore);
+    /// <summary>What a miner does next: walk to Stand, then (for Dig) dig out Block from there, or (for Build) put Step's block there.</summary>
+    public readonly record struct MineJob(MineWork Kind, BlockPos Block, BlockPos Stand, bool Ore, BuildStep? Step = null);
 
     /// <summary>The ore blocks found around each trip's site, so the ground is searched once per site.</summary>
     readonly Dictionary<MineTrip, (BlockPos Site, string Ore, List<BlockPos> Blocks)> oreBlocks = new();
@@ -527,11 +527,20 @@ public partial class ColonyManager
     /// the prospectors found comes first; otherwise, or when there is none it can get to, the shaft. At is
     /// where the miner stands. Null when there is nothing to dig.
     /// </summary>
-    public MineJob? NextMineJob(Colony colony, Building hut, BlockPos at, System.Func<BlockPos, bool> skip, bool canFill, bool canSearch, out string status)
+    public MineJob? NextMineJob(Colony colony, Building hut, CitizenRecord miner, BlockPos at, System.Func<BlockPos, bool> skip, bool canFill, bool canSearch, out string status)
     {
         if (canFill && NextFillJob(colony, hut.Trip, skip, out status) is { } fill) return fill;
         if (NextNodeJob(colony, hut, skip, out status) is { } node) return node;
-        MineJob? job = hut.MineProspected && NextSiteJob(colony, hut, hut.Trip, skip, out status) is { } trip ? trip : NextShaftJob(colony, hut, at, skip, out status);
+        MineJob? job;
+        // A mineshaft made of pieces (ColonyManager.Mineshaft.cs) comes first; prospected ore when it is done or waiting.
+        if (NextMineshaftJob(colony, hut, miner, at, skip, out status) is { } shaft) job = shaft;
+        else if (status.Length > 0)
+        {
+            string waiting = status;
+            job = hut.MineProspected ? NextSiteJob(colony, hut, hut.Trip, skip, out status) : null;
+            if (job == null) status = waiting;
+        }
+        else job = hut.MineProspected && NextSiteJob(colony, hut, hut.Trip, skip, out status) is { } trip ? trip : NextShaftJob(colony, hut, at, skip, out status);
         // Somewhere new in the mine: a node search there first, for ore close by.
         if (canSearch && job is { Kind: MineWork.Dig } dig && NeedsNodeSearch(hut, dig.Stand))
         {
@@ -744,7 +753,7 @@ public partial class ColonyManager
     /// The middle of the Miner's Hut's shaft: the Mine waypoint in its blueprint, or else a spot beside the
     /// hut chosen the first time it is needed; null when there is no room beside the hut.
     /// </summary>
-    BlockPos? ShaftFor(Colony colony, Building hut, out bool marked)
+    BlockPos? ShaftFor(Colony colony, Building hut, out bool marked, int half = 1)
     {
         var mark = WaypointOf(hut, "mine");
         marked = mark != null;
@@ -754,7 +763,7 @@ public partial class ColonyManager
             return mark;
         }
         if (hut.ShaftPos != null) return hut.ShaftPos;
-        hut.ShaftPos = SpotBeside(colony, hut, 1);
+        hut.ShaftPos = SpotBeside(colony, hut, half);
         if (hut.ShaftPos != null) MarkDirty(colony);
         return hut.ShaftPos;
     }
@@ -833,7 +842,8 @@ public partial class ColonyManager
     string MineInfo(Colony colony, Building hut)
     {
         string line;
-        if (hut.ShaftPos is { } shaft)
+        if (MineshaftInfo(colony, hut) is { } pieces) line = pieces;
+        else if (hut.ShaftPos is { } shaft)
         {
             var (depth, level) = ShaftProgress(hut);
             line = Lang.Get("createacolony:mine-shaft", depth, level, ShaftLevels(hut), shaft.X, shaft.Y, shaft.Z);
@@ -959,7 +969,8 @@ public partial class ColonyManager
 
         var (boxes, keep) = DigLimits(colony, hut, WaypointOf(hut, "mine") != null);
         var guarded = new HashSet<BlockPos>(keep);
-        if (hut.ShaftPos is { } centre)
+        if (MineshaftGuard(colony, hut) is { } pieces) guarded.UnionWith(pieces);
+        else if (hut.ShaftPos is { } centre)
         {
             var plan = ShaftPlan(centre, ShaftLevels(hut), Math.Max(1, Config.MinerTunnelLength));
             guarded.UnionWith(plan.Select(p => p.Feet.DownCopy()));

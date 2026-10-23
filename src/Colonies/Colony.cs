@@ -236,7 +236,9 @@ public class Building
     [ProtoMember(47)] public string Variant = "";
     /// <summary>A Miner's Hut: its miner's trip to ore the colony's prospectors found. (Prospectors on Mine ore keep their own, on CitizenRecord.)</summary>
     [ProtoMember(48)] public MineTrip Trip = new();
-    // 49-59 left free for other building fields.
+    /// <summary>A Miner's Hut: the sections its mineshaft has grown so far, in the order they were dug, after its entrance.</summary>
+    [ProtoMember(49)] public List<MineSection> Sections = new();
+    // 50-59 left free for other building fields.
     // 60 and 61 held the trip's entrances and the mines to fill in before 0.62.0.
     [ProtoMember(60)] List<BlockPos> oldSiteEntrances = new();
     [ProtoMember(61)] List<BlockPos> oldMineSeals = new();
@@ -291,6 +293,15 @@ public class MineTrip
     [ProtoMember(6)] public List<BlockPos> Entrances = new();
     /// <summary>Entrances of finished mines still to be filled back in.</summary>
     [ProtoMember(7)] public List<BlockPos> Seals = new();
+}
+
+/// <summary>One section of a Miner's Hut's mineshaft: which piece (cross, tee, straight), turned how far, and where its bottom middle is.</summary>
+[ProtoContract]
+public class MineSection
+{
+    [ProtoMember(1)] public string Name = "";
+    [ProtoMember(2)] public int Rotation;
+    [ProtoMember(3)] public BlockPos Origin = new BlockPos(0);
 }
 
 /// <summary>What each of a Prospector's Hut's prospectors does (CitizenRecord.WorkRole).</summary>

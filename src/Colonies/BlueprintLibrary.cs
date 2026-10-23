@@ -50,6 +50,19 @@ public class Blueprint
 }
 
 /// <summary>
+/// One piece of a Miner's Hut's mineshaft (BlueprintLibrary.GetMinePiece): its steps as offsets from where it
+/// lines up (the entrance's Mine waypoint, a section's bottom middle), digging first, top down; the sides it
+/// is open on, each with the middle of that edge (X, Z offsets; on its bottom layer); and its box around that spot.
+/// </summary>
+public class MinePiece
+{
+    public required string Name;
+    public required List<BuildStep> Steps;
+    public required List<(BlockFacing Face, int X, int Z)> Open;
+    public (int X, int Y, int Z) Min, Max;
+}
+
+/// <summary>
 /// Finds and prepares blueprints. A blueprint is a normal vanilla WorldEdit export (/we export), so
 /// buildings are made in-game. They are looked up as blueprints/&lt;type&gt;/level&lt;N&gt;.json for the
 /// Testing style and blueprints/&lt;style&gt;/&lt;type&gt;/level&lt;N&gt;.json for the others, first in
@@ -136,6 +149,7 @@ public class BlueprintLibrary
     public void Reload()
     {
         cache.Clear();
+        mineCache.Clear();
         maxLevels.Clear();
         variants.Clear();
     }
@@ -300,6 +314,140 @@ public class BlueprintLibrary
         clear.Reverse();
         return new Blueprint { Type = type, Level = level, Steps = clear.Concat(solid).Concat(decor).ToList(), Front = front, Waypoints = waypoints };
     }
+
+    // ---- Mineshaft pieces ------------------------------------------------------------------
+
+    /// <summary>The pieces a Miner's Hut's mineshaft is made of: the way in, and the sections it grows from there.</summary>
+    public const string MineEntrance = "entrance";
+    public static readonly string[] MineSections = { "cross", "tee", "straight" };
+
+    readonly Dictionary<(string, string, int), MinePiece?> mineCache = new();
+
+    /// <summary>A mineshaft piece (blueprints/&lt;style&gt;/mineshaft/&lt;name&gt;.json) turned by rotation degrees, or null when there is none.</summary>
+    public MinePiece? GetMinePiece(string style, string name, int rotation)
+    {
+        style = BlueprintStyles.Normalize(style);
+        var key = (style, name, rotation);
+        if (!mineCache.TryGetValue(key, out var piece)) mineCache[key] = piece = LoadMinePiece(style, name, rotation);
+        return piece;
+    }
+
+    string? FindMineJson(string style, string name)
+    {
+        string folder = BlueprintStyles.Folder(style);
+        string file = Path.Combine(UserFolder, folder, "mineshaft", name + ".json");
+        if (File.Exists(file)) return File.ReadAllText(file);
+        return sapi.Assets.TryGet(new AssetLocation(CreateAColonyModSystem.ModId, $"config/blueprints/{folder}/mineshaft/{name}.json"))?.ToText();
+    }
+
+    /// <summary>
+    /// Reads a mineshaft piece. Unlike a building, its natural ground (rock, soil, gravel, sand, ore) is
+    /// left as the miner finds it, every empty spot in it is dug out, and everything else (planks, logs,
+    /// ladders, torches) is built. The entrance lines up by its Mine waypoint with the hut's (or else the
+    /// middle of its top); a section by the middle of its bottom. Its open sides are the sides with an
+    /// empty spot in the middle of the edge, in its bottom four layers.
+    /// </summary>
+    MinePiece? LoadMinePiece(string style, string name, int rotation)
+    {
+        string? json = FindMineJson(style, name);
+        if (json == null) return null;
+        string error = "";
+        var schematic = BlockSchematic.LoadFromString(json, ref error);
+        if (schematic == null)
+        {
+            sapi.Logger.Error("[createacolony] Mineshaft piece {0} ({1}) could not be read: {2}", name, style, error);
+            return null;
+        }
+        schematic.Init(sapi.World.BlockAccessor);
+        if (rotation != 0) schematic.TransformWhilePacked(sapi.World, EnumOrigin.BottomCenter, rotation);
+
+        var ba = sapi.World.BlockAccessor;
+        var blocks = new Dictionary<(int, int, int), Block>();
+        for (int i = 0; i < schematic.Indices.Count; i++)
+        {
+            uint index = schematic.Indices[i];
+            var at = ((int)(index & BlockSchematic.PosBitMask), (int)((index >> 20) & BlockSchematic.PosBitMask), (int)((index >> 10) & BlockSchematic.PosBitMask));
+            var block = ba.GetBlock(schematic.BlockCodes[schematic.BlockIds[i]]);
+            if (block != null && ColonyManager.IsTorch(block) && ba.GetBlock(ColonyManager.LitTorch(block.Code)) is { } lit) block = lit;
+            if (block != null) blocks[at] = block;
+        }
+        var saved = new Dictionary<(int, int, int), SavedBlockEntity>();
+        foreach (var (index, data) in schematic.BlockEntities)
+        {
+            var at = ((int)(index & BlockSchematic.PosBitMask), (int)((index >> 20) & BlockSchematic.PosBitMask), (int)((index >> 10) & BlockSchematic.PosBitMask));
+            if (blocks.TryGetValue(at, out var withData) && KeepsDetails(withData)) saved[at] = new SavedBlockEntity { Data = data, Source = schematic };
+        }
+
+        int sx = schematic.SizeX, sy = schematic.SizeY, sz = schematic.SizeZ;
+        var anchor = (sx / 2, 0, sz / 2);
+        if (name == MineEntrance)
+        {
+            anchor = (sx / 2, sy - 1, sz / 2);
+            foreach (var (at, b) in blocks) if (IsWaypoint(b) && (b.Variant["type"] ?? "") == "mine") anchor = at;
+        }
+        var (ax, ay, az) = anchor;
+
+        var digs = new List<BuildStep>();
+        var solid = new List<BuildStep>();
+        var decor = new List<BuildStep>();
+        for (int dy = sy - 1; dy >= 0; dy--)
+        for (int dx = 0; dx < sx; dx++)
+        for (int dz = 0; dz < sz; dz++)
+        {
+            if (!blocks.TryGetValue((dx, dy, dz), out var block) || IsWaypoint(block) || block.Id == 0
+                || block is BlockMultiblock || IsFurniturePart(block, saved.GetValueOrDefault((dx, dy, dz))))
+            {
+                digs.Add(new BuildStep(dx - ax, dy - ay, dz - az, 0));
+                continue;
+            }
+            if (IsMetaBlock(block) || IsNaturalGround(block)) continue;
+            var step = new BuildStep(dx - ax, dy - ay, dz - az, block.Id, saved.GetValueOrDefault((dx, dy, dz)));
+            if (IsSolid(block)) solid.Add(step);
+            else decor.Add(step);
+        }
+
+        // An open side: an empty spot in the middle of that edge, low down where the way through is.
+        bool Empty(int x, int y, int z) => !blocks.TryGetValue((x, y, z), out var b) || b.Id == 0 || IsWaypoint(b);
+        var open = new List<(BlockFacing, int, int)>();
+        foreach (var face in BlockFacing.HORIZONTALS)
+        {
+            int x = face == BlockFacing.EAST ? sx - 1 : face == BlockFacing.WEST ? 0 : sx / 2;
+            int z = face == BlockFacing.SOUTH ? sz - 1 : face == BlockFacing.NORTH ? 0 : sz / 2;
+            for (int y = 0; y < Math.Min(4, sy); y++)
+            {
+                if (!Empty(x, y, z)) continue;
+                open.Add((face, x - ax, z - az));
+                break;
+            }
+        }
+        return new MinePiece
+        {
+            Name = name, Steps = digs.Concat(solid).Concat(decor).ToList(), Open = open,
+            Min = (-ax, -ay, -az), Max = (sx - 1 - ax, sy - 1 - ay, sz - 1 - az)
+        };
+    }
+
+    /// <summary>
+    /// The ground a mineshaft piece leaves as it is: rock, soil, gravel, sand, clay and ore as worldgen puts
+    /// them down, and water or lava. Built stone (cobblestone, bricks) does not count and is built.
+    /// </summary>
+    public static bool IsNaturalGround(Block block)
+    {
+        if (block.IsLiquid() || block.BlockMaterial is EnumBlockMaterial.Lava) return true;
+        if (block.Code?.Domain != "game") return false;
+        string path = block.Code.Path;
+        return NaturalPrefixes.Any(path.StartsWith);
+    }
+
+    static readonly string[] NaturalPrefixes =
+    {
+        "rock-", "soil-", "gravel-", "sand-", "ore-", "crackedrock-", "rawclay-", "peat-", "muddygravel", "forestfloor",
+        "looseboulders", "loosestones", "looseores", "loosegears", "sludgygravel", "suevite", "meteorite", "glacierice", "packedglacierice"
+    };
+
+    static bool IsMetaBlock(Block b) => b.Id == BlockSchematic.FillerBlockId || b.Id == BlockSchematic.PathwayBlockId
+        || b.Id == BlockSchematic.UndergroundBlockId || b.Id == BlockSchematic.AbovegroundBlockId || b.Id == BlockSchematic.ConnectorBlockId
+        || b is BlockGroundStorage;
 
     /// <summary>A Mine or Quarry waypoint block (createacolony:waypoint-mine, createacolony:waypoint-quarry).</summary>
     public static bool IsWaypoint(Block block) => block.Code?.Domain == CreateAColonyModSystem.ModId && block.Code.Path.StartsWith("waypoint-");
