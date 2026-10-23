@@ -163,6 +163,7 @@ public partial class ColonyNetwork : ModSystem
             ColonyAction.SetWorkRole => WorkRoleAction(colony, role, packet),
             >= ColonyAction.SetMineLevel and <= ColonyAction.UnassignMineGuard => MineTabAction(colony, role, packet),
             ColonyAction.GiveResource or ColonyAction.GiveAllResources => GiveResource(player, colony, role, packet),
+            ColonyAction.MoveInResidence or ColonyAction.MoveOutResidence => ResidenceAction(colony, role, packet),
             ColonyAction.WelcomeVisitor or ColonyAction.TurnAwayVisitor => VisitorAction(colony, role, packet),
             ColonyAction.RecallCitizen => RecallCitizen(colony, role, packet.CitizenId),
             ColonyAction.SetColonyBanner or ColonyAction.ReplaceBanners or ColonyAction.SetBannerOnNew => BannerAction(player, colony, role, packet),

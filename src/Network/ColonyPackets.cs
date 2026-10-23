@@ -420,6 +420,8 @@ public class HutSnapshot
     /// <summary>Required resources: "N of M spots done" for a mineshaft piece, the used share for a builder.</summary>
     [ProtoMember(92)] public int UsedPercent = -1;
     [ProtoMember(93)] public string ResourcesStep = "";
+    /// <summary>A Residence: the colony's other grown settlers, with where they live now (already in words, empty for nowhere) in Relation.</summary>
+    [ProtoMember(94)] public List<FamilyMemberView> ResidentChoices = new();
 }
 
 /// <summary>One line of a hut's chest list: an item, how many there are, and which containers hold it.</summary>
@@ -710,7 +712,10 @@ public enum ColonyAction
     /// <summary>Moves the item with code Text from the player's inventory into the hut's storage, as many as are still needed.</summary>
     GiveResource = 97,
     /// <summary>Fulfil all: Text holds one "code|count" line per item; each moves from the player into the hut's storage, as many as it still needs.</summary>
-    GiveAllResources = 98
+    GiveAllResources = 98,
+    /// <summary>A Residence's Choose residents page: move a settler and their household in, or out to a bed elsewhere.</summary>
+    MoveInResidence = 99,
+    MoveOutResidence = 100
 }
 
 /// <summary>The Builder's Wand building list: each building type with how many of its blocks the player carries.</summary>

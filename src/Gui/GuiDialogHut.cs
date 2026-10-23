@@ -49,6 +49,7 @@ public class GuiDialogHut : GuiDialog
     const int ManageView = 20;
     const int ChestView = 21;
     const int HelpView = 22;
+    const int ChooseResidentsView = 23;
     const int ListRowsPerPage = 8;
     const double ListRowHeight = 36;
 
@@ -158,6 +159,7 @@ public class GuiDialogHut : GuiDialog
             case ManageView: ComposeManage(composer); break;
             case ChestView: ComposeChest(composer); break;
             case HelpView: ComposeHelp(composer); break;
+            case ChooseResidentsView: ComposeChooseResidents(composer); break;
         }
         composer.FitTabs(tabs.Count);
         SingleComposer = composer.EndChildElements().Compose();
@@ -1060,7 +1062,8 @@ public class GuiDialogHut : GuiDialog
     /// <summary>A Residence's Residents tab: its beds, then each household living there with how they are related.</summary>
     void ComposeResidents(GuiComposer composer)
     {
-        double y = composer.Text(Lang.Get("createacolony:residence-beds", snapshot.ResidenceBeds, snapshot.ResidenceFreeBeds), GuiKit.Body(), 0, 30, Width);
+        composer.AddSmallButton(Lang.Get("createacolony:residence-choose"), () => Open(ChooseResidentsView), ElementBounds.Fixed(Width - 170, 28, 170, 28));
+        double y = composer.Text(Lang.Get("createacolony:residence-beds", snapshot.ResidenceBeds, snapshot.ResidenceFreeBeds), GuiKit.Body(), 0, 34, Width - 180);
         y = composer.Text(Lang.Get("createacolony:residence-hint"), GuiKit.Muted(), 0, y, Width, 10);
         if (snapshot.Households.Count == 0)
         {
@@ -1090,6 +1093,57 @@ public class GuiDialogHut : GuiDialog
             y += 14;
         }
         composer.Pager(page, pages, y + 4, Width, p => { page = p; Compose(); });
+    }
+
+    /// <summary>
+    /// Choose residents: who lives here (with Move out) and every other grown settler with where they
+    /// live now (with Move in). A settler's partner and children always move with them.
+    /// </summary>
+    void ComposeChooseResidents(GuiComposer composer)
+    {
+        composer
+            .AddStaticText(Lang.Get("createacolony:residence-choose"), GuiKit.Heading(), ElementBounds.Fixed(0, 30, Width - 110, 26))
+            .AddSmallButton(Lang.Get("createacolony:back"), () => Open(ResidentsTab), ElementBounds.Fixed(Width - 100, 28, 100, 28));
+        double y = composer.Text(Lang.Get("createacolony:residence-choose-hint"), GuiKit.Muted(), 0, 64, Width, 8);
+
+        var here = snapshot.Households.SelectMany(h => h.Members).ToList();
+        y = composer.Section(Lang.Get("createacolony:residence-living-here", here.Count, snapshot.ResidenceBeds), y, Width);
+        if (here.Count == 0) y = composer.Text(Lang.Get("createacolony:residence-nobody"), GuiKit.Detail(), 0, y, Width, 8);
+        foreach (var m in here)
+        {
+            int id = m.CitizenId;
+            composer
+                .AddStaticText(m.Name, GuiKit.Body(), ElementBounds.Fixed(10, y + 5, 220, 25))
+                .AddStaticText(m.Child ? Lang.Get("createacolony:job-child") : JobName(m.Job), GuiKit.Muted(), ElementBounds.Fixed(240, y + 8, 160, 22));
+            // Children move with their parents, so only the grown-ups get a button.
+            if (!m.Child) composer.AddSmallButton(Lang.Get("createacolony:residence-move-out"), () => SendCitizen(ColonyAction.MoveOutResidence, id), ElementBounds.Fixed(Width - 130, y, 120, 28));
+            y += ListRowHeight;
+        }
+
+        y = composer.Section(Lang.Get("createacolony:residence-others", snapshot.ResidenceFreeBeds), y + 6, Width);
+        var others = snapshot.ResidentChoices;
+        if (others.Count == 0)
+        {
+            composer.Text(Lang.Get("createacolony:manage-nobody"), GuiKit.Detail(), 0, y, Width);
+            return;
+        }
+        int pages = (others.Count + ListRowsPerPage - 1) / ListRowsPerPage;
+        page = Math.Clamp(page, 0, pages - 1);
+        int shown = Math.Min(ListRowsPerPage, others.Count - page * ListRowsPerPage);
+        composer.AddInset(ElementBounds.Fixed(0, y, Width, shown * ListRowHeight + 8), 3, 0.8f);
+        y += 4;
+        foreach (var c in others.Skip(page * ListRowsPerPage).Take(ListRowsPerPage))
+        {
+            int id = c.CitizenId;
+            string home = c.Relation.Length > 0 ? c.Relation : Lang.Get("createacolony:citizen-no-home");
+            composer
+                .AddStaticText(c.Name, GuiKit.Body(), ElementBounds.Fixed(10, y + 6, 190, 25))
+                .AddStaticText(home, GuiKit.Muted(), ElementBounds.Fixed(200, y + 8, Width - 340, 22));
+            if (snapshot.ResidenceFreeBeds > 0) composer.AddSmallButton(Lang.Get("createacolony:residence-move-in"), () => SendCitizen(ColonyAction.MoveInResidence, id), ElementBounds.Fixed(Width - 130, y + 3, 120, 28));
+            y += ListRowHeight;
+        }
+        AddPager(composer, pages, y + 14);
+        if (snapshot.ResidenceFreeBeds == 0) composer.Text(Lang.Get("createacolony:residence-full"), GuiKit.Detail().WithColor(GuiKit.WarnColor), 0, y + (pages > 1 ? 50 : 14), Width);
     }
 
     static string JobName(string job) => Lang.Get("createacolony:job-" + (job.Length == 0 ? "none" : job));
