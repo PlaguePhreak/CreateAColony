@@ -78,10 +78,7 @@ public class GuiDialogPlacement : GuiDialog
         }
         if (snapshot.Nearby > 0)
         {
-            y = composer.Text(Lang.Get(snapshot.NearbyHidden ? "createacolony:placement-nearby-hidden" : "createacolony:placement-nearby", snapshot.Nearby), GuiKit.Muted(), 0, y, Width, 4);
-            composer.AddSmallButton(Lang.Get(snapshot.NearbyHidden ? "createacolony:placement-outlines-show" : "createacolony:placement-outlines-hide"),
-                () => Send(ColonyAction.PlacementNearbyOutlines, ""), ElementBounds.Fixed(0, y, Width, 28));
-            y += 34;
+            y = composer.Text(Lang.Get("createacolony:placement-nearby", snapshot.Nearby), GuiKit.Muted(), 0, y, Width, 4);
         }
         if (snapshot.Overlaps.Count + snapshot.OverlapsLater.Count + snapshot.Nearby > 0) y += 6;
 
