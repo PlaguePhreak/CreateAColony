@@ -4,7 +4,7 @@
   "name": "Vintage Colonies",
   "description": "Found a colony, recruit settlers, and let them build, farm, cut wood, haul and stand guard.",
   "authors": ["Aaron"],
-  "version": "0.75.3",
+  "version": "0.75.4",
   "side": "universal",
   "requiredOnClient": true,
   "requiredOnServer": true,

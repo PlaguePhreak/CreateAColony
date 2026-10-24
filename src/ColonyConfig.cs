@@ -7,7 +7,7 @@ public class ColonyConfig
 {
     public const string FileName = "createacolony.json";
     /// <summary>Bumped when a default changes in a way old config files should pick up; see ColonyManager.UpgradeConfig.</summary>
-    public const int CurrentConfigVersion = 4;
+    public const int CurrentConfigVersion = 5;
 
     /// <summary>Which defaults this file has been brought up to. Files from before 0.33.0 have none, so read as 0.</summary>
     public int ConfigVersion;
@@ -240,7 +240,7 @@ public class ColonyConfig
 
     // Work area (Forester's and Farmer's Hut windows)
     /// <summary>The ranges, in blocks, a hut's Work area tab offers for how far its worker goes out.</summary>
-    public int[] GatherRadiusChoices = { 16, 32, 64, 128, 200, 300, 500 };
+    public int[] GatherRadiusChoices = { 16, 32, 64, 128, 200, 300, 500, 1000, 2000 };
     /// <summary>
     /// A forester, farmer or guard further than this from every player keeps the land around it loaded
     /// while it works, so it does not freeze out there.

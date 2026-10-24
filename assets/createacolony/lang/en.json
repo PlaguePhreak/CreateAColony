@@ -291,6 +291,7 @@
 	"tab-workarea": "Work area",
 	"workarea-range": "How far out the {0} goes",
 	"workarea-blocks": "{0} blocks",
+	"workarea-far": "Settlers only move while a player is near them. Far from you they stop, and after half a day out of reach they come back to the Town Hall.",
 	"workarea-range-hint-forester": "The forester cuts the nearest trees first and works outward. It only searches land that has already been explored.",
 	"workarea-range-hint-farmer": "How far the farmer goes for berries and fruit. Fields are wherever you place Field markers.",
 	"workarea-escort": "Escort by guard",

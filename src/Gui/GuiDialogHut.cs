@@ -925,6 +925,7 @@ public class GuiDialogHut : GuiDialog
             composer.AddStaticText(range, GuiKit.Body(), ElementBounds.Fixed(0, y + 4, Width, 25));
         }
         y += 36;
+        if (snapshot.WorkRadius > 128) y = composer.Text(Lang.Get("createacolony:workarea-far"), GuiKit.Detail().WithColor(GuiKit.WarnColor), 0, y, Width, 8);
         y = composer.Text(Lang.Get("createacolony:workarea-range-hint-" + snapshot.Building.Type), GuiKit.Muted(), 0, y, Width, 14);
         return y;
     }
