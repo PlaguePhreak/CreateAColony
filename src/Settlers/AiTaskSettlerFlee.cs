@@ -30,7 +30,8 @@ public class AiTaskSettlerFlee : SettlerTaskBase
     public AiTaskSettlerFlee(EntityAgent entity, JsonObject taskConfig, JsonObject aiConfig) : base(entity, taskConfig, aiConfig) { }
 
     public override bool ShouldExecute() =>
-        manager != null && Colony != null && Citizen is { } citizen && manager.FleesWhenHurt(citizen) && manager.FleeingFrom(entity) != null
+        manager != null && Colony != null && Citizen is { } citizen && manager.FleesWhenHurt(citizen)
+        && manager.FleeState(entity) is { Hits: > 0 } // a helper that was never hit has nothing to run from (Support allies)
         && !manager.FightsBack(Colony, citizen, entity); // armed and no guard near: AiTaskSettlerDefend
 
     public override void StartExecute()

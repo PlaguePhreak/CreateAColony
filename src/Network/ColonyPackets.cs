@@ -44,6 +44,8 @@ public class CitizenView
     [ProtoMember(20)] public string Incapable = "";
     /// <summary>What the worker does at a hut whose workers each pick their work (a prospector's ProspectorRoles).</summary>
     [ProtoMember(21)] public int WorkRole;
+    /// <summary>Colony militia tab: the weapon the settler would fight with, empty for none.</summary>
+    [ProtoMember(30)] public string Weapon = "";
 }
 
 /// <summary>One person in a family list: who, how they are related, and what they do.</summary>
@@ -545,6 +547,9 @@ public class ColonySnapshot
     [ProtoMember(50, IsRequired = true)] public int AverageHappiness = -1;
     /// <summary>Where every quest stands for the viewer, for the Quests tab.</summary>
     [ProtoMember(37)] public List<QuestStateView> Quests = new();
+    /// <summary>Colony militia switches.</summary>
+    [ProtoMember(60)] public bool SelfDefence;
+    [ProtoMember(61)] public bool SupportAllies;
 }
 
 /// <summary>Client asks for the quest book: from the hotkey, the Colony Ledger, the inventory button or the Town Hall's Quests tab.</summary>
@@ -726,7 +731,10 @@ public enum ColonyAction
     /// <summary>Text "group|1" or "group|0": whether the Explorer's or Gatherer's Hut with BuildingId puts that marker group on the map.</summary>
     SetMarkerGroup = 120,
     /// <summary>Takes away every map marker the worker of the hut with BuildingId put down.</summary>
-    RemoveMarkers = 121
+    RemoveMarkers = 121,
+    /// <summary>Colony militia switches (officers); Text is "1" or "0".</summary>
+    SetSelfDefence = 140,
+    SetSupportAllies = 141
 }
 
 /// <summary>The Builder's Wand building list: each building type with how many of its blocks the player carries.</summary>

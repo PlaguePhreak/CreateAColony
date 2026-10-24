@@ -357,6 +357,10 @@ public class ColonyConfig
     public float FightBackMinHealth = 0.3f;
     /// <summary>A settler fighting back stops once its attacker is further away than this; it does not give chase.</summary>
     public float FightBackChaseDistance = 6f;
+    /// <summary>Default for new colonies' Support allies switch (Colony militia tab): armed settlers help a settler being attacked nearby.</summary>
+    public bool SupportAllies = true;
+    /// <summary>Armed settlers this close to a settler being attacked come to help, when Support allies is on.</summary>
+    public float SupportAllyRadius = 16f;
 
     // Potter
     /// <summary>Seconds a potter takes to shape one layer of clay on the clay forming block.</summary>

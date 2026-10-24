@@ -172,6 +172,7 @@ public partial class ColonyNetwork : ModSystem
             ColonyAction.RecallCitizen => RecallCitizen(colony, role, packet.CitizenId),
             ColonyAction.SetColonyBanner or ColonyAction.ReplaceBanners or ColonyAction.SetBannerOnNew => BannerAction(player, colony, role, packet),
             ColonyAction.SetPermadeath => SetPermadeath(colony, role, packet.Text == "1"),
+            ColonyAction.SetSelfDefence or ColonyAction.SetSupportAllies => SetMilitia(colony, role, packet),
             ColonyAction.HireRecruit => HireAction(player, colony, role, packet),
             >= ColonyAction.RenameBuilding and <= ColonyAction.SetMinStock => HutAction(player, colony, role, packet),
             _ => null
@@ -243,6 +244,15 @@ public partial class ColonyNetwork : ModSystem
     {
         if (role < ColonyRole.Owner) return "createacolony:denied-owner";
         colony.Permadeath = on;
+        return null;
+    }
+
+    /// <summary>The Colony militia switches; officers set them.</summary>
+    static string? SetMilitia(Colony colony, ColonyRole role, ColonyActionPacket packet)
+    {
+        if (role < ColonyRole.Officer) return "createacolony:denied-officer";
+        if (packet.Action == ColonyAction.SetSelfDefence) colony.SelfDefence = packet.Text == "1";
+        else colony.SupportAllies = packet.Text == "1";
         return null;
     }
 
@@ -542,6 +552,8 @@ public partial class ColonyNetwork : ModSystem
             OpenRequests = colony.Requests.Count,
             DropOffs = colony.DropOffs.Count,
             Permadeath = Manager.Permadeath(colony),
+            SelfDefence = Manager.SelfDefence(colony),
+            SupportAllies = Manager.SupportAllies(colony),
             FreeBeds = Manager.FreeBeds(colony),
             WandererDays = config.Wanderers ? Manager.WandererEveryDays(colony) : 0,
             WanderersNeedFreeBed = config.WanderersNeedFreeBed,
@@ -590,7 +602,8 @@ public partial class ColonyNetwork : ModSystem
                 DiedTotalDays = c.DiedTotalDays,
                 Buried = c.Buried,
                 VisitorHoursLeft = c.Visitor ? (int)System.Math.Ceiling(System.Math.Max(0, c.VisitorUntilTotalDays - sapi!.World.Calendar.TotalDays) * sapi.World.Calendar.HoursPerDay) : 0,
-                TraitsText = Manager.TraitsText(c)
+                TraitsText = Manager.TraitsText(c),
+                Weapon = c.Alive && !c.IsChild && !c.Visitor ? Manager.BestWeapon(c)?.GetName() ?? "" : ""
             });
         }
 

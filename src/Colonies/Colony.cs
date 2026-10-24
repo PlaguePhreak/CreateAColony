@@ -573,6 +573,10 @@ public class Colony
     /// <summary>Map markers the colony's settlers put down (ColonyManager.Markers.cs).</summary>
     [ProtoMember(70)] public List<ColonyMarker> Markers = new();
     [ProtoMember(71, IsRequired = true)] public int NextMarkerId = 1;
+    /// <summary>Colony militia: settlers with a weapon fight a creature that hurts them. Null until changed, so the server config decides.</summary>
+    [ProtoMember(80)] public bool? SelfDefence;
+    /// <summary>Colony militia: settlers with a weapon come to help a nearby settler who is attacked. Null until changed, so the server config decides.</summary>
+    [ProtoMember(81)] public bool? SupportAllies;
 
     public string OwnerUid => Members.Find(m => m.Role == ColonyRole.Owner)?.PlayerUid ?? "";
 

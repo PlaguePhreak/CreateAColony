@@ -56,6 +56,8 @@ public class GuiElementColonyMap : GuiElement
     bool dragging;
     int prevMouseX, prevMouseY;
     MapBuildingView? hovered;
+    // The settler under the pointer, by citizen id; settlers are on top of buildings, so they win.
+    int hoveredCitizen = -1;
 
     /// <summary>box is the colony's land and buildings in blocks (inclusive), which Fit shows.</summary>
     public GuiElementColonyMap(ICoreClientAPI capi, ElementBounds bounds, ColonySnapshot snapshot, (int MinX, int MinZ, int MaxX, int MaxZ) box, Vec3d? player, ColonyMapView view) : base(capi, bounds)
@@ -233,12 +235,36 @@ public class GuiElementColonyMap : GuiElement
             dirty = true;
         }
 
-        var under = Bounds.PointInside(args.X, args.Y) ? BuildingAt(args.X - Bounds.absX, args.Y - Bounds.absY) : null;
-        if (under != hovered)
+        bool inside = Bounds.PointInside(args.X, args.Y);
+        int citizen = inside ? CitizenAt(args.X - Bounds.absX, args.Y - Bounds.absY) : -1;
+        var under = inside && citizen < 0 ? BuildingAt(args.X - Bounds.absX, args.Y - Bounds.absY) : null;
+        if (under != hovered || citizen != hoveredCitizen)
         {
             hovered = under;
+            hoveredCitizen = citizen;
             dirty = true;
         }
+    }
+
+    IEnumerable<CitizenView> ShownCitizens => snapshot.Citizens.Where(c => c.State != "dead" && (c.X != 0 || c.Z != 0));
+
+    /// <summary>The settler whose dot is nearest a point in the element's own pixels, within a few pixels; -1 for none.</summary>
+    int CitizenAt(double x, double y)
+    {
+        Clamp();
+        double reach = scaled(7), best = reach * reach;
+        int found = -1;
+        foreach (var c in ShownCitizens)
+        {
+            var (cx, cy) = WorldToScreen(c.X + 0.5, c.Z + 0.5);
+            double d = (cx - x) * (cx - x) + (cy - y) * (cy - y);
+            if (d < best)
+            {
+                best = d;
+                found = c.CitizenId;
+            }
+        }
+        return found;
     }
 
     public override void OnMouseWheel(ICoreClientAPI api, MouseWheelEventArgs args)
@@ -369,10 +395,10 @@ public class GuiElementColonyMap : GuiElement
 
         // Settlers, then the player on top. Dots grow a little when zoomed in, and shrink a little zoomed out.
         double dotScale = Math.Clamp(1 + (view.Zoom - 1) / 6, 0.7, 2);
-        foreach (var c in snapshot.Citizens.Where(c => c.State != "dead" && (c.X != 0 || c.Z != 0)))
+        foreach (var c in ShownCitizens)
         {
             double[] color = c.Visitor ? new[] { 1.0, 0.9, 0.3 } : c.State == "downed" ? new[] { 0.9, 0.3, 0.3 } : new[] { 0.4, 0.95, 0.45 };
-            Dot(ctx, WorldToScreen(c.X + 0.5, c.Z + 0.5), scaled(3) * dotScale, color);
+            Dot(ctx, WorldToScreen(c.X + 0.5, c.Z + 0.5), scaled(3) * dotScale * (c.CitizenId == hoveredCitizen ? 1.5 : 1), color);
         }
         if (player != null) Dot(ctx, WorldToScreen(player.X, player.Z), scaled(4) * Math.Max(1, dotScale), new[] { 1.0, 1.0, 1.0 });
 
@@ -391,6 +417,20 @@ public class GuiElementColonyMap : GuiElement
         {
             string loading = Lang.Get("createacolony:townmap-loading");
             Label(ctx, loading, scaled(6), height - scaled(6) - ctx.FontExtents.Height - scaled(4), false);
+        }
+
+        // The name of the settler under the pointer, and their job, just above the dot.
+        if (ShownCitizens.FirstOrDefault(c => c.CitizenId == hoveredCitizen) is { } who)
+        {
+            var (cx, cy) = WorldToScreen(who.X + 0.5, who.Z + 0.5);
+            string job = who.Child ? Lang.Get("createacolony:citizens-child") : Lang.Get("createacolony:job-" + (who.Job.Length == 0 ? "none" : who.Job));
+            string text = Lang.Get("createacolony:settler-dot-hover", who.Name, job);
+            ctx.SetFontSize(scaled(13));
+            double boxWidth = ctx.TextExtents(text).XAdvance + scaled(8), boxHeight = ctx.FontExtents.Height + scaled(4);
+            double lx = Math.Clamp(cx - boxWidth / 2, scaled(2), Math.Max(scaled(2), width - boxWidth - scaled(2)));
+            double ly = cy - boxHeight - scaled(8);
+            if (ly < scaled(2)) ly = Math.Min(height - boxHeight - scaled(2), cy + scaled(8));
+            Label(ctx, text, lx, ly, true);
         }
 
         // The name of the building under the pointer, just above it (or below when there is no room).

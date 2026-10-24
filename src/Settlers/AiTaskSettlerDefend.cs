@@ -31,11 +31,16 @@ public class AiTaskSettlerDefend : SettlerTaskBase
 
     public override bool ShouldExecute() =>
         manager != null && Colony is { } colony && Citizen is { } citizen && manager.FleeingFrom(entity) is { } from
-        && manager.FightsBack(colony, citizen, entity) && InRange(from);
+        && manager.FightsBack(colony, citizen, entity, Helping) && InRange(from);
 
+    /// <summary>Came to help another settler (Support allies) and has not been hit itself.</summary>
+    bool Helping => manager?.FleeState(entity) is { Hits: 0 };
+
+    /// <summary>Close enough to fight; a helper comes from further away, up to SupportAllyRadius beyond.</summary>
     bool InRange(Entity from)
     {
         double chase = manager!.Config.FightBackChaseDistance;
+        if (Helping) chase += manager.Config.SupportAllyRadius;
         return entity.Pos.SquareDistanceTo(from.Pos.XYZ) <= chase * chase;
     }
 
@@ -56,7 +61,12 @@ public class AiTaskSettlerDefend : SettlerTaskBase
         // Dead, gone or left alone long enough: done.
         if (attacker == null) return false;
         // Badly hurt or a guard is close: run instead (the flee task takes over).
-        if (!m.FightsBack(colony, citizen, entity)) return false;
+        if (!m.FightsBack(colony, citizen, entity, Helping))
+        {
+            // A helper that can no longer fight just goes back to work; one that was hit runs (the flee task).
+            if (Helping) m.StopFleeing(entity);
+            return false;
+        }
         // It backed off: let it go rather than hunt it down.
         if (!InRange(attacker))
         {

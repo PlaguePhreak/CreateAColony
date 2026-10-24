@@ -715,6 +715,20 @@ before shipping converted blueprints.
   sit on the floor. Eating sitting down takes a little longer.
 - Eating uses the player's hand-to-mouth animation.
 
+### Colony militia, settlers on the world map, tab order (0.85.0)
+- Town Hall tabs: Prospecting moved down to just above Settings, which stays last. New **Colony militia** tab
+  after Citizens.
+- **Colony militia** lists every grown settler with their job, Guard or Civilian, and the weapon they would
+  fight with (the one in hand, else the best one they carry), guards first. Two switches for officers:
+  **Self Defence** (settlers with a weapon fight a creature that hurts them; this is 0.76.0's fighting back,
+  now per colony, default from `FightBackWhenAttacked`) and **Support allies** (when a settler is hurt by a
+  creature, other armed non-guard settlers within `SupportAllyRadius` (16) blocks come and fight it too; default
+  from `SupportAllies`, on). Helpers that can no longer fight go back to work; they never run unless hit.
+- **Colony settlers** world map layer (`Map/ColonySettlerMapLayer.cs`), next to Colony prospecting and Colony
+  markers: every settler of the player's colonies as a dot (green, yellow wanderers, red knocked out), sent
+  by the server every 3 seconds so far-away settlers show too. Pointing at one shows its name, job and colony.
+- The Town map also names the settler under the pointer.
+
 ### Town map land drawn black (0.81.0)
 - The Town map showed loaded land as solid black: its textures were made without a size, so nothing was
   uploaded. They now get their size (256 by 256) up front, and get smaller copies for zooming far out.

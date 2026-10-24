@@ -259,6 +259,7 @@ public partial class ColonyManager
         var attacker = source.CauseEntity ?? source.SourceEntity;
         if (attacker != null && IsThreat(attacker)) RaiseAlarm(colony, attacker, settler.Pos.XYZ);
         if (IsAttackerToFlee(attacker) && (FleesWhenHurt(citizen) || FightsBack(colony, citizen, settler))) StartFleeing(colony, citizen, settler, attacker!);
+        if (IsAttackerToFlee(attacker) && citizen.JobCode != Jobs.Guard) CallAllies(colony, citizen, settler, attacker!);
 
         damage = ArmorAbsorb(colony, citizen, settler, source, damage);
         if (citizen.JobCode == Jobs.Guard && TowerOf(colony, citizen) is { } tower && damage > 0)

@@ -39,6 +39,7 @@ public class GuiDialogTownHall : GuiDialog
     const int OreRowsPerPage = 7;
     const double OreRowHeight = 44;
     const int QuestsTab = 9;
+    const int MilitiaTab = 10;
     const double MapHeight = 380;
     const int MapMargin = 16;
     // Opened with the ? button on the Actions tab, with a Back button.
@@ -46,8 +47,8 @@ public class GuiDialogTownHall : GuiDialog
 
     static readonly (int Id, string Lang)[] Tabs =
     {
-        (ProspectingTab, "tab-prospecting"), (ActionsTab, "tab-actions"), (QuestsTab, "tab-quests"), (MapTab, "tab-townmap"), (BannersTab, "tab-banners"), (InfoTab, "tab-information"), (CitizensTab, "tab-citizens"),
-        (StatsTab, "tab-statistics"), (PermissionsTab, "tab-permissions"), (SettingsTab, "tab-settings")
+        (ActionsTab, "tab-actions"), (QuestsTab, "tab-quests"), (MapTab, "tab-townmap"), (BannersTab, "tab-banners"), (InfoTab, "tab-information"), (CitizensTab, "tab-citizens"),
+        (MilitiaTab, "tab-militia"), (StatsTab, "tab-statistics"), (PermissionsTab, "tab-permissions"), (ProspectingTab, "tab-prospecting"), (SettingsTab, "tab-settings")
     };
 
     readonly ColonyNetwork network;
@@ -122,6 +123,7 @@ public class GuiDialogTownHall : GuiDialog
             case QuestsTab: ComposeQuests(composer); break;
             case InfoTab: ComposeInformation(composer); break;
             case CitizensTab: ComposeCitizens(composer); break;
+            case MilitiaTab: ComposeMilitia(composer); break;
             case StatsTab: ComposeStatistics(composer); break;
             case PermissionsTab: ComposePermissions(composer); break;
             case SettingsTab: ComposeSettings(composer); break;
@@ -132,6 +134,8 @@ public class GuiDialogTownHall : GuiDialog
         SingleComposer = composer.EndChildElements().Compose();
         SingleComposer.GetTextInput("colonyname")?.SetValue(pendingName);
         SingleComposer.GetSwitch("permadeath")?.SetValue(snapshot.Permadeath);
+        SingleComposer.GetSwitch("selfdefence")?.SetValue(snapshot.SelfDefence);
+        SingleComposer.GetSwitch("supportallies")?.SetValue(snapshot.SupportAllies);
         SingleComposer.GetSwitch("banneronnew")?.SetValue(snapshot.BannerOnNew);
     }
 
@@ -837,6 +841,78 @@ public class GuiDialogTownHall : GuiDialog
         y = composer.Text(Lang.Get("createacolony:invite-hint"), GuiKit.Muted(), 0, y + 12, Width, 8);
         y = composer.Text(Lang.Get("createacolony:townhall-roles-hint"), GuiKit.Muted(), 0, y, Width, 8);
         ComingLater(composer, "townhall-later-permissions", y);
+    }
+
+    // ---- Colony militia tab ---------------------------------------------------------------
+
+    /// <summary>
+    /// Every grown settler with their job, whether they are a guard, and the weapon they would fight with;
+    /// then the Self Defence and Support allies switches (officers change them).
+    /// </summary>
+    void ComposeMilitia(GuiComposer composer)
+    {
+        double top = 30;
+        var people = snapshot.Citizens.Where(c => c.State != "dead" && !c.Visitor && !c.Child)
+            .OrderByDescending(c => c.Job == Jobs.Guard).ThenByDescending(c => c.Weapon.Length > 0).ThenBy(c => c.Name).ToList();
+        int guards = people.Count(c => c.Job == Jobs.Guard), armed = people.Count(c => c.Job != Jobs.Guard && c.Weapon.Length > 0);
+        top = composer.Text(Lang.Get("createacolony:militia-summary", guards, armed, people.Count - guards - armed), GuiKit.Detail(), 0, top, Width, 6);
+        double y;
+        if (people.Count == 0)
+        {
+            y = composer.Text(Lang.Get("createacolony:militia-nobody"), GuiKit.Body(), 0, top, Width);
+        }
+        else
+        {
+            composer
+                .AddStaticText(Lang.Get("createacolony:col-name"), GuiKit.Muted(), ElementBounds.Fixed(10, top, 150, 20))
+                .AddStaticText(Lang.Get("createacolony:col-job"), GuiKit.Muted(), ElementBounds.Fixed(165, top, 120, 20))
+                .AddStaticText(Lang.Get("createacolony:col-militia-role"), GuiKit.Muted(), ElementBounds.Fixed(290, top, 90, 20))
+                .AddStaticText(Lang.Get("createacolony:col-weapon"), GuiKit.Muted(), ElementBounds.Fixed(385, top, 175, 20));
+
+            int rows = RowsPerPage - 2;
+            int pages = (people.Count + rows - 1) / rows;
+            page = Math.Clamp(page, 0, pages - 1);
+            int shown = Math.Min(rows, people.Count - page * rows);
+            composer.AddInset(ElementBounds.Fixed(0, top + 22, Width, shown * RowHeight + 6), 3, 0.8f);
+            y = top + 25;
+            foreach (var c in people.Skip(page * rows).Take(rows))
+            {
+                bool guard = c.Job == Jobs.Guard;
+                var roleFont = guard ? GuiKit.Detail().WithColor(GuiKit.GoodColor) : GuiKit.Detail();
+                var weaponFont = c.Weapon.Length > 0 ? GuiKit.Detail() : GuiKit.Detail().WithColor(GuiKit.MutedColor);
+                composer
+                    .AddStaticText(c.Name, GuiKit.Body(), ElementBounds.Fixed(10, y + 6, 150, 25))
+                    .AddStaticText(JobName(c.Job), GuiKit.Detail(), ElementBounds.Fixed(165, y + 8, 120, 25))
+                    .AddStaticText(Lang.Get(guard ? "createacolony:militia-guard" : "createacolony:militia-civilian"), roleFont, ElementBounds.Fixed(290, y + 8, 90, 25))
+                    .AddStaticText(c.Weapon.Length > 0 ? c.Weapon : Lang.Get("createacolony:militia-no-weapon"), weaponFont, ElementBounds.Fixed(385, y + 8, 175, 25));
+                y += RowHeight;
+            }
+            composer.Pager(page, pages, y + 14, Width, p => { page = p; Compose(); });
+            y += pages > 1 ? 54 : 16;
+        }
+
+        y = composer.Section(Lang.Get("createacolony:militia-settings"), y, Width);
+        y = MilitiaSwitch(composer, "selfdefence", ColonyAction.SetSelfDefence, snapshot.SelfDefence, "militia-selfdefence", "militia-selfdefence-hint", y);
+        MilitiaSwitch(composer, "supportallies", ColonyAction.SetSupportAllies, snapshot.SupportAllies, "militia-supportallies", "militia-supportallies-hint", y);
+    }
+
+    /// <summary>One militia switch with its name and a line on what it does; officers can flip it. Returns the y below it.</summary>
+    double MilitiaSwitch(GuiComposer composer, string key, ColonyAction action, bool on, string label, string hint, double y)
+    {
+        string state = Lang.Get(on ? "createacolony:on" : "createacolony:off");
+        if (Officer)
+        {
+            composer
+                .AddSwitch(v => network.SendAction(new ColonyActionPacket { ColonyId = ColonyId, Action = action, Text = v ? "1" : "0" }),
+                    ElementBounds.Fixed(0, y, 30, 30), key)
+                .AddStaticText(Lang.Get("createacolony:" + label) + ": " + state, GuiKit.Body(), ElementBounds.Fixed(40, y + 5, Width - 40, 25));
+        }
+        else
+        {
+            composer.AddStaticText(Lang.Get("createacolony:" + label) + ": " + state, GuiKit.Body(), ElementBounds.Fixed(0, y + 5, Width, 25));
+        }
+        y += 34;
+        return composer.Text(Lang.Get("createacolony:" + hint), GuiKit.Muted(), 0, y, Width, 10);
     }
 
     // ---- Settings tab ---------------------------------------------------------------------
