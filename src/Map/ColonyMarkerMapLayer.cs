@@ -113,7 +113,8 @@ public class ColonyMarkerMapLayer : MarkerMapLayer
                     // The game names icons by their file name, which asset paths keep in lower case.
                     Icon = (marker.Icon.Length > 0 ? marker.Icon : kind.Icon).ToLowerInvariant(),
                     Fallback = kind.Fallback.ToLowerInvariant(),
-                    Color = ColorUtil.Hex2Int(kind.Color),
+                    // Solid black by default, so they stand out on the map (Aaron, 0.91.0); "" keeps each kind's colour.
+                    Color = ColorUtil.Hex2Int(string.IsNullOrWhiteSpace(manager.Config.MapMarkerColor) ? kind.Color : manager.Config.MapMarkerColor),
                     ColonyName = colony.Name
                 });
             }
@@ -172,20 +173,21 @@ public class ColonyMarkerMapLayer : MarkerMapLayer
             float x = (float)(mapElem.Bounds.renderX + viewPosRef.X);
             float y = (float)(mapElem.Bounds.renderY + viewPosRef.Y);
             float hover = (hovered == i ? 6 : 0) - 1.5f * Math.Max(1, 1 / mapElem.ZoomLevel);
-            float scaleX = (tex.Width + hover) * 0.5f * WaypointMapComponent.IconScale;
-            float scaleY = (tex.Height + hover) * 0.5f * WaypointMapComponent.IconScale;
+            float scaleX = (tex.Width + hover) * 0.6f * WaypointMapComponent.IconScale;
+            float scaleY = (tex.Height + hover) * 0.6f * WaypointMapComponent.IconScale;
             prog.BindTexture2D("tex2d", tex.TextureId, 0);
             mvMat.Set(capi.Render.CurrentModelviewMatrix).Translate(x, y, 60).Scale(scaleX, scaleY, 0);
 
-            // A shadow, then the icon, as the game draws waypoints.
-            float uiscale = RuntimeEnv.GUIScale;
-            var shadow = mvMat.Clone().Scale(1.1f, 1.1f, 1.1f).Translate(1.25 * uiscale / scaleX, 1.25 * uiscale / scaleY, 0);
-            prog.Uniform("rgbaIn", new Vec4f(0, 0, 0, 0.6f));
-            prog.UniformMatrix("modelViewMatrix", shadow.Values);
-            capi.Render.RenderMesh(quad);
-
+            // A light halo, then the icon fully opaque, so dark icons stand out on any ground.
             var color = new Vec4f();
             ColorUtil.ToRGBAVec4f(marker.Color, ref color);
+            color.A = 1;
+            bool dark = color.R + color.G + color.B < 1.5f;
+            var halo = mvMat.Clone().Scale(1.3f, 1.3f, 1.3f);
+            prog.Uniform("rgbaIn", dark ? new Vec4f(1, 1, 1, 0.9f) : new Vec4f(0, 0, 0, 0.8f));
+            prog.UniformMatrix("modelViewMatrix", halo.Values);
+            capi.Render.RenderMesh(quad);
+
             prog.Uniform("rgbaIn", color);
             prog.UniformMatrix("modelViewMatrix", mvMat.Values);
             capi.Render.RenderMesh(quad);

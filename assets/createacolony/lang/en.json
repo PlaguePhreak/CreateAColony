@@ -1885,6 +1885,7 @@
 	"resources-ready": "The hut has enough",
 	"give-done-all": "Put {0} items ({1} kinds) into the hut's storage.",
 	"game:maplayer-colonymarkers": "Colony markers",
+	"game:maplayer-colonysettlers": "Colony settlers",
 	"job-explorer": "Explorer",
 	"job-gatherer": "Gatherer",
 	"block-hut-explorer": "Explorer's Hut",

@@ -169,6 +169,8 @@ public class ColonyConfig
     /// there first; at most one such spot per ore within this many blocks.
     /// </summary>
     public int OreHintSpacing = 16;
+    /// <summary>The colour of every colony marker on the world map, e.g. "#000000" (solid black); "" gives each kind its own colour.</summary>
+    public string MapMarkerColor = "#000000";
 
     // Map markers
     /// <summary>
