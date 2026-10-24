@@ -131,7 +131,9 @@ public partial class ColonyManager
         var drops = relieved ? new[] { new ItemStack(block) } : DropsOf(block, pos);
         BreakQuietly(pos);
         if (hand?.Itemstack != null) WearTool(entity, hand);
-        StoreHarvest(colony, hut, worker, drops, pos);
+        // What the hut is set not to collect is left where it was dug.
+        if (MayDig(hut, block)) StoreHarvest(colony, hut, worker, drops, pos);
+        else foreach (var drop in drops) sapi.World.SpawnItemEntity(drop, pos.ToVec3d().Add(0.5, 0.5, 0.5));
         AddStat(hut, relieved ? "rocks-relieved" : ore ? "ore-mined" : "blocks-dug");
         return true;
     }
@@ -322,7 +324,8 @@ public partial class ColonyManager
     {
         if (trip.Site == null) return null;
         var site = colony.OreSites.Find(s => s.Pos.Equals(trip.Site));
-        if (site != null && !site.MinedOut.Contains(trip.SiteOre) && (hut.MineOre.Length == 0 || hut.MineOre == trip.SiteOre)) return site;
+        if (site != null && !site.MinedOut.Contains(trip.SiteOre) && (hut.MineOre.Length == 0 || hut.MineOre == trip.SiteOre)
+            && MayCollect(hut, "ore-" + trip.SiteOre)) return site;
         ClearMine(colony, hut, trip);
         return null;
     }
@@ -349,6 +352,7 @@ public partial class ColonyManager
             {
                 if (ore.Factor < least || site.MinedOut.Contains(ore.Code)) continue;
                 if (hut.MineOre.Length > 0 && ore.Code != hut.MineOre) continue;
+                if (!MayCollect(hut, "ore-" + ore.Code)) continue;
                 // A stronger reading wins; between equal ones, the nearer.
                 double score = ore.Factor - distance / 10000;
                 if (score <= bestScore) continue;
@@ -580,7 +584,7 @@ public partial class ColonyManager
             }
 
             // Ore around the end of the tunnel comes out first.
-            if (trip.End != null && OreInReach(colony, trip, trip.End, b => IsOreOf(b, ore), skip, boxes) is { } near)
+            if (trip.End != null && OreInReach(colony, trip, trip.End, b => IsOreOf(b, ore) && MayDig(hut, b), skip, boxes) is { } near)
             {
                 status = "mine-ore";
                 return new MineJob(MineWork.Dig, near, trip.End.Copy(), true);
@@ -794,7 +798,7 @@ public partial class ColonyManager
         floors.UnionWith(keep);
 
         // Ore in sight of the spot in the mine where the miner stands comes out first.
-        if (plan.Any(p => p.Feet.Equals(at)) && OreInReach(colony, hut.Trip, at, IsOre, skip, boxes, floors) is { } ore)
+        if (plan.Any(p => p.Feet.Equals(at)) && OreInReach(colony, hut.Trip, at, b => IsOre(b) && MayDig(hut, b), skip, boxes, floors) is { } ore)
         {
             status = "mine-ore";
             return new MineJob(MineWork.Dig, ore, at.Copy(), true);

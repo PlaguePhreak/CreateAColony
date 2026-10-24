@@ -701,6 +701,18 @@ before shipping converted blueprints.
 
 ### The Town Hall window (0.24.0)
 
+### Allowed to collect (0.91.0)
+- A new **Allowed to collect** tab on the Forester's, Gatherer's, Farmer's, Miner's and Prospector's Huts and
+  the Quarry. It lists everything that worker can take, each with a switch. Everything is on at first.
+  Officers can turn things off one by one, or use All on / All off. The search box finds a row by name.
+- **Forester**: each kind of tree. It leaves trees that are turned off standing.
+- **Gatherer**: each berry and fruit, each edible mushroom, and loose stones, flint and sticks.
+- **Farmer**: each berry and fruit (crops are still chosen on each Field marker).
+- **Miner, Prospector (Mine ore) and Quarry**: each ore, each rock and soil, gravel, sand, clay and peat. They
+  never go after ore that is turned off. Blocks in the way still get dug, but what they drop is left on the ground.
+  Choosing an ore on the Ore tab turns it back on.
+- Building field 160 (CollectOff), ColonyAction 160 (SetCollect), ColonyManager.Collecting.cs. Not tested in game.
+
 ### Remove hut and the Mineshaft Entrance (0.90.0)
 - **Remove hut** (Main tab, build options, officers): press it twice. The hut's workers lose their job at once,
   a builder takes the building down from the top, and the hut block goes back to the player who pressed it (into

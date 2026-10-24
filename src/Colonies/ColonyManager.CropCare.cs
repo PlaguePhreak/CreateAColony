@@ -138,6 +138,7 @@ public partial class ColonyManager
                 }
                 ripe = IsRipeFruit(be);
                 scanner.Found[pos] = ripe;
+                if (ripe && !MayCollect(hut, FruitKey(be!))) continue;
             }
             if (ripe && CanWorkAt(colony, pos)) yield return pos;
         }
@@ -176,7 +177,7 @@ public partial class ColonyManager
     public bool PickFruit(Colony colony, Building hut, CitizenRecord worker, BlockPos pos)
     {
         var be = sapi.World.BlockAccessor.GetBlockEntity(pos);
-        if (!IsRipeFruit(be)) return false;
+        if (!IsRipeFruit(be) || !MayCollect(hut, FruitKey(be!))) return false;
         var drops = new List<ItemStack>();
 
         if (be is BlockEntityFruitTreePart part)

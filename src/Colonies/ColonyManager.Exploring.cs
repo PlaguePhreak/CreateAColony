@@ -213,7 +213,7 @@ public partial class ColonyManager
                     continue;
                 }
                 scanner.Found[pos] = kind != null;
-                if (kind == null) continue;
+                if (kind == null || !MayCollect(hut, ForageKey(pos))) continue;
             }
             else if (!ready) continue;
             if (skip(pos) || !CanWorkAt(colony, pos)) continue;
@@ -253,7 +253,7 @@ public partial class ColonyManager
     public bool Gather(Colony colony, Building hut, CitizenRecord worker, BlockPos pos)
     {
         string? kind = Forage(colony, pos);
-        if (kind == null) return false;
+        if (kind == null || !MayCollect(hut, ForageKey(pos))) return false;
         if (kind == "fruit")
         {
             if (!PickFruit(colony, hut, worker, pos)) return false;

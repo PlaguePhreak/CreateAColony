@@ -136,7 +136,7 @@ public partial class ColonyManager
         {
             var guard = MineshaftGuard(cells);
             guard.UnionWith(keep);
-            if (OreInReach(colony, hut.Trip, at, IsOre, skip, boxes, guard) is { } ore)
+            if (OreInReach(colony, hut.Trip, at, b => IsOre(b) && MayDig(hut, b), skip, boxes, guard) is { } ore)
             {
                 status = "mine-ore";
                 mineshaftWorking[hut.BuildingId] = LevelAt(pieces, at.Y);

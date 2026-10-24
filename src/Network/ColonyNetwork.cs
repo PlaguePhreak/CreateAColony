@@ -176,7 +176,7 @@ public partial class ColonyNetwork : ModSystem
             ColonyAction.HireRecruit => HireAction(player, colony, role, packet),
             ColonyAction.RemoveHut => RemoveHut(player, colony, role, packet),
             ColonyAction.LinkMineHut or ColonyAction.UnlinkMineHut => LinkMineAction(colony, role, packet),
-            >= ColonyAction.RenameBuilding and <= ColonyAction.SetMinStock => HutAction(player, colony, role, packet),
+            ColonyAction.SetCollect or >= ColonyAction.RenameBuilding and <= ColonyAction.SetMinStock => HutAction(player, colony, role, packet),
             _ => null
         };
 
@@ -370,6 +370,8 @@ public partial class ColonyNetwork : ModSystem
         {
             if (packet.Text.Length > 0 && !colony.OreSites.Any(s => s.Ores.Any(o => o.Code == packet.Text))) return "createacolony:bad-building";
             building.MineOre = packet.Text;
+            // Choosing an ore to mine allows it on the Allowed to collect tab too.
+            building.CollectOff.Remove("ore-" + packet.Text);
         }
         Manager.ClearMines(colony, building);
         return null;

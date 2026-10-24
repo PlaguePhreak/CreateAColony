@@ -279,6 +279,8 @@ public class Building
     [ProtoMember(111)] public List<long> Explored = new();
     /// <summary>When the explorer last started over, in total days, so it goes round again now and then.</summary>
     [ProtoMember(112)] public double ExploreStartedTotalDays;
+    /// <summary>A gathering hut: what its worker is set not to collect (ColonyManager.CollectKinds keys). Empty is everything.</summary>
+    [ProtoMember(160)] public List<string> CollectOff = new();
 
     public bool HasWorkOrder => TargetLevel > Level;
 

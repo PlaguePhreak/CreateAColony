@@ -43,6 +43,8 @@ public class GuiDialogHut : GuiDialog
     const int MineGuardsTab = 17;
     /// <summary>An Explorer's or Gatherer's Hut's Markers tab.</summary>
     const int MarkersTab = 18;
+    /// <summary>A gathering hut's Allowed to collect tab.</summary>
+    const int CollectTab = 19;
     const int OreRowsPerPage = 6;
     const double OreRowHeight = 44;
     /// <summary>Households shown per page of a Residence's Residents tab.</summary>
@@ -64,6 +66,7 @@ public class GuiDialogHut : GuiDialog
     bool confirmRemove;
     string pendingName = "";
     string hostileSearch = "";
+    string collectSearch = "";
     bool settingSearch;
     int statPeriod = 4;
 
@@ -109,6 +112,7 @@ public class GuiDialogHut : GuiDialog
         if (snapshot.IsOreHut) tabs.Add((OreTab, "tab-ore"));
         if (snapshot.IsQuarry) tabs.Add((QuarryTab, "tab-quarry"));
         if (snapshot.MarkerGroups.Count > 0) tabs.Add((MarkersTab, "tab-markers"));
+        if (snapshot.CollectKeys.Count > 0) tabs.Add((CollectTab, "tab-collect"));
         if (snapshot.IsGuardTower) tabs.AddRange(new[] { (ToolsTab, "tab-tools"), (HostilesTab, "tab-hostiles") });
         // The shared tabs.
         if (snapshot.IsGuardTower || snapshot.IsMiner) tabs.Add((SettingsTab, "tab-settings"));
@@ -158,6 +162,7 @@ public class GuiDialogHut : GuiDialog
             case OreTab: ComposeOre(composer); break;
             case QuarryTab: ComposeQuarry(composer); break;
             case MarkersTab: ComposeMarkers(composer); break;
+            case CollectTab: ComposeCollect(composer); break;
             case ToolsTab: ComposeTools(composer); break;
             case HostilesTab: ComposeHostiles(composer); break;
             case SettingsTab: if (snapshot.IsMiner) ComposeMineSettings(composer); else ComposeSettings(composer); break;
@@ -178,6 +183,7 @@ public class GuiDialogHut : GuiDialog
         SingleComposer.GetSwitch("berries")?.SetValue(snapshot.CollectBerries);
         SingleComposer.GetSwitch("retreat")?.SetValue(snapshot.Retreat);
         for (int i = 0; SingleComposer.GetSwitch("hostile-" + i) is { } toggle; i++) toggle.SetValue(hostileSwitchStates[i]);
+        for (int i = 0; SingleComposer.GetSwitch("collect-" + i) is { } toggle; i++) toggle.SetValue(collectSwitchStates[i]);
         for (int i = 0; SingleComposer.GetSwitch("markers-" + i) is { } toggle; i++) toggle.SetValue(!snapshot.MarkersOff.Contains(snapshot.MarkerGroups[i]));
         if (SingleComposer.GetTextInput("buildingname") is { } nameInput) nameInput.SetValue(pendingName);
         if (SingleComposer.GetTextInput("hostilesearch") is { } search)
@@ -186,6 +192,13 @@ public class GuiDialogHut : GuiDialog
             search.SetValue(hostileSearch);
             settingSearch = false;
             if (hostileSearch.Length > 0) SingleComposer.FocusElement(search.TabIndex);
+        }
+        if (SingleComposer.GetTextInput("collectsearch") is { } collectInput)
+        {
+            settingSearch = true;
+            collectInput.SetValue(collectSearch);
+            settingSearch = false;
+            if (collectSearch.Length > 0) SingleComposer.FocusElement(collectInput.TabIndex);
         }
     }
 
@@ -805,6 +818,84 @@ public class GuiDialogHut : GuiDialog
             }
             y += 34;
         }
+    }
+
+    readonly List<bool> collectSwitchStates = new();
+
+    /// <summary>
+    /// The Allowed to collect tab of a gathering hut: every tree, fruit, mushroom, ore, rock or kind of ground
+    /// its worker can take, each with a switch. All are on until an officer turns one off.
+    /// </summary>
+    void ComposeCollect(GuiComposer composer)
+    {
+        int id = BuildingId;
+        double y = composer.Text(Lang.Get("createacolony:collect-hint-" + snapshot.Building.Type), GuiKit.Muted(), 0, 30, Width, 8);
+        composer.AddTextInput(ElementBounds.Fixed(0, y, Width - 250, 28), text =>
+        {
+            if (settingSearch || text == collectSearch) return;
+            collectSearch = text;
+            page = 0;
+            Compose();
+        }, GuiKit.Body(), "collectsearch");
+        if (Officer)
+        {
+            composer
+                .AddSmallButton(Lang.Get("createacolony:collect-all-on"), () => SendText(ColonyAction.SetCollect, id, "*"), ElementBounds.Fixed(Width - 240, y, 115, 28))
+                .AddSmallButton(Lang.Get("createacolony:collect-all-off"), () => SendText(ColonyAction.SetCollect, id, "-"), ElementBounds.Fixed(Width - 115, y, 115, 28));
+        }
+        y += 38;
+
+        var rows = new List<(string Key, ItemStack Stack, string Name)>();
+        for (int k = 0; k < snapshot.CollectKeys.Count && k < snapshot.CollectStacks.Count; k++)
+        {
+            var stack = new ItemStack(snapshot.CollectStacks[k]);
+            if (!stack.ResolveBlockOrItem(capi.World)) continue;
+            string key = snapshot.CollectKeys[k];
+            string name = CollectName(key, stack);
+            if (collectSearch.Length > 0 && name.IndexOf(collectSearch, StringComparison.OrdinalIgnoreCase) < 0) continue;
+            rows.Add((key, stack, name));
+        }
+        collectSwitchStates.Clear();
+        if (rows.Count == 0)
+        {
+            composer.Text(Lang.Get("createacolony:collect-none"), GuiKit.Body(), 0, y, Width);
+            return;
+        }
+        int pages = (rows.Count + ListRowsPerPage - 1) / ListRowsPerPage;
+        page = Math.Clamp(page, 0, pages - 1);
+        int shown = Math.Min(ListRowsPerPage, rows.Count - page * ListRowsPerPage);
+        composer.AddInset(ElementBounds.Fixed(0, y, Width, shown * ListRowHeight + 8), 3, 0.8f);
+        y += 4;
+        int i = 0;
+        foreach (var row in rows.Skip(page * ListRowsPerPage).Take(ListRowsPerPage))
+        {
+            bool on = !snapshot.CollectOff.Contains(row.Key);
+            string key = row.Key;
+            if (Officer)
+            {
+                composer.AddSwitch(value => SendText(ColonyAction.SetCollect, id, key + "|" + (value ? "1" : "0")), ElementBounds.Fixed(10, y + 3, 30, 30), "collect-" + i);
+                collectSwitchStates.Add(on);
+                i++;
+            }
+            composer
+                .AddRichtext(new RichTextComponentBase[]
+                {
+                    new ItemstackTextComponent(capi, row.Stack, 30, 6),
+                    new RichTextComponent(capi, row.Name, on ? GuiKit.Body() : GuiKit.Body().WithColor(GuiKit.MutedColor)) { VerticalAlign = EnumVerticalAlign.Middle }
+                }, ElementBounds.Fixed(50, y + 1, Width - 210, ListRowHeight - 2))
+                .AddStaticText(Lang.Get(on ? "createacolony:collect-yes" : "createacolony:collect-no"),
+                    GuiKit.Detail().WithColor(on ? GuiKit.GoodColor : GuiKit.MutedColor).WithOrientation(EnumTextOrientation.Right), ElementBounds.Fixed(Width - 160, y + 9, 150, 22));
+            y += ListRowHeight;
+        }
+        AddPager(composer, pages, y + 14);
+    }
+
+    /// <summary>A row's name: the ore or kind of ground in words, otherwise the name of its picture (a log, a fruit, a mushroom, a rock).</summary>
+    static string CollectName(string key, ItemStack stack)
+    {
+        if (key.StartsWith("ore-") && Lang.HasTranslation(key)) return Lang.Get(key);
+        if (Lang.HasTranslation("createacolony:collect-" + key)) return Lang.Get("createacolony:collect-" + key);
+        return stack.GetName();
     }
 
     static string CreatureName(string code)

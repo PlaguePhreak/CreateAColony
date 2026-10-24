@@ -94,6 +94,8 @@ public partial class ColonyManager
                 scanner.Found.Remove(trunk);
                 continue;
             }
+            // A tree the hut is set not to fell; one in land no player is near is checked once the forester gets there.
+            if (loaded && !MayCollect(hut, WoodKey(ba.GetBlock(trunk)))) continue;
             if (skip(trunk) || !CanWorkAt(colony, trunk)) continue;
             return trunk;
         }
@@ -116,7 +118,7 @@ public partial class ColonyManager
     {
         var ba = sapi.World.BlockAccessor;
         var trunkBlock = ba.GetBlock(trunk);
-        if (!IsTreeLog(trunkBlock)) return null;
+        if (!IsTreeLog(trunkBlock) || !MayCollect(hut, WoodKey(trunkBlock))) return null;
         string? wood = VariantOf(trunkBlock, "wood");
 
         var positions = TreeBlocks(trunk);

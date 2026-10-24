@@ -440,6 +440,10 @@ public class HutSnapshot
     [ProtoMember(152)] public string MineEntranceName = "";
     /// <summary>The mine's size and what is left, or that it is derelict (Mineshaft Entrance).</summary>
     [ProtoMember(153)] public string MineInfo = "";
+    /// <summary>A gathering hut's Allowed to collect tab: every key with its picture, and the keys turned off.</summary>
+    [ProtoMember(160)] public List<string> CollectKeys = new();
+    [ProtoMember(161)] public List<byte[]> CollectStacks = new();
+    [ProtoMember(162)] public List<string> CollectOff = new();
 }
 
 /// <summary>One line of a hut's chest list: an item, how many there are, and which containers hold it.</summary>
@@ -748,7 +752,9 @@ public enum ColonyAction
     RemoveHut = 150,
     /// <summary>Has the Miner's Hut with Text (its BuildingId) work the mine of the Mineshaft Entrance with BuildingId.</summary>
     LinkMineHut = 151,
-    UnlinkMineHut = 152
+    UnlinkMineHut = 152,
+    /// <summary>Text "key|1" or "key|0": whether the gathering hut with BuildingId collects that; "*" turns all on, "-" all off.</summary>
+    SetCollect = 160
 }
 
 /// <summary>One Miner's Hut on a Mineshaft Entrance's Main tab.</summary>

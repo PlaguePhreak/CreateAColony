@@ -42,6 +42,19 @@ public partial class ColonyNetwork
             case ColonyAction.AddMinStock:
                 if (player.InventoryManager.ActiveHotbarSlot?.Itemstack is not { } held) return "createacolony:minstock-hold";
                 return Manager.AddMinStock(colony, building, held);
+            case ColonyAction.SetCollect:
+            {
+                if (!ColonyManager.HasCollectTab(building.Type)) return "createacolony:bad-building";
+                if (packet.Text is "*" or "-")
+                {
+                    Manager.SetCollect(colony, building, packet.Text, packet.Text == "*");
+                    return null;
+                }
+                int bar = packet.Text.LastIndexOf('|');
+                if (bar <= 0) return "createacolony:bad-building";
+                Manager.SetCollect(colony, building, packet.Text[..bar], packet.Text[(bar + 1)..] == "1");
+                return null;
+            }
             case ColonyAction.SetMinStock:
             {
                 int bar = packet.Text.LastIndexOf('|');
@@ -151,6 +164,13 @@ public partial class ColonyNetwork
         }
         snapshot.MinStock = building.MinStock.ToList();
         snapshot.Stats = Manager.StatSummary(building).Select(r => new StatView { Key = r.Key, Counts = r.Counts }).ToList();
+        if (ColonyManager.HasCollectTab(building.Type))
+        {
+            var kinds = Manager.CollectKinds(building.Type);
+            snapshot.CollectKeys = kinds.Select(k => k.Key).ToList();
+            snapshot.CollectStacks = kinds.Select(k => k.Sample.ToBytes()).ToList();
+            snapshot.CollectOff = building.CollectOff.ToList();
+        }
 
         if (!ColonyManager.IsGuardPost(building.Type)) return;
         snapshot.IsGuardTower = true;
