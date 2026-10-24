@@ -293,17 +293,24 @@ public class BlueprintLibrary
 
         int? front = rotation == 0 ? EntranceSide(schematic, blocks) : null;
 
-        // The lowest and highest block of each column, to tell a cellar (empty space under a floor, with saved
-        // ground below it) from the ground underneath or a yard that was lower than the floor.
+        // The lowest and highest block of each column, and the lowest built one (not natural ground). Empty space
+        // below the hut's floor is dug out when it is a cellar (blocks under and over it), or when part of the
+        // building is under it: a sunken room, stairs or a path, which the ground on top would bury (Aaron's
+        // build kept its grass there before 0.102.0). Over saved ground alone (a yard lower than the floor) the
+        // ground is left alone, so no moat is dug round the house.
         var lowest = new Dictionary<(int, int), int>();
         var highest = new Dictionary<(int, int), int>();
-        foreach (var ((x, y, z), _) in blocks)
+        var lowestBuilt = new Dictionary<(int, int), int>();
+        foreach (var ((x, y, z), b) in blocks)
         {
             if (!lowest.TryGetValue((x, z), out int low) || y < low) lowest[(x, z)] = y;
             if (!highest.TryGetValue((x, z), out int high) || y > high) highest[(x, z)] = y;
+            if (b.Id != 0 && !IsNaturalGround(b) && !IsWaypoint(b) && b.BlockMaterial != EnumBlockMaterial.Plant
+                && (!lowestBuilt.TryGetValue((x, z), out int built) || y < built)) lowestBuilt[(x, z)] = y;
         }
         bool InCellar(int x, int y, int z) =>
-            lowest.TryGetValue((x, z), out int low) && low < y && highest.TryGetValue((x, z), out int high) && high > y;
+            (lowest.TryGetValue((x, z), out int low) && low < y && highest.TryGetValue((x, z), out int high) && high > y)
+            || (lowestBuilt.TryGetValue((x, z), out int built) && built < y);
 
         // Where the hut block sits inside the blueprint.
         string hutCode = HutBlockCode(type);
@@ -356,8 +363,8 @@ public class BlueprintLibrary
             else if (dugOut.Contains((dx - ax, dy - ay, dz - az))) continue;
             else if (dy >= ay || InCellar(dx, dy, dz))
             {
-                // Empty space at or above the hut's floor is cleared. Below it, only with blueprint blocks both
-                // under and over it (a cellar dug into the ground it was saved with); elsewhere the ground is left alone.
+                // Empty space at or above the hut's floor is cleared. Below it, only in a cellar or over a sunken
+                // part of the building; elsewhere the ground is left alone.
                 clear.Add(new BuildStep(dx - ax, dy - ay, dz - az, 0));
             }
         }

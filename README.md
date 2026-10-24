@@ -701,6 +701,12 @@ before shipping converted blueprints.
 
 ### The Town Hall window (0.24.0)
 
+### Builders clear the ground over sunken parts (0.102.0)
+- Empty space below a building's hut block is now dug out when part of the building is under it: a sunken room,
+  stairs down or a path. Before, it was only dug when the blueprint also had blocks above it, so a low part with
+  nothing over it yet kept its grass and soil on top (Aaron's screenshot). Space over saved ground alone (a yard
+  lower than the floor) is still left alone, so no moat is dug round the house.
+
 ### Farmers soak the soil (0.98.0)
 - A farmer with a watering can now waters farmland until it is at 100% moisture, not just until it shows as
   moist. It waters crops whose soil is below `FarmerWaterBelow` (now 0.5, was 0.3).
