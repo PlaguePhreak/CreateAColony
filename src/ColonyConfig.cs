@@ -204,6 +204,13 @@ public class ColonyConfig
     /// </summary>
     public bool GathererDigsClay = true;
     /// <summary>
+    /// When huts wait for dry grass the colony does not have, the gatherer cuts tall grass for it first, the way a
+    /// knife does, so the grass grows back.
+    /// </summary>
+    public bool GathererCutsGrass = true;
+    /// <summary>How far around itself (and around its hut) the gatherer looks for tall grass to cut.</summary>
+    public int GrassSearchRadius = 16;
+    /// <summary>
     /// When the gatherer picks up ore bits, the spot is marked as a likely deposit and the prospectors read
     /// there first; at most one such spot per ore within this many blocks.
     /// </summary>
@@ -598,6 +605,7 @@ public class ColonyConfig
     public System.Collections.Generic.Dictionary<string, string[]> HutGathers = new()
     {
         ["forester"] = new[] { "game:log-*" },
+        ["gatherer"] = new[] { "game:drygrass" },
         ["quarry"] = new[] { "game:rock-*", "game:stone-*" },
         ["miner"] = new[] { "game:ore-*", "game:stone-*" }
     };

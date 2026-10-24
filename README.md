@@ -223,6 +223,12 @@ These work well with Vintage Colonies. Install them separately.
 - **Stone Bake Oven**: the Cook bakes in it.
 - **C&N Jewelry Adornments** (KenigVovan): more jewellery for settlers to wear. Fuller support comes in a later release.
 
+## Gatherer cuts grass for dry grass (0.121.0)
+- When huts are waiting for dry grass and the colony doesn't have enough (warehouse, Gatherer's Huts and gatherers' packs together), the gatherer cuts tall grass first, before it forages.
+- It cuts like a knife does, so short grass is left and grows back. It looks within 16 blocks of itself (`GrassSearchRadius`), then near its hut, and stays inside the hut's range. Never in or beside a colony building.
+- It stops once there is enough. The Required resources tab says "Gatherer's Hut makes it" for dry grass.
+- The Allowed to collect tab has a "Grass for dry grass" row. Turn it off everywhere with `GathererCutsGrass: false`.
+
 ## Config (`ModConfig/createacolony.json`)
 - `Permadeath` (default `true`): settlers who die are gone. Set `false` to have them knocked out and recover after `DownedRecoveryDays`.
 - `StartingSettlersMin` / `StartingSettlersMax` (default 3 / 4).

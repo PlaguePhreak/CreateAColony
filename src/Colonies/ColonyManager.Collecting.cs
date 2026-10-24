@@ -33,7 +33,7 @@ public partial class ColonyManager
         kinds = type switch
         {
             BuildingTypes.Forester => WoodKinds(),
-            BuildingTypes.Gatherer => FruitKinds().Concat(MushroomKinds()).Concat(LooseKinds()).ToList(),
+            BuildingTypes.Gatherer => FruitKinds().Concat(MushroomKinds()).Concat(LooseKinds()).Concat(GrassKinds()).ToList(),
             BuildingTypes.Farmer => FruitKinds(),
             BuildingTypes.Hunter => AnimalKinds(),
             BuildingTypes.Miner or BuildingTypes.Prospector or BuildingTypes.Quarry => DigKinds(),
@@ -185,6 +185,11 @@ public partial class ColonyManager
         int Order(CollectKind k) => System.Array.IndexOf(loose, k.Key) is int i and >= 0 ? i : k.Key.StartsWith("reed-") ? 10 : k.Key.StartsWith("herb-") ? 11 : 12;
         return all.OrderBy(Order).ThenBy(k => k.Key).ToList();
     }
+
+    /// <summary>Tall grass, cut for dry grass when the colony needs it; the row shows dry grass.</summary>
+    List<CollectKind> GrassKinds() => Config.GathererCutsGrass && sapi.World.GetItem(DryGrassCode) is { } dry
+        ? new List<CollectKind> { new("grass", new ItemStack(dry)) }
+        : new List<CollectKind>();
 
     /// <summary>Ores first, then rock, then the kinds of ground.</summary>
     List<CollectKind> DigKinds()

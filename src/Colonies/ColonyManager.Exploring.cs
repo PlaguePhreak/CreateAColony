@@ -335,7 +335,8 @@ public partial class ColonyManager
         else
         {
             var block = sapi.World.BlockAccessor.GetBlock(pos);
-            var drops = DropsOf(block, pos);
+            // Reeds drop their tops whatever the hand holds, as the game's own breaking does.
+            var drops = kind == "reed" ? ToolDrops(block, null) : DropsOf(block, pos);
             if (Map.MarkerSubjects.OreKey(block) is { } ore) NoteOreHint(colony, hut, pos, ore);
             if (kind == "reed") CutReeds(block, pos);
             else BreakQuietly(pos);
