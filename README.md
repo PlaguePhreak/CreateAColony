@@ -751,6 +751,13 @@ before shipping converted blueprints.
 
 ### The Town Hall window (0.24.0)
 
+### Gatherers take what they see (0.112.0)
+- Aaron saw gatherers keep "looking" past things they could pick. Three causes: what a gatherer saw while
+  looking around waited for the next sweep of its area (every 3 minutes); the sweep looked only at the ground as
+  the world was made, so dug or raised ground was missed; and west or north of 0 the sweep skipped a strip of
+  its area. Now each stop notes what is in reach at once, the sweep looks two blocks up and down, and the strip is
+  swept.
+
 ### Builders ask for planks players carry (0.104.0)
 - Planks laid sideways (and roof fill made of them) are their own blocks (planks-oak-ns), but players only ever
   carry upright planks. Builders asked for the sideways ones, so no planks a player had would do (Aaron's

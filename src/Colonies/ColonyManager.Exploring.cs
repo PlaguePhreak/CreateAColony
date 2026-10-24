@@ -220,7 +220,8 @@ public partial class ColonyManager
             if (!scanner.InRange(wx, wz)) continue;
             pos.Set(wx, 0, wz);
             int top = ba.GetTerrainMapheightAt(pos);
-            for (int y = top; y <= top + 1; y++)
+            // The height map is the ground as the world was made: dug or raised ground is a block or two off.
+            for (int y = top - 2; y <= top + 2; y++)
             {
                 pos.Y = y;
                 var found = ba.GetBlock(pos);
@@ -234,6 +235,32 @@ public partial class ColonyManager
                 {
                     scanner.Found[pos.Copy()] = true;
                 }
+            }
+        }
+    }
+
+    /// <summary>
+    /// Notes what a gatherer can take around the spot it stands at, so it goes for what it just saw instead of
+    /// waiting for the next sweep of its area (Aaron saw gatherers walk past things, still "looking").
+    /// </summary>
+    public void NoteForageAround(Colony colony, Building hut, BlockPos center, int radius)
+    {
+        var scanner = Scanner(hut, "forage", ScanForage);
+        var ba = sapi.World.BlockAccessor;
+        var pos = new BlockPos(0);
+        for (int dx = -radius; dx <= radius; dx++)
+        for (int dz = -radius; dz <= radius; dz++)
+        {
+            if (dx * dx + dz * dz > radius * radius) continue;
+            pos.Set(center.X + dx, center.Y, center.Z + dz);
+            if (!scanner.InRange(pos.X, pos.Z) || ba.GetChunkAtBlockPos(pos) == null) continue;
+            int top = ba.GetTerrainMapheightAt(pos);
+            for (int y = Math.Min(top, center.Y) - 2; y <= Math.Max(top, center.Y) + 2; y++)
+            {
+                pos.Y = y;
+                if (scanner.Found.ContainsKey(pos)) continue;
+                if (IsFruitBearer(ba.GetBlockEntity(pos))) scanner.Found[pos.Copy()] = IsRipeFruit(ba.GetBlockEntity(pos));
+                else if (Forage(colony, pos) != null) scanner.Found[pos.Copy()] = true;
             }
         }
     }

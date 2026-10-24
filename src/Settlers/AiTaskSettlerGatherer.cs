@@ -56,6 +56,7 @@ public class AiTaskSettlerGatherer : AiTaskSettlerWorker
     {
         if (!looking && !manager!.Gather(colony, hut, citizen, target)) MarkUnreachable(target);
         manager!.LookAround(colony, hut, target, System.Math.Max(2, manager.Config.GathererLookRadius));
+        manager.NoteForageAround(colony, hut, target, System.Math.Max(4, manager.Config.GathererLookRadius));
     }
 
     protected override string DescribeWork() => Lang.Get(looking ? "createacolony:activity-gatherer-look" : "createacolony:activity-gatherer-pick");
