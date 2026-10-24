@@ -268,6 +268,16 @@ public partial class ColonyManager
                 if (BlockMarker(block, pos) is not var (kind, subject) || !wanted.Contains(MarkerGroup(kind))) continue;
                 if (AddMarker(colony, hut, kind, pos.ToVec3d().Add(0.5, 0.5, 0.5), subject: subject)) placed++;
             }
+            // Resin and wild beehives sit up in the trees: look up the trunk for them.
+            if (!wanted.Contains("resin") && !wanted.Contains("bees")) continue;
+            for (int y = top + 3; y <= top + TreeLookHeight; y++)
+            {
+                pos.Y = y;
+                string path = ba.GetBlock(pos).Code?.Path ?? "";
+                string? kind = path.StartsWith("wildbeehive") ? "bees-hive" : path.StartsWith("log-resin-") ? "resin-tree" : null;
+                if (kind == null || !wanted.Contains(MarkerGroup(kind))) continue;
+                if (AddMarker(colony, hut, kind, pos.ToVec3d().Add(0.5, 0.5, 0.5))) placed++;
+            }
         }
 
         // A high peak is a landmark: the highest ground the explorer saw here, well above sea level.
@@ -300,6 +310,44 @@ public partial class ColonyManager
         }
         return placed;
     }
+
+    /// <summary>How far above the ground a looking settler checks trees for resin and beehives.</summary>
+    const int TreeLookHeight = 16;
+
+    /// <summary>
+    /// After a wild crop was picked: wild crops never grow back where they were, so a crop marker with no wild
+    /// crop left within CropMarkerReach blocks of it is taken off the map. Mushroom markers stay, as they regrow.
+    /// </summary>
+    public void ForgetPickedCrops(Colony colony, BlockPos picked)
+    {
+        var ba = sapi.World.BlockAccessor;
+        int reach = CropMarkerReach;
+        double spacing = Config.MarkerSpacing.GetValueOrDefault("crops", 32);
+        var pos = new BlockPos(0);
+        int removed = colony.Markers.RemoveAll(m =>
+        {
+            if (MarkerGroup(m.Kind) != "crops") return false;
+            if ((m.X - picked.X) * (m.X - picked.X) + (m.Z - picked.Z) * (m.Z - picked.Z) > spacing * spacing) return false;
+            for (int dx = -reach; dx <= reach; dx++)
+            for (int dz = -reach; dz <= reach; dz++)
+            {
+                pos.Set((int)m.X + dx, (int)m.Y, (int)m.Z + dz);
+                if (ba.GetChunkAtBlockPos(pos) == null) return false; // cannot see it all: keep the marker
+                int top = ba.GetTerrainMapheightAt(pos);
+                for (int y = top - 1; y <= top + 2; y++)
+                {
+                    pos.Y = y;
+                    if (ba.GetBlock(pos) is BlockCrop && ba.GetBlockEntity(pos.DownCopy()) is not BlockEntityFarmland) return false;
+                }
+            }
+            return true;
+        });
+        if (removed == 0) return;
+        MarkDirty(colony);
+        ShareMarkers(colony);
+    }
+
+    const int CropMarkerReach = 8;
 
     /// <summary>The marker for a block, and what it marks if that has its own icon; null when it is not worth one.</summary>
     (string Kind, Map.MarkerSubject? Subject)? BlockMarker(Block block, BlockPos pos)

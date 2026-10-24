@@ -701,10 +701,13 @@ before shipping converted blueprints.
 
 ### The Town Hall window (0.24.0)
 
-### What killed a settler (0.93.0)
+### What killed a settler; gatherer marks resin and beehives (0.93.0)
 - The Town Hall's Dead Citizens page has a "Killed by" column: the creature (Wolf), the player or settler, or what
   happened (Starved, A fall, Drowned, Fire). Settlers who died before 0.93.0 show "unknown". Save data:
   `CitizenRecord` 63 `DeathCause`; `CitizenView` 31.
+- The gatherer also marks resin on tree trunks and wild beehives in the trees (it looks up to 16 blocks above
+  the ground). Wild crops never grow back, so once the gatherer picks the last wild crop near a crop marker,
+  that marker comes off the map. Mushroom markers stay, as mushrooms regrow.
 
 ### Gatherer: ore bits and wild crops; clearer map markers (0.92.0)
 - The gatherer picks up ore bits lying on the ground (native copper in claystone and the like). Each spot is

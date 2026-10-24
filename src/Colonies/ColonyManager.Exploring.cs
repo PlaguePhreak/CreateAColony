@@ -278,6 +278,7 @@ public partial class ColonyManager
             var drops = DropsOf(block, pos);
             if (Map.MarkerSubjects.OreKey(block) is { } ore) NoteOreHint(colony, hut, pos, ore);
             BreakQuietly(pos);
+            if (kind == "crop") ForgetPickedCrops(colony, pos);
             StoreHarvest(colony, hut, worker, drops, pos);
         }
         AddStat(hut, "gathered");
