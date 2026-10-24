@@ -476,9 +476,11 @@ public partial class ColonyManager
         return false;
     }
 
-    public bool LightKiln(Building hut)
+    public bool LightKiln(Colony colony, Building hut, CitizenRecord potter)
     {
         if (hut.KilnPos == null || sapi.World.BlockAccessor.GetBlockEntity(hut.KilnPos) is not BlockEntityPitKiln kiln || !kiln.CanIgnite) return false;
+        // Nothing for the fire to spread through (ColonyManager.Fires.cs).
+        ClearAroundFire(colony, potter, hut.KilnPos);
         kiln.TryIgnite(null);
         return true;
     }

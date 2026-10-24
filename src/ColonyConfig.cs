@@ -1032,4 +1032,20 @@ public class ColonyConfig
     // Town map (see Map/ColonyLandMap.cs)
     /// <summary>Blocks around the colony's land that the Town map shows, once a player or a settler has loaded them.</summary>
     public int TownMapRange = 1024;
+
+    // Fires (see Colonies/ColonyManager.Fires.cs and Settlers/AiTaskSettlerFirefight.cs)
+    /// <summary>Settlers put out fires on the colony's land with watering cans.</summary>
+    public bool Firefighting = true;
+    /// <summary>Also put out burning piles (firewood and the like); a lit pit kiln is never put out.</summary>
+    public bool FirefightingPiles = true;
+    /// <summary>Settlers this many blocks or closer to a fire come to put it out.</summary>
+    public int FireAlarmRadius = 64;
+    /// <summary>How many settlers go to each fire at most.</summary>
+    public int FirefightersPerFire = 3;
+    /// <summary>How far around a fire (and around the settler) it looks for water to fill its watering can.</summary>
+    public int FireWaterSearchRadius = 32;
+    /// <summary>Seconds of a watering can's water (a full can holds 32) a settler pours on one burning block, and how long it takes.</summary>
+    public float FirePourSeconds = 1.5f;
+    /// <summary>Before lighting its pit kiln the potter cuts the grass and plants this many blocks around it, so the fire cannot spread. 0 turns it off.</summary>
+    public int KilnClearRadius = 3;
 }

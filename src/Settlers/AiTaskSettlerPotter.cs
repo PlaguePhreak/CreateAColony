@@ -162,7 +162,7 @@ public class AiTaskSettlerPotter : AiTaskSettlerWorker
                 m.AddKilnMaterial(colony, hut, citizen);
                 break;
             case Work.Light:
-                m.LightKiln(hut);
+                m.LightKiln(colony, hut, citizen);
                 break;
             case Work.Empty:
                 m.EmptyKiln(colony, hut, citizen);

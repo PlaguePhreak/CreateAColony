@@ -223,6 +223,15 @@ These work well with Vintage Colonies. Install them separately.
 - **Stone Bake Oven**: the Cook bakes in it.
 - **C&N Jewelry Adornments** (KenigVovan): more jewellery for settlers to wear. Fuller support comes in a later release.
 
+## Settlers put out fires (0.123.0)
+- Fire spreads through grass and wood. If something catches fire on your colony's land, the Town Hall log says "Fire near ...!" and up to 3 settlers within 64 blocks come running. They even get out of bed.
+- Each one needs a watering can. A settler without one takes it from a chest at home, the warehouse or a hut (the Farmer's Hut keeps them). An empty can gets filled at the nearest water first.
+- They pour water on each burning block until the fire is out, then keep the can for next time.
+- No watering can anywhere? The log tells you. Make one from clay and fire it in a pit kiln, then put it in the warehouse.
+- They put out loose fire and burning piles. They never put out a lit pit kiln, fire pit, forge, bloomery or charcoal pit.
+- The potter now cuts the grass and plants 3 blocks around its pit kiln before lighting it, so the fire can't spread. Crops are left alone.
+- Config: `Firefighting`, `FirefightingPiles`, `FireAlarmRadius`, `FirefightersPerFire`, `FireWaterSearchRadius`, `FirePourSeconds`, `KilnClearRadius` (0 turns the grass cutting off).
+
 ## Gatherer cuts grass for dry grass (0.121.0)
 - When huts are waiting for dry grass and the colony doesn't have enough (warehouse, Gatherer's Huts and gatherers' packs together), the gatherer cuts tall grass first, before it forages.
 - It cuts like a knife does, so short grass is left and grows back. It looks within 16 blocks of itself (`GrassSearchRadius`), then near its hut, and stays inside the hut's range. Never in or beside a colony building.

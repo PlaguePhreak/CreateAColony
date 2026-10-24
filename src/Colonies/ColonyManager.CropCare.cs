@@ -90,11 +90,12 @@ public partial class ColonyManager
     }
 
     /// <summary>The water block nearest the hut with open air above it, where a farmer can fill a can.</summary>
-    public BlockPos? FindWater(Colony colony, Building hut)
+    public BlockPos? FindWater(Colony colony, Building hut) => FindWaterNear(colony, hut.HutPos, Math.Max(1, Config.FarmerOrchardRadius));
+
+    /// <summary>The surface water block nearest a spot, within radius blocks across, where a settler can fill a can.</summary>
+    public BlockPos? FindWaterNear(Colony colony, BlockPos center, int radius)
     {
         var ba = sapi.World.BlockAccessor;
-        var center = hut.HutPos;
-        int radius = Math.Max(1, Config.FarmerOrchardRadius);
         var pos = center.Copy();
         BlockPos? best = null;
         double bestDist = double.MaxValue;

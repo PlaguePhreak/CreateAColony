@@ -38,6 +38,7 @@ Everything listed under "What we have" and "Partly done" has been tested in game
 - Colony land that grows with every hut and Town Hall level *(tested)*
 - Town Hall window: actions, town map, banners, events, work orders, citizens, statistics, permissions, settings, prospecting and quests *(tested)*
 - Settlers who eat real meals, like a varied diet, sleep in beds, shelter from storms and come back after dying (or not, with Permadeath) *(tested)*
+- Firefighting: settlers put out fires on the colony's land with watering cans, and the potter clears grass around its pit kiln first (0.123.0, not tested yet)
 - Skills (13) and traits, inherited by children *(tested)*
 - RimWorld-style skills 0 to 20 with passions, decay and perks, and a Happiness system *(0.61.0, not tested yet)*
 - Families: couples, children who grow up, surnames, a population cap *(tested)*

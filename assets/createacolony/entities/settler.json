@@ -56,6 +56,8 @@
 					{ "code": "settlerflee", "animation": "walk", "animationSpeed": 1.6, "priority": 3.5, "movespeed": 0.034 },
 					// Badly hurt (not guards, who pull back to their tower): goes home to bed until healed, see AiTaskSettlerRecover.
 					{ "code": "settlerrecover", "animation": "walk", "priority": 3.2, "movespeed": 0.016 },
+					// A fire on the colony's land: settlers near it put it out with a watering can, see AiTaskSettlerFirefight.
+					{ "code": "settlerfirefight", "animation": "walk", "animationSpeed": 1.4, "priority": 3.1, "movespeed": 0.03 },
 					{ "code": "settlershelter", "animation": "walk", "priority": 3.0, "movespeed": 0.025 },
 					{ "code": "settlersleep", "animation": "walk", "priority": 2.0, "movespeed": 0.018 },
 					{ "code": "settlereat", "animation": "walk", "priority": 1.5, "movespeed": 0.02 },
