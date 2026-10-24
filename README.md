@@ -701,6 +701,10 @@ before shipping converted blueprints.
 
 ### The Town Hall window (0.24.0)
 
+### Farmers soak the soil (0.98.0)
+- A farmer with a watering can now waters farmland until it is at 100% moisture, not just until it shows as
+  moist. It waters crops whose soil is below `FarmerWaterBelow` (now 0.5, was 0.3).
+
 ### Corpses for players and settlers (0.94.0)
 Built in from [Player Corpse](https://mods.vintagestory.at/playercorpse) by DArkHekRoMaNT (MIT licence, see
 `THIRD_PARTY_NOTICES.md`), brought up to 1.22 and without its CommonLib dependency.

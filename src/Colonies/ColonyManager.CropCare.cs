@@ -65,10 +65,13 @@ public partial class ColonyManager
         if (can == null) return false;
         var block = (BlockWateringCan)can.Block;
         float left = block.GetRemainingWateringSeconds(can);
-        block.SetRemainingWateringSeconds(can, Math.Max(0, left - WateringSeconds));
+        // Pour until the soil is soaked (100%), as a player would: the game adds half the moisture range per second.
+        float needed = Math.Max(WateringSeconds, (1 - farmland.MoistureLevel) * 2 + 0.1f);
+        float pour = Math.Min(left, needed);
+        block.SetRemainingWateringSeconds(can, Math.Max(0, left - pour));
         SavePack(colony, worker, items);
 
-        farmland.WaterFarmland(Math.Min(left, WateringSeconds));
+        farmland.WaterFarmland(pour);
         sapi.World.PlaySoundAt(new AssetLocation("sounds/effect/watering"), ground, 0);
         return true;
     }
