@@ -4,6 +4,7 @@ using CreateAColony.Colonies;
 using Vintagestory.API.Common;
 using Vintagestory.API.Config;
 using Vintagestory.API.Datastructures;
+using Vintagestory.API.MathTools;
 using Vintagestory.GameContent;
 using ItemMatch = System.Func<Vintagestory.API.Common.ItemStack, bool>;
 
@@ -26,6 +27,9 @@ public class AiTaskSettlerCook : AiTaskSettlerWorker
     ColonyManager.KitchenKind? kind;
     ColonyManager.MealPlan? meal;
     ColonyManager.BakePlan? bake;
+    /// <summary>The cool chest or shelf the food just fetched is for, and which food that is.</summary>
+    BlockPos? coolTo;
+    ItemMatch? coolMatch;
 
     public AiTaskSettlerCook(EntityAgent entity, JsonObject taskConfig, JsonObject aiConfig) : base(entity, taskConfig, aiConfig) { }
 
@@ -53,6 +57,24 @@ public class AiTaskSettlerCook : AiTaskSettlerWorker
     protected override bool PlanFirst(Colony colony, CitizenRecord citizen, Building hut)
     {
         var m = manager!;
+        // Food fetched to keep cool goes down to the cool chest it was fetched for.
+        if (coolTo != null)
+        {
+            var to = coolTo;
+            coolTo = null;
+            if (coolMatch != null && m.PackItems(citizen).Any(coolMatch) && !IsUnreachable(to))
+            {
+                if (!ColonyManager.IsFoodShelf(entity.World.BlockAccessor.GetBlockEntity(to)))
+                {
+                    coolMatch = null;
+                    return GoDeposit(to);
+                }
+                work = Work.Shelve;
+                SetStatus("cooling-food");
+                return GoWork(to);
+            }
+            coolMatch = null;
+        }
         var shelves = m.KitchenShelves(colony, hut).Where(s => !IsUnreachable(s.Pos)).ToList();
         if (shelves.Count == 0) return false;
         if (m.ShelfFor(colony, hut, citizen, IsDishToShelve, IsUnreachable) is { } shelf)
@@ -107,6 +129,8 @@ public class AiTaskSettlerCook : AiTaskSettlerWorker
             }
             if (pit.IsBurning)
             {
+                // While it cooks, food goes down to the cellar.
+                if (CoolFood(colony, citizen, hut)) return true;
                 SetStatus("cooking");
                 return false;
             }
@@ -130,7 +154,7 @@ public class AiTaskSettlerCook : AiTaskSettlerWorker
                 if (pit.IsBurning || !pit.fuelSlot.Empty || m.PackCount(citizen, ColonyManager.IsFirewood) > 0) return Go(Work.Load, pit, "cooking");
                 return FetchFirewood(colony, hut, storage);
             }
-            var chest = storage.FirstOrDefault(c => c.Inventory.Any(s => !s.Empty && wanted.IsRaw(s.Itemstack)));
+            var chest = m.SoonestToSpoil(storage, wanted.IsRaw);
             if (chest != null && !m.PackFull(citizen))
             {
                 SetStatus("fetching-food");
@@ -144,8 +168,24 @@ public class AiTaskSettlerCook : AiTaskSettlerWorker
             }
         }
 
+        if (CoolFood(colony, citizen, hut)) return true;
         SetStatus(wantedFood.Count > 0 ? "needs-raw-food" : "kitchen-stocked");
         return false;
+    }
+
+    /// <summary>
+    /// With nothing else to do, takes food that can spoil from a warm chest in the hut down to the coolest chest or
+    /// kitchen shelf with room, such as one in the basement (ColonyManager.Freshness.cs).
+    /// </summary>
+    bool CoolFood(Colony colony, CitizenRecord citizen, Building hut)
+    {
+        var m = manager!;
+        // Raw food for the fire is its own stock, which it keeps rather than putting in a chest; a cool shelf takes it.
+        if (m.PackFull(citizen) || m.FindCoolingMove(colony, hut, Stock) is not { } move || IsUnreachable(move.From.Pos) || IsUnreachable(move.To.Pos)) return false;
+        SetStatus("cooling-food");
+        coolTo = move.To.Pos.Copy();
+        coolMatch = move.Match;
+        return FetchSupplies(move.From.Pos, move.Match, move.Amount);
     }
 
     /// <summary>
@@ -178,7 +218,7 @@ public class AiTaskSettlerCook : AiTaskSettlerWorker
             int need = plan.Slots.Where(x => x.Sample.Collectible.Code.Equals(code)).Sum(x => x.Count);
             int have = m.PackCount(citizen, same);
             if (have >= need) continue;
-            var chest = storage.FirstOrDefault(c => c.Inventory.Any(s => !s.Empty && same(s.Itemstack)));
+            var chest = m.SoonestToSpoil(storage, same);
             if (chest != null && !m.PackFull(citizen))
             {
                 SetStatus("fetching-food");
@@ -238,7 +278,7 @@ public class AiTaskSettlerCook : AiTaskSettlerWorker
             ItemMatch same = s => s.Collectible.Code.Equals(code);
             int have = m.PackCount(citizen, same);
             if (have >= count) continue;
-            var chest = storage.FirstOrDefault(c => c.Inventory.Any(s => !s.Empty && same(s.Itemstack)));
+            var chest = m.SoonestToSpoil(storage, same);
             if (chest != null && !m.PackFull(citizen))
             {
                 SetStatus("fetching-dough");
@@ -284,10 +324,11 @@ public class AiTaskSettlerCook : AiTaskSettlerWorker
         if (work == Work.Shelve)
         {
             if (entity.World.BlockAccessor.GetBlockEntity(target) is BlockEntityContainer shelf && ColonyManager.IsFoodShelf(shelf)
-                && m.ShelveFromPack(colony, citizen, shelf, IsDishToShelve) == 0)
+                && m.ShelveFromPack(colony, citizen, shelf, s => IsDishToShelve(s) || coolMatch?.Invoke(s) == true) == 0)
             {
                 MarkUnreachable(target); // full after all: try another shelf, or the hut storage
             }
+            coolMatch = null;
             return;
         }
         if (work is Work.OvenLoad or Work.OvenEmpty)

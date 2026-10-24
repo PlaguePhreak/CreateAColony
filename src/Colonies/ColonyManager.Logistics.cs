@@ -74,29 +74,30 @@ public partial class ColonyManager
     /// <summary>
     /// Takes up to <paramref name="max"/> items of one kind from the containers: the first matching
     /// stack found decides the kind, and further slots of the same kind top it up to a full stack.
+    /// Food that can spoil is taken soonest-to-spoil first (ColonyManager.Freshness.cs).
     /// </summary>
     public ItemStack? TakeItems(IEnumerable<BlockEntityContainer> containers, ItemMatch match, int max)
     {
-        ItemStack? taken = null;
-        foreach (var container in containers)
-        {
-            bool changed = false;
-            foreach (var slot in container.Inventory)
-            {
-                if (slot.Empty || !match(slot.Itemstack)) continue;
-                if (taken != null && !taken.Equals(sapi.World, slot.Itemstack, GlobalConstants.IgnoredStackAttributes)) continue;
+        var found = containers.SelectMany(c => c.Inventory.Where(s => !s.Empty && match(s.Itemstack)).Select(s => (Container: c, Slot: s))).ToList();
+        if (found.Any(f => CanSpoil(f.Slot.Itemstack))) found = found.OrderBy(f => HoursUntilSpoiled(f.Slot)).ToList();
 
-                int limit = Math.Min(max, slot.Itemstack.Collectible.MaxStackSize) - (taken?.StackSize ?? 0);
-                if (limit <= 0) break;
-                var part = slot.TakeOut(Math.Min(limit, slot.StackSize));
-                slot.MarkDirty();
-                changed = true;
-                if (taken == null) taken = part;
-                else taken.StackSize += part.StackSize;
-            }
-            if (changed) container.MarkDirty(true);
-            if (taken != null && taken.StackSize >= Math.Min(max, taken.Collectible.MaxStackSize)) break;
+        ItemStack? taken = null;
+        var changed = new HashSet<BlockEntityContainer>();
+        foreach (var (container, slot) in found)
+        {
+            if (slot.Empty) continue;
+            if (taken != null && !taken.Equals(sapi.World, slot.Itemstack, GlobalConstants.IgnoredStackAttributes)) continue;
+
+            int limit = Math.Min(max, slot.Itemstack.Collectible.MaxStackSize) - (taken?.StackSize ?? 0);
+            if (limit <= 0) break;
+            var part = slot.TakeOut(Math.Min(limit, slot.StackSize));
+            slot.MarkDirty();
+            changed.Add(container);
+            if (taken == null) taken = part;
+            else taken.StackSize += part.StackSize;
+            if (taken.StackSize >= Math.Min(max, taken.Collectible.MaxStackSize)) break;
         }
+        foreach (var container in changed) container.MarkDirty(true);
         return taken;
     }
 
@@ -126,13 +127,12 @@ public partial class ColonyManager
         return moved;
     }
 
-    /// <summary>Stores the stack in the warehouse, preferring chests that already hold the same item.</summary>
+    /// <summary>Stores the stack in the warehouse, preferring chests that already hold the same item. Food that can spoil goes in the coolest chests first.</summary>
     public int PutInWarehouse(Colony colony, ItemStack stack)
     {
         int moved = 0;
-        var containers = WarehouseContainers(colony)
-            .OrderByDescending(c => c.Inventory.Any(s => !s.Empty && s.Itemstack.Collectible == stack.Collectible))
-            .ToList();
+        var containers = CoolestFirst(WarehouseContainers(colony)
+            .OrderByDescending(c => c.Inventory.Any(s => !s.Empty && s.Itemstack.Collectible == stack.Collectible)), stack);
         foreach (var container in containers)
         {
             if (stack.StackSize <= 0) break;

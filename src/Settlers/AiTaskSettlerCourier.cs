@@ -10,7 +10,8 @@ namespace CreateAColony.Settlers;
 /// <summary>
 /// The courier's working day, one trip at a time: deliver what it is carrying, otherwise fetch the
 /// oldest delivery request the warehouse can serve, otherwise empty a drop-off chest into the
-/// warehouse, otherwise fill the Food Shelves shelves of a Cook's Hut with food from the warehouse. It carries
+/// warehouse, otherwise fill the Food Shelves shelves of a Cook's Hut with food from the warehouse, otherwise
+/// move food that can spoil to cooler storage such as a cellar. It carries
 /// as much as its inventory holds, and what it carries is saved on its record,
 /// so nothing is lost if the trip is interrupted by night, hunger or a storm; the next trip finishes it.
 /// Settlers without a job help out the same way when their home needs nothing (JoblessHelpHauling): they take
@@ -35,6 +36,8 @@ public class AiTaskSettlerCourier : SettlerTaskBase
     /// <summary>The kitchen shelf the food picked up is for, and how much it takes.</summary>
     BlockPos? shelfTarget;
     int shelfWant;
+    /// <summary>The cooler storage (a cellar chest) the food picked up is for.</summary>
+    BlockPos? coolTarget;
 
     public AiTaskSettlerCourier(EntityAgent entity, JsonObject taskConfig, JsonObject aiConfig) : base(entity, taskConfig, aiConfig) { }
 
@@ -92,6 +95,7 @@ public class AiTaskSettlerCourier : SettlerTaskBase
         requestId = 0;
         toHut = false;
         shelfTarget = null;
+        coolTarget = null;
         if (!manager!.PackEmpty(citizen))
         {
             // Finish the delivery we were on, or bring the load back to the warehouse.
@@ -115,7 +119,8 @@ public class AiTaskSettlerCourier : SettlerTaskBase
         if (request != null)
         {
             var match = ColonyManager.Matcher(request.ItemCode);
-            var source = manager.WarehouseContainers(colony).FirstOrDefault(c => c.Inventory.Any(s => !s.Empty && match(s.Itemstack)));
+            // The food that will spoil soonest goes first; anything else from the nearest chest that has it.
+            var source = manager.SoonestToSpoil(manager.WarehouseContainers(colony), match);
             if (source == null)
             {
                 manager.ReleaseRequest(colony, request);
@@ -144,6 +149,15 @@ public class AiTaskSettlerCourier : SettlerTaskBase
             shelfTarget = restock.Shelf.Pos.Copy();
             shelfWant = restock.Amount;
             return Go(Step.Pickup, restock.Source.Pos);
+        }
+
+        // Move food that can spoil from warm storage to a cooler one, such as a cellar (ColonyManager.Freshness.cs).
+        if (manager.FindCoolingMove(colony) is { } cool)
+        {
+            pickupFilter = cool.Match;
+            coolTarget = cool.To.Pos.Copy();
+            shelfWant = cool.Amount;
+            return Go(Step.Pickup, cool.From.Pos);
         }
         return false;
     }
@@ -199,7 +213,7 @@ public class AiTaskSettlerCourier : SettlerTaskBase
         var request = colony.Requests.Find(r => r.RequestId == requestId);
 
         var match = request != null ? ColonyManager.Matcher(request.ItemCode) : pickupFilter;
-        int wanted = request?.Remaining ?? (shelfTarget != null ? shelfWant : int.MaxValue);
+        int wanted = request?.Remaining ?? (shelfTarget != null || coolTarget != null ? shelfWant : int.MaxValue);
         int taken = 0;
         while (taken < wanted)
         {
@@ -220,7 +234,7 @@ public class AiTaskSettlerCourier : SettlerTaskBase
             if (request != null) manager!.ReleaseRequest(colony, request);
             return false;
         }
-        var destination = request != null ? request.DestPos : shelfTarget ?? manager!.WarehouseContainers(colony).FirstOrDefault()?.Pos;
+        var destination = request != null ? request.DestPos : shelfTarget ?? coolTarget ?? manager!.WarehouseContainers(colony).FirstOrDefault()?.Pos;
         if (destination == null) return false; // warehouse removed mid-trip; the load waits until one exists
         target = destination.Copy();
         return true;
@@ -258,6 +272,16 @@ public class AiTaskSettlerCourier : SettlerTaskBase
                 manager.ShelveFromPack(colony, citizen, shelf, pickupFilter);
             }
             shelfTarget = null;
+            blocked = false;
+        }
+        else if (coolTarget != null)
+        {
+            // Whatever the cool store does not take goes back to the warehouse on the next trip.
+            if (entity.World.BlockAccessor.GetBlockEntity(coolTarget) is BlockEntityContainer cool)
+            {
+                manager.UnloadPack(colony, citizen, new[] { cool }, pickupFilter);
+            }
+            coolTarget = null;
             blocked = false;
         }
         else if (toHut && citizen.WorkplacePos != null && manager.GetBuilding(colony, citizen.WorkplacePos) is { } hut)
@@ -312,6 +336,7 @@ public class AiTaskSettlerCourier : SettlerTaskBase
             (true, Step.Pickup) => "activity-courier-fetch",
             (true, Step.Deliver) => "activity-courier-deliver",
             (false, _) when shelfTarget != null => "activity-courier-shelves",
+            (false, _) when coolTarget != null => "activity-courier-cooling",
             (false, Step.Pickup) => "activity-courier-collect",
             _ => "activity-courier-store"
         };

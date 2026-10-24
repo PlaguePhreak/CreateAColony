@@ -100,7 +100,8 @@ public class AiTaskSettlerChores : SettlerTaskBase
         if (!pit.inputSlot.Empty || !m.CanFuel(colony, home, citizen, pit)) return false;
         if (m.PackCount(citizen, RawFood) == 0)
         {
-            var store = m.HomeChests(home).FirstOrDefault(c => c.Inventory.Any(s => !s.Empty && m.IsGrillable(s.Itemstack)));
+            // The raw food that will spoil soonest goes on the fire first.
+            var store = m.SoonestToSpoil(m.HomeChests(home), m.IsGrillable);
             return store != null && Fetch(store.Pos, m.IsGrillable, m.Config.CookBatch);
         }
         if (!pit.IsBurning && pit.fuelSlot.Empty && m.PackCount(citizen, ColonyManager.IsFirewood) == 0

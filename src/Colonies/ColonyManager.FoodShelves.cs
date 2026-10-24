@@ -222,12 +222,18 @@ public partial class ColonyManager
         return s.Collectible.NutritionProps != null && !IsGrillable(s) && !IsBakeable(s) && !IsLiquid(s);
     }
 
-    /// <summary>The first kitchen shelf with room for something the settler carries that the match says yes to.</summary>
+    /// <summary>The kitchen shelf with room for something the settler carries that the match says yes to, the coolest first for food that can spoil.</summary>
     public BlockEntityContainer? ShelfFor(Colony colony, Building hut, CitizenRecord citizen, ItemMatch match, System.Func<BlockPos, bool>? skip = null)
     {
         var carried = PackItems(citizen).Where(match).ToList();
         if (carried.Count == 0) return null;
-        return KitchenShelves(colony, hut).FirstOrDefault(shelf => (skip == null || !skip(shelf.Pos)) && carried.Any(s => ShelfRoom(shelf, s) > 0));
+        var shelves = KitchenShelves(colony, hut).Where(shelf => skip == null || !skip(shelf.Pos)).ToList();
+        foreach (var stack in carried)
+        {
+            var shelf = CoolestFirst(shelves, stack).FirstOrDefault(sh => ShelfRoom(sh, stack) > 0);
+            if (shelf != null) return shelf;
+        }
+        return null;
     }
 
     /// <summary>Puts what the settler carries that the match says yes to on the shelf. Returns how many items went on it.</summary>
@@ -254,9 +260,13 @@ public partial class ColonyManager
             var food = WarehouseContainers(colony)
                 .SelectMany(c => c.Inventory.Where(s => !s.Empty && IsShelfFood(s.Itemstack)).Select(s => (Chest: c, Stack: s.Itemstack!)))
                 .ToList();
-            foreach (var shelf in shelves)
+            // Each food to the coolest shelf that takes it, so a cellar's shelves fill first (sorted once per food group).
+            var byGroup = new Dictionary<(int, bool), List<BlockEntityContainer>>();
+            foreach (var (chest, stack) in food)
             {
-                foreach (var (chest, stack) in food)
+                var key = ((int?)stack.Collectible.NutritionProps?.FoodCategory ?? -1, CanSpoil(stack));
+                if (!byGroup.TryGetValue(key, out var ordered)) byGroup[key] = ordered = CoolestFirst(shelves, stack);
+                foreach (var shelf in ordered)
                 {
                     int room = ShelfRoom(shelf, stack);
                     if (room <= 0) continue;

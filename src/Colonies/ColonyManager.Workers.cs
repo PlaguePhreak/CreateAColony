@@ -251,6 +251,7 @@ public partial class ColonyManager
         {
             lines.Add(FirepitInfo(colony, hut));
             if (OvenInfo(colony, hut) is { } oven) lines.Add(oven);
+            if (CoolStoreInfo(colony, hut) is { } cool) lines.Add(cool);
         }
         if (hut.Type == BuildingTypes.Smelter) lines.Add(SmelterInfo(colony, hut));
         if (hut.Type == BuildingTypes.Blacksmith) lines.Add(BlacksmithInfo(hut));

@@ -947,6 +947,23 @@ Settlers have families, as MineColonies citizens do (`src/Colonies/ColonyManager
   real limits allow) and `/colony family grow <name>` are admin test commands. Names can be first names.
 - `Families: false` in the config stops new couples and children.
 
+### Fresh food: cellars and oldest first (0.100.0)
+
+`src/Colonies/ColonyManager.Freshness.cs`. Not tested in game yet.
+
+Food spoils by the game's own rules: slower in a cellar (a small closed room with soil or stone walls),
+underground, or in winter. Settlers use that.
+
+- **Oldest first.** Settlers eat and pack the food that will spoil soonest. Cooks, couriers and settlers cooking
+  at home also take the oldest food first. `EatSpoilingFirst` sets how strong the pull is (0 turns it off).
+- **Cool storage.** Food that can spoil goes in the coolest chest or shelf with room. Couriers (and helpers
+  without a job) carry food from warm storage to cooler storage: warehouse food to a cooler warehouse chest or a
+  Cook's Hut cellar, Cook's Hut food to its basement, home food to the home's basement. The cook does the same
+  in its own hut when it has nothing to cook. Kitchen shelves are filled but never emptied this way.
+- The Dev's Builds Cook's Hut level 2 basement is full of Food Shelves, so food ends up down there.
+- The Cook's Hut window shows how fast food spoils in its coolest storage (100% is normal speed).
+- `KeepFoodCool: false` turns the moving off. `CoolStoreMaxRateShare` (0.75) is how much cooler a store must be.
+
 ### The Hunter, skinning and cooking at home (0.99.0)
 
 `src/Colonies/ColonyManager.Hunting.cs`, `src/Colonies/ColonyManager.HomeCooking.cs`,

@@ -69,7 +69,7 @@ public partial class ColonyManager
 
     /// <summary>
     /// Eats one item of packed food when a whole bite fits in the stomach, or whenever the settler is
-    /// hungry. The best one for variety is eaten. Returns its name, or null when it ate nothing.
+    /// hungry. The best one for variety is eaten, food that will spoil soon first. Returns its name, or null when it ate nothing.
     /// </summary>
     public string? SnackFromLunch(Colony colony, CitizenRecord citizen, EntityAgent eater)
     {
@@ -86,7 +86,7 @@ public partial class ColonyManager
             if (props == null) continue;
             float satiety = props.Sum(p => p.Satiety);
             if (!hungry && citizen.Saturation + satiety > Config.SaturationMax) continue;
-            float score = VarietyScore(props, citizen);
+            float score = VarietyScore(props, citizen) * SpoilPull(new DummySlot(stack));
             if (best != null && score <= bestScore) continue;
             best = stack;
             bestProps = props;
@@ -110,7 +110,7 @@ public partial class ColonyManager
 
     /// <summary>
     /// At a food store after a meal: packs plain food until the settler carries CarryFoodSaturation worth
-    /// (or its food slots are full), taking the kinds best for variety first. Returns how many items.
+    /// (or its food slots are full), taking the kinds best for variety, and soonest to spoil, first. Returns how many items.
     /// </summary>
     public int PackLunch(Colony colony, CitizenRecord citizen, EntityAgent eater, BlockEntityContainer container)
     {
@@ -121,7 +121,7 @@ public partial class ColonyManager
         var choices = slots.Where(s => !s.Empty)
             .Select(s => (Slot: s, Props: LunchProps(s.Itemstack, eater)))
             .Where(c => c.Props != null)
-            .OrderByDescending(c => VarietyScore(c.Props!, citizen))
+            .OrderByDescending(c => VarietyScore(c.Props!, citizen) * SpoilPull(c.Slot))
             .ToList();
 
         int taken = 0;

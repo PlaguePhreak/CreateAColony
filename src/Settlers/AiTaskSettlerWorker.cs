@@ -170,6 +170,9 @@ public abstract class AiTaskSettlerWorker : SettlerTaskBase
 
     protected bool GoWork(BlockPos pos) => Go(Step.Work, pos);
 
+    /// <summary>Walks to this chest of the hut to put away what the worker does not keep (into the hut storage, coolest first for food).</summary>
+    protected bool GoDeposit(BlockPos chest) => Go(Step.Deposit, chest);
+
     /// <summary>Walks to the chest to take up to want items the work needs.</summary>
     protected bool FetchSupplies(BlockPos chest, ItemMatch match, int want)
     {

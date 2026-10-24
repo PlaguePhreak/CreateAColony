@@ -717,6 +717,17 @@ public class ColonyConfig
     public bool CarryFood = true;
     /// <summary>How much food a settler packs when it gets some, in saturation: 1200 is one full stomach.</summary>
     public float CarryFoodSaturation = 1200f;
+    /// <summary>
+    /// Settlers eat, pack and cook with the food that will spoil soonest first. Food about to spoil is up to
+    /// 1 + this many times as wanted as food that keeps; 0 turns it off.
+    /// </summary>
+    public float EatSpoilingFirst = 2f;
+    /// <summary>Food with this many in-game hours left before it is rot gets about a third of the EatSpoilingFirst pull.</summary>
+    public float SpoilingSoonHours = 48f;
+    /// <summary>Food that can spoil goes in the coolest storage there is room in, and couriers and cooks carry it from warm storage down to cellars.</summary>
+    public bool KeepFoodCool = true;
+    /// <summary>Food is only carried to storage where it spoils at most this share as fast as where it is now (0.75 = a quarter slower or better).</summary>
+    public float CoolStoreMaxRateShare = 0.75f;
     /// <summary>In the dark settlers hold a lit torch they carry, and fetch one from their hut or the warehouse when they have none.</summary>
     public bool CarryTorches = true;
     /// <summary>Workers within this many blocks of their hut drop off what they do not need on their way past.</summary>

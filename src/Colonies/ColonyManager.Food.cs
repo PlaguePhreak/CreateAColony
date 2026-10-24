@@ -15,7 +15,8 @@ namespace CreateAColony.Colonies;
 /// bowl, cooking pot or crock, and one slice of a pie, using the game's own meal nutrition. Food mods
 /// such as Expanded Foods and A Culinary Artillery change that same nutrition code, so their foods and
 /// meals count properly without this mod knowing about them. Settlers remember the food groups of their
-/// last few meals and prefer food from groups they have had least of lately.
+/// last few meals and prefer food from groups they have had least of lately, and food that will spoil
+/// soon over food that keeps (ColonyManager.Freshness.cs).
 /// </summary>
 public partial class ColonyManager
 {
@@ -68,10 +69,11 @@ public partial class ColonyManager
             if (placed.QuantityServings <= 0) return null;
             var mealStack = container.Block.OnPickBlock(sapi.World, container.Pos);
             if (mealStack?.Block is not IBlockMealContainer) return null;
-            var placedChoice = EvaluateFood(container, new DummySlot(mealStack, placed.inventory), eater);
+            var placedSlot = new DummySlot(mealStack, placed.inventory);
+            var placedChoice = EvaluateFood(container, placedSlot, eater);
             if (placedChoice == null) return null;
             placedChoice.Placed = placed;
-            placedChoice.Score = VarietyScore(placedChoice.Props, citizen);
+            placedChoice.Score = VarietyScore(placedChoice.Props, citizen) * SpoilPull(placedSlot);
             return placedChoice;
         }
 
@@ -83,7 +85,8 @@ public partial class ColonyManager
             if (slot.Empty) continue;
             var choice = EvaluateFood(container, slot, eater);
             if (choice == null) continue;
-            choice.Score = VarietyScore(choice.Props, citizen);
+            // Food that will spoil soon is eaten first (ColonyManager.Freshness.cs).
+            choice.Score = VarietyScore(choice.Props, citizen) * SpoilPull(slot);
             if (best == null || choice.Score > best.Score) best = choice;
         }
         return best;
