@@ -435,6 +435,9 @@ public abstract class SettlerTaskBase : AiTaskBase
     /// </summary>
     protected string PlayShapeAnimation(string code, string fallback)
     {
+        // The player's "smithing" swing (the prospecting pick's and the hammer's) went with prospectors
+        // vanishing while taking a reading (Aaron, 0.75.4), so settlers swing those like a pickaxe.
+        if (code == "smithing") code = "pickaxe";
         if (!SettlerAnimations.PlayerAnimations.Contains(code))
         {
             PlayAnimation(fallback);
