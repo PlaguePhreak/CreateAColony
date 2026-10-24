@@ -638,7 +638,7 @@ public class AiTaskSettlerBuilder : SettlerTaskBase
                 : Lang.Get("createacolony:activity-builder-work", ColonyManager.TeardownName(teardown));
         }
         var order = colony.Buildings.Find(b => b.BuildingId == orderId);
-        string building = order == null ? "" : order.Removing ? ColonyManager.BuildingName(order) : Lang.Get("createacolony:building-" + order.Type) + " " + order.TargetLevel;
+        string building = order == null ? "" : order.Removing || order.Repairing ? ColonyManager.BuildingName(order) : Lang.Get("createacolony:building-" + order.Type) + " " + order.TargetLevel;
         string key = order?.Removing == true && step == Step.Work ? "activity-builder-remove" : step switch
         {
             Step.Fetch => "activity-builder-fetch",

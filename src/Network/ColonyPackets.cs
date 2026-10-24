@@ -111,6 +111,8 @@ public class BuildingView
     [ProtoMember(13)] public bool Removing;
     /// <summary>Not a building but a trader's old house a builder is taking down (TeardownOrder.Id); Name is the trader's.</summary>
     [ProtoMember(240)] public int TeardownId;
+    /// <summary>The work order is a repair (ColonyManager.Repair.cs); TargetLevel is then the level it is at.</summary>
+    [ProtoMember(250)] public bool Repairing;
 }
 
 /// <summary>One line of the Town Hall's event log; the window fills the lang key in.</summary>
@@ -788,7 +790,9 @@ public enum ColonyAction
     /// <summary>Text "key|1" or "key|0": whether the gathering hut with BuildingId collects that; "*" turns all on, "-" all off.</summary>
     SetCollect = 160,
     /// <summary>How many of a thing a hut's worker keeps crafted (Crafting recipes tab): Text = "code|amount".</summary>
-    SetRecipeKeep = 170
+    SetRecipeKeep = 170,
+    /// <summary>Repair button on a hut's Main tab: a builder puts the building back as its blueprint has it.</summary>
+    Repair = 250
 }
 
 /// <summary>One Miner's Hut on a Mineshaft Entrance's Main tab.</summary>

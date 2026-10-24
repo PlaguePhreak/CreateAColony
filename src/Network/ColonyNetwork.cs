@@ -160,7 +160,7 @@ public partial class ColonyNetwork : ModSystem
             ColonyAction.SetJob => SetJob(colony, role, packet.CitizenId, packet.Text),
             ColonyAction.SetRole => SetRole(colony, role, packet.PlayerUid, (ColonyRole)packet.Role),
             ColonyAction.RemoveMember => SetRole(colony, role, packet.PlayerUid, ColonyRole.Visitor),
-            ColonyAction.Build or ColonyAction.CancelBuild or ColonyAction.Rotate => BuildAction(colony, role, packet),
+            ColonyAction.Build or ColonyAction.CancelBuild or ColonyAction.Rotate or ColonyAction.Repair => BuildAction(colony, role, packet),
             ColonyAction.CancelTeardown => CancelTeardown(colony, role, packet.BuildingId),
             ColonyAction.MovePriority => MovePriority(colony, role, packet),
             ColonyAction.SetAnyWoodOrStone => SetAnyWoodOrStone(colony, role, packet.Text == "1"),
@@ -364,6 +364,8 @@ public partial class ColonyNetwork : ModSystem
         {
             case ColonyAction.Build:
                 return Manager.StartWorkOrder(colony, building);
+            case ColonyAction.Repair:
+                return Manager.StartRepair(colony, building);
             case ColonyAction.CancelBuild:
                 if (building.Removing) Manager.CancelRemoval(colony, building);
                 else Manager.CancelWorkOrder(colony, building);
@@ -807,7 +809,8 @@ public partial class ColonyNetwork : ModSystem
             Variant = Manager.Blueprints.Variants(Manager.Blueprints.StyleFor(b), b.Type).Count > 1 ? Manager.Blueprints.VariantFor(Manager.Blueprints.StyleFor(b), b.Type, b.Variant) : "",
             Name = ColonyManager.BuildingName(b),
             Status = b.HasWorkOrder || b.Removing ? Manager.BuildStatus.GetValueOrDefault(b.BuildingId, "queued") : "",
-            Removing = b.Removing
+            Removing = b.Removing,
+            Repairing = b.Repairing
         };
         if (b.Removing)
         {

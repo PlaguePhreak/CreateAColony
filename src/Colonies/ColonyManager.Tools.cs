@@ -66,7 +66,7 @@ public partial class ColonyManager
         foreach (var step in blueprint.Steps)
         {
             var pos = StepPos(order, step);
-            if (IsStepDone(colony, step, pos)) continue;
+            if (IsStepDone(colony, step, pos, order)) continue;
             if (ToolNeededAt(colony, step, pos) is { } need) needs.Add(need);
         }
         // Keep only the highest tier per tool type.

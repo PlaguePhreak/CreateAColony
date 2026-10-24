@@ -211,6 +211,11 @@ All three are on the new Mining tab of the Builder's Wand and use placeholder bl
 - **Herbs for the Gatherer.** The Gatherer picks horsetail and any other plant the game's bandage and poultice recipes take, and brings it to its hut. Each herb has a row on its Allowed to collect tab. It leaves a herb alone once the colony has 16 of it (`GathererHerbKeep`), so it does not strip the land. Turn it off with `GathererPicksHerbs: false`.
 - The hut starts with no building: place the block (planks around linen) and build around it yourself.
 
+## Repair button (0.118.0)
+- **Repair** sits under Build options on every hut's Main tab, and on the Town Hall. Press it and a builder puts the building back as its blueprint has it: missing or broken blocks go back, blocks that should not be there come out, ground that got in is dug out and holes under the floor are filled.
+- Chests, beds, racks, shelves, signs and paintings stay where they are. The builder asks couriers for the blocks it needs, as for any build.
+- **Stop repair** cancels it. The colony gets a message when it is done. A Mineshaft Entrance has no Repair; use the Levels tab's Repair for mines.
+
 ## Recommended mods
 These work well with Vintage Colonies. Install them separately.
 - **Tailor's Delight** (Tels and Phiwa): more tools and materials for the Tailor.

@@ -179,6 +179,7 @@ public partial class ColonyManager
     public void CancelWorkOrder(Colony colony, Building building)
     {
         building.Upkeep = false;
+        building.Repairing = false;
         building.TargetLevel = 0;
         building.Cursor = 0;
         building.BuilderCitizenId = 0;
@@ -192,6 +193,11 @@ public partial class ColonyManager
 
     public void CompleteWorkOrder(Colony colony, Building building)
     {
+        if (building.Repairing)
+        {
+            FinishRepair(colony, building);
+            return;
+        }
         if (building.Upkeep)
         {
             // Upkeep done: the building stays at its level, quietly.
@@ -254,9 +260,11 @@ public partial class ColonyManager
     /// A hut only claims land once it is built, so its blueprint may reach past the colony's claim into
     /// unclaimed land; builders build there too.
     /// </summary>
-    public bool IsStepDone(Colony colony, BuildStep step, BlockPos pos)
+    public bool IsStepDone(Colony colony, BuildStep step, BlockPos pos, Building? building = null)
     {
         if (!CanWorkAt(colony, pos)) return true;
+        // A repair leaves furniture and decorations alone (ColonyManager.Repair.cs).
+        if (building is { Repairing: true } && IsKeptInRepair(step, pos)) return true;
         var ba = sapi.World.BlockAccessor;
         var current = ba.GetBlock(pos);
         if (current.Id == step.BlockId || Fulfils(colony, current, step.BlockId, pos)) return true;
@@ -290,7 +298,7 @@ public partial class ColonyManager
             int i = (building.Cursor + n) % count;
             step = blueprint.Steps[i];
             pos = StepPos(building, step);
-            if (IsStepDone(colony, step, pos)) continue;
+            if (IsStepDone(colony, step, pos, building)) continue;
             // Upkeep only digs out ground that got in; everything else in the building stays as it is.
             if (building.Upkeep && !IsUpkeepStep(step, pos)) continue;
             if (building.Cursor != i)
@@ -314,7 +322,7 @@ public partial class ColonyManager
         foreach (var (step, pos) in building.Upkeep ? foundation : foundation.Concat(blueprint.Steps.Select(s => (s, StepPos(building, s)))))
         {
             if (step.BlockId == 0) continue;
-            if (IsStepDone(colony, step, pos)) continue;
+            if (IsStepDone(colony, step, pos, building)) continue;
             foreach (var cost in RemainingCost(colony, step, pos))
             {
                 needs[cost.Code] = needs.TryGetValue(cost.Code, out var n) ? (n.Item1, n.Item2 + cost.Count) : (cost.Sample, cost.Count);
@@ -440,7 +448,7 @@ public partial class ColonyManager
     public (int Done, int Total) Progress(Colony colony, Building building, Blueprint blueprint) =>
         ForWindow(colony, building, blueprint, "progress", () =>
         {
-            int done = blueprint.Steps.Count(s => IsStepDone(colony, s, StepPos(building, s)));
+            int done = blueprint.Steps.Count(s => IsStepDone(colony, s, StepPos(building, s), building));
             return (done, blueprint.Steps.Count);
         });
 

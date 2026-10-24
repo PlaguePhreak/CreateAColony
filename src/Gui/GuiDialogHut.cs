@@ -278,7 +278,7 @@ public class GuiDialogHut : GuiDialog
 
         // Build options, and Remove hut.
         bool removable = b.Type is not (BuildingTypes.TownHall or BuildingTypes.Warehouse);
-        if (Officer && (b.TargetLevel > 0 || b.Removing || b.Level < b.MaxLevel || removable))
+        if (Officer && (b.TargetLevel > 0 || b.Removing || b.Level < b.MaxLevel || b.Level > 0 && b.MaxLevel > 0 || removable))
         {
             y = composer.Section(Lang.Get("createacolony:hut-build-options"), y, Width);
             y = AddOrderButtons(composer, b, y);
@@ -1542,18 +1542,34 @@ public class GuiDialogHut : GuiDialog
         }
         if (b.TargetLevel > 0)
         {
-            composer.AddSmallButton(Lang.Get("createacolony:build-cancel"), () => Send(ColonyAction.CancelBuild, id), ElementBounds.Fixed(0, y, 160, 28));
+            composer.AddSmallButton(Lang.Get(b.Repairing ? "createacolony:repair-stop" : "createacolony:build-cancel"), () => Send(ColonyAction.CancelBuild, id), ElementBounds.Fixed(0, y, 160, 28));
+            // An upkeep order (digging out ground) can be turned into a full repair.
+            if (!b.Repairing && b.TargetLevel == b.Level) AddRepairButton(composer, b, 170, y);
             return y + 34;
         }
-        if (b.Level >= b.MaxLevel) return y;
-
-        string label = Lang.Get(b.Level == 0 ? "createacolony:build-start" : "createacolony:build-upgrade", b.Level + 1);
-        composer.AddSmallButton(label, () => Send(ColonyAction.Build, id), ElementBounds.Fixed(0, y, 160, 28));
+        double x = 0;
+        if (b.Level < b.MaxLevel)
+        {
+            string label = Lang.Get(b.Level == 0 ? "createacolony:build-start" : "createacolony:build-upgrade", b.Level + 1);
+            composer.AddSmallButton(label, () => Send(ColonyAction.Build, id), ElementBounds.Fixed(0, y, 160, 28));
+            x = 170;
+        }
         if (b.Level == 0)
         {
+            if (b.MaxLevel == 0) return y;
             composer.AddSmallButton(Lang.Get("createacolony:build-rotate", b.Rotation), () => Send(ColonyAction.Rotate, id), ElementBounds.Fixed(170, y, 200, 28));
         }
+        else if (b.MaxLevel > 0 && b.Type != BuildingTypes.MineshaftEntrance) AddRepairButton(composer, b, x, y);
+        else if (x == 0) return y;
         return y + 34;
+    }
+
+    /// <summary>Repair: a builder puts the building back as its blueprint has it (ColonyManager.Repair.cs).</summary>
+    internal void AddRepairButton(GuiComposer composer, BuildingView b, double x, double y)
+    {
+        int id = b.BuildingId;
+        composer.AddSmallButton(Lang.Get("createacolony:repair"), () => Send(ColonyAction.Repair, id), ElementBounds.Fixed(x, y, 160, 28));
+        composer.AddHoverText(Lang.Get("createacolony:repair-hint"), GuiKit.Detail(), 300, ElementBounds.Fixed(x, y, 160, 28));
     }
 
     void ComposeOrders(GuiComposer composer)
@@ -1780,11 +1796,13 @@ public class GuiDialogHut : GuiDialog
 
     internal static string StatusText(BuildingView b) => b.Removing
         ? Lang.Get("createacolony:remove-status", b.ProgressPercent, Lang.Get("createacolony:buildstatus-" + b.Status))
+        : b.Repairing ? Lang.Get("createacolony:repair-status", b.ProgressPercent, Lang.Get("createacolony:buildstatus-" + b.Status))
         : Lang.Get("createacolony:build-status", b.TargetLevel, b.ProgressPercent, Lang.Get("createacolony:buildstatus-" + b.Status));
 
     /// <summary>A work order's title in the lists: the building and the level it goes to, or that it comes down.</summary>
     internal static string OrderTitle(BuildingView o) => o.TeardownId > 0 ? Lang.Get("createacolony:teardown-name", o.Name) : o.Removing
         ? Lang.Get("createacolony:order-remove", o.Name)
+        : o.Repairing ? Lang.Get("createacolony:order-repair", o.Name)
         : Lang.Get("createacolony:building-" + o.Type) + " " + Lang.Get("createacolony:order-level", o.TargetLevel);
 
     /// <summary>The server opens the storage window; this one closes so they do not overlap.</summary>

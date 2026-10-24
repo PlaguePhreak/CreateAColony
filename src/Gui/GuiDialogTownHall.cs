@@ -259,7 +259,7 @@ public class GuiDialogTownHall : GuiDialog
         if (visitors > 0) y = composer.Text(Lang.Get("createacolony:townhall-visitors", visitors), GuiKit.Body().WithColor(GuiKit.WarnColor), 0, y, Width, 8);
 
         // Build options for the Town Hall itself; other buildings are ordered from their own huts.
-        if (hall != null && Officer && (hall.TargetLevel > 0 || hall.Level < hall.MaxLevel || hall.Level == 0))
+        if (hall != null && Officer && (hall.TargetLevel > 0 || hall.Level < hall.MaxLevel || hall.Level == 0 || hall.MaxLevel > 0))
         {
             y = composer.Section(Lang.Get("createacolony:hut-build-options"), y, Width);
             y = AddBuildButtons(composer, hall, y);
@@ -286,7 +286,8 @@ public class GuiDialogTownHall : GuiDialog
         int id = b.BuildingId;
         if (b.TargetLevel > 0)
         {
-            composer.AddSmallButton(Lang.Get("createacolony:build-cancel"), () => Send(ColonyAction.CancelBuild, id), ElementBounds.Fixed(0, y, 160, 28));
+            composer.AddSmallButton(Lang.Get(b.Repairing ? "createacolony:repair-stop" : "createacolony:build-cancel"), () => Send(ColonyAction.CancelBuild, id), ElementBounds.Fixed(0, y, 160, 28));
+            if (!b.Repairing && b.TargetLevel == b.Level) AddRepairButton(composer, b, 170, y);
             return y + 36;
         }
         double x = 0;
@@ -301,7 +302,16 @@ public class GuiDialogTownHall : GuiDialog
             // Like a hut, the Town Hall can be turned until its first level is built.
             composer.AddSmallButton(Lang.Get("createacolony:build-rotate", b.Rotation), () => Send(ColonyAction.Rotate, id), ElementBounds.Fixed(x, y, 190, 28));
         }
+        else if (b.MaxLevel > 0) AddRepairButton(composer, b, x, y);
         return y + 36;
+    }
+
+    /// <summary>Repair: a builder puts the Town Hall back as its blueprint has it (ColonyManager.Repair.cs).</summary>
+    void AddRepairButton(GuiComposer composer, BuildingView b, double x, double y)
+    {
+        int id = b.BuildingId;
+        composer.AddSmallButton(Lang.Get("createacolony:repair"), () => Send(ColonyAction.Repair, id), ElementBounds.Fixed(x, y, 160, 28));
+        composer.AddHoverText(Lang.Get("createacolony:repair-hint"), GuiKit.Detail(), 300, ElementBounds.Fixed(x, y, 160, 28));
     }
 
     // ---- Quests tab -----------------------------------------------------------------------
@@ -560,7 +570,7 @@ public class GuiDialogTownHall : GuiDialog
         foreach (var o in orders.Skip(page * OrdersPerPage).Take(OrdersPerPage))
         {
             number++;
-            string title = number + ". " + (o.Removing ? GuiDialogHut.OrderTitle(o) : o.Name + " " + Lang.Get("createacolony:order-level", o.TargetLevel));
+            string title = number + ". " + (o.Removing || o.Repairing ? GuiDialogHut.OrderTitle(o) : o.Name + " " + Lang.Get("createacolony:order-level", o.TargetLevel));
             composer
                 .AddStaticText(title, GuiKit.Body(), ElementBounds.Fixed(10, y + 6, Width - 250, 25))
                 .AddStaticText(GuiDialogHut.StatusText(o), GuiKit.Detail().WithColor(GuiStyle.ActiveButtonTextColor), ElementBounds.Fixed(10, y + 30, Width - 250, 22));
