@@ -701,6 +701,14 @@ before shipping converted blueprints.
 
 ### The Town Hall window (0.24.0)
 
+### Gatherer: ore bits and wild crops; clearer map markers (0.92.0)
+- The gatherer picks up ore bits lying on the ground (native copper in claystone and the like). Each spot is
+  marked "Underground copper deposit" (or the ore's own name) on the Colony markers map, and the prospectors
+  take a reading there before walking anywhere else, so the miners dig it if the reading is good. One spot per
+  ore within `OreHintSpacing` (16) blocks. Save data: `Colony` 91 `OreHints`.
+- Wild crops (not on farmland) are picked only once fully grown, never near buildings.
+- Colony markers on the world map are solid black with a light rim and a little bigger, so they are easy to see. `MapMarkerColor` ("#000000") sets the colour; "" gives each kind its own colour again. The settlers layer is now called "Colony settlers".
+
 ### Allowed to collect (0.91.0)
 - A new **Allowed to collect** tab on the Forester's, Gatherer's, Farmer's, Miner's and Prospector's Huts and
   the Quarry. It lists everything that worker can take, each with a switch. Everything is on at first.
@@ -730,14 +738,6 @@ before shipping converted blueprints.
   the trip to prospected ore and the materials stay per hut. Removing the entrance leaves its mine derelict.
 - Building fields 56-59 and 62 (MineEntranceId, Removing, RemovedBy, MineRotation, MineStyle), Colony 90
   (DerelictMines). Not tested in game.
-
-### Gatherer: ore bits and wild crops; clearer map markers (0.91.0)
-- The gatherer picks up ore bits lying on the ground (native copper in claystone and the like). Each spot is
-  marked "Underground copper deposit" (or the ore's own name) on the Colony markers map, and the prospectors
-  take a reading there before walking anywhere else, so the miners dig it if the reading is good. One spot per
-  ore within `OreHintSpacing` (16) blocks. Save data: `Colony` 91 `OreHints`.
-- Wild crops (not on farmland) are picked only once fully grown, never near buildings.
-- Colony markers on the world map are solid black with a light rim and a little bigger, so they are easy to see. `MapMarkerColor` ("#000000") sets the colour; "" gives each kind its own colour again. The settlers layer is now called "Colony settlers".
 
 ### Old previews no longer pile up (0.89.0)
 - Placing a building after another showed the earlier buildings' ghosts inside the new one (the Town Hall and
