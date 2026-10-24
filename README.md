@@ -778,6 +778,11 @@ before shipping converted blueprints.
 
 ### The Town Hall window (0.24.0)
 
+### Builders step out of their own way (0.116.0)
+- A builder standing where its next block goes now hops to the nearest free spot beside it and places the block.
+  Before, it walked off to that spot and back, and where it could not walk there (on a wall top) it stayed stuck
+  in the gap (Aaron's screenshot). After three tries it builds elsewhere first and comes back.
+
 ### Gatherers take what they see (0.112.0)
 - Aaron saw gatherers keep "looking" past things they could pick. Three causes: what a gatherer saw while
   looking around waited for the next sweep of its area (every 3 minutes); the sweep looked only at the ground as

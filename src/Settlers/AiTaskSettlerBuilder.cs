@@ -458,6 +458,9 @@ public class AiTaskSettlerBuilder : SettlerTaskBase
         if (!manager.UnloadPack(colony, citizen, manager.HutStorage(colony, hut))) nextSearchMs = entity.World.ElapsedMilliseconds + WaitRetryMs;
     }
 
+    /// <summary>How many times in a row the builder found itself where its block goes; at 3 it builds elsewhere first.</summary>
+    int inOwnWay;
+
     void Work(Colony colony, CitizenRecord citizen)
     {
         if (teardownId != 0)
@@ -528,10 +531,18 @@ public class AiTaskSettlerBuilder : SettlerTaskBase
         {
             foreach (var stack in paid) manager.AddToPack(colony, citizen, stack.Clone());
         }
+        // Standing where the block goes (Aaron saw a builder stuck on a wall top, over and over walking to a spot it
+        // could not reach and back): hop straight to the nearest free spot beside it, as a player steps aside.
+        if (manager.EntityInTheWay(place, target) is { EntityId: var selfId } && selfId == entity.EntityId
+            && manager.FreeSpotNear(entity, target, 3, target) is { } hop)
+        {
+            StopWalking();
+            entity.TeleportToDouble(hop.X, hop.Y, hop.Z);
+        }
         if (manager.EntityInTheWay(place, target) is { } inTheWay)
         {
             foreach (var stack in paid) manager.AddToPack(colony, citizen, stack);
-            if (inTheWay.EntityId == entity.EntityId && manager.FreeSpotNear(entity, target, 3, target) is { } spot)
+            if (inTheWay.EntityId == entity.EntityId && ++inOwnWay < 3 && manager.FreeSpotNear(entity, target, 3, target) is { } spot)
             {
                 // Standing where the block goes: step out of the way first.
                 stepAsideTo = spot;
@@ -544,6 +555,7 @@ public class AiTaskSettlerBuilder : SettlerTaskBase
             }
             return;
         }
+        inOwnWay = 0;
         var placedFrom = manager.PlacementStacks(buildStep, place, target, paid);
         manager.PlaceForBuild(place.Id, target, placedFrom?.FirstOrDefault());
         manager.FinishPlacement(place, target);
