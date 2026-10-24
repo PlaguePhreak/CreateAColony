@@ -429,6 +429,8 @@ public class HutSnapshot
     /// <summary>Priorities tab: the keys of what the hut keeps (rows of its other tabs), in the order its worker makes them.</summary>
     [ProtoMember(240)] public List<string> Priorities = new();
     [ProtoMember(241)] public bool HasPriorities;
+    /// <summary>Priorities rows for a hut's own work, not something it keeps in stock: a Tailor's mending.</summary>
+    [ProtoMember(242)] public List<PotteryView> WorkRows = new();
 
     // The Miner's Hut's Levels, Settings and Guards tabs (82-99).
     [ProtoMember(82)] public bool IsMiner;
@@ -517,6 +519,8 @@ public class PotteryView
     [ProtoMember(9)] public bool Locked;
     /// <summary>A second, greyed line under the name (a recipe row: what it is made from).</summary>
     [ProtoMember(10)] public string? Detail;
+    /// <summary>Priorities: a line to show instead of "have of keep" (a Tailor's "3 to mend").</summary>
+    [ProtoMember(240)] public string? PriorityText;
 }
 
 [ProtoContract]

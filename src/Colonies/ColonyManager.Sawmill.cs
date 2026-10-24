@@ -23,6 +23,8 @@ public partial class ColonyManager
         public required List<(CraftingRecipeIngredient Part, int Quantity)> Inputs;
         /// <summary>The saw the recipe wears down, or null for a recipe without a tool.</summary>
         public CraftingRecipeIngredient? Tool;
+        /// <summary>A second tool some recipes take (a Tailor's knife and awl with Tailor's Delight), or null.</summary>
+        public CraftingRecipeIngredient? Tool2;
         public required ItemStack Output;
 
         public int InputCount => Inputs.Sum(i => i.Quantity);
@@ -43,7 +45,7 @@ public partial class ColonyManager
     List<SawKind>? sawKinds;
 
     /// <summary>The first part of a code (plank in plank-oak), which says what kind of thing it is.</summary>
-    static string FirstPart(AssetLocation? code)
+    internal static string FirstPart(AssetLocation? code)
     {
         if (code == null) return "";
         int dash = code.Path.IndexOf('-');
@@ -61,20 +63,22 @@ public partial class ColonyManager
     /// at most one tool. Used by the Sawmill and the huts' Crafting recipes tab.
     /// </summary>
     List<SawKind> ScanGridRecipes(System.Func<CraftingRecipeIngredient, bool> inputOk, System.Func<CraftingRecipeIngredient, bool> toolOk,
-        System.Func<ItemStack, bool> outputOk, int maxInputs)
+        System.Func<ItemStack, bool> outputOk, int maxInputs, string[]? traits = null, int maxTools = 1)
     {
         var kinds = new Dictionary<string, SawKind>();
         foreach (var recipe in sapi.World.GridRecipes)
         {
             var output = recipe?.Output?.ResolvedItemStack;
-            if (recipe == null || output == null || !recipe.Enabled || recipe.RequiresTrait != null || recipe.ResolvedIngredients == null) continue;
+            if (recipe == null || output == null || !recipe.Enabled || recipe.ResolvedIngredients == null) continue;
+            // Recipes only some player classes can make are left out, unless this worker counts as that class.
+            if (recipe.RequiresTrait != null && (traits == null || !traits.Contains(recipe.RequiresTrait))) continue;
             if (output.Collectible.Code.Domain == "createacolony" || !outputOk(output)) continue;
             var parts = recipe.ResolvedIngredients.Where(i => i != null).Select(i => i!).ToList();
             if (parts.Count == 0) continue;
             var tools = parts.Where(i => i.IsTool || !i.Consume).ToList();
             var inputs = parts.Where(i => !(i.IsTool || !i.Consume)).ToList();
-            if (inputs.Count == 0 || tools.Count > 1) continue;
-            if (tools.Count == 1 && !toolOk(tools[0])) continue;
+            if (inputs.Count == 0 || tools.Count > maxTools) continue;
+            if (!tools.All(toolOk)) continue;
             if (!inputs.All(inputOk)) continue;
             // Repairs and the like give back what they take.
             if (inputs.Any(i => i.SatisfiesAsIngredient(output, false))) continue;
@@ -82,7 +86,7 @@ public partial class ColonyManager
             var grouped = inputs.GroupBy(i => i.Type + ":" + i.Code)
                 .Select(g => (Part: g.First(), Quantity: g.Sum(i => Math.Max(1, i.Quantity))))
                 .ToList();
-            var saw = new SawRecipe { Inputs = grouped, Tool = tools.FirstOrDefault(), Output = output.Clone() };
+            var saw = new SawRecipe { Inputs = grouped, Tool = tools.FirstOrDefault(), Tool2 = tools.ElementAtOrDefault(1), Output = output.Clone() };
             if (saw.InputCount > maxInputs) continue;
             string key = output.Collectible.Code.ToString();
             if (!kinds.TryGetValue(key, out var kind))

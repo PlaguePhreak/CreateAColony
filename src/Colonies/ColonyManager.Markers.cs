@@ -523,9 +523,9 @@ public partial class ColonyManager
     static string? PlainCreatureMarker(Entity entity)
     {
         string path = entity.Code.Path;
-        if (entity is EntityTrader || path.StartsWith("humanoid-trader-"))
+        if (IsTrader(entity))
         {
-            string type = path.StartsWith("humanoid-trader-") ? path["humanoid-trader-".Length..] : "";
+            string type = TraderType(entity);
             return Kinds.ContainsKey("trader-" + type) ? "trader-" + type : "trader-other";
         }
         if (path.StartsWith("wolf") || path.StartsWith("hyena")) return "danger-wolf";

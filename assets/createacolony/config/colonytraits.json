@@ -38,6 +38,8 @@
 		{ "code": "greenthumb", "points": 2, "weight": 4, "job": "farmer", "inherited": true, "effects": { "workSpeed": 1.25 } },
 		{ "code": "lumberjack", "points": 2, "weight": 4, "job": "forester", "inherited": true, "effects": { "workSpeed": 1.25 } },
 		{ "code": "steadyhands", "points": 2, "weight": 4, "job": "potter", "inherited": true, "effects": { "workSpeed": 1.25 } },
+		{ "code": "finestitcher", "points": 2, "weight": 4, "job": "tailor", "inherited": true, "effects": { "workSpeed": 1.25 } },
+		{ "code": "keeneye", "points": 2, "weight": 4, "job": "jeweller", "inherited": true, "effects": { "workSpeed": 1.25 } },
 		{ "code": "goodcook", "points": 2, "weight": 4, "job": "cook", "inherited": true, "effects": { "workSpeed": 1.25, "cookLevel": 1 } },
 		{ "code": "packmule", "points": 2, "weight": 4, "job": "courier", "inherited": true, "effects": { "packSlots": 1.5 } },
 		{ "code": "prospectorseye", "points": 2, "weight": 3, "job": "prospector", "inherited": true, "effects": { "workSpeed": 1.25 } },

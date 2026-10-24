@@ -1,14 +1,9 @@
 {
 	// What a trader becomes when it joins the colony (ColonyManager.Traders.cs). The key is the trader's type, the
-	// end of its entity code (humanoid-trader-foods is "foods"). One of the choices is picked at random; a choice
+	// middle of its entity code (game:trader-male-agriculture-cold is "agriculture"). One of the choices is picked at random; a choice
 	// whose job the mod does not have is skipped. "skill" is the second skill, with one passion. Traders from
 	// other mods use "other"; when nothing fits, a random job is picked.
 	"traders": {
-		"foods": [
-			{ "job": "cook", "skill": "foraging" },
-			{ "job": "farmer", "skill": "cooking" },
-			{ "job": "gatherer", "skill": "cooking" }
-		],
 		"agriculture": [
 			{ "job": "farmer", "skill": "foraging" },
 			{ "job": "cook", "skill": "farming" },
@@ -32,8 +27,8 @@
 			{ "job": "explorer", "skill": "prospecting" },
 			{ "job": "prospector", "skill": "exploring" }
 		],
-		"clothing": [ { "job": "gatherer", "skill": "hauling" } ],
-		"luxuries": [ { "job": "courier", "skill": "smithing" } ],
+		"clothing": [ { "job": "tailor", "skill": "foraging" } ],
+		"luxuries": [ { "job": "jeweller", "skill": "smithing" } ],
 		"other": []
 	}
 }

@@ -1615,7 +1615,7 @@ public class GuiDialogHut : GuiDialog
     void ComposePriorities(GuiComposer composer)
     {
         double y = composer.Text(Lang.Get("createacolony:priorities-hint"), GuiKit.Muted(), 0, 30, Width, 10);
-        var rows = snapshot.Craft.Concat(snapshot.Recipes).Concat(snapshot.Kitchen).Concat(snapshot.Pottery)
+        var rows = snapshot.Craft.Concat(snapshot.Recipes).Concat(snapshot.Kitchen).Concat(snapshot.Pottery).Concat(snapshot.WorkRows)
             .Where(r => r.Keep > 0).GroupBy(r => r.Key).ToDictionary(g => g.Key, g => g.First());
         var keys = snapshot.Priorities.Where(rows.ContainsKey).ToList();
         if (keys.Count == 0)
@@ -1641,7 +1641,7 @@ public class GuiDialogHut : GuiDialog
                 new RichTextComponent(capi, number + ". ", CairoFont.WhiteSmallText()) { VerticalAlign = EnumVerticalAlign.Top },
                 new ItemstackTextComponent(capi, stack, 38, 10),
                 new RichTextComponent(capi, (row.Name ?? stack.GetName()) + "\n", CairoFont.WhiteSmallText()) { VerticalAlign = EnumVerticalAlign.Top },
-                new RichTextComponent(capi, Lang.Get("createacolony:priorities-have", row.Have, row.Keep), countFont)
+                new RichTextComponent(capi, row.PriorityText ?? Lang.Get("createacolony:priorities-have", row.Have, row.Keep), countFont)
             }, ElementBounds.Fixed(6, y, Width - 150, PotteryRowHeight));
             if (ViewerRole >= ColonyRole.Officer) AddMoveButtons(composer, key, Width - 136, y + 6, snapshot.Building.BuildingId);
             y += PotteryRowHeight;

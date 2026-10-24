@@ -318,13 +318,29 @@ public partial class ColonyNetwork : ModSystem
     }
 
     /// <summary>The order a crafting hut's worker goes through what it keeps: the rows with something kept, as ByPriority sorts them.</summary>
-    void AddPriorities(HutSnapshot snapshot, Building building)
+    void AddPriorities(HutSnapshot snapshot, Colony colony, Building building)
     {
         if (!Manager.HasPriorities(building.Type)) return;
         snapshot.HasPriorities = true;
-        var rows = snapshot.Craft.Concat(snapshot.Recipes).Concat(snapshot.Kitchen).Concat(snapshot.Pottery)
+        if (building.Type == BuildingTypes.Tailor)
+        {
+            int toMend = Manager.MendingCount(colony, building, Manager.WorkerAt(colony, building, Jobs.Tailor));
+            var kit = sapi.World.GetItem(new AssetLocation("game:sewingkit"));
+            snapshot.WorkRows.Add(new PotteryView
+            {
+                Key = ColonyManager.MendKey,
+                Stack = kit != null ? new ItemStack(kit).ToBytes() : System.Array.Empty<byte>(),
+                Keep = 1,
+                Have = toMend > 0 ? 0 : 1,
+                Name = Lang.Get("createacolony:priority-mend"),
+                PriorityText = Lang.Get("createacolony:priority-mend-count", toMend)
+            });
+        }
+        var rows = snapshot.Craft.Concat(snapshot.Recipes).Concat(snapshot.Kitchen).Concat(snapshot.Pottery).Concat(snapshot.WorkRows)
             .Where(r => r.Keep > 0).GroupBy(r => r.Key).Select(g => g.First());
         snapshot.Priorities = Manager.ByPriority(building, rows.Select(r => (Kind: r.Key, r.Key, Short: r.Keep - r.Have))).ToList();
+        // Until mending is placed on the list, the Tailor mends first (AiTaskSettlerTailor.WorkBeforeRecipes).
+        if (!building.Priorities.Contains(ColonyManager.MendKey) && snapshot.Priorities.Remove(ColonyManager.MendKey)) snapshot.Priorities.Insert(0, ColonyManager.MendKey);
     }
 
     /// <summary>A trader's old house in the work order lists.</summary>
@@ -983,7 +999,7 @@ public partial class ColonyNetwork : ModSystem
         }
         if (building.Type is BuildingTypes.Forester or BuildingTypes.Farmer or BuildingTypes.Potter or BuildingTypes.Cook
             or BuildingTypes.Prospector or BuildingTypes.Miner or BuildingTypes.Quarry
-            or BuildingTypes.Smelter or BuildingTypes.Blacksmith or BuildingTypes.Sawmill or BuildingTypes.Craftsman
+            or BuildingTypes.Smelter or BuildingTypes.Blacksmith or BuildingTypes.Sawmill or BuildingTypes.Craftsman or BuildingTypes.Tailor or BuildingTypes.Jeweller
             or BuildingTypes.Explorer or BuildingTypes.Gatherer or BuildingTypes.Hunter) snapshot.Info = Manager.WorkerHutInfo(colony, building);
         if (building.Type == BuildingTypes.Tavern)
         {
@@ -1091,7 +1107,7 @@ public partial class ColonyNetwork : ModSystem
         }
         if (ColonyManager.CraftTabOf(building.Type) is { } craftTab) AddCraftRows(snapshot, colony, building, craftTab);
         if (Manager.HasHutRecipes(building.Type)) AddRecipeRows(snapshot, colony, building);
-        AddPriorities(snapshot, building);
+        AddPriorities(snapshot, colony, building);
         if (building.Type is BuildingTypes.Miner or BuildingTypes.MineshaftEntrance) AddMineTabs(snapshot, colony, building, viewerUid);
         if (!snapshot.IsBuilderHut) return snapshot;
 

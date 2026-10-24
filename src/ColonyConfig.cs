@@ -312,6 +312,8 @@ public class ColonyConfig
         ["blacksmith"] = 30,
         ["sawmill"] = 30,
         ["craftsman"] = 30,
+        ["tailor"] = 30,
+        ["jeweller"] = 30,
         ["barracks"] = 40,
         ["explorer"] = 30,
         ["gatherer"] = 30,
@@ -586,7 +588,27 @@ public class ColonyConfig
         ["farmer"] = new[] { "flaxtwine", "rope", "linen", "hay" },
         ["gatherer"] = new[] { "torch", "basket", "flaxtwine" },
         ["miner"] = new[] { "cobblestone", "stonebricks", "torch" },
-        ["quarry"] = new[] { "cobblestone", "stonebricks", "stonepath" }
+        ["quarry"] = new[] { "cobblestone", "stonebricks", "stonepath" },
+        // Every piece of clothing but jewellery, the sewing kit, and armor of leather or linen (never metal).
+        // The rest are Tailor's Delight's buttons, threads, leather bundles and strips, needles and awls.
+        ["tailor"] = new[] { "clothes", "sewingkit", "armor-*-leather", "armor-*-linen", "buttons", "twine", "leatherbundle", "leatherstrips", "needle", "awl" },
+        // Only jewellery (config JewelleryWords): our own recipes and any the game or other mods have.
+        ["jeweller"] = new[] { "clothes" }
+    };
+    /// <summary>The mods whose things a hut may make, by hut type; "game" alone where a hut is not listed.</summary>
+    public System.Collections.Generic.Dictionary<string, string[]> HutRecipeDomains = new()
+    {
+        ["tailor"] = new[] { "game", "tailorsdelight" },
+        ["jeweller"] = new[] { "game", "canjewelry", "canjewelryadornments" }
+    };
+    /// <summary>
+    /// Recipes only a player class can make that a hut's worker may make too, by hut type: the Tailor counts as
+    /// a Clothier. A hut not listed makes none of them.
+    /// </summary>
+    public System.Collections.Generic.Dictionary<string, string[]> HutRecipeTraits = new()
+    {
+        ["tailor"] = new[] { "clothier" },
+        ["jeweller"] = new[] { "tinkerer" }
     };
     /// <summary>The tools a hut's recipes may use, by hut type (first part of the tool's code). Recipes needing another tool are left out.</summary>
     public System.Collections.Generic.Dictionary<string, string[]> HutRecipeTools = new()
@@ -594,7 +616,10 @@ public class ColonyConfig
         ["forester"] = new[] { "axe" },
         ["farmer"] = new[] { "hoe" },
         ["miner"] = new[] { "pickaxe" },
-        ["quarry"] = new[] { "pickaxe" }
+        ["quarry"] = new[] { "pickaxe" },
+        // Tailor's Delight adds needles and awls to many clothing recipes.
+        ["tailor"] = new[] { "knife", "shears", "scissors", "needle", "awl" },
+        ["jeweller"] = new[] { "hammer", "chisel" }
     };
     /// <summary>Seconds a worker takes to craft one recipe at its hut.</summary>
     public float HutRecipeSecondsPerCraft = 4f;
@@ -602,6 +627,42 @@ public class ColonyConfig
     public int HutRecipeMaxInputs = 9;
     /// <summary>The most times over a worker fetches or asks couriers for the things of one recipe at once.</summary>
     public int HutRecipeBatch = 4;
+
+    // Clothes, the Tailor and the Jeweller (ColonyManager.Clothing.cs)
+    /// <summary>How much of its condition (0 to 1) a worn piece of clothing loses each in-game day. 0.01 wears it out in 100 days.</summary>
+    public float ClothesWearPerDay = 0.01f;
+    /// <summary>Clothes below this condition are in rags: the settler is unhappy and swaps them for better ones from the warehouse.</summary>
+    public float ClothesRaggedBelow = 0.2f;
+    /// <summary>Mood points for clothes in rags and for being cold (the air plus what the settler wears is below the world's body temperature limit).</summary>
+    public int RaggedMood = -3;
+    public int ColdMood = -4;
+    /// <summary>Degrees a settler inside an enclosed room counts as warmer, for being cold.</summary>
+    public float RoomWarmth = 5f;
+    /// <summary>Mood points for each piece of jewellery worn, up to JewelleryMoodMax pieces.</summary>
+    public int JewelleryMood = 3;
+    public int JewelleryMoodMax = 2;
+    /// <summary>Settlers take clothes from the warehouse when theirs are in rags, a slot is empty, or they are cold.</summary>
+    public bool SettlersChangeClothes = true;
+    /// <summary>Settlers take jewellery from the warehouse to wear, up to JewelleryMoodMax pieces.</summary>
+    public bool SettlersWearJewellery = true;
+    /// <summary>
+    /// A piece of clothing is jewellery when a part of its code starts with one of these (necklace in
+    /// clothes-neck-golden-necklace), or when it comes from a jewellery mod (JewelleryDomains).
+    /// </summary>
+    public string[] JewelleryWords = { "necklace", "amulet", "bracelet", "armlet", "brooch", "pin", "torc", "collar", "pendant", "chain", "ring",
+        "earring", "circlet", "coronet", "diadem", "crown", "tiara", "talisman", "cross", "nazar", "gorget", "lunula", "japamala", "medallion", "locket", "choker" };
+    public string[] JewelleryDomains = { "canjewelry", "canjewelryadornments" };
+    /// <summary>The Tailor mends clothes below this condition, and leather or linen armor below this share of its durability.</summary>
+    public float TailorMendBelow = 0.75f;
+    /// <summary>Seconds the Tailor takes for one stitch of mending.</summary>
+    public float TailorSecondsPerMend = 5f;
+    /// <summary>What mends leather and linen armor, by the armor's material (the end of its code), and how much of its durability one gives back.</summary>
+    public System.Collections.Generic.Dictionary<string, string> ArmorMendWith = new()
+    {
+        ["linen"] = "game:linen-*",
+        ["leather"] = "game:leather-*"
+    };
+    public float ArmorMendShare = 0.25f;
 
     // Recruiting
     /// <summary>How many settlers a built Tavern offers for hire each day.</summary>

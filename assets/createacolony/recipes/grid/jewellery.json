@@ -1,0 +1,710 @@
+// Vintage Colonies' own jewellery recipes, written from scratch for the base game's necklaces, bracelets, brooches
+// and pins that have no recipe. Jewellers make them at the Jeweller's Workshop, and players can craft them too.
+// Each costs at least the metal that breaking it up with a chisel gives back.
+[
+	{
+		"ingredientPattern": "HAB",
+		"ingredients": {
+			"H": {
+				"type": "item",
+				"code": "game:hammer-*",
+				"isTool": true
+			},
+			"A": {
+				"type": "item",
+				"code": "game:metalchain-gold"
+			},
+			"B": {
+				"type": "item",
+				"code": "game:metalbit-gold",
+				"quantity": 12
+			}
+		},
+		"width": 3,
+		"height": 1,
+		"shapeless": true,
+		"output": {
+			"type": "item",
+			"code": "game:clothes-neck-golden-necklace"
+		}
+	},
+	{
+		"ingredientPattern": "HAB,C__",
+		"ingredients": {
+			"H": {
+				"type": "item",
+				"code": "game:hammer-*",
+				"isTool": true
+			},
+			"A": {
+				"type": "item",
+				"code": "game:metalchain-silver"
+			},
+			"B": {
+				"type": "item",
+				"code": "game:metalbit-gold",
+				"quantity": 12
+			},
+			"C": {
+				"type": "item",
+				"code": "game:gem-*-rough"
+			}
+		},
+		"width": 3,
+		"height": 2,
+		"shapeless": true,
+		"output": {
+			"type": "item",
+			"code": "game:clothes-neck-noble-necklace"
+		}
+	},
+	{
+		"ingredientPattern": "HAB,C__",
+		"ingredients": {
+			"H": {
+				"type": "item",
+				"code": "game:hammer-*",
+				"isTool": true
+			},
+			"A": {
+				"type": "item",
+				"code": "game:metalchain-tinbronze"
+			},
+			"B": {
+				"type": "item",
+				"code": "game:metalbit-tinbronze",
+				"quantity": 12
+			},
+			"C": {
+				"type": "item",
+				"code": "game:gem-*-rough"
+			}
+		},
+		"width": 3,
+		"height": 2,
+		"shapeless": true,
+		"output": {
+			"type": "item",
+			"code": "game:clothes-neck-bronze-gem-necklace"
+		}
+	},
+	{
+		"ingredientPattern": "HAB",
+		"ingredients": {
+			"H": {
+				"type": "item",
+				"code": "game:hammer-*",
+				"isTool": true
+			},
+			"A": {
+				"type": "item",
+				"code": "game:metalchain-copper"
+			},
+			"B": {
+				"type": "item",
+				"code": "game:metalbit-silver",
+				"quantity": 4
+			}
+		},
+		"width": 3,
+		"height": 1,
+		"shapeless": true,
+		"output": {
+			"type": "item",
+			"code": "game:clothes-neck-merchant-amulet"
+		}
+	},
+	{
+		"ingredientPattern": "HA",
+		"ingredients": {
+			"H": {
+				"type": "item",
+				"code": "game:hammer-*",
+				"isTool": true
+			},
+			"A": {
+				"type": "item",
+				"code": "game:metalbit-copper",
+				"quantity": 12
+			}
+		},
+		"width": 2,
+		"height": 1,
+		"shapeless": true,
+		"output": {
+			"type": "item",
+			"code": "game:clothes-neck-copper-torc"
+		}
+	},
+	{
+		"ingredientPattern": "HAB,BCC",
+		"ingredients": {
+			"H": {
+				"type": "item",
+				"code": "game:hammer-*",
+				"isTool": true
+			},
+			"A": {
+				"type": "item",
+				"code": "game:metalchain-gold"
+			},
+			"B": {
+				"type": "item",
+				"code": "game:metalbit-gold",
+				"quantity": 12
+			},
+			"C": {
+				"type": "item",
+				"code": "game:gem-*-rough"
+			}
+		},
+		"width": 3,
+		"height": 2,
+		"shapeless": true,
+		"output": {
+			"type": "item",
+			"code": "game:clothes-neck-fancy-royal-collar"
+		}
+	},
+	{
+		"ingredientPattern": "HAB",
+		"ingredients": {
+			"H": {
+				"type": "item",
+				"code": "game:hammer-*",
+				"isTool": true
+			},
+			"A": {
+				"type": "item",
+				"code": "game:flaxtwine"
+			},
+			"B": {
+				"type": "item",
+				"code": "game:metalbit-copper",
+				"quantity": 4
+			}
+		},
+		"width": 3,
+		"height": 1,
+		"shapeless": true,
+		"output": {
+			"type": "item",
+			"code": "game:clothes-neck-simple-cross"
+		}
+	},
+	{
+		"ingredientPattern": "HAB",
+		"ingredients": {
+			"H": {
+				"type": "item",
+				"code": "game:hammer-*",
+				"isTool": true
+			},
+			"A": {
+				"type": "item",
+				"code": "game:metalchain-silver"
+			},
+			"B": {
+				"type": "item",
+				"code": "game:metalbit-gold",
+				"quantity": 6
+			}
+		},
+		"width": 3,
+		"height": 1,
+		"shapeless": true,
+		"output": {
+			"type": "item",
+			"code": "game:clothes-neck-fancy-cross"
+		}
+	},
+	{
+		"ingredientPattern": "HAB",
+		"ingredients": {
+			"H": {
+				"type": "item",
+				"code": "game:hammer-*",
+				"isTool": true
+			},
+			"A": {
+				"type": "item",
+				"code": "game:metalchain-silver"
+			},
+			"B": {
+				"type": "item",
+				"code": "game:gem-*-rough"
+			}
+		},
+		"width": 3,
+		"height": 1,
+		"shapeless": true,
+		"output": {
+			"type": "item",
+			"code": "game:clothes-neck-teardrop-amulet"
+		}
+	},
+	{
+		"ingredientPattern": "HAB",
+		"ingredients": {
+			"H": {
+				"type": "item",
+				"code": "game:hammer-*",
+				"isTool": true
+			},
+			"A": {
+				"type": "item",
+				"code": "game:flaxtwine"
+			},
+			"B": {
+				"type": "item",
+				"code": "game:metalbit-tinbronze",
+				"quantity": 4
+			}
+		},
+		"width": 3,
+		"height": 1,
+		"shapeless": true,
+		"output": {
+			"type": "item",
+			"code": "game:clothes-neck-bronzeamulet"
+		}
+	},
+	{
+		"ingredientPattern": "HA",
+		"ingredients": {
+			"H": {
+				"type": "item",
+				"code": "game:hammer-*",
+				"isTool": true
+			},
+			"A": {
+				"type": "item",
+				"code": "game:metalbit-gold",
+				"quantity": 12
+			}
+		},
+		"width": 2,
+		"height": 1,
+		"shapeless": true,
+		"output": {
+			"type": "item",
+			"code": "game:clothes-neck-lunula"
+		}
+	},
+	{
+		"ingredientPattern": "HAB",
+		"ingredients": {
+			"H": {
+				"type": "item",
+				"code": "game:hammer-*",
+				"isTool": true
+			},
+			"A": {
+				"type": "item",
+				"code": "game:flaxtwine"
+			},
+			"B": {
+				"type": "item",
+				"code": "game:metalbit-gold",
+				"quantity": 6
+			}
+		},
+		"width": 3,
+		"height": 1,
+		"shapeless": true,
+		"output": {
+			"type": "item",
+			"code": "game:clothes-neck-gear-amulet-gold"
+		}
+	},
+	{
+		"ingredientPattern": "HAB",
+		"ingredients": {
+			"H": {
+				"type": "item",
+				"code": "game:hammer-*",
+				"isTool": true
+			},
+			"A": {
+				"type": "item",
+				"code": "game:metalbit-gold",
+				"quantity": 12
+			},
+			"B": {
+				"type": "item",
+				"code": "game:metalbit-copper",
+				"quantity": 6
+			}
+		},
+		"width": 3,
+		"height": 1,
+		"shapeless": true,
+		"output": {
+			"type": "item",
+			"code": "game:clothes-neck-gorget"
+		}
+	},
+	{
+		"ingredientPattern": "HA",
+		"ingredients": {
+			"H": {
+				"type": "item",
+				"code": "game:hammer-*",
+				"isTool": true
+			},
+			"A": {
+				"type": "item",
+				"code": "game:metalbit-copper",
+				"quantity": 3
+			}
+		},
+		"width": 2,
+		"height": 1,
+		"shapeless": true,
+		"output": {
+			"type": "item",
+			"code": "game:clothes-arm-copper-bracelet"
+		}
+	},
+	{
+		"ingredientPattern": "HA",
+		"ingredients": {
+			"H": {
+				"type": "item",
+				"code": "game:hammer-*",
+				"isTool": true
+			},
+			"A": {
+				"type": "item",
+				"code": "game:metalbit-tinbronze",
+				"quantity": 3
+			}
+		},
+		"width": 2,
+		"height": 1,
+		"shapeless": true,
+		"output": {
+			"type": "item",
+			"code": "game:clothes-arm-bronze-bracelet"
+		}
+	},
+	{
+		"ingredientPattern": "HA",
+		"ingredients": {
+			"H": {
+				"type": "item",
+				"code": "game:hammer-*",
+				"isTool": true
+			},
+			"A": {
+				"type": "item",
+				"code": "game:metalbit-silver",
+				"quantity": 3
+			}
+		},
+		"width": 2,
+		"height": 1,
+		"shapeless": true,
+		"output": {
+			"type": "item",
+			"code": "game:clothes-arm-silver-bracelet"
+		}
+	},
+	{
+		"ingredientPattern": "HA",
+		"ingredients": {
+			"H": {
+				"type": "item",
+				"code": "game:hammer-*",
+				"isTool": true
+			},
+			"A": {
+				"type": "item",
+				"code": "game:metalbit-silver",
+				"quantity": 8
+			}
+		},
+		"width": 2,
+		"height": 1,
+		"shapeless": true,
+		"output": {
+			"type": "item",
+			"code": "game:clothes-arm-large-silver-bracelets"
+		}
+	},
+	{
+		"ingredientPattern": "HAB",
+		"ingredients": {
+			"H": {
+				"type": "item",
+				"code": "game:hammer-*",
+				"isTool": true
+			},
+			"A": {
+				"type": "item",
+				"code": "game:metalbit-gold",
+				"quantity": 4
+			},
+			"B": {
+				"type": "item",
+				"code": "game:gem-*-rough"
+			}
+		},
+		"width": 3,
+		"height": 1,
+		"shapeless": true,
+		"output": {
+			"type": "item",
+			"code": "game:clothes-arm-gem-studded-bracelet"
+		}
+	},
+	{
+		"ingredientPattern": "HAB,B__",
+		"ingredients": {
+			"H": {
+				"type": "item",
+				"code": "game:hammer-*",
+				"isTool": true
+			},
+			"A": {
+				"type": "item",
+				"code": "game:metalbit-gold",
+				"quantity": 6
+			},
+			"B": {
+				"type": "item",
+				"code": "game:gem-*-rough"
+			}
+		},
+		"width": 3,
+		"height": 2,
+		"shapeless": true,
+		"output": {
+			"type": "item",
+			"code": "game:clothes-arm-long-gem-studded-bracelet"
+		}
+	},
+	{
+		"ingredientPattern": "HAB",
+		"ingredients": {
+			"H": {
+				"type": "item",
+				"code": "game:hammer-*",
+				"isTool": true
+			},
+			"A": {
+				"type": "item",
+				"code": "game:metalbit-copper",
+				"quantity": 3
+			},
+			"B": {
+				"type": "item",
+				"code": "game:metalbit-silver",
+				"quantity": 2
+			}
+		},
+		"width": 3,
+		"height": 1,
+		"shapeless": true,
+		"output": {
+			"type": "item",
+			"code": "game:clothes-arm-merchant-bracelet"
+		}
+	},
+	{
+		"ingredientPattern": "HAB",
+		"ingredients": {
+			"H": {
+				"type": "item",
+				"code": "game:hammer-*",
+				"isTool": true
+			},
+			"A": {
+				"type": "item",
+				"code": "game:metalchain-silver"
+			},
+			"B": {
+				"type": "item",
+				"code": "game:metalbit-silver",
+				"quantity": 1
+			}
+		},
+		"width": 3,
+		"height": 1,
+		"shapeless": true,
+		"output": {
+			"type": "item",
+			"code": "game:clothes-arm-silver-chain"
+		}
+	},
+	{
+		"ingredientPattern": "HA",
+		"ingredients": {
+			"H": {
+				"type": "item",
+				"code": "game:hammer-*",
+				"isTool": true
+			},
+			"A": {
+				"type": "item",
+				"code": "game:metalbit-silver",
+				"quantity": 4
+			}
+		},
+		"width": 2,
+		"height": 1,
+		"shapeless": true,
+		"output": {
+			"type": "item",
+			"code": "game:clothes-emblem-silver-brooch"
+		}
+	},
+	{
+		"ingredientPattern": "HA",
+		"ingredients": {
+			"H": {
+				"type": "item",
+				"code": "game:hammer-*",
+				"isTool": true
+			},
+			"A": {
+				"type": "item",
+				"code": "game:metalbit-silver",
+				"quantity": 3
+			}
+		},
+		"width": 2,
+		"height": 1,
+		"shapeless": true,
+		"output": {
+			"type": "item",
+			"code": "game:clothes-emblem-silver-pin"
+		}
+	},
+	{
+		"ingredientPattern": "HAB",
+		"ingredients": {
+			"H": {
+				"type": "item",
+				"code": "game:hammer-*",
+				"isTool": true
+			},
+			"A": {
+				"type": "item",
+				"code": "game:metalbit-tinbronze",
+				"quantity": 4
+			},
+			"B": {
+				"type": "item",
+				"code": "game:gem-*-rough"
+			}
+		},
+		"width": 3,
+		"height": 1,
+		"shapeless": true,
+		"output": {
+			"type": "item",
+			"code": "game:clothes-emblem-brass-ruby-brooch"
+		}
+	},
+	{
+		"ingredientPattern": "HAB",
+		"ingredients": {
+			"H": {
+				"type": "item",
+				"code": "game:hammer-*",
+				"isTool": true
+			},
+			"A": {
+				"type": "item",
+				"code": "game:metalchain-copper"
+			},
+			"B": {
+				"type": "item",
+				"code": "game:metalbit-copper",
+				"quantity": 2
+			}
+		},
+		"width": 3,
+		"height": 1,
+		"shapeless": true,
+		"output": {
+			"type": "item",
+			"code": "game:clothes-emblem-cloak-clasp-chain"
+		}
+	},
+	{
+		"ingredientPattern": "HAB",
+		"ingredients": {
+			"H": {
+				"type": "item",
+				"code": "game:hammer-*",
+				"isTool": true
+			},
+			"A": {
+				"type": "item",
+				"code": "game:metalbit-gold",
+				"quantity": 4
+			},
+			"B": {
+				"type": "item",
+				"code": "game:gem-*-rough"
+			}
+		},
+		"width": 3,
+		"height": 1,
+		"shapeless": true,
+		"output": {
+			"type": "item",
+			"code": "game:clothes-emblem-royal-pin"
+		}
+	},
+	{
+		"ingredientPattern": "HA",
+		"ingredients": {
+			"H": {
+				"type": "item",
+				"code": "game:hammer-*",
+				"isTool": true
+			},
+			"A": {
+				"type": "item",
+				"code": "game:metalbit-copper",
+				"quantity": 3
+			}
+		},
+		"width": 2,
+		"height": 1,
+		"shapeless": true,
+		"output": {
+			"type": "item",
+			"code": "game:clothes-emblem-messenger-pin"
+		}
+	},
+	{
+		"ingredientPattern": "HAA,B__",
+		"ingredients": {
+			"H": {
+				"type": "item",
+				"code": "game:hammer-*",
+				"isTool": true
+			},
+			"A": {
+				"type": "item",
+				"code": "game:metalchain-gold"
+			},
+			"B": {
+				"type": "item",
+				"code": "game:metalbit-gold",
+				"quantity": 4
+			}
+		},
+		"width": 3,
+		"height": 2,
+		"shapeless": true,
+		"output": {
+			"type": "item",
+			"code": "game:clothes-waist-gold-waist-chain"
+		}
+	}
+]

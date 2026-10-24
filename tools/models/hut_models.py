@@ -191,6 +191,23 @@ craftsman=shape(["sides","planks","stone","flint","log"], base+[
   box("Haft",[12.5,9,11],[13.3,18,11.8],"log"), box("AxeHead",[11,16,10.9],[12.5,18,11.9],"flint"),
   box("Spear",[2,9,12.5],[2.8,21,13.3],"log"), box("SpearTip",[1.9,21,12.4],[2.9,22.5,13.4],"flint"),
 ])
+# Tailor's Hut: a bolt of cloth, a spool of twine and a pair of shears.
+tailor=shape(["sides","planks","cloth","twine","metal"], base+[
+  box("Bolt",[3,9,4],[12,12,8],"cloth"),
+  box("BoltEnd",[2.5,9.5,4.5],[3,11.5,7.5],"planks"),
+  box("Spool",[10,9,10],[12.5,12,12.5],"twine"),
+  box("SpoolTop",[9.6,12,9.6],[12.9,12.5,12.9],"planks"),
+  box("Blade1",[3,9,11],[8,9.4,11.6],"metal"), box("Blade2",[3.4,9,12],[8,9.4,12.6],"metal"),
+  box("Grip",[8,9,10.8],[9.5,9.5,12.8],"planks"),
+])
+# Jeweller's Workshop: a small anvil, a gold ring and a gem.
+jeweller=shape(["sides","planks","metal","gold","gem"], base+[
+  box("AnvilBase",[5,9,5],[9,10,8],"metal"),
+  box("AnvilTop",[4,10,5.5],[10.5,11.2,7.5],"metal"),
+  box("RingA",[11,9,10],[13,9.5,10.5],"gold"), box("RingB",[11,9,11.5],[13,9.5,12],"gold"),
+  box("RingC",[11,9,10.5],[11.5,9.5,11.5],"gold"), box("RingD",[12.5,9,10.5],[13,9.5,11.5],"gold"),
+  box("Gem",[3,9,11],[4.5,10.5,12.5],"gem"),
+])
 # Mineshaft Entrance: a timber frame over a dark hole, with a ladder going down.
 entrance=shape(["sides","planks","log","dark","ladder"], base+[
   box("Hole",[4,9,4],[12,9.2,12],"dark"),
@@ -206,5 +223,5 @@ if __name__ == "__main__":
     out = sys.argv[1] if len(sys.argv) > 1 else os.path.join(os.path.dirname(__file__), "../../assets/createacolony/shapes/block")
     for name, (tex, el) in models.items():
         json.dump(shape(tex, base + el), open(f"{out}/{name}.json", "w"), indent=1)
-    for name, model in {"hut-smelter": smelter, "hut-blacksmith": smith, "hut-sawmill": saw, "hut-barracks": barracks, "hut-explorer": explorer, "hut-gatherer": gatherer, "hut-hunter": hunter, "hut-craftsman": craftsman, "hut-mineshaftentrance": entrance, "supplycamp": camp, "fieldmarker": crow}.items():
+    for name, model in {"hut-smelter": smelter, "hut-blacksmith": smith, "hut-sawmill": saw, "hut-barracks": barracks, "hut-explorer": explorer, "hut-gatherer": gatherer, "hut-hunter": hunter, "hut-craftsman": craftsman, "hut-tailor": tailor, "hut-jeweller": jeweller, "hut-mineshaftentrance": entrance, "supplycamp": camp, "fieldmarker": crow}.items():
         json.dump(model, open(f"{out}/{name}.json", "w"), indent=1)

@@ -68,6 +68,12 @@ public abstract class AiTaskSettlerWorker : SettlerTaskBase
     /// </summary>
     protected virtual bool PlanFirst(Colony colony, CitizenRecord citizen, Building hut) => false;
 
+    /// <summary>
+    /// True when the job's own work comes before the Crafting recipes tab: a Tailor mends first unless its
+    /// Priorities tab puts something to make ahead of mending.
+    /// </summary>
+    protected virtual bool WorkBeforeRecipes(Colony colony, Building hut) => false;
+
     /// <summary>For a hut whose workers each have their own kind of work (a Prospector's Hut): true when this task is that work.</summary>
     protected virtual bool ForRole(int role) => true;
 
@@ -146,8 +152,16 @@ public abstract class AiTaskSettlerWorker : SettlerTaskBase
             return Wait();
         }
 
-        if (PlanRecipe(colony, citizen, hut, storage)) return true;
-        if (PlanWork(colony, citizen, hut, storage)) return true;
+        if (WorkBeforeRecipes(colony, hut))
+        {
+            if (PlanWork(colony, citizen, hut, storage)) return true;
+            if (PlanRecipe(colony, citizen, hut, storage)) return true;
+        }
+        else
+        {
+            if (PlanRecipe(colony, citizen, hut, storage)) return true;
+            if (PlanWork(colony, citizen, hut, storage)) return true;
+        }
 
         // Nothing left to do: bring the harvest home and wait for things to grow.
         if (HasSurplus(citizen)) return Go(Step.Deposit, storage[0].Pos);
@@ -185,7 +199,7 @@ public abstract class AiTaskSettlerWorker : SettlerTaskBase
             foreach (var r in want.Recipes)
             {
                 // The tool must be carried already; the worker never fetches one just for a recipe.
-                if (r.Tool != null && !r.Tool.SatisfiesAsIngredient(Hand?.Itemstack, false) && m.PackCount(citizen, s => r.Tool.SatisfiesAsIngredient(s, false)) == 0) continue;
+                if (!m.CarriesTool(citizen, r.Tool, Hand?.Itemstack) || !m.CarriesTool(citizen, r.Tool2, Hand?.Itemstack)) continue;
                 foreach (var (part, quantity) in r.Inputs)
                 {
                     ItemMatch fits = s => part.SatisfiesAsIngredient(s, false);
@@ -208,6 +222,31 @@ public abstract class AiTaskSettlerWorker : SettlerTaskBase
         }
         return false;
     }
+
+    /// <summary>
+    /// Picks up one of each kind of tool its recipes may take (config HutRecipeTools, by the first part of the
+    /// code) that is in the hut storage and that it does not carry yet: a Tailor's needle and awl. True when it
+    /// walks to get one.
+    /// </summary>
+    protected bool FetchRecipeTools(Colony colony, CitizenRecord citizen, Building hut, List<BlockEntityContainer> storage)
+    {
+        var m = manager!;
+        if (m.PackFull(citizen) || m.Config.HutRecipeTools.GetValueOrDefault(hut.Type) is not { } kinds) return false;
+        foreach (var kind in kinds)
+        {
+            ItemMatch fits = s => ColonyManager.FirstPart(s.Collectible.Code) == kind;
+            if ((Hand?.Itemstack is { } held && fits(held)) || m.PackCount(citizen, fits) > 0) continue;
+            var chest = storage.FirstOrDefault(c => c.Inventory.Any(s => !s.Empty && fits(s.Itemstack)));
+            if (chest == null) continue;
+            SetStatus("fetching-tools");
+            return FetchSupplies(chest.Pos, fits, 1);
+        }
+        return false;
+    }
+
+    /// <summary>True for a tool its recipes may take, which it keeps in its inventory.</summary>
+    protected bool IsRecipeTool(ItemStack stack) =>
+        manager!.Config.HutRecipeTools.GetValueOrDefault(HutType) is { } kinds && kinds.Contains(ColonyManager.FirstPart(stack.Collectible.Code));
 
     bool Wait()
     {

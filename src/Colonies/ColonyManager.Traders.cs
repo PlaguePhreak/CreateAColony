@@ -54,10 +54,22 @@ public partial class ColonyManager
 
     // ---- Finding traders ------------------------------------------------------------------
 
-    /// <summary>A trader of the base game (or one shaped like it): its type is the end of its code, "foods" for humanoid-trader-foods.</summary>
-    static bool IsTrader(Entity e) => e.Alive && (e is EntityTrader || e.Code.Path.StartsWith("humanoid-trader-"));
+    /// <summary>A trader of the base game (game:trader-{gender}-{type}-{climate}) or a mod's trader built on the game's class.</summary>
+    static bool IsTrader(Entity e) => e.Alive && (e is EntityTrader || e.Code.Path.StartsWith("trader-") || e.Code.Path.StartsWith("humanoid-trader-"));
 
-    static string TraderType(Entity e) => e.Code.Path.StartsWith("humanoid-trader-") ? e.Code.Path["humanoid-trader-".Length..] : "other";
+    /// <summary>The trader's type, "agriculture" for game:trader-male-agriculture-cold; "other" when it has none.</summary>
+    static string TraderType(Entity e)
+    {
+        if (e.Properties?.Variant != null && e.Properties.Variant.TryGetValue("type", out var type) && !string.IsNullOrEmpty(type)) return type;
+        var parts = e.Code.Path.Split('-');
+        if (parts.Length >= 3 && parts[0] == "trader") return parts[2];
+        if (e.Code.Path.StartsWith("humanoid-trader-")) return e.Code.Path["humanoid-trader-".Length..];
+        return "other";
+    }
+
+    /// <summary>"male" or "female" from the trader's code; null when it does not say.</summary>
+    static string? TraderSex(Entity e) =>
+        e.Properties?.Variant != null && e.Properties.Variant.TryGetValue("gender", out var g) && g is "male" or "female" ? g : null;
 
     /// <summary>Part of the colony tick: a settler near a trader it can see brings it into the colony.</summary>
     void TickTraders(Colony colony)
@@ -110,7 +122,7 @@ public partial class ColonyManager
         // Far from home (an explorer found it), it makes its own way back and turns up at the Town Hall.
         var spot = at.HorizontalSquareDistanceTo(colony.TownHallPos.X, colony.TownHallPos.Z) > TraderJoinAtTownHallFrom * TraderJoinAtTownHallFrom
             ? Beside(colony.TownHallPos) : at;
-        string sex = RandomSex();
+        string sex = TraderSex(trader) ?? RandomSex();
         var record = SpawnSettler(colony, name.Length > 0 ? name : null, sex, spot);
         if (record == null) return null;
         record.FormerTrade = type;

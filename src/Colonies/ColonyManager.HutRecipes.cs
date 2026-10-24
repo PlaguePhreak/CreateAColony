@@ -22,7 +22,7 @@ public partial class ColonyManager
     /// <summary>True for a hut with a Crafting recipes tab.</summary>
     public bool HasHutRecipes(string type) => CraftTabOf(type) == null && Config.HutRecipeOutputs.ContainsKey(type);
 
-    /// <summary>Everything a hut of this type can craft, from the game's grid recipes.</summary>
+    /// <summary>Everything a hut of this type can craft, from the game's grid recipes (and other mods' with config HutRecipeDomains).</summary>
     public List<SawKind> HutRecipeKinds(string type)
     {
         if (hutRecipeKinds.TryGetValue(type, out var known)) return known;
@@ -30,11 +30,43 @@ public partial class ColonyManager
         if (HasHutRecipes(type))
         {
             var outputs = Config.HutRecipeOutputs[type];
-            var tools = Config.HutRecipeTools.GetValueOrDefault(type) ?? System.Array.Empty<string>();
-            kinds = ScanGridRecipes(_ => true, tool => tools.Contains(FirstPart(tool.Code)),
-                output => output.Collectible.Code.Domain == "game" && outputs.Contains(FirstPart(output.Collectible.Code)), Config.HutRecipeMaxInputs);
+            var domains = Config.HutRecipeDomains.GetValueOrDefault(type) ?? new[] { "game" };
+            var traits = Config.HutRecipeTraits.GetValueOrDefault(type);
+            var tools = ToolSamples(Config.HutRecipeTools.GetValueOrDefault(type) ?? System.Array.Empty<string>());
+            kinds = ScanGridRecipes(_ => true,
+                tool => tools.Any(s => tool.SatisfiesAsIngredient(s, false)),
+                output => domains.Contains(output.Collectible.Code.Domain) && outputs.Any(o => OutputMatches(o, output.Collectible.Code)) && JewelleryFits(type, output),
+                Config.HutRecipeMaxInputs, traits, type is BuildingTypes.Tailor or BuildingTypes.Jeweller ? 2 : 1);
         }
         return hutRecipeKinds[type] = kinds;
+    }
+
+    /// <summary>
+    /// An entry of config HutRecipeOutputs: the first part of the code (firewood), or with a *, a pattern for the
+    /// whole path (armor-*-linen).
+    /// </summary>
+    static bool OutputMatches(string entry, AssetLocation code) =>
+        entry.Contains('*') ? WildcardUtil.Match(entry, code.Path) : FirstPart(code) == entry;
+
+    /// <summary>The Jeweller makes only jewellery, and the Tailor every other piece of clothing.</summary>
+    bool JewelleryFits(string type, ItemStack output) => type switch
+    {
+        BuildingTypes.Jeweller => IsJewellery(output),
+        BuildingTypes.Tailor => !IsJewellery(output),
+        _ => true
+    };
+
+    /// <summary>One of each item whose code starts with one of these (knife in knife-flint), to test recipe tools against.</summary>
+    List<ItemStack> ToolSamples(string[] firstParts)
+    {
+        var samples = new List<ItemStack>();
+        if (firstParts.Length == 0) return samples;
+        foreach (var item in sapi.World.Items)
+        {
+            if (item?.Code == null || !firstParts.Contains(FirstPart(item.Code))) continue;
+            samples.Add(new ItemStack(item));
+        }
+        return samples;
     }
 
     public int RecipeKeep(Building hut, string key) => hut.RecipeKeep.GetValueOrDefault(key);
@@ -69,8 +101,11 @@ public partial class ColonyManager
 
     /// <summary>True when the worker carries everything the recipe takes, and its tool if it needs one.</summary>
     public bool HasRecipeInputs(CitizenRecord worker, SawRecipe recipe, ItemStack? inHand) =>
-        HasSawInputs(worker, recipe)
-        && (recipe.Tool == null || recipe.Tool.SatisfiesAsIngredient(inHand, false) || PackCount(worker, s => recipe.Tool.SatisfiesAsIngredient(s, false)) > 0);
+        HasSawInputs(worker, recipe) && CarriesTool(worker, recipe.Tool, inHand) && CarriesTool(worker, recipe.Tool2, inHand);
+
+    /// <summary>True when the recipe takes no such tool, or the worker holds or carries one.</summary>
+    public bool CarriesTool(CitizenRecord worker, CraftingRecipeIngredient? tool, ItemStack? inHand) =>
+        tool == null || tool.SatisfiesAsIngredient(inHand, false) || PackCount(worker, s => tool.SatisfiesAsIngredient(s, false)) > 0;
 
     /// <summary>Crafts the recipe once from the worker's inventory; what it made goes to its inventory or the hut storage.</summary>
     public bool CraftHutRecipe(Colony colony, Building hut, CitizenRecord worker, SawRecipe recipe)
@@ -78,6 +113,8 @@ public partial class ColonyManager
         if (!SawCraftInputs(colony, worker, recipe)) return false;
         var made = recipe.Output.Clone();
         int count = made.StackSize;
+        // New clothes are as good as new, as when a player makes them.
+        if (made.Collectible.GetCollectibleInterface<IWearable>() != null) made.Attributes.SetFloat("condition", 1);
         StoreHarvest(colony, hut, worker, new[] { made }, hut.HutPos);
         AddStat(hut, "crafted", count);
         return true;
@@ -95,13 +132,15 @@ public partial class ColonyManager
     /// <summary>What a recipe is made from, for its row: "1 Log, 2 Sticks".</summary>
     public string RecipeInputsText(SawRecipe recipe) =>
         string.Join(", ", recipe.Inputs.Select(i => i.Quantity + " " + PartName(i.Part)))
-        + (recipe.Tool != null ? " + " + PartName(recipe.Tool) : "");
+        + (recipe.Tool != null ? " + " + PartName(recipe.Tool) : "")
+        + (recipe.Tool2 != null ? " + " + PartName(recipe.Tool2) : "");
 
     /// <summary>The name of a recipe ingredient; for one like log-*, the name of the first thing that fits.</summary>
     string PartName(CraftingRecipeIngredient part)
     {
         if (part.ResolvedItemStack != null && !part.IsWildCard) return part.ResolvedItemStack.GetName();
-        string key = part.Type + ":" + part.Code;
+        // Parts matched by tag (any knife) share a code, so each is its own entry.
+        string key = part.Type + ":" + part.Code + (part.Tags.IsEmpty ? "" : ":" + part.Tags.GetHashCode());
         if (partNames.TryGetValue(key, out var name)) return name;
         name = FirstPart(part.Code);
         IEnumerable<CollectibleObject> all = part.Type == EnumItemClass.Block ? sapi.World.Blocks : sapi.World.Items;

@@ -18,8 +18,8 @@ namespace CreateAColony.Settlers;
 /// whose hut was further away kept marching off between jobs and popping back to the spawn point.
 ///
 /// Before strolling, an idle settler tidies up: a guard drops off what it picked up at its tower, anyone
-/// walks over to items lying nearby to pick them up, and a settler without a torch fetches one from its
-/// hut or the warehouse for the dark.
+/// walks over to items lying nearby to pick them up, a settler without a torch fetches one from its
+/// hut or the warehouse for the dark, and one in rags or cold changes into better clothes from the warehouse.
 ///
 /// Now and then, instead of strolling, it sits down for a while as a player does: on a free chair, stool or
 /// bench near its home if there is one, else on the floor where it stands (config SitWhenIdle).
@@ -45,7 +45,7 @@ public class AiTaskSettlerIdle : SettlerTaskBase
     long nextStrollMs;
     long startedMs;
     Vec3d? spot;
-    enum Errand { Stroll, PickUp, Torch, Deposit, Sit }
+    enum Errand { Stroll, PickUp, Torch, Deposit, Sit, Dress }
     Errand errand;
     BlockPos? chestPos;
     BlockPos? seat;
@@ -120,6 +120,15 @@ public class AiTaskSettlerIdle : SettlerTaskBase
             spot = chestPos.ToVec3d().Add(0.5, 0, 0.5);
             return true;
         }
+
+        // In rags or cold, or without jewellery: better clothes from the warehouse (ColonyManager.Clothing.cs).
+        if (manager.ClothesChest(colony, citizen) is { } clothesChest)
+        {
+            errand = Errand.Dress;
+            chestPos = clothesChest.Pos.Copy();
+            spot = chestPos.ToVec3d().Add(0.5, 0, 0.5);
+            return true;
+        }
         return false;
     }
 
@@ -134,6 +143,9 @@ public class AiTaskSettlerIdle : SettlerTaskBase
                 break;
             case Errand.Torch:
                 if (entity.World.BlockAccessor.GetBlockEntity(chestPos!) is Vintagestory.GameContent.BlockEntityContainer torchChest) manager!.TakeTorch(colony, citizen, torchChest);
+                break;
+            case Errand.Dress:
+                if (entity.World.BlockAccessor.GetBlockEntity(chestPos!) is Vintagestory.GameContent.BlockEntityContainer clothesChest) manager!.ChangeClothesAt(colony, citizen, clothesChest);
                 break;
             case Errand.Deposit:
                 if (citizen.WorkplacePos != null && manager!.GetBuilding(colony, citizen.WorkplacePos) is { } tower)
@@ -230,6 +242,7 @@ public class AiTaskSettlerIdle : SettlerTaskBase
         Errand.PickUp => Lang.Get("createacolony:activity-picking-up"),
         Errand.Torch => Lang.Get("createacolony:activity-fetching-torch"),
         Errand.Deposit => Lang.Get("createacolony:activity-dropping-off"),
+        Errand.Dress => Lang.Get("createacolony:activity-changing-clothes"),
         _ => Lang.Get(citizen.Visitor ? "createacolony:activity-visitor-waiting" : "createacolony:activity-idle")
     };
 }

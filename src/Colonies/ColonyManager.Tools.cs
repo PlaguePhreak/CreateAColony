@@ -33,7 +33,9 @@ public partial class ColonyManager
     /// so builders and miners leave it for the prospector.
     /// </summary>
     public static bool ToolFits(ItemStack? stack, EnumTool type, int tier) =>
-        stack != null && stack.Collectible.Tool == type && stack.Collectible.ToolTier >= tier && !IsProspectingPick(stack);
+        stack != null && stack.Collectible.Tool == type && stack.Collectible.ToolTier >= tier && !IsProspectingPick(stack)
+        // Tailor's Delight's needles and awls count as hammers to the game, but nobody can build or smith with one.
+        && stack.Collectible.Code?.Domain != "tailorsdelight";
 
     public static bool IsBuilderTool(ItemStack stack) => stack.Collectible.Tool is { } t && BuilderTools.Contains(t);
 
