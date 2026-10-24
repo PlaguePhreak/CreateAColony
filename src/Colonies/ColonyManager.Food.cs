@@ -39,15 +39,44 @@ public partial class ColonyManager
         public IBlockEntityMealContainer? Placed;
     }
 
-    /// <summary>The best food in the colony for this settler, weighing variety against distance. Containers skip says yes to are left out.</summary>
+    /// <summary>Raw ingredients count for this much when a very hungry settler weighs them against ready food.</summary>
+    const float RawIngredientScoreMul = 0.25f;
+    /// <summary>Per item code: whether it is a raw ingredient (IsRawIngredient), as looking through the meal recipes is slow.</summary>
+    readonly Dictionary<string, bool> rawIngredients = new();
+
+    /// <summary>
+    /// Raw food that goes further cooked: raw meat and fish (for the fire pit), and grain, vegetables and eggs a
+    /// pot meal can use. Settlers leave these for the cooks unless they are very hungry (EatRawBelowFraction).
+    /// Fruit, cheese and anything cooked are fine to eat as they are.
+    /// </summary>
+    public bool IsRawIngredient(ItemStack stack)
+    {
+        if (stack.Block is IBlockMealContainer or BlockPie || IsCookedFood(stack)) return false;
+        string code = stack.Collectible.Code.ToString();
+        if (rawIngredients.TryGetValue(code, out bool known)) return known;
+        var group = stack.Collectible.NutritionProps?.FoodCategory;
+        bool raw = IsGrillable(stack)
+            || (group is EnumFoodCategory.Grain or EnumFoodCategory.Vegetable or EnumFoodCategory.Protein && IsMealIngredient(stack));
+        rawIngredients[code] = raw;
+        return raw;
+    }
+
+    /// <summary>True when the settler is hungry enough to eat raw ingredients.</summary>
+    public bool EatsRaw(CitizenRecord citizen) => citizen.Saturation < Config.SaturationMax * Config.EatRawBelowFraction;
+
+    /// <summary>
+    /// The best food in the colony for this settler, weighing variety against distance. Containers skip says yes to are left out.
+    /// Raw ingredients only when the settler is very hungry, and then ready food still comes first.
+    /// </summary>
     public FoodChoice? FindFood(Colony colony, CitizenRecord citizen, EntityAgent eater, System.Func<BlockPos, bool>? skip = null)
     {
         FoodChoice? best = null;
         float bestValue = 0;
+        bool allowRaw = EatsRaw(citizen);
         foreach (var container in FindBlockEntities<BlockEntityContainer>(colony))
         {
             if (skip != null && skip(container.Pos)) continue;
-            var choice = FindFoodIn(container, citizen, eater);
+            var choice = FindFoodIn(container, citizen, eater, allowRaw);
             if (choice == null) continue;
             float dist = (float)Math.Sqrt(container.Pos.DistanceSqTo(eater.Pos.X, eater.Pos.Y, eater.Pos.Z));
             float value = choice.Score / (1 + dist / FoodDistanceHalving);
@@ -58,8 +87,8 @@ public partial class ColonyManager
         return best;
     }
 
-    /// <summary>The best food in one container, or null.</summary>
-    public FoodChoice? FindFoodIn(BlockEntityContainer container, CitizenRecord citizen, EntityAgent eater)
+    /// <summary>The best food in one container, or null. Raw ingredients only with <paramref name="allowRaw"/>.</summary>
+    public FoodChoice? FindFoodIn(BlockEntityContainer container, CitizenRecord citizen, EntityAgent eater, bool allowRaw)
     {
         if (!IsFoodStore(container)) return null;
 
@@ -83,10 +112,12 @@ public partial class ColonyManager
         foreach (var slot in slots)
         {
             if (slot.Empty) continue;
+            bool raw = IsRawIngredient(slot.Itemstack);
+            if (raw && !allowRaw) continue;
             var choice = EvaluateFood(container, slot, eater);
             if (choice == null) continue;
             // Food that will spoil soon is eaten first (ColonyManager.Freshness.cs).
-            choice.Score = VarietyScore(choice.Props, citizen) * SpoilPull(slot);
+            choice.Score = VarietyScore(choice.Props, citizen) * SpoilPull(slot) * (raw ? RawIngredientScoreMul : 1);
             if (best == null || choice.Score > best.Score) best = choice;
         }
         return best;
@@ -246,7 +277,7 @@ public partial class ColonyManager
 
     public string? EatFood(Colony colony, CitizenRecord citizen, EntityAgent eater, BlockEntityContainer container)
     {
-        var choice = FindFoodIn(container, citizen, eater);
+        var choice = FindFoodIn(container, citizen, eater, EatsRaw(citizen));
         if (choice == null) return null;
 
         var slot = choice.Slot;

@@ -120,7 +120,8 @@ public partial class ColonyManager
         IEnumerable<ItemSlot> slots = container is BlockEntityFirepit firepit ? new[] { firepit.outputSlot } : container.Inventory;
         var choices = slots.Where(s => !s.Empty)
             .Select(s => (Slot: s, Props: LunchProps(s.Itemstack, eater)))
-            .Where(c => c.Props != null)
+            // Raw grain, meat and vegetables are left for the cooks.
+            .Where(c => c.Props != null && !IsRawIngredient(c.Slot.Itemstack))
             .OrderByDescending(c => VarietyScore(c.Props!, citizen) * SpoilPull(c.Slot))
             .ToList();
 

@@ -30,6 +30,8 @@ public class ColonyConfig
     /// <summary>Saturation lost per in-game day; 600 means a full settler gets hungry in about a day and a half.</summary>
     public float HungerPerDay = 600f;
     public float EatBelowFraction = 0.4f;
+    /// <summary>Raw grain, meat, fish and meal vegetables are left for the cooks until a settler is below this share of a full stomach.</summary>
+    public float EatRawBelowFraction = 0.2f;
     /// <summary>Health lost per in-game hour while saturation is zero. Settlers have 20 health.</summary>
     public float StarvationDamagePerHour = 0.5f;
 

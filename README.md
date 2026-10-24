@@ -1074,6 +1074,14 @@ Settlers have families, as MineColonies citizens do (`src/Colonies/ColonyManager
   real limits allow) and `/colony family grow <name>` are admin test commands. Names can be first names.
 - `Families: false` in the config stops new couples and children.
 
+### Raw ingredients are left for the cooks (0.119.0)
+
+`src/Colonies/ColonyManager.Food.cs`. Not tested in game yet.
+
+- Settlers don't eat or pack raw grain, raw meat and fish, or vegetables and eggs a pot meal can use, while
+  there is other food. Fruit, cheese and cooked food are eaten as before.
+- Below `EatRawBelowFraction` (0.2) of a full stomach they eat raw food too, but still pick ready food first.
+
 ### Fresh food: cellars and oldest first (0.100.0)
 
 `src/Colonies/ColonyManager.Freshness.cs`. Not tested in game yet.
