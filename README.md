@@ -588,6 +588,9 @@ Smithing skill grows with both jobs.
   danger. Explorers also mark story locations they come near, under Landmarks. Two different things close
   together both get a marker; markers put down before 0.80.0 keep their old icons.
 - 0.80.1: food only from wild plants (no gelatin and the like), one icon per kind of animal, one for traders.
+- 0.80.2: no icons for tamed animals or helpers (animal bot, player bot, mech helper). The waypoint list keeps
+  the game's and other mods' icons first, then ours by group: food, ore, animals, traders, story locations, the
+  rest. The colour list has 36 more colours (pale and deep) and is as wide as the icons.
 - The server and every player make the same list, so the names of the icons match. Not tested in game.
 
 ### The barracks (0.54.0)

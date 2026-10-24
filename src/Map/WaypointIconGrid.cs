@@ -1,4 +1,5 @@
 using System;
+using System.Linq;
 using HarmonyLib;
 using Vintagestory.API.Client;
 using Vintagestory.API.Common;
@@ -7,7 +8,7 @@ using Vintagestory.API.Config;
 namespace CreateAColony.Map;
 
 /// <summary>
-/// Makes the icon grid in the game's Add waypoint and Edit waypoint windows wider. The game lays the icons out
+/// Makes the icon grid (and the colours above it) in the game's Add waypoint and Edit waypoint windows wider. The game lays the icons out
 /// 10 to a row, which with our 120 icons (and More Map Icons' too) runs off the bottom of the screen. This
 /// picks enough columns that the grid is about twice as wide as it is tall, as far as the screen allows.
 /// </summary>
@@ -31,6 +32,9 @@ public class WaypointIconGrid : ModSystem
             harmony.Patch(AccessTools.Method(typeof(GuiComposerHelpers), nameof(GuiComposerHelpers.AddIconListPicker))
                     ?? throw new MissingMethodException(nameof(GuiComposerHelpers), nameof(GuiComposerHelpers.AddIconListPicker)),
                 prefix: new HarmonyMethod(typeof(WaypointIconGrid), nameof(Wider)));
+            harmony.Patch(AccessTools.Method(typeof(GuiComposerHelpers), nameof(GuiComposerHelpers.AddColorListPicker))
+                    ?? throw new MissingMethodException(nameof(GuiComposerHelpers), nameof(GuiComposerHelpers.AddColorListPicker)),
+                prefix: new HarmonyMethod(typeof(WaypointIconGrid), nameof(WiderColors)));
         }
         catch (Exception e)
         {
@@ -42,11 +46,25 @@ public class WaypointIconGrid : ModSystem
     static void Wider(string[] icons, string key, ref int maxLineWidth)
     {
         if (capi == null || icons == null || !string.Equals(key, "iconpicker", StringComparison.OrdinalIgnoreCase)) return;
-        double screenWidth = capi.Render.FrameWidth / Math.Max(0.5, RuntimeEnv.GUIScale);
-        int maxColumns = Math.Max(10, (int)((screenWidth - 120) / Cell));
-        int columns = Math.Clamp((int)Math.Ceiling(Math.Sqrt(icons.Length * 2.0)), 10, maxColumns);
         // The game starts a new row once the icons so far are wider than maxLineWidth.
-        maxLineWidth = Math.Max(maxLineWidth, columns * Cell - 1);
+        maxLineWidth = Math.Max(maxLineWidth, Columns(icons.Length) * Cell - 1);
+    }
+
+    /// <summary>The colours above the icons ("colorPicker", "colorpicker") take the same width as the icons.</summary>
+    static void WiderColors(string key, ref int maxLineWidth)
+    {
+        if (capi == null || !string.Equals(key, "colorpicker", StringComparison.OrdinalIgnoreCase)) return;
+        int icons = capi.ModLoader.GetModSystem<Vintagestory.GameContent.WorldMapManager>()?.MapLayers
+            .OfType<Vintagestory.GameContent.WaypointMapLayer>().FirstOrDefault()?.WaypointIcons.Count ?? 0;
+        if (icons == 0) return;
+        maxLineWidth = Math.Max(maxLineWidth, Columns(icons) * Cell - 1);
+    }
+
+    static int Columns(int icons)
+    {
+        double screenWidth = capi!.Render.FrameWidth / Math.Max(0.5, RuntimeEnv.GUIScale);
+        int maxColumns = Math.Max(10, (int)((screenWidth - 120) / Cell));
+        return Math.Clamp((int)Math.Ceiling(Math.Sqrt(icons * 2.0)), 10, maxColumns);
     }
 
     public override void Dispose()

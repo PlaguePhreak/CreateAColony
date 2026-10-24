@@ -41,10 +41,18 @@ public class ColonyMarkerMapLayer : MarkerMapLayer
     public const string Code = "colonymarkers";
 
     /// <summary>
-    /// Colours More Map Icons suggests names for (Olivine, Emerald, Brown Coal, Peat) that the game's own colour
-    /// list leaves out, so the Add waypoint window offers them too.
+    /// Colours the Add waypoint window offers on top of the game's: two More Map Icons suggests names for
+    /// (Olivine, Emerald, Brown Coal, Peat) that the game's own list leaves out, and 36 more.
     /// </summary>
-    static readonly string[] ExtraWaypointColors = { "#03D941", "#885530" };
+    static readonly string[] ExtraWaypointColors =
+    {
+        "#03D941", "#885530",
+        // More colours: pale ones, then deep ones.
+        "#FFCDD2", "#F8BBD0", "#E1BEE7", "#D1C4E9", "#C5CAE9", "#BBDEFB", "#B3E5FC", "#B2EBF2", "#B2DFDB",
+        "#C8E6C9", "#DCEDC8", "#F0F4C3", "#FFF9C4", "#FFECB3", "#FFE0B2", "#FFCCBC", "#D7CCC8", "#CFD8DC",
+        "#B71C1C", "#880E4F", "#4A148C", "#311B92", "#1A237E", "#0D47A1", "#01579B", "#006064", "#004D40",
+        "#1B5E20", "#33691E", "#827717", "#F57F17", "#FF6F00", "#E65100", "#BF360C", "#3E2723", "#263238"
+    };
 
     readonly List<ColonyMarkerView> markers = new();
     readonly Matrixf mvMat = new();
@@ -64,6 +72,7 @@ public class ColonyMarkerMapLayer : MarkerMapLayer
     {
         if (subjectIconsAdded || WaypointLayer() is not { } wpLayer) return;
         subjectIconsAdded = true;
+        AddColors(wpLayer);
         try
         {
             MarkerSubjects.RegisterIcons((ICoreClientAPI)api, wpLayer);
@@ -124,14 +133,16 @@ public class ColonyMarkerMapLayer : MarkerMapLayer
     public override void OnMapOpenedClient()
     {
         AddSubjectIcons();
-        // The game's waypoint layer keeps the colour list the Add waypoint window offers.
-        if (WaypointLayer() is { } wpLayer)
+        if (WaypointLayer() is { } wpLayer) AddColors(wpLayer);
+    }
+
+    /// <summary>The game's waypoint layer keeps the colour list the Add waypoint window offers.</summary>
+    static void AddColors(WaypointMapLayer wpLayer)
+    {
+        foreach (string hex in ExtraWaypointColors)
         {
-            foreach (string hex in ExtraWaypointColors)
-            {
-                int color = ColorUtil.Hex2Int(hex);
-                if (!wpLayer.WaypointColors.Contains(color)) wpLayer.WaypointColors.Add(color);
-            }
+            int color = ColorUtil.Hex2Int(hex);
+            if (!wpLayer.WaypointColors.Contains(color)) wpLayer.WaypointColors.Add(color);
         }
     }
 

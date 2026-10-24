@@ -141,6 +141,8 @@ public static class MarkerSubjects
         var type = EntityClass(api, props.Class);
         // One marker for every trader.
         if (path.StartsWith("humanoid-trader-") || (type != null && typeof(EntityTrader).IsAssignableFrom(type))) return (Trader, "trader");
+        // Tamed animals and helpers (animal bot, player bot, mech helper) never turn up in the wild.
+        if (path.Contains("tame") || path.Contains("bot") || path.Contains("helper")) return null;
         if (type == null || !typeof(EntityAgent).IsAssignableFrom(type) || typeof(EntityPlayer).IsAssignableFrom(type)
             || typeof(EntityHumanoid).IsAssignableFrom(type) || path.StartsWith("humanoid")) return null;
 
@@ -392,6 +394,59 @@ public static class MarkerSubjects
             string suggestion = "game:wpSuggestion-" + s.Icon;
             if (lang != null && !lang.ContainsKey(suggestion)) lang[suggestion] = s.Name;
         }
+        SortIcons(capi, layer);
+    }
+
+    // The icons of tools/icons/marker_icons.py by group, for the order of the waypoint list.
+    static readonly HashSet<string> FoodIcons = new()
+    {
+        "turnip", "cabbage", "carrot", "parsnip", "cherry", "onion", "pear", "pumpkin", "berries", "strawberry", "wheat",
+        "blueberries", "cranberries", "fruittree", "apple", "mushrooms", "poisonousmushrooms", "bushes", "food", "bees"
+    };
+    static readonly HashSet<string> OreIcons = new()
+    {
+        "aluminum", "silver", "gold", "bismuth", "borax", "chromium", "copper", "iron", "fluorite", "manganese",
+        "meteoriciron", "nickel", "phosphorus", "platinum", "lead", "potassium", "rhodium", "sodium", "sulfur", "tin",
+        "titanium", "uranium", "zinc", "coal", "blackcoal", "browncoal", "quartz", "rosequartz", "amethyst", "smokyquartz",
+        "olivine", "diamond", "emerald", "peridot", "saltpeter", "salt", "stones", "peat", "soil", "terrapreta",
+        "blueclay", "redclay", "fireclay", "ingots", "digsite"
+    };
+    static readonly HashSet<string> AnimalIcons = new() { "bear", "boar", "chicken", "goat", "horse", "spider", "wolf", "fish", "deer", "pig", "deadly" };
+    static readonly HashSet<string> StoryIcons = new() { "ruins", "ruins2", "tower", "archive", "library", "translocator" };
+    static readonly string[] Groups = { "game", "food", "ore", "animals", "traders", "story", "misc" };
+
+    /// <summary>
+    /// Puts the waypoint list in order: the game's and other mods' icons as they were, then ours, with all
+    /// the food together, then ore, animals, traders, story locations, and the rest.
+    /// </summary>
+    static void SortIcons(ICoreClientAPI capi, WaypointMapLayer layer)
+    {
+        var bySubject = new Dictionary<string, string>();
+        foreach (var s in All(capi))
+        {
+            bySubject.TryAdd(s.Icon, s.Category switch
+            {
+                Fruit or Vegetable or Grain => "food",
+                Ore => "ore",
+                Animal => "animals",
+                Trader => "traders",
+                _ => "story"
+            });
+        }
+        string GroupOf(string icon)
+        {
+            if (bySubject.TryGetValue(icon, out var group)) return group;
+            if (!icon.StartsWith("vc-")) return "game";
+            string name = icon[3..];
+            if (FoodIcons.Contains(name)) return "food";
+            if (OreIcons.Contains(name)) return "ore";
+            if (AnimalIcons.Contains(name)) return "animals";
+            if (name.EndsWith("trader")) return "traders";
+            return StoryIcons.Contains(name) ? "story" : "misc";
+        }
+        var icons = layer.WaypointIcons.ToList();
+        layer.WaypointIcons.Clear();
+        foreach (var (icon, create) in icons.OrderBy(i => Array.IndexOf(Groups, GroupOf(i.Key)))) layer.WaypointIcons.Add(icon, create);
     }
 
     static LoadedTexture Texture(ICoreClientAPI capi, MarkerSubject s)
