@@ -222,7 +222,8 @@ These work well with Vintage Colonies. Install them separately.
 - **Tailor's Delight** (Tels and Phiwa): more tools and materials for the Tailor.
 - **Food Shelves**: settlers eat from and stock its shelves.
 - **Stone Bake Oven**: the Cook bakes in it.
-- **C&N Jewelry Adornments** (KenigVovan): more jewellery for settlers to wear. Fuller support comes in a later release.
+- **C&N Jewelry** (KenigVovan): gems to cut and set. The Jeweller makes its crafting recipes.
+- **C&N Jewelry Adornments** (KenigVovan): more jewellery for the Jeweller to make and settlers to wear for Happiness.
 - **Smithing Plus** (jayu): smith with metal bits, repair tool heads on the anvil and other smithing tweaks. Our smiths still use the game's anvil and recipes beside it; not tested together in game yet.
 
 ## New Dev's Builds huts (0.134.0)
