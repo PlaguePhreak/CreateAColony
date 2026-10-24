@@ -168,6 +168,14 @@ All three are on the new Mining tab of the Builder's Wand and use placeholder bl
 - **Crafting huts.** Every hut that makes more than one kind of thing has a **Priorities** tab: Cook, Potter, Smelter, Blacksmith, Sawmill, Primitive Craftsman, and the huts with a Crafting recipes tab. It lists what the hut keeps in stock (set on its other tabs), how many there are, and the order the worker makes what is short. Until you move something, the most wanted comes first (as before). Once you move a row, the worker follows your order.
 - Couriers, guards and miners have no Priorities tab: they each do one kind of work.
 
+## Gatherer: clay, seashells and reeds (0.110.0)
+- The gatherer now also takes:
+  - **Clay** (blue, fire and red) and **peat** where it shows on the surface. It only digs the top block the world made, so it never digs a pit, and never under water or under something solid. It leaves a hole one block deep. Turn it off with `GathererDigsClay: false`.
+  - **Seashells** on beaches (not under water) and **ore bits**.
+  - **Cattail, papyrus and tule tops**, cut like with a knife, so the plant stays. Turn it off with `GathererCutsReeds: false`.
+- Like loose stones, none of it is taken in or within two blocks of a colony building.
+- Each one has its own row on the Gatherer's Allowed to collect tab, all on at first.
+
 ## Config (`ModConfig/createacolony.json`)
 - `Permadeath` (default `true`): settlers who die are gone. Set `false` to have them knocked out and recover after `DownedRecoveryDays`.
 - `StartingSettlersMin` / `StartingSettlersMax` (default 3 / 4).
@@ -790,7 +798,7 @@ Built in from [Player Corpse](https://mods.vintagestory.at/playercorpse) by DArk
   the Quarry. It lists everything that worker can take, each with a switch. Everything is on at first.
   Officers can turn things off one by one, or use All on / All off. The search box finds a row by name.
 - **Forester**: each kind of tree. It leaves trees that are turned off standing.
-- **Gatherer**: each berry and fruit, each edible mushroom, and loose stones, flint and sticks.
+- **Gatherer**: each berry and fruit, each edible mushroom, and loose stones, flint and sticks (0.110.0 adds ore bits, seashells, each reed and each clay, and peat).
 - **Farmer**: each berry and fruit (crops are still chosen on each Field marker).
 - **Miner, Prospector (Mine ore) and Quarry**: each ore, each rock and soil, gravel, sand, clay and peat. They
   never go after ore that is turned off. Blocks in the way still get dug, but what they drop is left on the ground.

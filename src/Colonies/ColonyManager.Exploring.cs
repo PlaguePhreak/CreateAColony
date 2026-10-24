@@ -12,7 +12,8 @@ namespace CreateAColony.Colonies;
 /// The Explorer's and Gatherer's trades. The explorer walks out over the land around its hut, one square at a
 /// time, nearest first, and marks what it sees on the colony's map: ore lying on the ground, clay, traders,
 /// animals, danger and landmarks. The gatherer forages near its hut (ripe berries and fruit, edible mushrooms,
-/// loose stones, flints and sticks) and marks the plants it passes. Markers: ColonyManager.Markers.cs.
+/// loose stones, flints, sticks, ore bits and seashells, reed tops, and clay and peat on the surface) and marks
+/// the plants it passes. Markers: ColonyManager.Markers.cs.
 /// </summary>
 public partial class ColonyManager
 {
@@ -136,12 +137,40 @@ public partial class ColonyManager
         if (path.StartsWith("mushroom-")) return IsPoisonousMushroom(block) ? null : "mushroom";
         // A wild crop (not on farmland) only once it is fully grown.
         if (IsWildCrop(block, pos)) return IsFullyGrown((BlockCrop)block) && CanWorkAt(colony, pos) && !NearBuilding(colony, pos) ? "crop" : null;
-        if (Config.GathererPicksUpStones && (path.StartsWith("loosestones-") || path.StartsWith("looseflints-") || path.StartsWith("loosestick") || path.StartsWith("looseores-")))
-        {
-            // On open land or the colony's own, but not in or beside a building, so stones placed on purpose stay.
-            return CanWorkAt(colony, pos) && !NearBuilding(colony, pos) ? "loose" : null;
-        }
+        string? wild = WildKind(block);
+        if (wild == null) return null;
+        // On open land or the colony's own, but not in or beside a building, so things placed on purpose stay.
+        if (!CanWorkAt(colony, pos) || NearBuilding(colony, pos)) return null;
+        // Seashells under water are out of reach.
+        if (block is BlockSeashell && ba.GetBlock(pos, BlockLayersAccess.Fluid).Id != 0) return null;
+        // Clay and peat only where the world made the ground, with open air above: one layer is taken, never a pit.
+        if (wild == "dig" && (pos.Y != ba.GetTerrainMapheightAt(pos) || !OpenAbove(pos))) return null;
+        return wild;
+    }
+
+    /// <summary>
+    /// What else lies about that a gatherer can take, by how it is taken: "loose" (stones, flint, sticks, ore bits
+    /// and seashells on the ground), "reed" (cattail, papyrus and tule tops, cut the way a knife does, so the plant
+    /// stays) or "dig" (clay and peat on the surface). Null for anything else.
+    /// </summary>
+    string? WildKind(Block block)
+    {
+        string path = block.Code?.Path ?? "";
+        if (Config.GathererPicksUpStones && (path.StartsWith("loosestones-") || path.StartsWith("looseflints-") || path.StartsWith("loosestick")
+            || path.StartsWith("looseores-") || block is BlockSeashell)) return "loose";
+        if (Config.GathererCutsReeds && block is BlockReeds && block.Variant["state"] == "normal") return "reed";
+        if (Config.GathererDigsClay && (path.StartsWith("rawclay-") || path.StartsWith("peat-"))) return "dig";
         return null;
+    }
+
+    /// <summary>True when nothing solid and no water is on top of the block, only air or plants.</summary>
+    bool OpenAbove(BlockPos pos)
+    {
+        var ba = sapi.World.BlockAccessor;
+        var up = pos.UpCopy();
+        if (ba.GetBlock(up, BlockLayersAccess.Fluid).Id != 0) return false;
+        var above = ba.GetBlock(up);
+        return above.Id == 0 || above.Replaceable >= 5000;
     }
 
     /// <summary>A crop growing in the wild: not on farmland, so no one's field.</summary>
@@ -169,7 +198,7 @@ public partial class ColonyManager
         return cached.Boxes.Any(b => b.Contains(pos.X, pos.Y, pos.Z));
     }
 
-    /// <summary>Notes every berry bush, fruit tree branch, mushroom and loose stone in a chunk column.</summary>
+    /// <summary>Notes every berry bush, fruit tree branch, mushroom, loose stone, reed and surface clay in a chunk column.</summary>
     void ScanForage(int chunkX, int chunkZ, AreaScanner scanner)
     {
         var ba = sapi.World.BlockAccessor;
@@ -201,7 +230,7 @@ public partial class ColonyManager
                     scanner.Found[pos.Copy()] = IsFullyGrown((BlockCrop)found);
                     continue;
                 }
-                if (path.StartsWith("mushroom-") || path.StartsWith("loosestones-") || path.StartsWith("looseflints-") || path.StartsWith("loosestick") || path.StartsWith("looseores-"))
+                if (path.StartsWith("mushroom-") || WildKind(found) != null)
                 {
                     scanner.Found[pos.Copy()] = true;
                 }
@@ -277,13 +306,27 @@ public partial class ColonyManager
             var block = sapi.World.BlockAccessor.GetBlock(pos);
             var drops = DropsOf(block, pos);
             if (Map.MarkerSubjects.OreKey(block) is { } ore) NoteOreHint(colony, hut, pos, ore);
-            BreakQuietly(pos);
+            if (kind == "reed") CutReeds(block, pos);
+            else BreakQuietly(pos);
             if (kind == "crop") ForgetPickedCrops(colony, pos);
             StoreHarvest(colony, hut, worker, drops, pos);
         }
         AddStat(hut, "gathered");
         MarkDirty(colony);
         return true;
+    }
+
+    /// <summary>Takes the tops off reeds and leaves the cut plant, as the game does when a player uses a knife.</summary>
+    void CutReeds(Block block, BlockPos pos)
+    {
+        var ba = sapi.World.BlockAccessor;
+        var cut = sapi.World.GetBlock(block.CodeWithVariants(new[] { "habitat", "state" }, new[] { "land", "harvested" }));
+        if (cut == null || cut.Id == 0) BreakQuietly(pos);
+        else
+        {
+            ba.SetBlock(cut.BlockId, pos);
+            ba.MarkBlockDirty(pos);
+        }
     }
 
     /// <summary>

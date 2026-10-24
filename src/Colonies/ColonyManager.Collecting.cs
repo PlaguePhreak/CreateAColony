@@ -91,7 +91,7 @@ public partial class ColonyManager
     /// <summary>True when the hut keeps what this block drops (and, for ore, goes after it).</summary>
     public static bool MayDig(Building hut, Block block) => MayCollect(hut, DigKey(block));
 
-    /// <summary>The key of what a gatherer or farmer would take at a spot: a fruit, a mushroom, or loose stones, flint or sticks.</summary>
+    /// <summary>The key of what a gatherer or farmer would take at a spot: a fruit, a mushroom, or a loose thing, reed or surface clay.</summary>
     public string? ForageKey(BlockPos pos)
     {
         var ba = sapi.World.BlockAccessor;
@@ -100,9 +100,21 @@ public partial class ColonyManager
         var block = ba.GetBlock(pos);
         string path = block.Code?.Path ?? "";
         if (path.StartsWith("mushroom-")) return "mushroom-" + block.FirstCodePart(1);
+        return WildKey(block);
+    }
+
+    /// <summary>The key of a loose thing, reed or surface clay a gatherer takes: "loosestones", "seashell", "reed-papyrus", "clay-blue", "peat".</summary>
+    static string? WildKey(Block block)
+    {
+        string path = block.Code?.Path ?? "";
         if (path.StartsWith("loosestones-")) return "loosestones";
         if (path.StartsWith("looseflints-")) return "looseflints";
         if (path.StartsWith("loosestick")) return "loosestick";
+        if (path.StartsWith("looseores-")) return "looseores";
+        if (block is BlockSeashell) return "seashell";
+        if (block is BlockReeds) return "reed-" + block.FirstCodePart(1);
+        if (path.StartsWith("rawclay-")) return "clay-" + (block.Variant["type"] ?? block.FirstCodePart(1));
+        if (path.StartsWith("peat-")) return "peat";
         return null;
     }
 
@@ -164,15 +176,13 @@ public partial class ColonyManager
         ByKey(sapi.World.Blocks.Where(b => b?.Code != null && b.Code.Path.StartsWith("mushroom-") && !IsPoisonousMushroom(b))
             .Select(b => ((string?)("mushroom-" + b.FirstCodePart(1)), new ItemStack(b))));
 
+    /// <summary>Loose things first (stones, flint, sticks, ore bits, seashells), then reeds, then clay and peat.</summary>
     List<CollectKind> LooseKinds()
     {
-        var list = new List<CollectKind>();
-        if (!Config.GathererPicksUpStones) return list;
-        foreach (var (key, start) in new[] { ("loosestones", "loosestones-"), ("looseflints", "looseflints-"), ("loosestick", "loosestick") })
-        {
-            if (sapi.World.Blocks.FirstOrDefault(b => b?.Code?.Path.StartsWith(start) == true) is { } block) list.Add(new CollectKind(key, new ItemStack(block)));
-        }
-        return list;
+        var all = ByKey(sapi.World.Blocks.Where(b => b?.Code != null && WildKind(b) != null).Select(b => (WildKey(b), new ItemStack(b))));
+        string[] loose = { "loosestones", "looseflints", "loosestick", "looseores", "seashell" };
+        int Order(CollectKind k) => System.Array.IndexOf(loose, k.Key) is int i and >= 0 ? i : k.Key.StartsWith("reed-") ? 10 : 11;
+        return all.OrderBy(Order).ThenBy(k => k.Key).ToList();
     }
 
     /// <summary>Ores first, then rock, then the kinds of ground.</summary>

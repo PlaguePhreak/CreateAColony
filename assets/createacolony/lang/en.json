@@ -2026,6 +2026,8 @@
 	"collect-loosestones": "Loose stones",
 	"collect-looseflints": "Loose flint",
 	"collect-loosestick": "Sticks",
+	"collect-looseores": "Ore bits",
+	"collect-seashell": "Seashells",
 	"markers-hint": "What this worker finds goes on the Colony markers layer of the world map. Markers placed: {0}.",
 	"markers-remove": "Remove our markers",
 	"markers-groups": "Mark these",

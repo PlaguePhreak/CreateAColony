@@ -190,10 +190,17 @@ public class ColonyConfig
     /// <summary>Seconds the gatherer takes to pick one bush, mushroom or loose stone.</summary>
     public float GathererSecondsPerPick = 2f;
     /// <summary>
-    /// The gatherer picks up loose stones, flints and sticks, but only on land no one has claimed, so it does
-    /// not tidy away stones placed on purpose.
+    /// The gatherer picks up loose stones, flints, sticks, ore bits and seashells, but not in or beside a
+    /// colony building, so it does not tidy away stones placed on purpose.
     /// </summary>
     public bool GathererPicksUpStones = true;
+    /// <summary>The gatherer cuts the tops off cattails, papyrus and tule, the way a knife does, leaving the plant.</summary>
+    public bool GathererCutsReeds = true;
+    /// <summary>
+    /// The gatherer digs blue, fire and red clay and peat where it shows on the surface. Only the top block the
+    /// world made is taken, so it never digs a pit.
+    /// </summary>
+    public bool GathererDigsClay = true;
     /// <summary>
     /// When the gatherer picks up ore bits, the spot is marked as a likely deposit and the prospectors read
     /// there first; at most one such spot per ore within this many blocks.
