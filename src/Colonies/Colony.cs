@@ -264,6 +264,13 @@ public class Building
     [ProtoMember(70)] public Dictionary<string, int> CraftKeep = new();
     /// <summary>An officer has set CraftKeep; until then the config defaults apply.</summary>
     [ProtoMember(71)] public bool CraftChosen;
+    // 110-119 for the Explorer's and Gatherer's huts.
+    /// <summary>An Explorer's or Gatherer's Hut: the marker groups (ColonyManager.MarkerGroups) its worker does not put on the map.</summary>
+    [ProtoMember(110)] public List<string> MarkersOff = new();
+    /// <summary>An Explorer's Hut: the squares of land its explorer has looked over (ColonyManager.ExploreCell keys).</summary>
+    [ProtoMember(111)] public List<long> Explored = new();
+    /// <summary>When the explorer last started over, in total days, so it goes round again now and then.</summary>
+    [ProtoMember(112)] public double ExploreStartedTotalDays;
 
     public bool HasWorkOrder => TargetLevel > Level;
 
@@ -489,6 +496,26 @@ public class PlayerQuests
     [ProtoMember(2)] public List<string> Tracked = new();
 }
 
+/// <summary>
+/// A map marker the colony's settlers put down: what was found (Kind, see ColonyManager.MarkerKinds) and where.
+/// Every member sees it on the "Colony markers" layer of their world map.
+/// </summary>
+[ProtoContract]
+public class ColonyMarker
+{
+    [ProtoMember(1)] public int MarkerId;
+    [ProtoMember(2)] public string Kind = "";
+    [ProtoMember(3)] public double X;
+    [ProtoMember(4)] public double Y;
+    [ProtoMember(5)] public double Z;
+    [ProtoMember(6)] public string Title = "";
+    /// <summary>The hut whose worker put it down; 0 for markers of the colony itself (a settler's grave).</summary>
+    [ProtoMember(7)] public int BuildingId;
+    [ProtoMember(9)] public double TotalDays;
+    /// <summary>For a grave: the settler who fell there, so only their latest spot is kept.</summary>
+    [ProtoMember(10)] public int CitizenId;
+}
+
 [ProtoContract]
 public class Colony
 {
@@ -541,6 +568,9 @@ public class Colony
     [ProtoMember(51)] public double LastMoodTotalHours;
     /// <summary>The colony's quests (the Story and The Colony groups), by quest code: accepted and claimed ones only.</summary>
     [ProtoMember(29)] public Dictionary<string, QuestRecord> Quests = new();
+    /// <summary>Map markers the colony's settlers put down (ColonyManager.Markers.cs).</summary>
+    [ProtoMember(70)] public List<ColonyMarker> Markers = new();
+    [ProtoMember(71, IsRequired = true)] public int NextMarkerId = 1;
 
     public string OwnerUid => Members.Find(m => m.Role == ColonyRole.Owner)?.PlayerUid ?? "";
 

@@ -60,6 +60,7 @@ public class ColonyOreMapLayer : OreMapLayer
 /// <summary>
 /// Registers the Colony prospecting map layer. It must come after the game's own prospecting layer: the
 /// game hands a player's new readings to the first ore map layer it finds, which must stay the player's.
+/// The map lists it after the game's Owned creatures (position 2), with Colony markers below it.
 /// </summary>
 public class ColonyOreMapSystem : ModSystem
 {
@@ -67,6 +68,6 @@ public class ColonyOreMapSystem : ModSystem
 
     public override void Start(ICoreAPI api)
     {
-        api.ModLoader.GetModSystem<WorldMapManager>()?.RegisterMapLayer<ColonyOreMapLayer>(ColonyOreMapLayer.Code, 0.76);
+        api.ModLoader.GetModSystem<WorldMapManager>()?.RegisterMapLayer<ColonyOreMapLayer>(ColonyOreMapLayer.Code, 2.1);
     }
 }

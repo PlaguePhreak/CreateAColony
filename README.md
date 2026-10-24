@@ -533,6 +533,34 @@ Smithing skill grows with both jobs.
   (by Aaron's friend) are unchanged. Generator: `tools/models/hut_models.py`.
 - The Field marker is a scarecrow two blocks tall. Only its post is solid, and it needs the block above it free.
 
+### The Explorer, the Gatherer and colony map markers (0.77.0)
+- **Explorer's Hut** (1 stick + 7 planks, wand's Infrastructure tab) and **Gatherer's Hut** (1 fruit + 7 planks,
+  Agriculture tab), each with a simple placeholder model and a placeholder level 1 blueprint. Neither job needs
+  a tool. Both have the Work area tab (range, escort) and a new **Markers** tab: a switch for each kind of
+  marker and a "Remove our markers" button.
+- The **explorer** walks out over the land around its hut in `ExplorerStep` (32) block squares, nearest first,
+  up to `ExplorerRadius` (300), and looks around `ExplorerLookRadius` (20) blocks at each stop. It marks ore
+  lying on the ground or showing at the surface, clay, peat and terra preta, traders (by trader type), animals
+  to hunt, danger (wolves, bears, drifters and the like), translocators and mountains. When it has seen
+  everything it starts over after `ExplorerRevisitDays` (7). New Exploring skill.
+- The **gatherer** forages up to `GathererRadius` (48) blocks out: ripe berries and fruit, mushrooms that are
+  safe to eat (going by what eating them does), and loose stones, flints and sticks on unclaimed land only
+  (`GathererPicksUpStones`). Around wherever it works it marks berry bushes, fruit trees, mushrooms (poisonous
+  ones apart), wild crops, cattails, resin and wild bees. With nothing to pick it walks out to look around at
+  most every two minutes. New Foraging skill.
+- **Colony markers** is a new world map layer (`Map/ColonyMarkerMapLayer.cs`), listed after the game's Owned
+  creatures, with Colony prospecting moved there too. Every member sees the markers of their colonies. The
+  icons are More Map Icons' (`moreicons`, client-side mod) when the player has it installed, and the game's own
+  (pick, rocks, vessel, trader, circle, bee, spiral, gravestone) when they don't. The layer adds the two
+  colours More Map Icons names that the game's colour list leaves out (#03D941 and #885530), so the Add
+  waypoint window can make Olivine, Emerald, Brown Coal and Peat too.
+- A marker of the same kind is never put within `MarkerSpacing` blocks of another (per group: animals and
+  danger 96, ore 32, plants 16...). At most `MaxColonyMarkers` (600) from huts per colony.
+- A **grave marker** shows where a settler died ("RIP name") or was knocked out ("name fell here"), where their
+  things dropped. Only their latest spot is kept (`MarkSettlerDeaths`).
+- Code: `ColonyManager.Markers.cs` (marker kinds, LookAround), `ColonyManager.Exploring.cs`,
+  `AiTaskSettlerExplorer.cs`, `AiTaskSettlerGatherer.cs`. Not tested in game.
+
 ### The barracks (0.54.0)
 - **Barracks** (2 bows + 7 planks), with a simple placeholder model and a placeholder level 1 blueprint (an open
   plank shed). It is on the wand's Military tab. It is a second kind of guard post and works like a Guard

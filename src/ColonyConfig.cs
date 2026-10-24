@@ -138,6 +138,48 @@ public class ColonyConfig
     /// <summary>Each reading also shows on the "Colony prospecting" layer of every colony member's world map (kept apart from their own prospecting layer).</summary>
     public bool ProspectorSharesOreMap = true;
 
+    // Explorer
+    /// <summary>How far from the Explorer's Hut, in blocks, the explorer goes (change it on the Work area tab).</summary>
+    public int ExplorerRadius = 300;
+    /// <summary>The explorer looks over the land in squares this many blocks wide, one stop in the middle of each.</summary>
+    public int ExplorerStep = 32;
+    /// <summary>How far around each stop, in blocks, the explorer looks for things to mark.</summary>
+    public int ExplorerLookRadius = 20;
+    /// <summary>Seconds the explorer spends looking around at each stop.</summary>
+    public float ExplorerSecondsPerLook = 4f;
+    /// <summary>Once the explorer has seen all of its area, it starts over after this many days, to find traders and animals that moved.</summary>
+    public double ExplorerRevisitDays = 7;
+    /// <summary>Ground this many blocks above sea level or more is marked as a mountain.</summary>
+    public int ExplorerMountainHeight = 60;
+
+    // Gatherer
+    /// <summary>How far from the Gatherer's Hut, in blocks, the gatherer forages (change it on the Work area tab).</summary>
+    public int GathererRadius = 48;
+    /// <summary>How far around where it works, in blocks, the gatherer looks for things to mark.</summary>
+    public int GathererLookRadius = 10;
+    /// <summary>Seconds the gatherer takes to pick one bush, mushroom or loose stone.</summary>
+    public float GathererSecondsPerPick = 2f;
+    /// <summary>
+    /// The gatherer picks up loose stones, flints and sticks, but only on land no one has claimed, so it does
+    /// not tidy away stones placed on purpose.
+    /// </summary>
+    public bool GathererPicksUpStones = true;
+
+    // Map markers
+    /// <summary>
+    /// No new marker of a kind within this many blocks of one the colony already has, by marker group. Animals
+    /// and danger move about, so they are spaced out more.
+    /// </summary>
+    public System.Collections.Generic.Dictionary<string, int> MarkerSpacing = new()
+    {
+        ["ore"] = 32, ["clay"] = 24, ["soil"] = 32, ["traders"] = 48, ["animals"] = 96, ["danger"] = 96, ["landmarks"] = 64,
+        ["berries"] = 16, ["fruit"] = 16, ["mushrooms"] = 16, ["crops"] = 16, ["reeds"] = 24, ["resin"] = 16, ["bees"] = 16, ["graves"] = 0
+    };
+    /// <summary>The most markers Explorers and Gatherers put down for one colony; graves do not count.</summary>
+    public int MaxColonyMarkers = 600;
+    /// <summary>A grave marker shows where a settler died or was knocked out (only their latest spot).</summary>
+    public bool MarkSettlerDeaths = true;
+
     // Miner
     /// <summary>How far from the Miner's Hut, in blocks, the readings a miner may go and dig at can be.</summary>
     public int MinerRadius = 64;
@@ -226,6 +268,8 @@ public class ColonyConfig
         ["blacksmith"] = 30,
         ["sawmill"] = 30,
         ["barracks"] = 40,
+        ["explorer"] = 30,
+        ["gatherer"] = 30,
     };
     /// <summary>
     /// How many blocks each side of a hut's square grows for every hut level above 1, so a hut near the edge of the

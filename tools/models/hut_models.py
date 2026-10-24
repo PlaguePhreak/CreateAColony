@@ -154,10 +154,30 @@ for i,x in enumerate([5.5,7.75,10]):
 el.append(box("Flag",[3.2,15,8.5],[3.8,18,13],"cloth"))
 barracks=shape(["sides","planks","metal","cloth"], el)
 
+# Explorer: a rolled map, a backpack, a walking stick and a spyglass.
+explorer=shape(["sides","planks","cloth","linen","metal","leather"], base+[
+  box("Pack",[2,9,3],[8,15,7],"leather"),
+  box("PackFlap",[2,13,2.5],[8,15,3],"leather"),
+  box("Bedroll",[2,15,3.5],[8,17,6.5],"cloth"),
+  box("Map",[9,9,3],[14,10.5,12],"linen"),
+  box("MapRoll",[9,9,12],[14,11,13.5],"linen"),
+  box("Spyglass",[3,9,10],[8,10.5,11.5],"metal"),
+  box("Stick",[13,9,14],[14,22,15],"planks"),
+])
+# Gatherer: a basket of berries with a mushroom beside it.
+gatherer=shape(["sides","planks","basket","berry","stem","cap"], base+[
+  box("Basket",[2,9,3],[10,13,11],"basket"),
+  box("Berries",[2.5,12,3.5],[9.5,13.5,10.5],"berry"),
+  box("Handle1",[5.5,13,3],[6.5,17,4],"basket"), box("Handle2",[5.5,13,10],[6.5,17,11],"basket"),
+  box("HandleTop",[5.5,16,4],[6.5,17,10],"basket"),
+  box("Stem",[11.5,9,11.5],[13,11.5,13],"stem"),
+  box("Cap",[10.5,11.5,10.5],[14,13,14],"cap"),
+])
+
 if __name__ == "__main__":
     import os
     out = sys.argv[1] if len(sys.argv) > 1 else os.path.join(os.path.dirname(__file__), "../../assets/createacolony/shapes/block")
     for name, (tex, el) in models.items():
         json.dump(shape(tex, base + el), open(f"{out}/{name}.json", "w"), indent=1)
-    for name, model in {"hut-smelter": smelter, "hut-blacksmith": smith, "hut-sawmill": saw, "hut-barracks": barracks, "supplycamp": camp, "fieldmarker": crow}.items():
+    for name, model in {"hut-smelter": smelter, "hut-blacksmith": smith, "hut-sawmill": saw, "hut-barracks": barracks, "hut-explorer": explorer, "hut-gatherer": gatherer, "supplycamp": camp, "fieldmarker": crow}.items():
         json.dump(model, open(f"{out}/{name}.json", "w"), indent=1)

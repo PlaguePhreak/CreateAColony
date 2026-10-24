@@ -1,0 +1,33 @@
+{
+	"code": "hut-explorer",
+	"class": "BlockColonyHut",
+	"entityClass": "ColonyHut",
+	"attributes": {
+		"buildingType": "explorer",
+		// The hut's own storage; chests next to it add more.
+		"defaultType": "hut",
+		"inventoryClassName": "colonyhut",
+		"quantitySlots": { "hut": 25 },
+		"quantityColumns": { "hut": 5 },
+		"dialogTitleLangCode": { "hut": "createacolony:hut-storage" }
+	},
+	"creativeinventory": { "general": ["*"], "vintagecolonies": ["*"] },
+	"blockmaterial": "Wood",
+	"drawtype": "json",
+	// The seed of the Explorer's Hut. Simple placeholder model: a backpack, a map, a spyglass and a walking stick.
+	"shape": { "base": "createacolony:block/hut-explorer" },
+	"textures": {
+		"sides": { "base": "game:block/wood/table/aged/sides" },
+		"planks": { "base": "game:block/wood/planks/aged1" },
+		"cloth": { "base": "game:block/cloth/linen/blue" },
+		"linen": { "base": "game:block/wood/debarked/aged" },
+		"metal": { "base": "game:block/metal/ingot/copper" },
+		"leather": { "base": "game:block/wood/bark/oak" }
+	},
+	"sideopaque": { "all": false },
+	"sidesolid": { "all": false },
+	"emitSideAo": { "all": false },
+	"lightAbsorption": 0,
+	"resistance": 2,
+	"sounds": { "place": "game:block/planks", "break": "game:block/planks", "hit": "game:block/planks" }
+}

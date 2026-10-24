@@ -1,0 +1,33 @@
+{
+	"code": "hut-gatherer",
+	"class": "BlockColonyHut",
+	"entityClass": "ColonyHut",
+	"attributes": {
+		"buildingType": "gatherer",
+		// The hut's own storage; chests next to it add more.
+		"defaultType": "hut",
+		"inventoryClassName": "colonyhut",
+		"quantitySlots": { "hut": 25 },
+		"quantityColumns": { "hut": 5 },
+		"dialogTitleLangCode": { "hut": "createacolony:hut-storage" }
+	},
+	"creativeinventory": { "general": ["*"], "vintagecolonies": ["*"] },
+	"blockmaterial": "Wood",
+	"drawtype": "json",
+	// The seed of the Gatherer's Hut. Simple placeholder model: a basket of berries and a mushroom.
+	"shape": { "base": "createacolony:block/hut-gatherer" },
+	"textures": {
+		"sides": { "base": "game:block/wood/table/aged/sides" },
+		"planks": { "base": "game:block/wood/planks/aged1" },
+		"basket": { "base": "game:block/wood/debarked/aged" },
+		"berry": { "base": "game:block/cloth/linen/blue" },
+		"stem": { "base": "game:block/wood/table/aged/top" },
+		"cap": { "base": "game:block/cloth/linen/red" }
+	},
+	"sideopaque": { "all": false },
+	"sidesolid": { "all": false },
+	"emitSideAo": { "all": false },
+	"lightAbsorption": 0,
+	"resistance": 2,
+	"sounds": { "place": "game:block/planks", "break": "game:block/planks", "hit": "game:block/planks" }
+}

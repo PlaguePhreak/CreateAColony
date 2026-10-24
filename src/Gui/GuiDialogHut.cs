@@ -41,6 +41,8 @@ public class GuiDialogHut : GuiDialog
     /// <summary>A Miner's Hut's Levels and Guards tabs (its Settings tab shares SettingsTab with the Guard Tower's).</summary>
     const int LevelsTab = 16;
     const int MineGuardsTab = 17;
+    /// <summary>An Explorer's or Gatherer's Hut's Markers tab.</summary>
+    const int MarkersTab = 18;
     const int OreRowsPerPage = 6;
     const double OreRowHeight = 44;
     /// <summary>Households shown per page of a Residence's Residents tab.</summary>
@@ -104,6 +106,7 @@ public class GuiDialogHut : GuiDialog
         if (snapshot.IsResidence) tabs.Add((ResidentsTab, "tab-residents"));
         if (snapshot.IsOreHut) tabs.Add((OreTab, "tab-ore"));
         if (snapshot.IsQuarry) tabs.Add((QuarryTab, "tab-quarry"));
+        if (snapshot.MarkerGroups.Count > 0) tabs.Add((MarkersTab, "tab-markers"));
         if (snapshot.IsGuardTower) tabs.AddRange(new[] { (ToolsTab, "tab-tools"), (HostilesTab, "tab-hostiles") });
         // The shared tabs.
         if (snapshot.IsGuardTower || snapshot.IsMiner) tabs.Add((SettingsTab, "tab-settings"));
@@ -152,6 +155,7 @@ public class GuiDialogHut : GuiDialog
             case ResidentsTab: ComposeResidents(composer); break;
             case OreTab: ComposeOre(composer); break;
             case QuarryTab: ComposeQuarry(composer); break;
+            case MarkersTab: ComposeMarkers(composer); break;
             case ToolsTab: ComposeTools(composer); break;
             case HostilesTab: ComposeHostiles(composer); break;
             case SettingsTab: if (snapshot.IsMiner) ComposeMineSettings(composer); else ComposeSettings(composer); break;
@@ -172,6 +176,7 @@ public class GuiDialogHut : GuiDialog
         SingleComposer.GetSwitch("berries")?.SetValue(snapshot.CollectBerries);
         SingleComposer.GetSwitch("retreat")?.SetValue(snapshot.Retreat);
         for (int i = 0; SingleComposer.GetSwitch("hostile-" + i) is { } toggle; i++) toggle.SetValue(hostileSwitchStates[i]);
+        for (int i = 0; SingleComposer.GetSwitch("markers-" + i) is { } toggle; i++) toggle.SetValue(!snapshot.MarkersOff.Contains(snapshot.MarkerGroups[i]));
         if (SingleComposer.GetTextInput("buildingname") is { } nameInput) nameInput.SetValue(pendingName);
         if (SingleComposer.GetTextInput("hostilesearch") is { } search)
         {
@@ -698,6 +703,39 @@ public class GuiDialogHut : GuiDialog
             y += ListRowHeight;
         }
         AddPager(composer, pages, y + 14);
+    }
+
+    /// <summary>
+    /// The Markers tab of an Explorer's or Gatherer's Hut: which kinds of thing its worker puts on the "Colony
+    /// markers" map layer, and a button to take its markers away again.
+    /// </summary>
+    void ComposeMarkers(GuiComposer composer)
+    {
+        int id = BuildingId;
+        double y = composer.Text(Lang.Get("createacolony:markers-hint", snapshot.MarkerCount), GuiKit.Muted(), 0, 30, Width, 8);
+        if (Officer)
+        {
+            composer.AddSmallButton(Lang.Get("createacolony:markers-remove"), () => SendText(ColonyAction.RemoveMarkers, id, ""), ElementBounds.Fixed(0, y, 220, 28));
+            y += 38;
+        }
+        y = composer.Section(Lang.Get("createacolony:markers-groups"), y, Width);
+        for (int i = 0; i < snapshot.MarkerGroups.Count; i++)
+        {
+            string group = snapshot.MarkerGroups[i];
+            bool on = !snapshot.MarkersOff.Contains(group);
+            string name = Lang.Get("createacolony:markergroup-" + group);
+            if (Officer)
+            {
+                composer
+                    .AddSwitch(value => SendText(ColonyAction.SetMarkerGroup, id, group + "|" + (value ? "1" : "0")), ElementBounds.Fixed(0, y, 30, 30), "markers-" + i)
+                    .AddStaticText(name, GuiKit.Body(), ElementBounds.Fixed(40, y + 5, Width - 40, 25));
+            }
+            else
+            {
+                composer.AddStaticText(name + ": " + Lang.Get(on ? "createacolony:on" : "createacolony:off"), GuiKit.Body(), ElementBounds.Fixed(0, y + 5, Width, 25));
+            }
+            y += 34;
+        }
     }
 
     static string CreatureName(string code)

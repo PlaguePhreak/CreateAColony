@@ -43,6 +43,8 @@ public partial class ColonyManager
             BuildingTypes.Forester => Config.ForesterRadius,
             BuildingTypes.Prospector => Config.ProspectorRadius,
             BuildingTypes.Miner => Config.MinerRadius,
+            BuildingTypes.Explorer => Config.ExplorerRadius,
+            BuildingTypes.Gatherer => Config.GathererRadius,
             _ => Config.FarmerOrchardRadius
         };
     }

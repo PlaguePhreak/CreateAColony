@@ -9,11 +9,11 @@ public static class BuildingCategories
     public static readonly Category[] All =
     {
         new("fundamentals", new[] { BuildingTypes.TownHall, BuildingTypes.Builder, BuildingTypes.Tavern, BuildingTypes.Residence }),
-        new("agriculture", new[] { BuildingTypes.Farmer, BuildingTypes.Forester }),
+        new("agriculture", new[] { BuildingTypes.Farmer, BuildingTypes.Forester, BuildingTypes.Gatherer }),
         new("craftsmanship", new[] { BuildingTypes.Potter, BuildingTypes.Cook, BuildingTypes.Smelter, BuildingTypes.Blacksmith, BuildingTypes.Sawmill }),
         new("mining", new[] { BuildingTypes.Prospector, BuildingTypes.Miner, BuildingTypes.Quarry }),
         new("education", System.Array.Empty<string>()),
-        new("infrastructure", new[] { BuildingTypes.Warehouse }),
+        new("infrastructure", new[] { BuildingTypes.Warehouse, BuildingTypes.Explorer }),
         new("military", new[] { BuildingTypes.GuardTower, BuildingTypes.Barracks }),
         new("walls", System.Array.Empty<string>()),
         new("decoration", System.Array.Empty<string>()),

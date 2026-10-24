@@ -422,6 +422,13 @@ public class HutSnapshot
     [ProtoMember(93)] public string ResourcesStep = "";
     /// <summary>A Residence: the colony's other grown settlers, with where they live now (already in words, empty for nowhere) in Relation.</summary>
     [ProtoMember(94)] public List<FamilyMemberView> ResidentChoices = new();
+    // 130-139 for the Explorer's and Gatherer's huts.
+    /// <summary>An Explorer's or Gatherer's Hut: the marker groups its worker can put on the map, for the Markers tab; empty for other huts.</summary>
+    [ProtoMember(130)] public List<string> MarkerGroups = new();
+    /// <summary>The groups it is set not to mark.</summary>
+    [ProtoMember(131)] public List<string> MarkersOff = new();
+    /// <summary>How many markers its worker has put down.</summary>
+    [ProtoMember(132)] public int MarkerCount;
 }
 
 /// <summary>One line of a hut's chest list: an item, how many there are, and which containers hold it.</summary>
@@ -715,7 +722,11 @@ public enum ColonyAction
     GiveAllResources = 98,
     /// <summary>A Residence's Choose residents page: move a settler and their household in, or out to a bed elsewhere.</summary>
     MoveInResidence = 99,
-    MoveOutResidence = 100
+    MoveOutResidence = 100,
+    /// <summary>Text "group|1" or "group|0": whether the Explorer's or Gatherer's Hut with BuildingId puts that marker group on the map.</summary>
+    SetMarkerGroup = 120,
+    /// <summary>Takes away every map marker the worker of the hut with BuildingId put down.</summary>
+    RemoveMarkers = 121
 }
 
 /// <summary>The Builder's Wand building list: each building type with how many of its blocks the player carries.</summary>

@@ -164,6 +164,7 @@ public partial class ColonyNetwork : ModSystem
             >= ColonyAction.SetMineLevel and <= ColonyAction.UnassignMineGuard => MineTabAction(colony, role, packet),
             ColonyAction.GiveResource or ColonyAction.GiveAllResources => GiveResource(player, colony, role, packet),
             ColonyAction.MoveInResidence or ColonyAction.MoveOutResidence => ResidenceAction(colony, role, packet),
+            ColonyAction.SetMarkerGroup or ColonyAction.RemoveMarkers => MarkerAction(colony, role, packet),
             ColonyAction.WelcomeVisitor or ColonyAction.TurnAwayVisitor => VisitorAction(colony, role, packet),
             ColonyAction.RecallCitizen => RecallCitizen(colony, role, packet.CitizenId),
             ColonyAction.SetColonyBanner or ColonyAction.ReplaceBanners or ColonyAction.SetBannerOnNew => BannerAction(player, colony, role, packet),
@@ -315,6 +316,26 @@ public partial class ColonyNetwork : ModSystem
                 building.NoBerries = packet.Text != "1";
                 break;
         }
+        return null;
+    }
+
+    /// <summary>The Markers tab of an Explorer's or Gatherer's Hut: which groups to mark, and taking its markers away.</summary>
+    string? MarkerAction(Colony colony, ColonyRole role, ColonyActionPacket packet)
+    {
+        if (role < ColonyRole.Officer) return "createacolony:denied-officer";
+        var building = colony.Buildings.Find(b => b.BuildingId == packet.BuildingId);
+        if (building == null || !ColonyManager.MarkerGroups.TryGetValue(building.Type, out var groups)) return "createacolony:bad-building";
+        if (packet.Action == ColonyAction.RemoveMarkers)
+        {
+            Manager.RemoveHutMarkers(colony, building);
+            return null;
+        }
+        int sep = packet.Text.IndexOf('|');
+        if (sep < 0) return "createacolony:bad-building";
+        string group = packet.Text[..sep];
+        if (!groups.Contains(group)) return "createacolony:bad-building";
+        building.MarkersOff.Remove(group);
+        if (packet.Text[(sep + 1)..] == "0") building.MarkersOff.Add(group);
         return null;
     }
 
@@ -806,6 +827,12 @@ public partial class ColonyNetwork : ModSystem
             OpenWindow = openWindow
         };
         AddHutAdmin(snapshot, colony, building);
+        if (ColonyManager.MarkerGroups.TryGetValue(building.Type, out var markerGroups))
+        {
+            snapshot.MarkerGroups = markerGroups.ToList();
+            snapshot.MarkersOff = building.MarkersOff.ToList();
+            snapshot.MarkerCount = Manager.MarkerCount(colony, building);
+        }
         if (building.Type == BuildingTypes.Residence) AddResidence(snapshot, colony, building);
 
         if (ColonyManager.IsGatherHut(building.Type))
@@ -827,7 +854,8 @@ public partial class ColonyNetwork : ModSystem
         }
         if (building.Type is BuildingTypes.Forester or BuildingTypes.Farmer or BuildingTypes.Potter or BuildingTypes.Cook
             or BuildingTypes.Prospector or BuildingTypes.Miner or BuildingTypes.Quarry
-            or BuildingTypes.Smelter or BuildingTypes.Blacksmith or BuildingTypes.Sawmill) snapshot.Info = Manager.WorkerHutInfo(colony, building);
+            or BuildingTypes.Smelter or BuildingTypes.Blacksmith or BuildingTypes.Sawmill
+            or BuildingTypes.Explorer or BuildingTypes.Gatherer) snapshot.Info = Manager.WorkerHutInfo(colony, building);
         if (building.Type == BuildingTypes.Tavern)
         {
             snapshot.IsTavern = true;
