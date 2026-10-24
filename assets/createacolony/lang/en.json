@@ -39,7 +39,8 @@
 	"item-creature-settler-male": "Settler",
 	"item-creature-settler-female": "Settler",
 	"block-supplycamp": "Supply Camp",
-	// Paintings (blocktypes/painting.json). One recipe; hold a painting and press F to pick the picture.
+	// Paintings (blocktypes/painting.json). Craft a blank canvas, then add buckets of dye around it in the grid.
+	"block-painting-blank-*": "Blank Canvas",
 	"block-painting-berrybowl-*": "Painting: Bowl of Berries",
 	"block-painting-candlelight-*": "Painting: Candlelight",
 	"block-painting-loneoak-*": "Painting: Lone Oak",
@@ -61,7 +62,8 @@
 	"painting-size-wide": "Wide painting, 2 blocks across",
 	"painting-size-tall": "Tall painting, 2 blocks high",
 	"painting-size-large": "Large painting, 2 by 2 blocks",
-	"painting-hint": "Press F to pick any picture. Hangs on a wall and spreads up and to the right.",
+	"painting-blank-hint": "Put it in the middle of the crafting grid with buckets of dye around it to paint a picture. Each picture lists its dyes.",
+	"painting-dyes": "Dyes: {0}. Hangs on a wall and spreads up and to the right.",
 	"blockdesc-supplycamp": "Place it anywhere. Your first camp gives you a Town Hall, a Builder's Hut, a Builder's Wand, a Colony Ledger and some starting materials. Right-click it to open its storage.",
 	"supplycamp-storage": "Supply Camp",
 	"supplycamp-kit": "The Quartermaster gives you a Town Hall, a Builder's Hut, a Builder's Wand and a Colony Ledger. Right-click the camp for supplies, then use the wand to place your Town Hall.",

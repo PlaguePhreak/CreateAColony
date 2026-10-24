@@ -134,12 +134,13 @@ All three are on the new Mining tab of the Builder's Wand and use placeholder bl
   change; open windows reuse build progress and materials for a few seconds; the mineshaft checks its
   hut's storage once per scan.
 
-## Paintings (0.105.0)
+## Paintings (0.105.0, dyes 0.105.1)
 - 17 framed paintings to hang in builds: 6 small (1 block), 5 wide (2 x 1), 3 tall (1 x 2) and 3 large (2 x 2). All the art is original, drawn by `tools/paintings/paintings.py` (no outside images).
-- **Recipe** (Aaron's layout): 8 boards around 4 linen. Hold the painting and press **F** to pick any of the 17 pictures; the painting in hand changes to it. Every size costs the same.
+- **Blank canvas** (Aaron's layout): 8 boards around 4 linen.
+- **Painting a picture**: put the blank canvas in the middle of the crafting grid and a bucket of each of the picture's dyes around it: the first dye above, then below, left, right, then the corners. Each bucket needs 2 litres of that dye; only the dye is used. Simple pictures take 2 dyes (Candlelight: yellow, black), the Map of the Realm takes 8. Each painting's tooltip lists its dyes, and the handbook shows the recipes. The list is `DYES` in the script; `src/Block/PaintingRecipes.cs` makes the recipes at load from the game's `dyeportion-*` items and any bucket, and logs a warning for a picture whose dye is missing.
 - Paintings hang on a wall like vanilla ones (`HorizontalAttachable`) and drop themselves when broken. A painting bigger than one block sits in the block you click and spreads up and to the right; only that first block is solid to the game, so keep the spaces it covers free.
-- **Blueprints**: save a building with paintings on its walls and builders hang them. The Builder's list asks for the exact picture (for example "Painting: Mountain Lake"), so craft one and pick that picture with F.
-- **Adding pictures**: add a function and an entry to `PAINTINGS` in `tools/paintings/paintings.py`, run it (it rewrites the textures, the four shapes and `blocktypes/painting.json`), and add the name to `lang/en.json`. `--sheet out.png` makes a preview sheet.
+- **Blueprints**: save a building with paintings on its walls and builders hang them. The Builder's list asks for the exact picture (for example "Painting: Mountain Lake").
+- **Adding pictures**: add a function, an entry to `PAINTINGS` and its dyes to `DYES` in `tools/paintings/paintings.py`, run it (it rewrites the textures, the four shapes and `blocktypes/painting.json`), and add the name to `lang/en.json`. `--sheet out.png` makes a preview sheet.
 
 ## Config (`ModConfig/createacolony.json`)
 - `Permadeath` (default `true`): settlers who die are gone. Set `false` to have them knocked out and recover after `DownedRecoveryDays`.

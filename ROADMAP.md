@@ -28,7 +28,7 @@ Everything listed under "What we have" and "Partly done" has been tested in game
 - Explorer's Hut and Gatherer's Hut: an explorer marks ore, clay, traders, animals and danger on a Colony markers map layer, and a gatherer forages berries, mushrooms and loose stones and marks plants; works with More Map Icons (0.77.0, placeholder models and buildings, not tested yet)
 - Vintage Colonies' own map icons: 120 waypoint icons covering every More Map Icons sheet entry, used by colony markers (0.79.0, not tested yet)
 - A marker icon for every ore, fruit, vegetable, grain, animal, trader and story location, other mods' too (0.80.0, not tested yet)
-- Paintings: 17 original framed paintings in four sizes, crafted from 8 boards and 4 linen, picture picked with F, hung by builders from blueprints (0.105.0, not tested yet)
+- Paintings: 17 original framed paintings in four sizes, a blank canvas from 8 boards and 4 linen painted with buckets of dye in the grid, hung by builders from blueprints (0.105.0-0.105.1, not tested yet)
 
 **Colony systems**
 - Colony land that grows with every hut and Town Hall level *(tested)*

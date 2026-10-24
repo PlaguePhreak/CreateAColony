@@ -1,5 +1,5 @@
 {
-	// 8 boards around 4 linen, as Aaron asked. Every size costs the same: press F with the painting in hand to pick any picture.
+	// A blank canvas: 8 boards around 4 linen, as Aaron asked. Put it in the middle of the grid with buckets of dye around it to paint a picture (src/Block/PaintingRecipes.cs).
 	"ingredientPattern": "PPP,PLP,PPP",
 	"ingredients": {
 		"P": { "type": "item", "code": "game:plank-*" },
@@ -7,5 +7,5 @@
 	},
 	"width": 3,
 	"height": 3,
-	"output": { "type": "block", "code": "createacolony:painting-berrybowl-north" }
+	"output": { "type": "block", "code": "createacolony:painting-blank-north" }
 }

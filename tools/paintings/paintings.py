@@ -446,8 +446,15 @@ def realm_map(c):
     return c.finish(28)
 
 
-# code, English name, width, height, draw
+def blank(c):
+    """Plain linen, ready for dyes."""
+    c.vgrad((226, 218, 196), (212, 202, 178))
+    return c.finish(12)
+
+
+# code, English name, width, height, draw. The blank canvas comes from the crafting recipe; dyes turn it into a picture.
 PAINTINGS = [
+    ("blank", "Blank Canvas", 1, 1, blank),
     ("berrybowl", "Bowl of Berries", 1, 1, berry_bowl),
     ("candlelight", "Candlelight", 1, 1, candlelight),
     ("loneoak", "Lone Oak", 1, 1, lone_oak),
@@ -466,6 +473,29 @@ PAINTINGS = [
     ("winterhunt", "Winter Hunt", 2, 2, winter_hunt),
     ("realmmap", "Map of the Realm", 2, 2, realm_map),
 ]
+
+
+# The buckets of dye around a blank canvas that make each picture, in the order they go into the grid
+# (above, below, left, right, then the corners). Names are the game's dye colours (dyeportion-<colour>).
+DYES = {
+    "berrybowl": ["red", "purple", "brown"],
+    "candlelight": ["yellow", "black"],
+    "loneoak": ["green", "orange"],
+    "hoodedelder": ["brown", "white"],
+    "wolfmoon": ["black", "blue", "white"],
+    "toadstool": ["red", "white", "green"],
+    "harvest": ["yellow", "orange", "blue"],
+    "mountainlake": ["blue", "white", "gray"],
+    "rivervillage": ["green", "blue", "brown", "yellow"],
+    "stormysea": ["gray", "black", "blue", "white"],
+    "aurora": ["green", "black", "blue", "purple"],
+    "waterfall": ["blue", "white", "gray", "green"],
+    "watchtower": ["orange", "purple", "gray", "yellow"],
+    "birchgrove": ["white", "black", "green", "yellow"],
+    "hillcastle": ["blue", "white", "gray", "green", "red", "brown"],
+    "winterhunt": ["white", "gray", "black", "brown", "red", "blue", "green"],
+    "realmmap": ["yellow", "brown", "blue", "red", "green", "black", "white", "orange"],
+}
 
 
 def render_all():
@@ -497,7 +527,7 @@ def sheet(paintings, path):
     pad, label = 22, 22
     rows = []
     for title, w, h in groups:
-        items = [(n, framed(img, scale), i) for i, (c, n, pw, ph, img) in enumerate(paintings) if (pw, ph) == (w, h)]
+        items = [(n, framed(img, scale), i) for i, (c, n, pw, ph, img) in enumerate(paintings) if (pw, ph) == (w, h) and c != "blank"]
         rows.append((title, items))
     width = max(pad + sum(max(it[1].width, 170) + pad for it in items) for _, items in rows)
     height = sum(30 + max(it[1].height for it in items) + label + pad for _, items in rows) + pad
@@ -566,6 +596,8 @@ def shape(w, h):
 def blocktype(paintings):
     by_type = lambda make: {f"*-{c}-{side}": make(w, h, angle) for c, _, w, h, _ in paintings for side, angle in SIDES}
     by_art = lambda make: {f"*-{c}-*": make(w, h) for c, _, w, h, _ in paintings}
+    attrs = {f"*-{c}-*": dict({"paintingSize": SIZES[(w, h)]}, **({"dyes": DYES[c]} if c in DYES else {}))
+             for c, _, w, h, _ in paintings}
     sel = lambda w, h, angle: {"x1": 0.03, "y1": 0.03, "z1": 0, "x2": w - 0.03, "y2": h - 0.03, "z2": 0.09, "rotateY": angle}
     gui = lambda w, h: {"rotation": {"x": -8, "y": 20, "z": 0}, "origin": {"x": w / 2, "y": h / 2, "z": 0.05},
                         "scale": {1: 1.25, 2: 0.78}[max(w, h)]}
@@ -579,7 +611,7 @@ def blocktype(paintings):
             {"code": "art", "states": [c for c, *_ in paintings]},
             {"code": "side", "states": [side for side, _ in SIDES]},
         ],
-        "attributesByType": by_art(lambda w, h: {"paintingSize": SIZES[(w, h)]}),
+        "attributesByType": attrs,
         "creativeinventory": {"general": ["*-north"], "decorative": ["*-north"], "vintagecolonies": ["*-north"]},
         "drawtype": "json",
         "shapeByType": by_type(lambda w, h, angle: {"base": f"block/painting/{SIZES[(w, h)]}", "rotateY": angle}),

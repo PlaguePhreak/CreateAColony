@@ -15,6 +15,7 @@
 		{
 			"code": "art",
 			"states": [
+				"blank",
 				"berrybowl",
 				"candlelight",
 				"loneoak",
@@ -45,56 +46,159 @@
 		}
 	],
 	"attributesByType": {
-		"*-berrybowl-*": {
+		"*-blank-*": {
 			"paintingSize": "small"
+		},
+		"*-berrybowl-*": {
+			"paintingSize": "small",
+			"dyes": [
+				"red",
+				"purple",
+				"brown"
+			]
 		},
 		"*-candlelight-*": {
-			"paintingSize": "small"
+			"paintingSize": "small",
+			"dyes": [
+				"yellow",
+				"black"
+			]
 		},
 		"*-loneoak-*": {
-			"paintingSize": "small"
+			"paintingSize": "small",
+			"dyes": [
+				"green",
+				"orange"
+			]
 		},
 		"*-hoodedelder-*": {
-			"paintingSize": "small"
+			"paintingSize": "small",
+			"dyes": [
+				"brown",
+				"white"
+			]
 		},
 		"*-wolfmoon-*": {
-			"paintingSize": "small"
+			"paintingSize": "small",
+			"dyes": [
+				"black",
+				"blue",
+				"white"
+			]
 		},
 		"*-toadstool-*": {
-			"paintingSize": "small"
+			"paintingSize": "small",
+			"dyes": [
+				"red",
+				"white",
+				"green"
+			]
 		},
 		"*-harvest-*": {
-			"paintingSize": "wide"
+			"paintingSize": "wide",
+			"dyes": [
+				"yellow",
+				"orange",
+				"blue"
+			]
 		},
 		"*-mountainlake-*": {
-			"paintingSize": "wide"
+			"paintingSize": "wide",
+			"dyes": [
+				"blue",
+				"white",
+				"gray"
+			]
 		},
 		"*-rivervillage-*": {
-			"paintingSize": "wide"
+			"paintingSize": "wide",
+			"dyes": [
+				"green",
+				"blue",
+				"brown",
+				"yellow"
+			]
 		},
 		"*-stormysea-*": {
-			"paintingSize": "wide"
+			"paintingSize": "wide",
+			"dyes": [
+				"gray",
+				"black",
+				"blue",
+				"white"
+			]
 		},
 		"*-aurora-*": {
-			"paintingSize": "wide"
+			"paintingSize": "wide",
+			"dyes": [
+				"green",
+				"black",
+				"blue",
+				"purple"
+			]
 		},
 		"*-waterfall-*": {
-			"paintingSize": "tall"
+			"paintingSize": "tall",
+			"dyes": [
+				"blue",
+				"white",
+				"gray",
+				"green"
+			]
 		},
 		"*-watchtower-*": {
-			"paintingSize": "tall"
+			"paintingSize": "tall",
+			"dyes": [
+				"orange",
+				"purple",
+				"gray",
+				"yellow"
+			]
 		},
 		"*-birchgrove-*": {
-			"paintingSize": "tall"
+			"paintingSize": "tall",
+			"dyes": [
+				"white",
+				"black",
+				"green",
+				"yellow"
+			]
 		},
 		"*-hillcastle-*": {
-			"paintingSize": "large"
+			"paintingSize": "large",
+			"dyes": [
+				"blue",
+				"white",
+				"gray",
+				"green",
+				"red",
+				"brown"
+			]
 		},
 		"*-winterhunt-*": {
-			"paintingSize": "large"
+			"paintingSize": "large",
+			"dyes": [
+				"white",
+				"gray",
+				"black",
+				"brown",
+				"red",
+				"blue",
+				"green"
+			]
 		},
 		"*-realmmap-*": {
-			"paintingSize": "large"
+			"paintingSize": "large",
+			"dyes": [
+				"yellow",
+				"brown",
+				"blue",
+				"red",
+				"green",
+				"black",
+				"white",
+				"orange"
+			]
 		}
 	},
 	"creativeinventory": {
@@ -110,6 +214,22 @@
 	},
 	"drawtype": "json",
 	"shapeByType": {
+		"*-blank-north": {
+			"base": "block/painting/small",
+			"rotateY": 0
+		},
+		"*-blank-east": {
+			"base": "block/painting/small",
+			"rotateY": 270
+		},
+		"*-blank-south": {
+			"base": "block/painting/small",
+			"rotateY": 180
+		},
+		"*-blank-west": {
+			"base": "block/painting/small",
+			"rotateY": 90
+		},
 		"*-berrybowl-north": {
 			"base": "block/painting/small",
 			"rotateY": 0
@@ -405,6 +525,42 @@
 	"resistance": 0.5,
 	"collisionbox": null,
 	"selectionboxByType": {
+		"*-blank-north": {
+			"x1": 0.03,
+			"y1": 0.03,
+			"z1": 0,
+			"x2": 0.97,
+			"y2": 0.97,
+			"z2": 0.09,
+			"rotateY": 0
+		},
+		"*-blank-east": {
+			"x1": 0.03,
+			"y1": 0.03,
+			"z1": 0,
+			"x2": 0.97,
+			"y2": 0.97,
+			"z2": 0.09,
+			"rotateY": 270
+		},
+		"*-blank-south": {
+			"x1": 0.03,
+			"y1": 0.03,
+			"z1": 0,
+			"x2": 0.97,
+			"y2": 0.97,
+			"z2": 0.09,
+			"rotateY": 180
+		},
+		"*-blank-west": {
+			"x1": 0.03,
+			"y1": 0.03,
+			"z1": 0,
+			"x2": 0.97,
+			"y2": 0.97,
+			"z2": 0.09,
+			"rotateY": 90
+		},
 		"*-berrybowl-north": {
 			"x1": 0.03,
 			"y1": 0.03,
@@ -1019,6 +1175,19 @@
 		}
 	},
 	"guiTransformByType": {
+		"*-blank-*": {
+			"rotation": {
+				"x": -8,
+				"y": 20,
+				"z": 0
+			},
+			"origin": {
+				"x": 0.5,
+				"y": 0.5,
+				"z": 0.05
+			},
+			"scale": 1.25
+		},
 		"*-berrybowl-*": {
 			"rotation": {
 				"x": -8,
@@ -1242,6 +1411,24 @@
 		}
 	},
 	"tpHandTransformByType": {
+		"*-blank-*": {
+			"translation": {
+				"x": -0.6,
+				"y": -0.3,
+				"z": -0.5
+			},
+			"rotation": {
+				"x": 0,
+				"y": 90,
+				"z": 0
+			},
+			"origin": {
+				"x": 0.5,
+				"y": 0.5,
+				"z": 0.05
+			},
+			"scale": 0.8
+		},
 		"*-berrybowl-*": {
 			"translation": {
 				"x": -0.6,
