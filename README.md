@@ -791,6 +791,12 @@ before shipping converted blueprints.
 
 ### The Town Hall window (0.24.0)
 
+### Settlers step onto the wall at a ladder's top (0.120.0)
+- At the top of a ladder, a settler now steps onto the block the ladder hangs on and stands there before walking
+  anywhere else. Before, it could step off the open side, fall and get stuck (Aaron's report).
+- A settler that falls off a ladder on the way up plans its walk again from where it lands and tries the same ladder
+  once more.
+
 ### Builders step out of their own way (0.116.0)
 - A builder standing where its next block goes now hops to the nearest free spot beside it and places the block.
   Before, it walked off to that spot and back, and where it could not walk there (on a wall top) it stayed stuck

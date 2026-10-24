@@ -68,6 +68,8 @@ public abstract class SettlerTaskBase : AiTaskBase
     LadderClimb? ladder;
     /// <summary>Ladders that did not work out on this walk, so the next try picks another.</summary>
     readonly List<BlockPos> triedLadders = new();
+    /// <summary>Falls off ladders on this walk; the first fall is retried on the same ladder.</summary>
+    int ladderFalls;
     int seenRelocations;
     Willpower? willpower;
 
@@ -107,6 +109,7 @@ public abstract class SettlerTaskBase : AiTaskBase
         legTry = 0;
         EndLadder();
         triedLadders.Clear();
+        ladderFalls = 0;
         if (Will is { } will)
         {
             will.Heading(target, range);
@@ -222,7 +225,7 @@ public abstract class SettlerTaskBase : AiTaskBase
         if (ladderPhase == LadderPhase.Climbing)
         {
             if (!ladder!.Tick(entity, moveSpeed, out bool climbFailed)) return;
-            if (climbFailed) triedLadders.Add(ladder.Column);
+            if (climbFailed && (!ladder.Fell || ++ladderFalls > 1)) triedLadders.Add(ladder.Column);
             EndLadder();
             legTry = 0;
             StartLeg();
