@@ -1,0 +1,11 @@
+{
+	// 8 boards around 4 linen, as Aaron asked. Every size costs the same: press F with the painting in hand to pick any picture.
+	"ingredientPattern": "PPP,PLP,PPP",
+	"ingredients": {
+		"P": { "type": "item", "code": "game:plank-*" },
+		"L": { "type": "block", "code": "game:linen-normal-down", "quantity": 4 }
+	},
+	"width": 3,
+	"height": 3,
+	"output": { "type": "block", "code": "createacolony:painting-berrybowl-north" }
+}

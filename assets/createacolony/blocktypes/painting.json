@@ -1,0 +1,1557 @@
+// Made by tools/paintings/paintings.py: edit the list there and run it again rather than editing this file.
+{
+	"code": "painting",
+	"class": "BlockPainting",
+	"behaviors": [
+		{
+			"name": "HorizontalAttachable",
+			"properties": {
+				"handleDrops": true,
+				"dropBlockFace": "north"
+			}
+		}
+	],
+	"variantgroups": [
+		{
+			"code": "art",
+			"states": [
+				"berrybowl",
+				"candlelight",
+				"loneoak",
+				"hoodedelder",
+				"wolfmoon",
+				"toadstool",
+				"harvest",
+				"mountainlake",
+				"rivervillage",
+				"stormysea",
+				"aurora",
+				"waterfall",
+				"watchtower",
+				"birchgrove",
+				"hillcastle",
+				"winterhunt",
+				"realmmap"
+			]
+		},
+		{
+			"code": "side",
+			"states": [
+				"north",
+				"east",
+				"south",
+				"west"
+			]
+		}
+	],
+	"attributesByType": {
+		"*-berrybowl-*": {
+			"paintingSize": "small"
+		},
+		"*-candlelight-*": {
+			"paintingSize": "small"
+		},
+		"*-loneoak-*": {
+			"paintingSize": "small"
+		},
+		"*-hoodedelder-*": {
+			"paintingSize": "small"
+		},
+		"*-wolfmoon-*": {
+			"paintingSize": "small"
+		},
+		"*-toadstool-*": {
+			"paintingSize": "small"
+		},
+		"*-harvest-*": {
+			"paintingSize": "wide"
+		},
+		"*-mountainlake-*": {
+			"paintingSize": "wide"
+		},
+		"*-rivervillage-*": {
+			"paintingSize": "wide"
+		},
+		"*-stormysea-*": {
+			"paintingSize": "wide"
+		},
+		"*-aurora-*": {
+			"paintingSize": "wide"
+		},
+		"*-waterfall-*": {
+			"paintingSize": "tall"
+		},
+		"*-watchtower-*": {
+			"paintingSize": "tall"
+		},
+		"*-birchgrove-*": {
+			"paintingSize": "tall"
+		},
+		"*-hillcastle-*": {
+			"paintingSize": "large"
+		},
+		"*-winterhunt-*": {
+			"paintingSize": "large"
+		},
+		"*-realmmap-*": {
+			"paintingSize": "large"
+		}
+	},
+	"creativeinventory": {
+		"general": [
+			"*-north"
+		],
+		"decorative": [
+			"*-north"
+		],
+		"vintagecolonies": [
+			"*-north"
+		]
+	},
+	"drawtype": "json",
+	"shapeByType": {
+		"*-berrybowl-north": {
+			"base": "block/painting/small",
+			"rotateY": 0
+		},
+		"*-berrybowl-east": {
+			"base": "block/painting/small",
+			"rotateY": 270
+		},
+		"*-berrybowl-south": {
+			"base": "block/painting/small",
+			"rotateY": 180
+		},
+		"*-berrybowl-west": {
+			"base": "block/painting/small",
+			"rotateY": 90
+		},
+		"*-candlelight-north": {
+			"base": "block/painting/small",
+			"rotateY": 0
+		},
+		"*-candlelight-east": {
+			"base": "block/painting/small",
+			"rotateY": 270
+		},
+		"*-candlelight-south": {
+			"base": "block/painting/small",
+			"rotateY": 180
+		},
+		"*-candlelight-west": {
+			"base": "block/painting/small",
+			"rotateY": 90
+		},
+		"*-loneoak-north": {
+			"base": "block/painting/small",
+			"rotateY": 0
+		},
+		"*-loneoak-east": {
+			"base": "block/painting/small",
+			"rotateY": 270
+		},
+		"*-loneoak-south": {
+			"base": "block/painting/small",
+			"rotateY": 180
+		},
+		"*-loneoak-west": {
+			"base": "block/painting/small",
+			"rotateY": 90
+		},
+		"*-hoodedelder-north": {
+			"base": "block/painting/small",
+			"rotateY": 0
+		},
+		"*-hoodedelder-east": {
+			"base": "block/painting/small",
+			"rotateY": 270
+		},
+		"*-hoodedelder-south": {
+			"base": "block/painting/small",
+			"rotateY": 180
+		},
+		"*-hoodedelder-west": {
+			"base": "block/painting/small",
+			"rotateY": 90
+		},
+		"*-wolfmoon-north": {
+			"base": "block/painting/small",
+			"rotateY": 0
+		},
+		"*-wolfmoon-east": {
+			"base": "block/painting/small",
+			"rotateY": 270
+		},
+		"*-wolfmoon-south": {
+			"base": "block/painting/small",
+			"rotateY": 180
+		},
+		"*-wolfmoon-west": {
+			"base": "block/painting/small",
+			"rotateY": 90
+		},
+		"*-toadstool-north": {
+			"base": "block/painting/small",
+			"rotateY": 0
+		},
+		"*-toadstool-east": {
+			"base": "block/painting/small",
+			"rotateY": 270
+		},
+		"*-toadstool-south": {
+			"base": "block/painting/small",
+			"rotateY": 180
+		},
+		"*-toadstool-west": {
+			"base": "block/painting/small",
+			"rotateY": 90
+		},
+		"*-harvest-north": {
+			"base": "block/painting/wide",
+			"rotateY": 0
+		},
+		"*-harvest-east": {
+			"base": "block/painting/wide",
+			"rotateY": 270
+		},
+		"*-harvest-south": {
+			"base": "block/painting/wide",
+			"rotateY": 180
+		},
+		"*-harvest-west": {
+			"base": "block/painting/wide",
+			"rotateY": 90
+		},
+		"*-mountainlake-north": {
+			"base": "block/painting/wide",
+			"rotateY": 0
+		},
+		"*-mountainlake-east": {
+			"base": "block/painting/wide",
+			"rotateY": 270
+		},
+		"*-mountainlake-south": {
+			"base": "block/painting/wide",
+			"rotateY": 180
+		},
+		"*-mountainlake-west": {
+			"base": "block/painting/wide",
+			"rotateY": 90
+		},
+		"*-rivervillage-north": {
+			"base": "block/painting/wide",
+			"rotateY": 0
+		},
+		"*-rivervillage-east": {
+			"base": "block/painting/wide",
+			"rotateY": 270
+		},
+		"*-rivervillage-south": {
+			"base": "block/painting/wide",
+			"rotateY": 180
+		},
+		"*-rivervillage-west": {
+			"base": "block/painting/wide",
+			"rotateY": 90
+		},
+		"*-stormysea-north": {
+			"base": "block/painting/wide",
+			"rotateY": 0
+		},
+		"*-stormysea-east": {
+			"base": "block/painting/wide",
+			"rotateY": 270
+		},
+		"*-stormysea-south": {
+			"base": "block/painting/wide",
+			"rotateY": 180
+		},
+		"*-stormysea-west": {
+			"base": "block/painting/wide",
+			"rotateY": 90
+		},
+		"*-aurora-north": {
+			"base": "block/painting/wide",
+			"rotateY": 0
+		},
+		"*-aurora-east": {
+			"base": "block/painting/wide",
+			"rotateY": 270
+		},
+		"*-aurora-south": {
+			"base": "block/painting/wide",
+			"rotateY": 180
+		},
+		"*-aurora-west": {
+			"base": "block/painting/wide",
+			"rotateY": 90
+		},
+		"*-waterfall-north": {
+			"base": "block/painting/tall",
+			"rotateY": 0
+		},
+		"*-waterfall-east": {
+			"base": "block/painting/tall",
+			"rotateY": 270
+		},
+		"*-waterfall-south": {
+			"base": "block/painting/tall",
+			"rotateY": 180
+		},
+		"*-waterfall-west": {
+			"base": "block/painting/tall",
+			"rotateY": 90
+		},
+		"*-watchtower-north": {
+			"base": "block/painting/tall",
+			"rotateY": 0
+		},
+		"*-watchtower-east": {
+			"base": "block/painting/tall",
+			"rotateY": 270
+		},
+		"*-watchtower-south": {
+			"base": "block/painting/tall",
+			"rotateY": 180
+		},
+		"*-watchtower-west": {
+			"base": "block/painting/tall",
+			"rotateY": 90
+		},
+		"*-birchgrove-north": {
+			"base": "block/painting/tall",
+			"rotateY": 0
+		},
+		"*-birchgrove-east": {
+			"base": "block/painting/tall",
+			"rotateY": 270
+		},
+		"*-birchgrove-south": {
+			"base": "block/painting/tall",
+			"rotateY": 180
+		},
+		"*-birchgrove-west": {
+			"base": "block/painting/tall",
+			"rotateY": 90
+		},
+		"*-hillcastle-north": {
+			"base": "block/painting/large",
+			"rotateY": 0
+		},
+		"*-hillcastle-east": {
+			"base": "block/painting/large",
+			"rotateY": 270
+		},
+		"*-hillcastle-south": {
+			"base": "block/painting/large",
+			"rotateY": 180
+		},
+		"*-hillcastle-west": {
+			"base": "block/painting/large",
+			"rotateY": 90
+		},
+		"*-winterhunt-north": {
+			"base": "block/painting/large",
+			"rotateY": 0
+		},
+		"*-winterhunt-east": {
+			"base": "block/painting/large",
+			"rotateY": 270
+		},
+		"*-winterhunt-south": {
+			"base": "block/painting/large",
+			"rotateY": 180
+		},
+		"*-winterhunt-west": {
+			"base": "block/painting/large",
+			"rotateY": 90
+		},
+		"*-realmmap-north": {
+			"base": "block/painting/large",
+			"rotateY": 0
+		},
+		"*-realmmap-east": {
+			"base": "block/painting/large",
+			"rotateY": 270
+		},
+		"*-realmmap-south": {
+			"base": "block/painting/large",
+			"rotateY": 180
+		},
+		"*-realmmap-west": {
+			"base": "block/painting/large",
+			"rotateY": 90
+		}
+	},
+	"textures": {
+		"canvas": {
+			"base": "block/painting/{art}"
+		},
+		"frame": {
+			"base": "block/painting/frame"
+		}
+	},
+	"blockmaterial": "Wood",
+	"sidesolid": {
+		"all": false
+	},
+	"sideopaque": {
+		"all": false
+	},
+	"emitsideao": {
+		"all": false
+	},
+	"lightAbsorption": 0,
+	"resistance": 0.5,
+	"collisionbox": null,
+	"selectionboxByType": {
+		"*-berrybowl-north": {
+			"x1": 0.03,
+			"y1": 0.03,
+			"z1": 0,
+			"x2": 0.97,
+			"y2": 0.97,
+			"z2": 0.09,
+			"rotateY": 0
+		},
+		"*-berrybowl-east": {
+			"x1": 0.03,
+			"y1": 0.03,
+			"z1": 0,
+			"x2": 0.97,
+			"y2": 0.97,
+			"z2": 0.09,
+			"rotateY": 270
+		},
+		"*-berrybowl-south": {
+			"x1": 0.03,
+			"y1": 0.03,
+			"z1": 0,
+			"x2": 0.97,
+			"y2": 0.97,
+			"z2": 0.09,
+			"rotateY": 180
+		},
+		"*-berrybowl-west": {
+			"x1": 0.03,
+			"y1": 0.03,
+			"z1": 0,
+			"x2": 0.97,
+			"y2": 0.97,
+			"z2": 0.09,
+			"rotateY": 90
+		},
+		"*-candlelight-north": {
+			"x1": 0.03,
+			"y1": 0.03,
+			"z1": 0,
+			"x2": 0.97,
+			"y2": 0.97,
+			"z2": 0.09,
+			"rotateY": 0
+		},
+		"*-candlelight-east": {
+			"x1": 0.03,
+			"y1": 0.03,
+			"z1": 0,
+			"x2": 0.97,
+			"y2": 0.97,
+			"z2": 0.09,
+			"rotateY": 270
+		},
+		"*-candlelight-south": {
+			"x1": 0.03,
+			"y1": 0.03,
+			"z1": 0,
+			"x2": 0.97,
+			"y2": 0.97,
+			"z2": 0.09,
+			"rotateY": 180
+		},
+		"*-candlelight-west": {
+			"x1": 0.03,
+			"y1": 0.03,
+			"z1": 0,
+			"x2": 0.97,
+			"y2": 0.97,
+			"z2": 0.09,
+			"rotateY": 90
+		},
+		"*-loneoak-north": {
+			"x1": 0.03,
+			"y1": 0.03,
+			"z1": 0,
+			"x2": 0.97,
+			"y2": 0.97,
+			"z2": 0.09,
+			"rotateY": 0
+		},
+		"*-loneoak-east": {
+			"x1": 0.03,
+			"y1": 0.03,
+			"z1": 0,
+			"x2": 0.97,
+			"y2": 0.97,
+			"z2": 0.09,
+			"rotateY": 270
+		},
+		"*-loneoak-south": {
+			"x1": 0.03,
+			"y1": 0.03,
+			"z1": 0,
+			"x2": 0.97,
+			"y2": 0.97,
+			"z2": 0.09,
+			"rotateY": 180
+		},
+		"*-loneoak-west": {
+			"x1": 0.03,
+			"y1": 0.03,
+			"z1": 0,
+			"x2": 0.97,
+			"y2": 0.97,
+			"z2": 0.09,
+			"rotateY": 90
+		},
+		"*-hoodedelder-north": {
+			"x1": 0.03,
+			"y1": 0.03,
+			"z1": 0,
+			"x2": 0.97,
+			"y2": 0.97,
+			"z2": 0.09,
+			"rotateY": 0
+		},
+		"*-hoodedelder-east": {
+			"x1": 0.03,
+			"y1": 0.03,
+			"z1": 0,
+			"x2": 0.97,
+			"y2": 0.97,
+			"z2": 0.09,
+			"rotateY": 270
+		},
+		"*-hoodedelder-south": {
+			"x1": 0.03,
+			"y1": 0.03,
+			"z1": 0,
+			"x2": 0.97,
+			"y2": 0.97,
+			"z2": 0.09,
+			"rotateY": 180
+		},
+		"*-hoodedelder-west": {
+			"x1": 0.03,
+			"y1": 0.03,
+			"z1": 0,
+			"x2": 0.97,
+			"y2": 0.97,
+			"z2": 0.09,
+			"rotateY": 90
+		},
+		"*-wolfmoon-north": {
+			"x1": 0.03,
+			"y1": 0.03,
+			"z1": 0,
+			"x2": 0.97,
+			"y2": 0.97,
+			"z2": 0.09,
+			"rotateY": 0
+		},
+		"*-wolfmoon-east": {
+			"x1": 0.03,
+			"y1": 0.03,
+			"z1": 0,
+			"x2": 0.97,
+			"y2": 0.97,
+			"z2": 0.09,
+			"rotateY": 270
+		},
+		"*-wolfmoon-south": {
+			"x1": 0.03,
+			"y1": 0.03,
+			"z1": 0,
+			"x2": 0.97,
+			"y2": 0.97,
+			"z2": 0.09,
+			"rotateY": 180
+		},
+		"*-wolfmoon-west": {
+			"x1": 0.03,
+			"y1": 0.03,
+			"z1": 0,
+			"x2": 0.97,
+			"y2": 0.97,
+			"z2": 0.09,
+			"rotateY": 90
+		},
+		"*-toadstool-north": {
+			"x1": 0.03,
+			"y1": 0.03,
+			"z1": 0,
+			"x2": 0.97,
+			"y2": 0.97,
+			"z2": 0.09,
+			"rotateY": 0
+		},
+		"*-toadstool-east": {
+			"x1": 0.03,
+			"y1": 0.03,
+			"z1": 0,
+			"x2": 0.97,
+			"y2": 0.97,
+			"z2": 0.09,
+			"rotateY": 270
+		},
+		"*-toadstool-south": {
+			"x1": 0.03,
+			"y1": 0.03,
+			"z1": 0,
+			"x2": 0.97,
+			"y2": 0.97,
+			"z2": 0.09,
+			"rotateY": 180
+		},
+		"*-toadstool-west": {
+			"x1": 0.03,
+			"y1": 0.03,
+			"z1": 0,
+			"x2": 0.97,
+			"y2": 0.97,
+			"z2": 0.09,
+			"rotateY": 90
+		},
+		"*-harvest-north": {
+			"x1": 0.03,
+			"y1": 0.03,
+			"z1": 0,
+			"x2": 1.97,
+			"y2": 0.97,
+			"z2": 0.09,
+			"rotateY": 0
+		},
+		"*-harvest-east": {
+			"x1": 0.03,
+			"y1": 0.03,
+			"z1": 0,
+			"x2": 1.97,
+			"y2": 0.97,
+			"z2": 0.09,
+			"rotateY": 270
+		},
+		"*-harvest-south": {
+			"x1": 0.03,
+			"y1": 0.03,
+			"z1": 0,
+			"x2": 1.97,
+			"y2": 0.97,
+			"z2": 0.09,
+			"rotateY": 180
+		},
+		"*-harvest-west": {
+			"x1": 0.03,
+			"y1": 0.03,
+			"z1": 0,
+			"x2": 1.97,
+			"y2": 0.97,
+			"z2": 0.09,
+			"rotateY": 90
+		},
+		"*-mountainlake-north": {
+			"x1": 0.03,
+			"y1": 0.03,
+			"z1": 0,
+			"x2": 1.97,
+			"y2": 0.97,
+			"z2": 0.09,
+			"rotateY": 0
+		},
+		"*-mountainlake-east": {
+			"x1": 0.03,
+			"y1": 0.03,
+			"z1": 0,
+			"x2": 1.97,
+			"y2": 0.97,
+			"z2": 0.09,
+			"rotateY": 270
+		},
+		"*-mountainlake-south": {
+			"x1": 0.03,
+			"y1": 0.03,
+			"z1": 0,
+			"x2": 1.97,
+			"y2": 0.97,
+			"z2": 0.09,
+			"rotateY": 180
+		},
+		"*-mountainlake-west": {
+			"x1": 0.03,
+			"y1": 0.03,
+			"z1": 0,
+			"x2": 1.97,
+			"y2": 0.97,
+			"z2": 0.09,
+			"rotateY": 90
+		},
+		"*-rivervillage-north": {
+			"x1": 0.03,
+			"y1": 0.03,
+			"z1": 0,
+			"x2": 1.97,
+			"y2": 0.97,
+			"z2": 0.09,
+			"rotateY": 0
+		},
+		"*-rivervillage-east": {
+			"x1": 0.03,
+			"y1": 0.03,
+			"z1": 0,
+			"x2": 1.97,
+			"y2": 0.97,
+			"z2": 0.09,
+			"rotateY": 270
+		},
+		"*-rivervillage-south": {
+			"x1": 0.03,
+			"y1": 0.03,
+			"z1": 0,
+			"x2": 1.97,
+			"y2": 0.97,
+			"z2": 0.09,
+			"rotateY": 180
+		},
+		"*-rivervillage-west": {
+			"x1": 0.03,
+			"y1": 0.03,
+			"z1": 0,
+			"x2": 1.97,
+			"y2": 0.97,
+			"z2": 0.09,
+			"rotateY": 90
+		},
+		"*-stormysea-north": {
+			"x1": 0.03,
+			"y1": 0.03,
+			"z1": 0,
+			"x2": 1.97,
+			"y2": 0.97,
+			"z2": 0.09,
+			"rotateY": 0
+		},
+		"*-stormysea-east": {
+			"x1": 0.03,
+			"y1": 0.03,
+			"z1": 0,
+			"x2": 1.97,
+			"y2": 0.97,
+			"z2": 0.09,
+			"rotateY": 270
+		},
+		"*-stormysea-south": {
+			"x1": 0.03,
+			"y1": 0.03,
+			"z1": 0,
+			"x2": 1.97,
+			"y2": 0.97,
+			"z2": 0.09,
+			"rotateY": 180
+		},
+		"*-stormysea-west": {
+			"x1": 0.03,
+			"y1": 0.03,
+			"z1": 0,
+			"x2": 1.97,
+			"y2": 0.97,
+			"z2": 0.09,
+			"rotateY": 90
+		},
+		"*-aurora-north": {
+			"x1": 0.03,
+			"y1": 0.03,
+			"z1": 0,
+			"x2": 1.97,
+			"y2": 0.97,
+			"z2": 0.09,
+			"rotateY": 0
+		},
+		"*-aurora-east": {
+			"x1": 0.03,
+			"y1": 0.03,
+			"z1": 0,
+			"x2": 1.97,
+			"y2": 0.97,
+			"z2": 0.09,
+			"rotateY": 270
+		},
+		"*-aurora-south": {
+			"x1": 0.03,
+			"y1": 0.03,
+			"z1": 0,
+			"x2": 1.97,
+			"y2": 0.97,
+			"z2": 0.09,
+			"rotateY": 180
+		},
+		"*-aurora-west": {
+			"x1": 0.03,
+			"y1": 0.03,
+			"z1": 0,
+			"x2": 1.97,
+			"y2": 0.97,
+			"z2": 0.09,
+			"rotateY": 90
+		},
+		"*-waterfall-north": {
+			"x1": 0.03,
+			"y1": 0.03,
+			"z1": 0,
+			"x2": 0.97,
+			"y2": 1.97,
+			"z2": 0.09,
+			"rotateY": 0
+		},
+		"*-waterfall-east": {
+			"x1": 0.03,
+			"y1": 0.03,
+			"z1": 0,
+			"x2": 0.97,
+			"y2": 1.97,
+			"z2": 0.09,
+			"rotateY": 270
+		},
+		"*-waterfall-south": {
+			"x1": 0.03,
+			"y1": 0.03,
+			"z1": 0,
+			"x2": 0.97,
+			"y2": 1.97,
+			"z2": 0.09,
+			"rotateY": 180
+		},
+		"*-waterfall-west": {
+			"x1": 0.03,
+			"y1": 0.03,
+			"z1": 0,
+			"x2": 0.97,
+			"y2": 1.97,
+			"z2": 0.09,
+			"rotateY": 90
+		},
+		"*-watchtower-north": {
+			"x1": 0.03,
+			"y1": 0.03,
+			"z1": 0,
+			"x2": 0.97,
+			"y2": 1.97,
+			"z2": 0.09,
+			"rotateY": 0
+		},
+		"*-watchtower-east": {
+			"x1": 0.03,
+			"y1": 0.03,
+			"z1": 0,
+			"x2": 0.97,
+			"y2": 1.97,
+			"z2": 0.09,
+			"rotateY": 270
+		},
+		"*-watchtower-south": {
+			"x1": 0.03,
+			"y1": 0.03,
+			"z1": 0,
+			"x2": 0.97,
+			"y2": 1.97,
+			"z2": 0.09,
+			"rotateY": 180
+		},
+		"*-watchtower-west": {
+			"x1": 0.03,
+			"y1": 0.03,
+			"z1": 0,
+			"x2": 0.97,
+			"y2": 1.97,
+			"z2": 0.09,
+			"rotateY": 90
+		},
+		"*-birchgrove-north": {
+			"x1": 0.03,
+			"y1": 0.03,
+			"z1": 0,
+			"x2": 0.97,
+			"y2": 1.97,
+			"z2": 0.09,
+			"rotateY": 0
+		},
+		"*-birchgrove-east": {
+			"x1": 0.03,
+			"y1": 0.03,
+			"z1": 0,
+			"x2": 0.97,
+			"y2": 1.97,
+			"z2": 0.09,
+			"rotateY": 270
+		},
+		"*-birchgrove-south": {
+			"x1": 0.03,
+			"y1": 0.03,
+			"z1": 0,
+			"x2": 0.97,
+			"y2": 1.97,
+			"z2": 0.09,
+			"rotateY": 180
+		},
+		"*-birchgrove-west": {
+			"x1": 0.03,
+			"y1": 0.03,
+			"z1": 0,
+			"x2": 0.97,
+			"y2": 1.97,
+			"z2": 0.09,
+			"rotateY": 90
+		},
+		"*-hillcastle-north": {
+			"x1": 0.03,
+			"y1": 0.03,
+			"z1": 0,
+			"x2": 1.97,
+			"y2": 1.97,
+			"z2": 0.09,
+			"rotateY": 0
+		},
+		"*-hillcastle-east": {
+			"x1": 0.03,
+			"y1": 0.03,
+			"z1": 0,
+			"x2": 1.97,
+			"y2": 1.97,
+			"z2": 0.09,
+			"rotateY": 270
+		},
+		"*-hillcastle-south": {
+			"x1": 0.03,
+			"y1": 0.03,
+			"z1": 0,
+			"x2": 1.97,
+			"y2": 1.97,
+			"z2": 0.09,
+			"rotateY": 180
+		},
+		"*-hillcastle-west": {
+			"x1": 0.03,
+			"y1": 0.03,
+			"z1": 0,
+			"x2": 1.97,
+			"y2": 1.97,
+			"z2": 0.09,
+			"rotateY": 90
+		},
+		"*-winterhunt-north": {
+			"x1": 0.03,
+			"y1": 0.03,
+			"z1": 0,
+			"x2": 1.97,
+			"y2": 1.97,
+			"z2": 0.09,
+			"rotateY": 0
+		},
+		"*-winterhunt-east": {
+			"x1": 0.03,
+			"y1": 0.03,
+			"z1": 0,
+			"x2": 1.97,
+			"y2": 1.97,
+			"z2": 0.09,
+			"rotateY": 270
+		},
+		"*-winterhunt-south": {
+			"x1": 0.03,
+			"y1": 0.03,
+			"z1": 0,
+			"x2": 1.97,
+			"y2": 1.97,
+			"z2": 0.09,
+			"rotateY": 180
+		},
+		"*-winterhunt-west": {
+			"x1": 0.03,
+			"y1": 0.03,
+			"z1": 0,
+			"x2": 1.97,
+			"y2": 1.97,
+			"z2": 0.09,
+			"rotateY": 90
+		},
+		"*-realmmap-north": {
+			"x1": 0.03,
+			"y1": 0.03,
+			"z1": 0,
+			"x2": 1.97,
+			"y2": 1.97,
+			"z2": 0.09,
+			"rotateY": 0
+		},
+		"*-realmmap-east": {
+			"x1": 0.03,
+			"y1": 0.03,
+			"z1": 0,
+			"x2": 1.97,
+			"y2": 1.97,
+			"z2": 0.09,
+			"rotateY": 270
+		},
+		"*-realmmap-south": {
+			"x1": 0.03,
+			"y1": 0.03,
+			"z1": 0,
+			"x2": 1.97,
+			"y2": 1.97,
+			"z2": 0.09,
+			"rotateY": 180
+		},
+		"*-realmmap-west": {
+			"x1": 0.03,
+			"y1": 0.03,
+			"z1": 0,
+			"x2": 1.97,
+			"y2": 1.97,
+			"z2": 0.09,
+			"rotateY": 90
+		}
+	},
+	"guiTransformByType": {
+		"*-berrybowl-*": {
+			"rotation": {
+				"x": -8,
+				"y": 20,
+				"z": 0
+			},
+			"origin": {
+				"x": 0.5,
+				"y": 0.5,
+				"z": 0.05
+			},
+			"scale": 1.25
+		},
+		"*-candlelight-*": {
+			"rotation": {
+				"x": -8,
+				"y": 20,
+				"z": 0
+			},
+			"origin": {
+				"x": 0.5,
+				"y": 0.5,
+				"z": 0.05
+			},
+			"scale": 1.25
+		},
+		"*-loneoak-*": {
+			"rotation": {
+				"x": -8,
+				"y": 20,
+				"z": 0
+			},
+			"origin": {
+				"x": 0.5,
+				"y": 0.5,
+				"z": 0.05
+			},
+			"scale": 1.25
+		},
+		"*-hoodedelder-*": {
+			"rotation": {
+				"x": -8,
+				"y": 20,
+				"z": 0
+			},
+			"origin": {
+				"x": 0.5,
+				"y": 0.5,
+				"z": 0.05
+			},
+			"scale": 1.25
+		},
+		"*-wolfmoon-*": {
+			"rotation": {
+				"x": -8,
+				"y": 20,
+				"z": 0
+			},
+			"origin": {
+				"x": 0.5,
+				"y": 0.5,
+				"z": 0.05
+			},
+			"scale": 1.25
+		},
+		"*-toadstool-*": {
+			"rotation": {
+				"x": -8,
+				"y": 20,
+				"z": 0
+			},
+			"origin": {
+				"x": 0.5,
+				"y": 0.5,
+				"z": 0.05
+			},
+			"scale": 1.25
+		},
+		"*-harvest-*": {
+			"rotation": {
+				"x": -8,
+				"y": 20,
+				"z": 0
+			},
+			"origin": {
+				"x": 1.0,
+				"y": 0.5,
+				"z": 0.05
+			},
+			"scale": 0.78
+		},
+		"*-mountainlake-*": {
+			"rotation": {
+				"x": -8,
+				"y": 20,
+				"z": 0
+			},
+			"origin": {
+				"x": 1.0,
+				"y": 0.5,
+				"z": 0.05
+			},
+			"scale": 0.78
+		},
+		"*-rivervillage-*": {
+			"rotation": {
+				"x": -8,
+				"y": 20,
+				"z": 0
+			},
+			"origin": {
+				"x": 1.0,
+				"y": 0.5,
+				"z": 0.05
+			},
+			"scale": 0.78
+		},
+		"*-stormysea-*": {
+			"rotation": {
+				"x": -8,
+				"y": 20,
+				"z": 0
+			},
+			"origin": {
+				"x": 1.0,
+				"y": 0.5,
+				"z": 0.05
+			},
+			"scale": 0.78
+		},
+		"*-aurora-*": {
+			"rotation": {
+				"x": -8,
+				"y": 20,
+				"z": 0
+			},
+			"origin": {
+				"x": 1.0,
+				"y": 0.5,
+				"z": 0.05
+			},
+			"scale": 0.78
+		},
+		"*-waterfall-*": {
+			"rotation": {
+				"x": -8,
+				"y": 20,
+				"z": 0
+			},
+			"origin": {
+				"x": 0.5,
+				"y": 1.0,
+				"z": 0.05
+			},
+			"scale": 0.78
+		},
+		"*-watchtower-*": {
+			"rotation": {
+				"x": -8,
+				"y": 20,
+				"z": 0
+			},
+			"origin": {
+				"x": 0.5,
+				"y": 1.0,
+				"z": 0.05
+			},
+			"scale": 0.78
+		},
+		"*-birchgrove-*": {
+			"rotation": {
+				"x": -8,
+				"y": 20,
+				"z": 0
+			},
+			"origin": {
+				"x": 0.5,
+				"y": 1.0,
+				"z": 0.05
+			},
+			"scale": 0.78
+		},
+		"*-hillcastle-*": {
+			"rotation": {
+				"x": -8,
+				"y": 20,
+				"z": 0
+			},
+			"origin": {
+				"x": 1.0,
+				"y": 1.0,
+				"z": 0.05
+			},
+			"scale": 0.78
+		},
+		"*-winterhunt-*": {
+			"rotation": {
+				"x": -8,
+				"y": 20,
+				"z": 0
+			},
+			"origin": {
+				"x": 1.0,
+				"y": 1.0,
+				"z": 0.05
+			},
+			"scale": 0.78
+		},
+		"*-realmmap-*": {
+			"rotation": {
+				"x": -8,
+				"y": 20,
+				"z": 0
+			},
+			"origin": {
+				"x": 1.0,
+				"y": 1.0,
+				"z": 0.05
+			},
+			"scale": 0.78
+		}
+	},
+	"tpHandTransformByType": {
+		"*-berrybowl-*": {
+			"translation": {
+				"x": -0.6,
+				"y": -0.3,
+				"z": -0.5
+			},
+			"rotation": {
+				"x": 0,
+				"y": 90,
+				"z": 0
+			},
+			"origin": {
+				"x": 0.5,
+				"y": 0.5,
+				"z": 0.05
+			},
+			"scale": 0.8
+		},
+		"*-candlelight-*": {
+			"translation": {
+				"x": -0.6,
+				"y": -0.3,
+				"z": -0.5
+			},
+			"rotation": {
+				"x": 0,
+				"y": 90,
+				"z": 0
+			},
+			"origin": {
+				"x": 0.5,
+				"y": 0.5,
+				"z": 0.05
+			},
+			"scale": 0.8
+		},
+		"*-loneoak-*": {
+			"translation": {
+				"x": -0.6,
+				"y": -0.3,
+				"z": -0.5
+			},
+			"rotation": {
+				"x": 0,
+				"y": 90,
+				"z": 0
+			},
+			"origin": {
+				"x": 0.5,
+				"y": 0.5,
+				"z": 0.05
+			},
+			"scale": 0.8
+		},
+		"*-hoodedelder-*": {
+			"translation": {
+				"x": -0.6,
+				"y": -0.3,
+				"z": -0.5
+			},
+			"rotation": {
+				"x": 0,
+				"y": 90,
+				"z": 0
+			},
+			"origin": {
+				"x": 0.5,
+				"y": 0.5,
+				"z": 0.05
+			},
+			"scale": 0.8
+		},
+		"*-wolfmoon-*": {
+			"translation": {
+				"x": -0.6,
+				"y": -0.3,
+				"z": -0.5
+			},
+			"rotation": {
+				"x": 0,
+				"y": 90,
+				"z": 0
+			},
+			"origin": {
+				"x": 0.5,
+				"y": 0.5,
+				"z": 0.05
+			},
+			"scale": 0.8
+		},
+		"*-toadstool-*": {
+			"translation": {
+				"x": -0.6,
+				"y": -0.3,
+				"z": -0.5
+			},
+			"rotation": {
+				"x": 0,
+				"y": 90,
+				"z": 0
+			},
+			"origin": {
+				"x": 0.5,
+				"y": 0.5,
+				"z": 0.05
+			},
+			"scale": 0.8
+		},
+		"*-harvest-*": {
+			"translation": {
+				"x": -0.6,
+				"y": -0.3,
+				"z": -0.5
+			},
+			"rotation": {
+				"x": 0,
+				"y": 90,
+				"z": 0
+			},
+			"origin": {
+				"x": 1.0,
+				"y": 0.5,
+				"z": 0.05
+			},
+			"scale": 0.5
+		},
+		"*-mountainlake-*": {
+			"translation": {
+				"x": -0.6,
+				"y": -0.3,
+				"z": -0.5
+			},
+			"rotation": {
+				"x": 0,
+				"y": 90,
+				"z": 0
+			},
+			"origin": {
+				"x": 1.0,
+				"y": 0.5,
+				"z": 0.05
+			},
+			"scale": 0.5
+		},
+		"*-rivervillage-*": {
+			"translation": {
+				"x": -0.6,
+				"y": -0.3,
+				"z": -0.5
+			},
+			"rotation": {
+				"x": 0,
+				"y": 90,
+				"z": 0
+			},
+			"origin": {
+				"x": 1.0,
+				"y": 0.5,
+				"z": 0.05
+			},
+			"scale": 0.5
+		},
+		"*-stormysea-*": {
+			"translation": {
+				"x": -0.6,
+				"y": -0.3,
+				"z": -0.5
+			},
+			"rotation": {
+				"x": 0,
+				"y": 90,
+				"z": 0
+			},
+			"origin": {
+				"x": 1.0,
+				"y": 0.5,
+				"z": 0.05
+			},
+			"scale": 0.5
+		},
+		"*-aurora-*": {
+			"translation": {
+				"x": -0.6,
+				"y": -0.3,
+				"z": -0.5
+			},
+			"rotation": {
+				"x": 0,
+				"y": 90,
+				"z": 0
+			},
+			"origin": {
+				"x": 1.0,
+				"y": 0.5,
+				"z": 0.05
+			},
+			"scale": 0.5
+		},
+		"*-waterfall-*": {
+			"translation": {
+				"x": -0.6,
+				"y": -0.3,
+				"z": -0.5
+			},
+			"rotation": {
+				"x": 0,
+				"y": 90,
+				"z": 0
+			},
+			"origin": {
+				"x": 0.5,
+				"y": 1.0,
+				"z": 0.05
+			},
+			"scale": 0.5
+		},
+		"*-watchtower-*": {
+			"translation": {
+				"x": -0.6,
+				"y": -0.3,
+				"z": -0.5
+			},
+			"rotation": {
+				"x": 0,
+				"y": 90,
+				"z": 0
+			},
+			"origin": {
+				"x": 0.5,
+				"y": 1.0,
+				"z": 0.05
+			},
+			"scale": 0.5
+		},
+		"*-birchgrove-*": {
+			"translation": {
+				"x": -0.6,
+				"y": -0.3,
+				"z": -0.5
+			},
+			"rotation": {
+				"x": 0,
+				"y": 90,
+				"z": 0
+			},
+			"origin": {
+				"x": 0.5,
+				"y": 1.0,
+				"z": 0.05
+			},
+			"scale": 0.5
+		},
+		"*-hillcastle-*": {
+			"translation": {
+				"x": -0.6,
+				"y": -0.3,
+				"z": -0.5
+			},
+			"rotation": {
+				"x": 0,
+				"y": 90,
+				"z": 0
+			},
+			"origin": {
+				"x": 1.0,
+				"y": 1.0,
+				"z": 0.05
+			},
+			"scale": 0.5
+		},
+		"*-winterhunt-*": {
+			"translation": {
+				"x": -0.6,
+				"y": -0.3,
+				"z": -0.5
+			},
+			"rotation": {
+				"x": 0,
+				"y": 90,
+				"z": 0
+			},
+			"origin": {
+				"x": 1.0,
+				"y": 1.0,
+				"z": 0.05
+			},
+			"scale": 0.5
+		},
+		"*-realmmap-*": {
+			"translation": {
+				"x": -0.6,
+				"y": -0.3,
+				"z": -0.5
+			},
+			"rotation": {
+				"x": 0,
+				"y": 90,
+				"z": 0
+			},
+			"origin": {
+				"x": 1.0,
+				"y": 1.0,
+				"z": 0.05
+			},
+			"scale": 0.5
+		}
+	},
+	"sounds": {
+		"place": "game:block/planks",
+		"break": "game:block/planks",
+		"hit": "game:block/planks"
+	}
+}
