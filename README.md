@@ -701,6 +701,10 @@ before shipping converted blueprints.
 
 ### The Town Hall window (0.24.0)
 
+### Town map land drawn black (0.81.0)
+- The Town map showed loaded land as solid black: its textures were made without a size, so nothing was
+  uploaded. They now get their size (256 by 256) up front, and get smaller copies for zooming far out.
+
 ### The Town map shows all loaded land (0.78.0)
 - The server draws every chunk near a colony that is loaded, whether a player or a settler loaded it (far
   workers keep their land loaded), in the world map's own colours and shading (`Map/ColonyLandMap.cs`). Each

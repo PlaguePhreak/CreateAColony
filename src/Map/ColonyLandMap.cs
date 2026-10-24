@@ -492,8 +492,12 @@ public class ColonyLandMap : ModSystem
                     }
                 }
             }
-            region.Texture ??= new LoadedTexture(capi);
+            // The texture needs its size up front: an unsized one uploads nothing and draws black.
+            if (region.Texture == null || region.Texture.Disposed) region.Texture = new LoadedTexture(capi, 0, RegionPixels, RegionPixels);
             capi.Render.LoadOrUpdateTextureFromRgba(pixels, false, 0, ref region.Texture);
+            // Smaller copies so the land still looks right when zoomed far out, as the world map does.
+            capi.Render.BindTexture2d(region.Texture.TextureId);
+            capi.Render.GlGenerateTex2DMipmaps();
         }
         return region.Empty || region.Texture == null ? 0 : region.Texture.TextureId;
     }
