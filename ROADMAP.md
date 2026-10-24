@@ -2,7 +2,7 @@
 
 Vintage Colonies brings the ideas of the Minecraft mod MineColonies to Vintage Story. This page shows what the mod has today (version 0.124.0), what it does not have yet, and the order we plan to build it in. It comes from a side-by-side check against the MineColonies wiki. Plans can change as things get tested in game.
 
-Everything listed under "What we have" and "Partly done" has been tested in game.
+Things marked *(tested)* have been tried in game. Everything else is built but still waiting for an in-game test.
 
 ## What we have
 
@@ -30,7 +30,7 @@ Everything listed under "What we have" and "Partly done" has been tested in game
 - Repair button on every hut: a builder puts the building back as its blueprint has it, takes out stray blocks and fills holes under it (0.118.0, not tested yet)
 - Healing: badly hurt settlers go home to bed to recover and use a bandage or poultice they carry; a Healer's Hut makes bandages and treats them; settlers make horsetail poultices; the Gatherer picks horsetail (0.117.0, placeholder model, no building yet, not tested yet)
 - Hunter's Hut: a hunter hunts wild animals and brings the meat and hides home; jobless settlers skin animals and cook simple meals at home (0.99.0, not tested yet)
-- Explorer's Hut and Gatherer's Hut: an explorer marks ore, clay, traders, animals and danger on a Colony markers map layer, and a gatherer forages berries, mushrooms and loose stones and marks plants; works with More Map Icons (0.77.0, placeholder models and buildings, not tested yet)
+- Explorer's Hut and Gatherer's Hut: an explorer marks ore, clay, traders, animals and danger on a Colony markers map layer, and a gatherer forages berries, mushrooms and loose stones and marks plants; works with More Map Icons (0.77.0, placeholder models and buildings, not tested yet). The gatherer also takes ore bits, wild crops, clay, peat, seashells, reeds, herbs and grass for dry grass, set on its Allowed to collect tab (0.91.0-0.121.0, not tested yet)
 - Vintage Colonies' own map icons: 120 waypoint icons covering every More Map Icons sheet entry, used by colony markers (0.79.0, not tested yet)
 - A marker icon for every ore, fruit, vegetable, grain, animal, trader and story location, other mods' too (0.80.0, not tested yet)
 - Paintings: 17 original framed paintings in four sizes, a blank canvas from 8 boards and 4 linen painted with buckets of dye in the grid, hung by builders from blueprints (0.105.0-0.105.1, not tested yet)
@@ -52,7 +52,15 @@ Everything listed under "What we have" and "Partly done" has been tested in game
 - Placing huts by hand without the wand or a colony, for making blueprints (`/colony handplace`, 0.49.0)
 - Builder's Wand with a see-through preview, turning, nudging, level preview and outlines of nearby buildings *(tested)*
 - Importing MineColonies blueprints with `/colony importmc` *(tested)*
-- Settlers run from attackers to home or a guard *(tested)*
+- Settlers run from attackers to home or a guard *(tested)*, and fight back when cornered (0.76.0, not tested yet)
+- Mineshaft Entrance with mine levels, ladders between them and a Levels tab; Remove hut for any building; old mines left derelict (0.76.0-0.96.0, not tested yet)
+- Colony militia tab, and settlers shown on the world map (0.85.0, not tested yet)
+- Settler Stats tab, and choosing who lives in each home (0.74.0-0.75.0, not tested yet)
+- Settlers move like players: torch pose, idle fidgets, sitting to eat and on breaks (0.83.0, not tested yet)
+- Corpses for players and settlers, grave markers on the map, and the cause of death in the settler list (0.77.0-0.94.0, not tested yet)
+- Town map shows all loaded land with free zoom (0.78.0, not tested yet)
+- Jobless settlers tend crops at home and help with hauling (0.53.0, not tested yet)
+- Wattle and daub building, a house type picker and Aaron's Dev's Builds houses and Cook's Huts (0.56.0-0.60.0, not tested yet)
 - Roads, ladder climbing, doors and gates, and Willpower for stuck settlers *(tested)*
 - Colony banners, furniture in blueprints, a quest book, and settlers who look like players and wear clothes and armor *(tested)*
 
@@ -62,10 +70,10 @@ Everything listed under "What we have" and "Partly done" has been tested in game
 - **Town Hall window**: alliances, happiness, reordering work orders, custom ranks, permission logs, auto hiring and housing, and enter and leave messages say "Coming later" *(tested)*
 - **Permissions**: no custom ranks, no hostile or neutral list, no log of who did what *(tested)*
 - **Requests**: no list players can see and fill (huts that make what others ask for came in 0.111.0)
-- **Hiring and housing**: no auto-hire switch, and homes can't be picked by hand *(tested)*
-- **Guards**: no ranged guards yet; the Barracks came in 0.54.0 *(not tested yet)*
+- **Hiring and housing**: no auto-hire switch (choosing who lives in each home came in 0.75.0)
+- **Guards**: no ranged guards yet; the Barracks came in 0.54.0 and the militia tab in 0.85.0 *(not tested yet)*
 - **Blueprints**: no in-game scan tool for your own buildings, and the wand's Education, Walls and Decoration tabs are still empty *(tested)*
-- **Death**: dead settlers are listed, but there are no graves or mourning *(tested)*
+- **Death**: corpses, grave markers and causes of death came in 0.77.0-0.94.0, but there is no graveyard or mourning yet
 - **Quests**: the quest book works, but Tavern jobs and settler requests are not in it yet *(tested)*
 - **Stash and Postbox**: drop-off points exist, but there is no postbox to order items to the player *(tested)*
 
