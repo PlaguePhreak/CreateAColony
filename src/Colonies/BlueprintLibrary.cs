@@ -72,6 +72,8 @@ public class MinePiece
     /// under it. A level piece: always 0, as it lines up by the middle of the hole in its top layer.
     /// </summary>
     public (int X, int Z) Shaft;
+    /// <summary>The entrance: where a Mineshaft Entrance's hut block sits in it (its createacolony:hut-mineshaftentrance block), as an offset; null when it has none.</summary>
+    public (int X, int Y, int Z)? HutSpot;
 
     readonly Dictionary<int, MinePiece> deeper = new();
 
@@ -98,7 +100,7 @@ public class MinePiece
         }
         // Digging first; the miner sorts the rest as it works (ColonyManager.ScanMineshaft).
         var steps = cells.Values.OrderBy(s => s.BlockId == 0 ? 0 : 1).ToList();
-        piece = new MinePiece { Name = Name, Steps = steps, Open = open, Min = (Min.X, Min.Y - repeats * Period, Min.Z), Max = Max, Period = Period, Markers = markers };
+        piece = new MinePiece { Name = Name, Steps = steps, Open = open, Min = (Min.X, Min.Y - repeats * Period, Min.Z), Max = Max, Period = Period, Markers = markers, Shaft = Shaft, HutSpot = HutSpot };
         deeper[repeats] = piece;
         return piece;
     }
@@ -140,6 +142,8 @@ public class BlueprintLibrary
         variant = VariantFor(style, type, variant);
         if (maxLevels.TryGetValue((style, type, variant), out int known)) return known;
         int max = 0;
+        if (type == BuildingTypes.MineshaftEntrance) max = EntranceStyle(style) != null ? 1 : 0;
+        else
         for (int level = 1; level <= MaxLevels; level++)
         {
             if (FindJson(style, type, variant, level) != null) max = level;
@@ -171,6 +175,12 @@ public class BlueprintLibrary
             if (rest.Length == 2) names.Add(rest[0]);
         }
         var list = new List<string>();
+        if (type == BuildingTypes.MineshaftEntrance)
+        {
+            if (EntranceStyle(style) != null) list.Add("");
+            variants[(style, type)] = list;
+            return list;
+        }
         if (FindJson(style, type, "", 1) != null) list.Add("");
         list.AddRange(names.Where(n => IsVariantName(n) && FindJson(style, type, n, 1) != null));
         variants[(style, type)] = list;
@@ -236,6 +246,7 @@ public class BlueprintLibrary
 
     Blueprint? Load(string style, string type, string variant, int level, int rotation)
     {
+        if (type == BuildingTypes.MineshaftEntrance) return EntranceBlueprint(style, level, rotation);
         string? json = FindJson(style, type, variant, level);
         if (variant != "") style += "/" + variant;
         if (json == null) return null;
@@ -371,6 +382,36 @@ public class BlueprintLibrary
     readonly Dictionary<(string, string, int), MinePiece?> mineCache = new();
 
     /// <summary>A mineshaft piece (blueprints/&lt;style&gt;/mineshaft/&lt;name&gt;.json) turned by rotation degrees, or null when there is none.</summary>
+    /// <summary>The pack a Mineshaft Entrance's mine pieces come from: its own, or the first with an entrance (as ColonyManager.MineshaftStyle).</summary>
+    public string? EntranceStyle(string style) =>
+        BlueprintStyles.All.Prepend(BlueprintStyles.Normalize(style)).FirstOrDefault(s => GetMinePiece(s, MineEntrance, 0) != null);
+
+    /// <summary>
+    /// A Mineshaft Entrance's building (Aaron, 0.95.0): its pack's mineshaft entrance piece, with the hut block on
+    /// the ground just outside it, on the side the player placed it from. It shows as the placement preview; the
+    /// linked Miner's Huts' miners dig and build it, never a builder.
+    /// </summary>
+    Blueprint? EntranceBlueprint(string style, int level, int rotation)
+    {
+        if (level != 1 || EntranceStyle(style) is not { } from || GetMinePiece(from, MineEntrance, rotation) is not { } piece) return null;
+        var (ex, ey, ez) = EntranceBlockSpot(piece, rotation);
+        var steps = piece.Steps.Where(s => (s.Dx, s.Dy, s.Dz) != (ex, ey, ez)).Select(s => s with { Dx = s.Dx - ex, Dy = s.Dy - ey, Dz = s.Dz - ez }).ToList();
+        return new Blueprint { Type = BuildingTypes.MineshaftEntrance, Level = 1, Steps = steps };
+    }
+
+    /// <summary>
+    /// Where the Mineshaft Entrance's hut block sits, in the entrance piece's offsets: where the piece has its hut
+    /// block, else on the ground just outside the middle of its side towards the player.
+    /// </summary>
+    public static (int X, int Y, int Z) EntranceBlockSpot(MinePiece piece, int rotation)
+    {
+        if (piece.HutSpot is { } spot) return spot;
+        var towards = BlockFacing.HORIZONTALS_ANGLEORDER[GameMath.Mod(rotation / 90, 4)].Normali;
+        int midX = (piece.Min.X + piece.Max.X) / 2, midZ = (piece.Min.Z + piece.Max.Z) / 2;
+        if (towards.X != 0) return (towards.X > 0 ? piece.Max.X + 1 : piece.Min.X - 1, 1, midZ);
+        return (midX, 1, towards.Z > 0 ? piece.Max.Z + 1 : piece.Min.Z - 1);
+    }
+
     public MinePiece? GetMinePiece(string style, string name, int rotation)
     {
         style = BlueprintStyles.Normalize(style);
@@ -462,11 +503,20 @@ public class BlueprintLibrary
         var solid = new List<BuildStep>();
         var decor = new List<BuildStep>();
         var markers = new HashSet<(int X, int Y, int Z)>();
+        (int X, int Y, int Z)? hutSpot = null;
         for (int dy = sy - 1; dy >= 0; dy--)
         for (int dx = 0; dx < sx; dx++)
         for (int dz = 0; dz < sz; dz++)
         {
             blocks.TryGetValue((dx, dy, dz), out var block);
+            // Where the Mineshaft Entrance's hut block goes (Aaron's surface example, 0.95.0): the spot is dug out
+            // like air for a Miner's Hut's own mine; a Mineshaft Entrance stands there itself.
+            if (block?.Code?.Path == "hut-" + BuildingTypes.MineshaftEntrance)
+            {
+                hutSpot = (dx - ax, dy - ay, dz - az);
+                digs.Add(new BuildStep(dx - ax, dy - ay, dz - az, 0));
+                continue;
+            }
             // A waypoint sits in the floor where the tunnels start: the miner lays the floor's planks there (the
             // block beside it in the floor), never fill.
             // In a section, waypoints standing above the floor fill a doorway (Aaron's corner marks its far end so):
@@ -629,7 +679,7 @@ public class BlueprintLibrary
         {
             Name = name, Steps = digs.Concat(solid).Concat(decor).ToList(), Open = open,
             Min = (-ax, -ay, -az), Max = (sx - 1 - ax, (level ? sy : sy - 1) - ay, sz - 1 - az),
-            Period = period, Markers = markers,
+            Period = period, Markers = markers, HutSpot = entrance ? hutSpot : null,
             Shaft = entrance && hole is { } shaft ? (shaft.X - ax, shaft.Z - az) : (0, 0)
         };
     }

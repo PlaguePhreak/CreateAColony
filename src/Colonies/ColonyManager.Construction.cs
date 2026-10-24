@@ -162,6 +162,7 @@ public partial class ColonyManager
     {
         if (building.HasWorkOrder) return "createacolony:build-already";
         if (building.Removing) return "createacolony:remove-already";
+        if (building.Type == BuildingTypes.MineshaftEntrance) return StartEntrance(colony, building);
         int next = building.Level + 1;
         if (Blueprints.Get(building, next) == null) return "createacolony:build-no-blueprint";
 

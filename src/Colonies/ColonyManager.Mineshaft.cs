@@ -54,7 +54,7 @@ public partial class ColonyManager
         if (mine.MineshaftPos == null)
         {
             // A new mine beside its hut (or its Mineshaft Entrance); it keeps this turn and pack if it moves to another hut later.
-            mine.MineshaftPos = SpotBeside(colony, mine, half);
+            mine.MineshaftPos = mine.Type == BuildingTypes.MineshaftEntrance ? EntranceMinePos(mine, entrance) : SpotBeside(colony, mine, half);
             if (mine.MineshaftPos == null) return null;
             mine.MineRotation = mine.MineTurn;
             mine.MineStyle = style;
@@ -128,6 +128,12 @@ public partial class ColonyManager
         var ba = sapi.World.BlockAccessor;
         ShaftFor(colony, hut, out bool marked);
         var (boxes, keep) = DigLimits(colony, hut, marked);
+        // A Mineshaft Entrance's box is the mine's own entrance, which the miners dig.
+        if (hut.Mine != hut && BuildingBox(hut.Mine) is var own)
+        {
+            boxes = boxes.Where(b => !(b.Min.Equals(own.Min) && b.Max.Equals(own.Max))).ToList();
+            keep.Add(hut.Mine.HutPos.Copy());
+        }
         // The hut's own blueprint blocks (keep) stay, even where a piece would dig or build.
         var cells = MineshaftCells(pieces);
 
@@ -369,7 +375,7 @@ public partial class ColonyManager
         if (mine.Sections.Count >= limit || MineshaftStyle(hut) is not { } style) return false;
         int levels = MineshaftLevelsOpen(hut, pieces);
         var rand = sapi.World.Rand;
-        var others = colony.Buildings.Where(b => b != hut).Select(b => BuildingBox(b)).ToList();
+        var others = colony.Buildings.Where(b => b != hut && b != mine).Select(b => BuildingBox(b)).ToList();
         // The entrance and the level pieces are big rooms in a lot of untouched rock, so sections only keep off
         // the spots they dig and build; sections keep off each other's whole box, as before.
         var hubs = pieces.Where(IsHub).ToList();

@@ -31,7 +31,8 @@ public partial class ColonyManager
         LetWorkersGo(colony, building);
 
         // Nothing built yet: the block comes straight back.
-        if (building.Level == 0)
+        // A Mineshaft Entrance's building is its mine, which is never taken down.
+        if (building.Level == 0 || building.Type == BuildingTypes.MineshaftEntrance)
         {
             building.RemovedBy = player.PlayerUID;
             TakeHutBlock(colony, building, null);

@@ -747,6 +747,15 @@ Built in from [Player Corpse](https://mods.vintagestory.at/playercorpse) by DArk
   Choosing an ore on the Ore tab turns it back on.
 - Building field 160 (CollectOff), ColonyAction 160 (SetCollect), ColonyManager.Collecting.cs. Not tested in game.
 
+### The Mineshaft Entrance's building (0.95.0)
+- Aaron saw the Mineshaft Entrance had no building. Its building is now the pack's mine entrance piece: the
+  placement outline shows it, and Build (or the first linked miner) sets the mine there. Linked miners dig and
+  build it; builders never do, and Remove hut gives the block straight back and leaves the mine.
+- Where the hut block sits comes from Aaron's surface example: entrance.json now has a
+  createacolony:hut-mineshaftentrance block at (7, 12, 7), on the ground layer beside the shaft. A pack whose
+  entrance has none puts the block just outside the entrance, on the side the player stood.
+- The miners no longer treat the entrance building's box as off limits, and never dig the hut block. Not tested in game.
+
 ### Remove hut and the Mineshaft Entrance (0.90.0)
 - **Remove hut** (Main tab, build options, officers): press it twice. The hut's workers lose their job at once,
   a builder takes the building down from the top, and the hut block goes back to the player who pressed it (into

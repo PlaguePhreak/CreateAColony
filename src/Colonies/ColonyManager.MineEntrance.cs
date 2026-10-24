@@ -21,6 +21,36 @@ public partial class ColonyManager
 
     static int Sideways(BlockPos a, BlockPos b) => Math.Max(Math.Abs(a.X - b.X), Math.Abs(a.Z - b.Z));
 
+    /// <summary>Where a Mineshaft Entrance's own mine starts: lined up with its building's preview, beside the hut block.</summary>
+    BlockPos EntranceMinePos(Building entrance, MinePiece piece)
+    {
+        // The piece's anchor is the ground under MineshaftPos; the hut block is at the spot's offset from it.
+        var (ex, ey, ez) = BlueprintLibrary.EntranceBlockSpot(piece, entrance.Rotation);
+        return entrance.HutPos.AddCopy(entrance.XOffset - ex, entrance.YOffset - ey + 1, entrance.ZOffset - ez);
+    }
+
+    /// <summary>
+    /// Build on a Mineshaft Entrance: no builder; it starts its mine where the preview showed (unless it already
+    /// has one), and the linked Miner's Huts' miners dig and build it.
+    /// </summary>
+    string? StartEntrance(Colony colony, Building entrance)
+    {
+        if (entrance.Level >= 1) return "createacolony:build-already";
+        if (!entrance.HasMine)
+        {
+            if (Blueprints.EntranceStyle(entrance.Style) is not { } style || Blueprints.GetMinePiece(style, BlueprintLibrary.MineEntrance, entrance.Rotation) is not { } piece)
+                return "createacolony:build-no-blueprint";
+            entrance.MineshaftPos = EntranceMinePos(entrance, piece);
+            entrance.MineRotation = entrance.Rotation;
+            entrance.MineStyle = style;
+        }
+        entrance.Level = 1;
+        LogEvent(colony, "event-built", "@building-" + entrance.Type, "1");
+        MarkDirty(colony);
+        RefreshClaim(colony);
+        return null;
+    }
+
     /// <summary>The building whose level sets how deep the mine goes: the highest linked Miner's Hut, or the building itself.</summary>
     public static Building LevelHut(Building hut) =>
         hut.Mine.LinkedHuts.Count > 0 ? hut.Mine.LinkedHuts.OrderByDescending(h => h.Level).First() : hut;
@@ -113,12 +143,15 @@ public partial class ColonyManager
             if (hut != null)
             {
                 MoveMine(hut, building);
+                building.Level = 1;
                 hut.MineEntranceId = building.BuildingId;
                 colony.LinkMines();
                 MarkDirty(colony);
                 return "createacolony:entrance-took-hut";
             }
-            return AdoptDerelict(colony, building, building.HutPos, EntranceReach) ? "createacolony:entrance-took-derelict" : "createacolony:entrance-new";
+            if (!AdoptDerelict(colony, building, building.HutPos, EntranceReach)) return "createacolony:entrance-new";
+            building.Level = 1;
+            return "createacolony:entrance-took-derelict";
         }
         if (building.Type == BuildingTypes.Miner)
         {
