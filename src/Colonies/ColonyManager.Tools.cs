@@ -16,7 +16,7 @@ public partial class ColonyManager
 {
     public readonly record struct ToolNeed(EnumTool Type, int Tier);
 
-    static readonly EnumTool[] BuilderTools = { EnumTool.Shovel, EnumTool.Axe, EnumTool.Pickaxe };
+    static readonly EnumTool[] BuilderTools = { EnumTool.Shovel, EnumTool.Axe, EnumTool.Pickaxe, EnumTool.Hoe };
     readonly Dictionary<EnumTool, ItemStack?> toolSamples = new();
 
     public static EnumTool? ToolFor(Block block) => block.BlockMaterial switch
@@ -50,6 +50,8 @@ public partial class ColonyManager
     public ToolNeed? ToolNeededAt(Colony colony, BuildStep step, BlockPos pos)
     {
         if (!Config.BuildersNeedTools) return null;
+        // Soil where the blueprint has farmland: a hoe to till it.
+        if (Tilling(step, pos)) return new ToolNeed(EnumTool.Hoe, 0);
         var block = sapi.World.BlockAccessor.GetBlock(pos);
         if (block.Id == 0 || block.IsLiquid() || KeepsBlock(colony, block, step.BlockId, pos)) return null;
         return ToolFor(block) is { } type ? new ToolNeed(type, block.RequiredMiningTier) : null;

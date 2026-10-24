@@ -753,7 +753,9 @@ Built in from [Player Corpse](https://mods.vintagestory.at/playercorpse) by DArk
 - Wattle and daub was asked for as the finished daub blocks (one line per stage). Daub is now known by its code
   as well as its class, and raw daub is looked for again if it wasn't found the first time, so the list asks
   for wattle fences and raw daub and the builder makes the daub on the spot.
-- Farmland counts however wet or fertile it is, and costs any soil. Soil counts as any soil (farmland too), and
+- Farmland counts however wet or fertile it is. Players can't pick farmland up in survival, so the builder makes
+  it: soil goes down first (any soil, placed as the kind brought), then the builder tills it with a hoe, as a
+  player does. The Builder's Hut asks for a hoe when it needs one, and keeps hoes like its other tools. Soil counts as any soil (farmland too), and
   the list says "Soil (any kind)". Not tested in game.
 
 ### The Mineshaft Entrance's preview (0.96.0)

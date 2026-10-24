@@ -89,7 +89,8 @@ public partial class ColonyManager
 
     /// <summary>True when the block is a half-built step towards the blueprint's block, so it must not be torn down.</summary>
     public bool InProgress(Colony colony, Block current, int targetId, BlockPos pos) =>
-        current is BlockFirepit pit && !IsStoneOvenBlock(pit) && pit.Stage < FirepitReady && sapi.World.GetBlock(targetId) is BlockFirepit want && !IsStoneOvenBlock(want)
+        IsSoil(current) && sapi.World.GetBlock(targetId) is { } field && IsFarmland(field)
+        || current is BlockFirepit pit && !IsStoneOvenBlock(pit) && pit.Stage < FirepitReady && sapi.World.GetBlock(targetId) is BlockFirepit want && !IsStoneOvenBlock(want)
         || DaubInProgress(colony, current, VariedDaub(sapi.World.GetBlock(targetId), pos));
 
     /// <summary>True when the two blocks' codes differ at most in the given variant groups.</summary>
@@ -158,6 +159,15 @@ public partial class ColonyManager
             var start = sapi.World.GetBlock(new AssetLocation("game:firepit-construct1"));
             if (start != null) return (start, Costs(ItemCost("game:drygrass", 1)));
         }
+        // Farmland: soil first, then the builder tills it with a hoe (ColonyManager.Tilling.cs).
+        if (IsFarmland(target))
+        {
+            var here = sapi.World.BlockAccessor.GetBlock(pos);
+            if (IsSoil(here)) return (TilledFrom(here) ?? target, Array.Empty<MaterialCost>());
+            var soil = sapi.World.GetBlock(new AssetLocation("game", "soil-" + target.LastCodePart(0) + "-none"))
+                ?? sapi.World.GetBlock(new AssetLocation("game:soil-medium-none"));
+            if (soil != null) return (soil, Costs(PickCost(colony, soil, pos)));
+        }
         if (DaubPlacement(colony, VariedDaub(target, pos), pos) is { } daub) return daub;
         if (Config.BuildersNeedMaterials && PlacedItemCosts(step, target, pos, colony.AnyWoodOrStone) is { } placed) return (target, placed);
         // A roof's planks and logs, like every other block's, may be any wood when the colony allows it.
@@ -192,6 +202,8 @@ public partial class ColonyManager
     /// <summary>The block actually placed: the blueprint's, or the same block in the wood or stone the builder brought.</summary>
     public Block SwapToMaterial(Colony colony, Block place, ItemStack? used)
     {
+        // Any soil will do, so the soil goes down as the kind the builder brought (and farmland tilled from it is as fertile).
+        if (IsSoil(place) && used?.Block is { } broughtSoil && IsSoil(broughtSoil)) return broughtSoil;
         if (!colony.AnyWoodOrStone || used == null) return place;
         if (SwapDaubColor(place, used) is { } recoloured) return recoloured;
         foreach (string v in SwappableVariants)
@@ -230,9 +242,8 @@ public partial class ColonyManager
         var key = (block.Id, colony.AnyWoodOrStone);
         if (pickCostCache.TryGetValue(key, out var cached)) return cached;
 
-        // Soil with grass on it cannot be picked up as such; any soil will do to fill a hole in the ground, and
-        // farmland is tilled from any soil.
-        if (IsSoil(block) || IsFarmland(block))
+        // Soil with grass on it cannot be picked up as such; any soil will do to fill a hole in the ground.
+        if (IsSoil(block))
         {
             var bare = sapi.World.GetBlock(new AssetLocation("game:soil-medium-none")) ?? block;
             var soil = new MaterialCost("game:soil-*", new ItemStack(bare), 1);

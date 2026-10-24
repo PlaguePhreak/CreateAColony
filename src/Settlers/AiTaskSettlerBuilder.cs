@@ -380,7 +380,7 @@ public class AiTaskSettlerBuilder : SettlerTaskBase
         if (hand == null) return;
         var current = entity.World.BlockAccessor.GetBlock(target);
         bool clearing = current.Id != 0 && !manager!.KeepsBlock(colony, current, buildStep.BlockId, target);
-        var need = clearing ? manager!.ToolNeededAt(colony, buildStep, target) : null;
+        var need = clearing || manager!.Tilling(buildStep, target) ? manager!.ToolNeededAt(colony, buildStep, target) : null;
         if (need == null)
         {
             PutAwayHand(colony, citizen);
@@ -431,6 +431,22 @@ public class AiTaskSettlerBuilder : SettlerTaskBase
             }
         }
         if (buildStep.BlockId == 0) return;
+
+        // Soil where farmland goes: till it with the hoe in hand, as a player does.
+        if (manager.Tilling(buildStep, target))
+        {
+            var hoe = Hand;
+            if (!ColonyManager.ToolFits(hoe?.Itemstack, EnumTool.Hoe, 0) && manager.Config.BuildersNeedTools) return;
+            if (!manager.TillSoil(target)) return;
+            if (hoe?.Itemstack != null && ColonyManager.ToolFits(hoe.Itemstack, EnumTool.Hoe, 0))
+            {
+                hoe.Itemstack.Collectible.DamageItem(entity.World, entity, hoe);
+                SyncHand();
+            }
+            manager.GainWorkXp(colony, citizen, Jobs.Builder);
+            if (manager.EnsureBuilderHut(colony, citizen) is { } tilledFor) manager.AddStat(tilledFor, "blocks-placed");
+            return;
+        }
 
         var (place, costs) = manager.NextPlacement(colony, buildStep, target);
         var paid = new List<ItemStack>();
