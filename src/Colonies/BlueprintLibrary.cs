@@ -871,6 +871,7 @@ public static class BuildingTypes
     public const string Smelter = "smelter";
     public const string Blacksmith = "blacksmith";
     public const string Sawmill = "sawmill";
+    public const string Craftsman = "craftsman";
     public const string Explorer = "explorer";
     public const string Gatherer = "gatherer";
     public const string Hunter = "hunter";

@@ -183,6 +183,14 @@ hunter=shape(["sides","planks","log","metal","hide","meat"], base+[
   box("Hide",[8,10,13.3],[14,17,13.7],"hide"),
   box("Meat",[8,9,5],[13,11,9],"meat"),
 ])
+# Primitive Craftsman: a flat knapping stone with flint on it, and a stone axe and spear leaning by it.
+craftsman=shape(["sides","planks","stone","flint","log"], base+[
+  box("Anvil",[4,9,4],[11,11,10],"stone"),
+  box("Flint1",[5,11,5],[7.5,12,7],"flint"), box("Flint2",[8,11,6.5],[9.5,11.8,8.5],"flint"),
+  box("Chip1",[11.5,9,4],[12.3,9.3,4.8],"flint"), box("Chip2",[3,9,11],[3.8,9.3,11.6],"flint"),
+  box("Haft",[12.5,9,11],[13.3,18,11.8],"log"), box("AxeHead",[11,16,10.9],[12.5,18,11.9],"flint"),
+  box("Spear",[2,9,12.5],[2.8,21,13.3],"log"), box("SpearTip",[1.9,21,12.4],[2.9,22.5,13.4],"flint"),
+])
 # Mineshaft Entrance: a timber frame over a dark hole, with a ladder going down.
 entrance=shape(["sides","planks","log","dark","ladder"], base+[
   box("Hole",[4,9,4],[12,9.2,12],"dark"),
@@ -198,5 +206,5 @@ if __name__ == "__main__":
     out = sys.argv[1] if len(sys.argv) > 1 else os.path.join(os.path.dirname(__file__), "../../assets/createacolony/shapes/block")
     for name, (tex, el) in models.items():
         json.dump(shape(tex, base + el), open(f"{out}/{name}.json", "w"), indent=1)
-    for name, model in {"hut-smelter": smelter, "hut-blacksmith": smith, "hut-sawmill": saw, "hut-barracks": barracks, "hut-explorer": explorer, "hut-gatherer": gatherer, "hut-hunter": hunter, "hut-mineshaftentrance": entrance, "supplycamp": camp, "fieldmarker": crow}.items():
+    for name, model in {"hut-smelter": smelter, "hut-blacksmith": smith, "hut-sawmill": saw, "hut-barracks": barracks, "hut-explorer": explorer, "hut-gatherer": gatherer, "hut-hunter": hunter, "hut-craftsman": craftsman, "hut-mineshaftentrance": entrance, "supplycamp": camp, "fieldmarker": crow}.items():
         json.dump(model, open(f"{out}/{name}.json", "w"), indent=1)

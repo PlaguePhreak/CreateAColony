@@ -284,6 +284,7 @@ public class ColonyConfig
         ["smelter"] = 30,
         ["blacksmith"] = 30,
         ["sawmill"] = 30,
+        ["craftsman"] = 30,
         ["barracks"] = 40,
         ["explorer"] = 30,
         ["gatherer"] = 30,
@@ -427,7 +428,7 @@ public class ColonyConfig
     /// <summary>The "Keep in stock" amounts the Kitchen tab offers.</summary>
     public int[] KitchenKeepChoices = { 0, 2, 4, 8, 16, 32, 64 };
 
-    // Crafter huts (Smelter, Blacksmith, Sawmill)
+    // Crafter huts (Smelter, Blacksmith, Sawmill, Primitive Craftsman)
     /// <summary>The "Keep in stock" amounts the Smelting, Smithing and Sawmill tabs offer.</summary>
     public int[] CraftKeepChoices = { 0, 1, 2, 4, 8, 16, 32, 64 };
 
@@ -493,6 +494,27 @@ public class ColonyConfig
     public System.Collections.Generic.Dictionary<string, int> SawmillDefaultKeep = new()
     {
         ["game:plank-*"] = 16
+    };
+
+    // Primitive Craftsman
+    /// <summary>Seconds between the craftsman's strikes when knapping a stone.</summary>
+    public float CraftsmanSecondsPerStrike = 1.5f;
+    /// <summary>Strikes it takes to knap one stone into a tool head.</summary>
+    public int CraftsmanStrikes = 8;
+    /// <summary>Seconds the craftsman takes to put a head on its handle.</summary>
+    public float CraftsmanSecondsPerHaft = 4f;
+    /// <summary>Haftings that take more than this many other things (sticks and the like) are left to players.</summary>
+    public int CraftsmanMaxHandleParts = 4;
+    /// <summary>The most stones (or handles) the craftsman fetches or asks couriers for at once.</summary>
+    public int CraftsmanBatch = 4;
+    /// <summary>What a new Primitive Craftsman keeps in stock until an officer changes it, by code (wildcards allowed). Everything else is 0.</summary>
+    public System.Collections.Generic.Dictionary<string, int> CraftsmanDefaultKeep = new()
+    {
+        ["game:axe-*flint"] = 2,
+        ["game:knife-*flint"] = 2,
+        ["game:shovel-*flint"] = 2,
+        ["game:hoe-*flint"] = 2,
+        ["game:spear-*flint"] = 2
     };
 
     // Crafting recipes tab (huts that are not crafter huts)

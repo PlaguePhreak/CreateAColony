@@ -1,0 +1,772 @@
+{
+ "textureWidth": 16,
+ "textureHeight": 16,
+ "textures": {
+  "sides": "sides",
+  "planks": "planks",
+  "stone": "stone",
+  "flint": "flint",
+  "log": "log"
+ },
+ "elements": [
+  {
+   "name": "Crate",
+   "from": [
+    1,
+    0,
+    1
+   ],
+   "to": [
+    15,
+    8,
+    15
+   ],
+   "faces": {
+    "north": {
+     "texture": "#sides",
+     "uv": [
+      0,
+      0,
+      14,
+      8
+     ]
+    },
+    "east": {
+     "texture": "#sides",
+     "uv": [
+      0,
+      0,
+      14,
+      8
+     ]
+    },
+    "south": {
+     "texture": "#sides",
+     "uv": [
+      0,
+      0,
+      14,
+      8
+     ]
+    },
+    "west": {
+     "texture": "#sides",
+     "uv": [
+      0,
+      0,
+      14,
+      8
+     ]
+    },
+    "up": {
+     "texture": "#sides",
+     "uv": [
+      0,
+      0,
+      14,
+      14
+     ]
+    },
+    "down": {
+     "texture": "#sides",
+     "uv": [
+      0,
+      0,
+      14,
+      14
+     ]
+    }
+   }
+  },
+  {
+   "name": "Lid",
+   "from": [
+    0,
+    8,
+    0
+   ],
+   "to": [
+    16,
+    9,
+    16
+   ],
+   "faces": {
+    "north": {
+     "texture": "#planks",
+     "uv": [
+      0,
+      0,
+      16,
+      1
+     ]
+    },
+    "east": {
+     "texture": "#planks",
+     "uv": [
+      0,
+      0,
+      16,
+      1
+     ]
+    },
+    "south": {
+     "texture": "#planks",
+     "uv": [
+      0,
+      0,
+      16,
+      1
+     ]
+    },
+    "west": {
+     "texture": "#planks",
+     "uv": [
+      0,
+      0,
+      16,
+      1
+     ]
+    },
+    "up": {
+     "texture": "#planks",
+     "uv": [
+      0,
+      0,
+      16,
+      16
+     ]
+    },
+    "down": {
+     "texture": "#planks",
+     "uv": [
+      0,
+      0,
+      16,
+      16
+     ]
+    }
+   }
+  },
+  {
+   "name": "Anvil",
+   "from": [
+    4,
+    9,
+    4
+   ],
+   "to": [
+    11,
+    11,
+    10
+   ],
+   "faces": {
+    "north": {
+     "texture": "#stone",
+     "uv": [
+      0,
+      0,
+      7,
+      2
+     ]
+    },
+    "east": {
+     "texture": "#stone",
+     "uv": [
+      0,
+      0,
+      6,
+      2
+     ]
+    },
+    "south": {
+     "texture": "#stone",
+     "uv": [
+      0,
+      0,
+      7,
+      2
+     ]
+    },
+    "west": {
+     "texture": "#stone",
+     "uv": [
+      0,
+      0,
+      6,
+      2
+     ]
+    },
+    "up": {
+     "texture": "#stone",
+     "uv": [
+      0,
+      0,
+      7,
+      6
+     ]
+    },
+    "down": {
+     "texture": "#stone",
+     "uv": [
+      0,
+      0,
+      7,
+      6
+     ]
+    }
+   }
+  },
+  {
+   "name": "Flint1",
+   "from": [
+    5,
+    11,
+    5
+   ],
+   "to": [
+    7.5,
+    12,
+    7
+   ],
+   "faces": {
+    "north": {
+     "texture": "#flint",
+     "uv": [
+      0,
+      0,
+      2.5,
+      1
+     ]
+    },
+    "east": {
+     "texture": "#flint",
+     "uv": [
+      0,
+      0,
+      2,
+      1
+     ]
+    },
+    "south": {
+     "texture": "#flint",
+     "uv": [
+      0,
+      0,
+      2.5,
+      1
+     ]
+    },
+    "west": {
+     "texture": "#flint",
+     "uv": [
+      0,
+      0,
+      2,
+      1
+     ]
+    },
+    "up": {
+     "texture": "#flint",
+     "uv": [
+      0,
+      0,
+      2.5,
+      2
+     ]
+    },
+    "down": {
+     "texture": "#flint",
+     "uv": [
+      0,
+      0,
+      2.5,
+      2
+     ]
+    }
+   }
+  },
+  {
+   "name": "Flint2",
+   "from": [
+    8,
+    11,
+    6.5
+   ],
+   "to": [
+    9.5,
+    11.8,
+    8.5
+   ],
+   "faces": {
+    "north": {
+     "texture": "#flint",
+     "uv": [
+      0,
+      0,
+      1.5,
+      0.8
+     ]
+    },
+    "east": {
+     "texture": "#flint",
+     "uv": [
+      0,
+      0,
+      2.0,
+      0.8
+     ]
+    },
+    "south": {
+     "texture": "#flint",
+     "uv": [
+      0,
+      0,
+      1.5,
+      0.8
+     ]
+    },
+    "west": {
+     "texture": "#flint",
+     "uv": [
+      0,
+      0,
+      2.0,
+      0.8
+     ]
+    },
+    "up": {
+     "texture": "#flint",
+     "uv": [
+      0,
+      0,
+      1.5,
+      2.0
+     ]
+    },
+    "down": {
+     "texture": "#flint",
+     "uv": [
+      0,
+      0,
+      1.5,
+      2.0
+     ]
+    }
+   }
+  },
+  {
+   "name": "Chip1",
+   "from": [
+    11.5,
+    9,
+    4
+   ],
+   "to": [
+    12.3,
+    9.3,
+    4.8
+   ],
+   "faces": {
+    "north": {
+     "texture": "#flint",
+     "uv": [
+      0,
+      0,
+      0.8,
+      0.3
+     ]
+    },
+    "east": {
+     "texture": "#flint",
+     "uv": [
+      0,
+      0,
+      0.8,
+      0.3
+     ]
+    },
+    "south": {
+     "texture": "#flint",
+     "uv": [
+      0,
+      0,
+      0.8,
+      0.3
+     ]
+    },
+    "west": {
+     "texture": "#flint",
+     "uv": [
+      0,
+      0,
+      0.8,
+      0.3
+     ]
+    },
+    "up": {
+     "texture": "#flint",
+     "uv": [
+      0,
+      0,
+      0.8,
+      0.8
+     ]
+    },
+    "down": {
+     "texture": "#flint",
+     "uv": [
+      0,
+      0,
+      0.8,
+      0.8
+     ]
+    }
+   }
+  },
+  {
+   "name": "Chip2",
+   "from": [
+    3,
+    9,
+    11
+   ],
+   "to": [
+    3.8,
+    9.3,
+    11.6
+   ],
+   "faces": {
+    "north": {
+     "texture": "#flint",
+     "uv": [
+      0,
+      0,
+      0.8,
+      0.3
+     ]
+    },
+    "east": {
+     "texture": "#flint",
+     "uv": [
+      0,
+      0,
+      0.6,
+      0.3
+     ]
+    },
+    "south": {
+     "texture": "#flint",
+     "uv": [
+      0,
+      0,
+      0.8,
+      0.3
+     ]
+    },
+    "west": {
+     "texture": "#flint",
+     "uv": [
+      0,
+      0,
+      0.6,
+      0.3
+     ]
+    },
+    "up": {
+     "texture": "#flint",
+     "uv": [
+      0,
+      0,
+      0.8,
+      0.6
+     ]
+    },
+    "down": {
+     "texture": "#flint",
+     "uv": [
+      0,
+      0,
+      0.8,
+      0.6
+     ]
+    }
+   }
+  },
+  {
+   "name": "Haft",
+   "from": [
+    12.5,
+    9,
+    11
+   ],
+   "to": [
+    13.3,
+    18,
+    11.8
+   ],
+   "faces": {
+    "north": {
+     "texture": "#log",
+     "uv": [
+      0,
+      0,
+      0.8,
+      9
+     ]
+    },
+    "east": {
+     "texture": "#log",
+     "uv": [
+      0,
+      0,
+      0.8,
+      9
+     ]
+    },
+    "south": {
+     "texture": "#log",
+     "uv": [
+      0,
+      0,
+      0.8,
+      9
+     ]
+    },
+    "west": {
+     "texture": "#log",
+     "uv": [
+      0,
+      0,
+      0.8,
+      9
+     ]
+    },
+    "up": {
+     "texture": "#log",
+     "uv": [
+      0,
+      0,
+      0.8,
+      0.8
+     ]
+    },
+    "down": {
+     "texture": "#log",
+     "uv": [
+      0,
+      0,
+      0.8,
+      0.8
+     ]
+    }
+   }
+  },
+  {
+   "name": "AxeHead",
+   "from": [
+    11,
+    16,
+    10.9
+   ],
+   "to": [
+    12.5,
+    18,
+    11.9
+   ],
+   "faces": {
+    "north": {
+     "texture": "#flint",
+     "uv": [
+      0,
+      0,
+      1.5,
+      2
+     ]
+    },
+    "east": {
+     "texture": "#flint",
+     "uv": [
+      0,
+      0,
+      1.0,
+      2
+     ]
+    },
+    "south": {
+     "texture": "#flint",
+     "uv": [
+      0,
+      0,
+      1.5,
+      2
+     ]
+    },
+    "west": {
+     "texture": "#flint",
+     "uv": [
+      0,
+      0,
+      1.0,
+      2
+     ]
+    },
+    "up": {
+     "texture": "#flint",
+     "uv": [
+      0,
+      0,
+      1.5,
+      1.0
+     ]
+    },
+    "down": {
+     "texture": "#flint",
+     "uv": [
+      0,
+      0,
+      1.5,
+      1.0
+     ]
+    }
+   }
+  },
+  {
+   "name": "Spear",
+   "from": [
+    2,
+    9,
+    12.5
+   ],
+   "to": [
+    2.8,
+    21,
+    13.3
+   ],
+   "faces": {
+    "north": {
+     "texture": "#log",
+     "uv": [
+      0,
+      0,
+      0.8,
+      12
+     ]
+    },
+    "east": {
+     "texture": "#log",
+     "uv": [
+      0,
+      0,
+      0.8,
+      12
+     ]
+    },
+    "south": {
+     "texture": "#log",
+     "uv": [
+      0,
+      0,
+      0.8,
+      12
+     ]
+    },
+    "west": {
+     "texture": "#log",
+     "uv": [
+      0,
+      0,
+      0.8,
+      12
+     ]
+    },
+    "up": {
+     "texture": "#log",
+     "uv": [
+      0,
+      0,
+      0.8,
+      0.8
+     ]
+    },
+    "down": {
+     "texture": "#log",
+     "uv": [
+      0,
+      0,
+      0.8,
+      0.8
+     ]
+    }
+   }
+  },
+  {
+   "name": "SpearTip",
+   "from": [
+    1.9,
+    21,
+    12.4
+   ],
+   "to": [
+    2.9,
+    22.5,
+    13.4
+   ],
+   "faces": {
+    "north": {
+     "texture": "#flint",
+     "uv": [
+      0,
+      0,
+      1.0,
+      1.5
+     ]
+    },
+    "east": {
+     "texture": "#flint",
+     "uv": [
+      0,
+      0,
+      1.0,
+      1.5
+     ]
+    },
+    "south": {
+     "texture": "#flint",
+     "uv": [
+      0,
+      0,
+      1.0,
+      1.5
+     ]
+    },
+    "west": {
+     "texture": "#flint",
+     "uv": [
+      0,
+      0,
+      1.0,
+      1.5
+     ]
+    },
+    "up": {
+     "texture": "#flint",
+     "uv": [
+      0,
+      0,
+      1.0,
+      1.0
+     ]
+    },
+    "down": {
+     "texture": "#flint",
+     "uv": [
+      0,
+      0,
+      1.0,
+      1.0
+     ]
+    }
+   }
+  }
+ ]
+}

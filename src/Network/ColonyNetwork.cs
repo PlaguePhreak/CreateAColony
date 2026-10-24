@@ -417,7 +417,7 @@ public partial class ColonyNetwork : ModSystem
         return null;
     }
 
-    /// <summary>The "keep in stock" tab of a crafter hut: each metal for a Smelter, each thing the anvil can make for a Blacksmith, each wooden thing for a Sawmill.</summary>
+    /// <summary>The "keep in stock" tab of a crafter hut: each metal for a Smelter, each thing the anvil can make for a Blacksmith, each wooden thing for a Sawmill, each stone tool for a Primitive Craftsman.</summary>
     void AddCraftRows(HutSnapshot snapshot, Colony colony, Building building, string craftTab)
     {
         snapshot.CraftTab = craftTab;
@@ -464,6 +464,21 @@ public partial class ColonyNetwork : ModSystem
                     Keep = Manager.CraftKeep(building, kind.Key),
                     Have = Manager.SawStock(colony, building, kind, sawyer),
                     Clay = kind.Recipes[0].InputCount
+                });
+            }
+        }
+        else if (building.Type == BuildingTypes.Craftsman)
+        {
+            var craftsman = Manager.WorkerAt(colony, building, Jobs.Craftsman);
+            foreach (var kind in Manager.KnapRows(colony, building, craftsman))
+            {
+                snapshot.Craft.Add(new PotteryView
+                {
+                    Key = kind.Key,
+                    Stack = kind.Sample.ToBytes(),
+                    Keep = Manager.CraftKeep(building, kind.Key),
+                    Have = Manager.KnapStock(colony, building, kind, craftsman),
+                    Clay = 1 + kind.Handles.Sum(h => h.Quantity)
                 });
             }
         }
@@ -919,7 +934,7 @@ public partial class ColonyNetwork : ModSystem
         }
         if (building.Type is BuildingTypes.Forester or BuildingTypes.Farmer or BuildingTypes.Potter or BuildingTypes.Cook
             or BuildingTypes.Prospector or BuildingTypes.Miner or BuildingTypes.Quarry
-            or BuildingTypes.Smelter or BuildingTypes.Blacksmith or BuildingTypes.Sawmill
+            or BuildingTypes.Smelter or BuildingTypes.Blacksmith or BuildingTypes.Sawmill or BuildingTypes.Craftsman
             or BuildingTypes.Explorer or BuildingTypes.Gatherer or BuildingTypes.Hunter) snapshot.Info = Manager.WorkerHutInfo(colony, building);
         if (building.Type == BuildingTypes.Tavern)
         {

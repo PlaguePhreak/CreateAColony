@@ -269,7 +269,7 @@ public class Building
     // 60 and 61 held the trip's entrances and the mines to fill in before 0.62.0.
     [ProtoMember(60)] List<BlockPos> oldSiteEntrances = new();
     [ProtoMember(61)] List<BlockPos> oldMineSeals = new();
-    // 70-79 for the crafter huts (Smelter, Blacksmith, Sawmill and the ones to come).
+    // 70-79 for the crafter huts (Smelter, Blacksmith, Sawmill, Primitive Craftsman and the ones to come).
     /// <summary>A crafter hut: how many of each thing to keep in stock, by key (see ColonyManager.Crafting.cs).</summary>
     [ProtoMember(70)] public Dictionary<string, int> CraftKeep = new();
     /// <summary>An officer has set CraftKeep; until then the config defaults apply.</summary>

@@ -55,6 +55,7 @@ planks of any wood.
 | Smelter's Hut | 2 charcoal + 7 planks |
 | Blacksmith's Hut | 2 ingots (any metal) + 7 planks |
 | Sawmill | 2 logs (any) + 7 planks |
+| Primitive Craftsman | 2 flint + 7 planks |
 | Supply Camp | 3 firewood over 2 sticks (unchanged) |
 | Colony Ledger | 4 paper (any), 2 leather, 2 charcoal: paper, leather, paper / charcoal, paper, charcoal / paper, leather, paper |
 | Drop-off | stick over a plank (unchanged) |
@@ -1133,3 +1134,19 @@ learns their stations. The cook makes only the meals at or under their *usable* 
 Cook's Hut level caps the menu: level 1 allows up to 4) plus one with Good Cook. Grilling in the fire pit
 never needs a level. The Kitchen tab shows each meal's level and greys out what the cook cannot make yet
 ("Needs Cooking 6 (cook has 4)"). A cook from an older save gets at least Cooking 4, so stew keeps coming.
+
+### The Primitive Craftsman (0.103.0)
+- **Primitive Craftsman** (2 flint + 7 planks), with a simple placeholder model and a placeholder level 1
+  blueprint (a copy of the Sawmill's). A settler with the new **Craftsman** job knaps flint and stones into
+  tool heads at the hut block, from every knapping recipe in the game (axe, knife, shovel, hoe, spear and
+  arrow heads, and other mods' too). One stone per head, `CraftsmanStrikes` (8) strikes
+  `CraftsmanSecondsPerStrike` (1.5) seconds apart. When a crafting recipe without tools takes the head and up
+  to `CraftsmanMaxHandleParts` (4) other things (a stick), the craftsman puts the head on it and makes the
+  finished tool (`CraftsmanSecondsPerHaft`, 4 seconds). It gets the sticks before knapping, and knaps no new
+  head while one waits for a handle.
+- The Knapping tab (crafter-hut keep-in-stock tab, `ColonyManager.Knapping.cs`) lists the tools the colony has
+  stones for. A new hut keeps 2 of each flint axe, knife, shovel, hoe and spear (`CraftsmanDefaultKeep`).
+  Stones and sticks come from the hut storage, or couriers bring up to `CraftsmanBatch` (4) from the
+  warehouse. Finished tools go to the warehouse, where other workers take the tools they need.
+- New Knapping skill. Not tested in game yet.
+
