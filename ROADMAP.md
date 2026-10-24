@@ -69,11 +69,12 @@ Everything listed under "What we have" and "Partly done" has been tested in game
 1. **Smelter** (started in 0.50.0): still to do are alloys such as bronze, and a bloomery for iron
 2. **Happiness** came in 0.61.0. Still to add: safety (raids), health, and how crowded the colony is
 3. **A request list**: players can see and fill what workers need (the Sawmill came first, in 0.52.0)
-4. **Animal herders and a Tanner**: chickens, pigs, sheep and goats in pens for meat, eggs and hides, and a Tanner who makes leather in barrels
-5. **Ranged guards and a rally banner** (the Barracks came in 0.54.0), then **Raids**: now and then, enemies turn up and attack the player's colony. The player is warned in chat and on the Town Hall window. There are several raid factions, from bandits (who use the settler models) to the game's own monsters such as drifters and shivers.
-6. **Graveyard**: an undertaker who buries the dead (the Healer, bandages and poultices came in 0.117.0)
-7. **School, Library and University** with a **research tree** that unlocks faster work and new huts
-8. **Blacksmith** (started in 0.50.0): still to do are repairs, armor, and making the tools workers ask for
+4. **Animal herders and a Tanner**: chickens, pigs, sheep and goats in pens for meat, eggs and hides, and a Tanner who makes leather in barrels. Jobless settlers can also keep a few animals in their own gardens, mostly chickens, the way many 13th and 14th century households did, feeding them and collecting the eggs.
+5. **Butcher's Hut**: a butcher takes the animals the Hunter (0.99.0) and herders bring home and cuts them up for meat, hides, fat and bones, then stores the meat with the food from 0.100.0. Works with the **Butchering** mod by CaptainOats when it is installed: the butcher hangs carcasses on its hooks, uses its tables, catches blood in buckets and smokes meat on its racks for more food per animal. Without the mod, the butcher uses a knife like the game does. The mod lists no licence, so we will never copy or bundle its files. It stays an optional extra that players download themselves.
+6. **Ranged guards and a rally banner** (the Barracks came in 0.54.0), then **Raids**: now and then, enemies turn up and attack the player's colony. The player is warned in chat and on the Town Hall window. There are several raid factions, from bandits (who use the settler models) to the game's own monsters such as drifters and shivers.
+7. **Graveyard**: an undertaker who buries the dead (the Healer, bandages and poultices came in 0.117.0)
+8. **School, Library and University** with a **research tree** that unlocks faster work and new huts
+9. **Blacksmith** (started in 0.50.0): still to do are repairs, armor, and making the tools workers ask for
 
 **Later**
 - More huts from MineColonies: Stonemason, Baker, Fisher, Beekeeper, Plantation (reeds and cattails), Composter, Crusher and Sifter (quern and panning), Florist, Dyer, Fletcher and Mechanic (windmills and gears)
@@ -82,10 +83,12 @@ Everything listed under "What we have" and "Partly done" has been tested in game
 - Settler chat bubbles where settlers ask for things or complain
 - Walls, wells, roads and other decorations to order from the Builder's Wand
 - **Outposts**: a ready-made bundle of buildings that can be placed outside the colony's border. Its buildings level up all together or one at a time. An outpost works as its own small base and tries to look after itself. It keeps a small military force away from home to protect workers out in the field, and gives them a safe place to go when they are attacked, or at night when the outpost is closer than home.
+- **Bailiff and Scribe**: two new settlers who live in the Town Hall, each with their own section in the Town Hall window. The Bailiff keeps order: they stop criminals and give orders to the guards while keeping the peace. The Scribe keeps a record of the colony's history in books they make themselves.
+- **Alchemist's Hut**: a new Alchemist settler who works with the **Alchemy** mod by llama3013 when it is installed. The Alchemist grows and gathers herbs, dries them on herb racks, grinds them with a mortar and pestle, and brews potions in the brewing cauldron. Guards get fighting and healing flasks, miners get Miner's Flasks, hunters get Hunter's Delight, and the Healer gets Healing Oil. The mod uses the CC BY 4.0 licence, so we may reuse its work if we credit the author. We still plan to keep it an optional mod that players download themselves.
 - Working with more popular Vintage Story mods, such as cooking with A Culinary Artillery and Expanded Foods
 
 **Left out on purpose**
-- Concrete Mixer, Enchanter, Alchemist, Netherworker and the Mystical Site: Vintage Story has nothing to match them. An herbalist making poultices could take the Alchemist's place.
+- Concrete Mixer, Enchanter, Netherworker and the Mystical Site: Vintage Story has nothing to match them. (The Alchemist is now planned above, using the Alchemy mod.)
 
 ## Far future: AI settlements
 
