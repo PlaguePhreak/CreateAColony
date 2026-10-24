@@ -562,13 +562,18 @@ public class GuiDialogTownHall : GuiDialog
             number++;
             string title = number + ". " + (o.Removing ? GuiDialogHut.OrderTitle(o) : o.Name + " " + Lang.Get("createacolony:order-level", o.TargetLevel));
             composer
-                .AddStaticText(title, GuiKit.Body(), ElementBounds.Fixed(10, y + 6, Width - 150, 25))
-                .AddStaticText(GuiDialogHut.StatusText(o), GuiKit.Detail().WithColor(GuiStyle.ActiveButtonTextColor), ElementBounds.Fixed(10, y + 30, Width - 150, 22));
+                .AddStaticText(title, GuiKit.Body(), ElementBounds.Fixed(10, y + 6, Width - 250, 25))
+                .AddStaticText(GuiDialogHut.StatusText(o), GuiKit.Detail().WithColor(GuiStyle.ActiveButtonTextColor), ElementBounds.Fixed(10, y + 30, Width - 250, 22));
             if (Officer)
             {
                 int id = o.TeardownId > 0 ? o.TeardownId : o.BuildingId;
                 var action = o.TeardownId > 0 ? ColonyAction.CancelTeardown : ColonyAction.CancelBuild;
-                composer.AddSmallButton(Lang.Get("createacolony:build-cancel"), () => Send(action, id), ElementBounds.Fixed(Width - 130, y + 14, 120, 28));
+                string key = GuiDialogHut.OrderKey(o);
+                composer
+                    .AddSmallButton("^", () => Move(key, ColonyManager.MoveUp), ElementBounds.Fixed(Width - 236, y + 14, 30, 28))
+                    .AddSmallButton("v", () => Move(key, ColonyManager.MoveDown), ElementBounds.Fixed(Width - 202, y + 14, 30, 28))
+                    .AddSmallButton(Lang.Get("createacolony:priority-top"), () => Move(key, ColonyManager.MoveTop), ElementBounds.Fixed(Width - 168, y + 14, 62, 28))
+                    .AddSmallButton(Lang.Get("createacolony:build-cancel"), () => Send(action, id), ElementBounds.Fixed(Width - 100, y + 14, 90, 28));
             }
             y += OrderRowHeight;
         }
@@ -977,6 +982,12 @@ public class GuiDialogTownHall : GuiDialog
     }
 
     // ---- Sending --------------------------------------------------------------------------
+
+    bool Move(string key, int move)
+    {
+        network.SendAction(new ColonyActionPacket { ColonyId = snapshot.ColonyId, Action = ColonyAction.MovePriority, BuildingId = 0, Text = key, Role = move });
+        return true;
+    }
 
     bool Send(ColonyAction action, int buildingId)
     {

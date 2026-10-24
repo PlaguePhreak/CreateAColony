@@ -117,12 +117,10 @@ public partial class ColonyManager
     }
 
     /// <summary>The things there are too few of, most wanted first.</summary>
-    public List<KnapKind> WantedKnapping(Colony colony, Building hut, CitizenRecord? craftsman) => KnapKinds()
+    public List<KnapKind> WantedKnapping(Colony colony, Building hut, CitizenRecord? craftsman) => ByPriority(hut, KnapKinds()
         .Where(k => CraftKeep(hut, k.Key) > 0)
-        .Select(k => (Kind: k, Short: CraftKeep(hut, k.Key) - KnapStock(colony, hut, k, craftsman)))
-        .Where(k => k.Short > 0)
-        .OrderByDescending(k => k.Short)
-        .Select(k => k.Kind)
+        .Select(k => (Kind: k, k.Key, Short: CraftKeep(hut, k.Key) - KnapStock(colony, hut, k, craftsman)))
+        .Where(k => k.Short > 0))
         .ToList();
 
     /// <summary>

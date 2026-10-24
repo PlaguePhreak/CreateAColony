@@ -341,22 +341,6 @@ public partial class ColonyManager
         MarkDirty(colony);
     }
 
-    /// <summary>The take-down orders a builder could work on, oldest first.</summary>
-    public TeardownOrder? TakeTeardown(Colony colony, CitizenRecord builder)
-    {
-        var own = colony.Teardowns.Find(t => t.BuilderCitizenId == builder.CitizenId);
-        if (own != null) return own;
-        foreach (var order in colony.Teardowns.OrderBy(t => t.Id))
-        {
-            var current = colony.Citizens.Find(c => c.CitizenId == order.BuilderCitizenId);
-            if (current != null && current.Alive && current.JobCode == Jobs.Builder) continue;
-            order.BuilderCitizenId = builder.CitizenId;
-            MarkDirty(colony);
-            return order;
-        }
-        return null;
-    }
-
     /// <summary>Blocks of the house still to come down, top layer first.</summary>
     IEnumerable<BlockPos> TeardownSpots(Colony colony, TeardownOrder order)
     {

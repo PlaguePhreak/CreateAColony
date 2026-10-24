@@ -133,7 +133,7 @@ public partial class ColonyManager
     /// </summary>
     public (PotteryKind Kind, ClayFormingRecipe Recipe)? NextPottery(Colony colony, Building hut, CitizenRecord potter, List<ItemStack> clay)
     {
-        foreach (var kind in PotteryKinds())
+        foreach (var kind in PotteryKinds().OrderBy(k => PriorityIndex(hut.Priorities, k.Key)))
         {
             int keep = PotteryKeep(hut, kind);
             if (keep <= 0 || PotteryStock(colony, hut, kind, potter) >= keep) continue;

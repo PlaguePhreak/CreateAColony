@@ -163,6 +163,8 @@ public class DeliveryRequest
 [ProtoContract]
 public class Building
 {
+    /// <summary>The order a crafting hut makes things in (keys of what it keeps), set on its Priorities tab. Empty: most wanted first.</summary>
+    [ProtoMember(240)] public List<string> Priorities = new();
     [ProtoMember(1)] public int BuildingId;
     /// <summary>Building type, also the blueprint folder name: "builder", "townhall", "warehouse".</summary>
     [ProtoMember(2)] public string Type = "";
@@ -646,6 +648,8 @@ public class Colony
     /// <summary>Houses of traders who joined the colony, for a builder to take down (ColonyManager.Traders.cs).</summary>
     [ProtoMember(240)] public List<TeardownOrder> Teardowns = new();
     [ProtoMember(241, IsRequired = true)] public int NextTeardownId = 1;
+    /// <summary>The order builders take work orders and trader houses in ("b:12", "t:3"), set on the Priorities tab; new ones come after.</summary>
+    [ProtoMember(242)] public List<string> OrderQueue = new();
 
     [ProtoAfterDeserialization]
     void AfterLoad() => LinkMines();

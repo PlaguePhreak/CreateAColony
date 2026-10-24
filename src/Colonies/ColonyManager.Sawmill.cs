@@ -107,12 +107,10 @@ public partial class ColonyManager
     }
 
     /// <summary>The things there are too few of, most wanted first.</summary>
-    public List<SawKind> WantedSawing(Colony colony, Building hut, CitizenRecord? sawyer) => SawKinds()
+    public List<SawKind> WantedSawing(Colony colony, Building hut, CitizenRecord? sawyer) => ByPriority(hut, SawKinds()
         .Where(k => CraftKeep(hut, k.Key) > 0)
-        .Select(k => (Kind: k, Short: CraftKeep(hut, k.Key) - SawStock(colony, hut, k, sawyer)))
-        .Where(k => k.Short > 0)
-        .OrderByDescending(k => k.Short)
-        .Select(k => k.Kind)
+        .Select(k => (Kind: k, k.Key, Short: CraftKeep(hut, k.Key) - SawStock(colony, hut, k, sawyer)))
+        .Where(k => k.Short > 0))
         .ToList();
 
     /// <summary>

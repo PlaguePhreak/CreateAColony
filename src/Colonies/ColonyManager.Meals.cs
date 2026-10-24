@@ -103,7 +103,8 @@ public partial class ColonyManager
             .Where(r => KnowsMeal(colony, cook, r))
             .Select(r => (Recipe: r, Short: MealKeep(hut, r) - MealStock(colony, hut, r, cook, pit)))
             .Where(w => w.Short > 0)
-            .OrderByDescending(w => w.Short)
+            .OrderBy(w => hut.Priorities.Count == 0 ? 0 : PriorityIndex(hut.Priorities, MealKey(w.Recipe)))
+            .ThenByDescending(w => w.Short)
             .ToList();
         if (wanted.Count == 0) return null;
 

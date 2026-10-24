@@ -162,6 +162,7 @@ public partial class ColonyNetwork : ModSystem
             ColonyAction.RemoveMember => SetRole(colony, role, packet.PlayerUid, ColonyRole.Visitor),
             ColonyAction.Build or ColonyAction.CancelBuild or ColonyAction.Rotate => BuildAction(colony, role, packet),
             ColonyAction.CancelTeardown => CancelTeardown(colony, role, packet.BuildingId),
+            ColonyAction.MovePriority => MovePriority(colony, role, packet),
             ColonyAction.SetAnyWoodOrStone => SetAnyWoodOrStone(colony, role, packet.Text == "1"),
             ColonyAction.SetWorkRadius or ColonyAction.SetEscort or ColonyAction.SetCollectBerries => WorkAreaAction(colony, role, packet),
             ColonyAction.SetPotteryKeep => PotteryAction(colony, role, packet),
@@ -304,6 +305,26 @@ public partial class ColonyNetwork : ModSystem
         if (order == null) return "createacolony:bad-building";
         Manager.CancelTeardown(colony, order);
         return null;
+    }
+
+    string? MovePriority(Colony colony, ColonyRole role, ColonyActionPacket packet)
+    {
+        if (role < ColonyRole.Officer) return "createacolony:denied-officer";
+        var building = colony.Buildings.Find(b => b.BuildingId == packet.BuildingId);
+        if (building == null || building.Type is BuildingTypes.Builder or BuildingTypes.TownHall) return Manager.MoveBuilderOrder(colony, packet.Text, packet.Role);
+        if (!Manager.HasPriorities(building.Type)) return "createacolony:bad-building";
+        var shown = BuildHutSnapshot(colony, building, "", false).Priorities;
+        return Manager.MoveHutPriority(colony, building, shown, packet.Text, packet.Role);
+    }
+
+    /// <summary>The order a crafting hut's worker goes through what it keeps: the rows with something kept, as ByPriority sorts them.</summary>
+    void AddPriorities(HutSnapshot snapshot, Building building)
+    {
+        if (!Manager.HasPriorities(building.Type)) return;
+        snapshot.HasPriorities = true;
+        var rows = snapshot.Craft.Concat(snapshot.Recipes).Concat(snapshot.Kitchen).Concat(snapshot.Pottery)
+            .Where(r => r.Keep > 0).GroupBy(r => r.Key).Select(g => g.First());
+        snapshot.Priorities = Manager.ByPriority(building, rows.Select(r => (Kind: r.Key, r.Key, Short: r.Keep - r.Have))).ToList();
     }
 
     /// <summary>A trader's old house in the work order lists.</summary>
@@ -648,8 +669,7 @@ public partial class ColonyNetwork : ModSystem
             HeraldryInstalled = sapi!.ModLoader.IsModEnabled("heraldrybanners"),
             BuildingCount = colony.Buildings.Count,
             Events = colony.Events.Select(e => new EventView { TotalDays = e.TotalDays, Key = e.Key, Args = e.Args.ToList() }).ToList(),
-            WorkOrders = colony.Buildings.Where(b => b.HasWorkOrder || b.Removing).OrderBy(b => b.BuildingId).Select(b => BuildingViewFor(colony, b))
-                .Concat(colony.Teardowns.OrderBy(t => t.Id).Select(t => TeardownViewFor(colony, t))).ToList(),
+            WorkOrders = Manager.BuilderQueue(colony).Select(e => e.Building != null ? BuildingViewFor(colony, e.Building) : TeardownViewFor(colony, e.Teardown!)).ToList(),
             Jobs = Manager.JobCounts(colony).Select(j => new JobView { Job = j.Job, Workers = j.Workers, Places = j.Places }).ToList(),
             Stats = Manager.ColonyStatSummary(colony).Select(r => new StatView { Key = r.Key, Counts = r.Counts }).ToList(),
             Quests = sapi!.World.PlayerByUid(viewerUid) is IServerPlayer viewer ? QuestStates(viewer, colony) : new()
@@ -1070,14 +1090,14 @@ public partial class ColonyNetwork : ModSystem
         }
         if (ColonyManager.CraftTabOf(building.Type) is { } craftTab) AddCraftRows(snapshot, colony, building, craftTab);
         if (Manager.HasHutRecipes(building.Type)) AddRecipeRows(snapshot, colony, building);
+        AddPriorities(snapshot, building);
         if (building.Type is BuildingTypes.Miner or BuildingTypes.MineshaftEntrance) AddMineTabs(snapshot, colony, building, viewerUid);
         if (!snapshot.IsBuilderHut) return snapshot;
 
-        foreach (var order in colony.Buildings.Where(b => b.HasWorkOrder || b.Removing).OrderBy(b => b.BuildingId))
+        foreach (var (order, teardown) in Manager.BuilderQueue(colony))
         {
-            snapshot.Orders.Add(BuildingViewFor(colony, order));
+            snapshot.Orders.Add(order != null ? BuildingViewFor(colony, order) : TeardownViewFor(colony, teardown!));
         }
-        foreach (var t in colony.Teardowns.OrderBy(t => t.Id)) snapshot.Orders.Add(TeardownViewFor(colony, t));
 
         var builder = colony.Citizens.Find(c => c.Alive && c.JobCode == Jobs.Builder && c.WorkplacePos != null && c.WorkplacePos.Equals(building.HutPos));
         if (builder == null) return snapshot;

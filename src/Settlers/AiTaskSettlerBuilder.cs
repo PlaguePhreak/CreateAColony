@@ -73,12 +73,12 @@ public class AiTaskSettlerBuilder : SettlerTaskBase
         }
 
         bool carrying = !manager.PackEmpty(citizen);
-        var order = manager.TakeWorkOrder(colony, citizen);
+        var (order, teardown) = manager.NextBuilderJob(colony, citizen);
         teardownId = 0;
         if (order == null)
         {
             orderId = 0;
-            if (manager.TakeTeardown(colony, citizen) is { } teardown) return PlanTeardown(colony, citizen, hut, teardown) || carrying && StashAt(colony, hut);
+            if (teardown != null) return PlanTeardown(colony, citizen, hut, teardown) || carrying && StashAt(colony, hut);
             return carrying && StashAt(colony, hut);
         }
         orderId = order.BuildingId;

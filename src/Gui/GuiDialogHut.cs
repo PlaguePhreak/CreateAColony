@@ -47,6 +47,8 @@ public class GuiDialogHut : GuiDialog
     const int CollectTab = 19;
     /// <summary>The Crafting recipes tab of huts that are not crafter huts (Forester, Farmer and others).</summary>
     const int RecipesTab = 24;
+    /// <summary>Priorities: what a crafting hut keeps, in the order its worker makes it, with buttons to change that.</summary>
+    const int PrioritiesTab = 25;
     const int OreRowsPerPage = 6;
     const double OreRowHeight = 44;
     /// <summary>Households shown per page of a Residence's Residents tab.</summary>
@@ -104,7 +106,8 @@ public class GuiDialogHut : GuiDialog
     {
         var tabs = new List<(int, string)> { (0, "tab-main") };
         if (snapshot.HasRecipes) tabs.Add((RecipesTab, "tab-recipes"));
-        if (snapshot.IsBuilderHut) tabs.Add((1, "tab-orders"));
+        if (snapshot.IsBuilderHut) tabs.Add((1, "tab-priorities"));
+        if (snapshot.HasPriorities) tabs.Add((PrioritiesTab, "tab-priorities"));
         if (snapshot.MineLevels.Count > 0) tabs.Add((LevelsTab, "tab-levels"));
         if (snapshot.IsGatherHut) tabs.Add((WorkAreaTab, "tab-workarea"));
         if (snapshot.IsPotterHut) tabs.Add((PotteryTab, "tab-pottery"));
@@ -161,6 +164,7 @@ public class GuiDialogHut : GuiDialog
             case KitchenTab: ComposeKeepList(composer, snapshot.Kitchen, "kitchen", ColonyAction.SetKitchenKeep); break;
             case CraftTab: ComposeKeepList(composer, snapshot.Craft, snapshot.CraftTab, ColonyAction.SetCraftKeep); break;
             case RecipesTab: ComposeKeepList(composer, snapshot.Recipes, "recipes", ColonyAction.SetRecipeKeep); break;
+            case PrioritiesTab: ComposePriorities(composer); break;
             case RecruitsTab: ComposeRecruits(composer); break;
             case ResidentsTab: ComposeResidents(composer); break;
             case OreTab: ComposeOre(composer); break;
@@ -1519,21 +1523,83 @@ public class GuiDialogHut : GuiDialog
         int shown = Math.Min(OrdersPerPage, orders.Count - page * OrdersPerPage);
         composer.AddInset(ElementBounds.Fixed(0, 30, Width, shown * OrderRowHeight + 8), 3, 0.8f);
         double y = 34;
+        int number = page * OrdersPerPage;
         foreach (var o in orders.Skip(page * OrdersPerPage).Take(OrdersPerPage))
         {
-            string title = OrderTitle(o);
+            number++;
+            string title = number + ". " + OrderTitle(o);
             composer
-                .AddStaticText(title, GuiKit.Body(), ElementBounds.Fixed(10, y + 6, Width - 150, 25))
-                .AddStaticText(StatusText(o), GuiKit.Detail().WithColor(GuiStyle.ActiveButtonTextColor), ElementBounds.Fixed(10, y + 30, Width - 150, 22));
+                .AddStaticText(title, GuiKit.Body(), ElementBounds.Fixed(10, y + 6, Width - 250, 25))
+                .AddStaticText(StatusText(o), GuiKit.Detail().WithColor(GuiStyle.ActiveButtonTextColor), ElementBounds.Fixed(10, y + 30, Width - 250, 22));
             if (ViewerRole >= ColonyRole.Officer)
             {
                 int id = o.TeardownId > 0 ? o.TeardownId : o.BuildingId;
                 var action = o.TeardownId > 0 ? ColonyAction.CancelTeardown : ColonyAction.CancelBuild;
-                composer.AddSmallButton(Lang.Get("createacolony:build-cancel"), () => Send(action, id), ElementBounds.Fixed(Width - 130, y + 14, 120, 28));
+                AddMoveButtons(composer, OrderKey(o), Width - 236, y + 14, 0);
+                composer.AddSmallButton(Lang.Get("createacolony:build-cancel"), () => Send(action, id), ElementBounds.Fixed(Width - 100, y + 14, 90, 28));
             }
             y += OrderRowHeight;
         }
         AddPager(composer, pages, y + 12);
+    }
+
+    /// <summary>The key a work order or trader house has in the builders' queue (ColonyManager.OrderKey).</summary>
+    internal static string OrderKey(BuildingView o) => o.TeardownId > 0 ? "t:" + o.TeardownId : "b:" + o.BuildingId;
+
+    /// <summary>▲, ▼ and "Do next" for one row of a Priorities list. Hut 0: the builders' queue.</summary>
+    void AddMoveButtons(GuiComposer composer, string key, double x, double y, int hutId)
+    {
+        composer
+            .AddSmallButton("^", () => Move(key, ColonyManager.MoveUp, hutId), ElementBounds.Fixed(x, y, 30, 28))
+            .AddSmallButton("v", () => Move(key, ColonyManager.MoveDown, hutId), ElementBounds.Fixed(x + 34, y, 30, 28))
+            .AddSmallButton(Lang.Get("createacolony:priority-top"), () => Move(key, ColonyManager.MoveTop, hutId), ElementBounds.Fixed(x + 68, y, 62, 28));
+    }
+
+    bool Move(string key, int move, int hutId)
+    {
+        network.SendAction(new ColonyActionPacket { ColonyId = snapshot.ColonyId, Action = ColonyAction.MovePriority, BuildingId = hutId, Text = key, Role = move });
+        return true;
+    }
+
+    /// <summary>
+    /// The Priorities tab of a crafting hut: what it keeps, in the order its worker makes what is short, with
+    /// how many there are. Officers move rows up and down; the order is the hut's from then on.
+    /// </summary>
+    void ComposePriorities(GuiComposer composer)
+    {
+        double y = composer.Text(Lang.Get("createacolony:priorities-hint"), GuiKit.Muted(), 0, 30, Width, 10);
+        var rows = snapshot.Craft.Concat(snapshot.Recipes).Concat(snapshot.Kitchen).Concat(snapshot.Pottery)
+            .Where(r => r.Keep > 0).GroupBy(r => r.Key).ToDictionary(g => g.Key, g => g.First());
+        var keys = snapshot.Priorities.Where(rows.ContainsKey).ToList();
+        if (keys.Count == 0)
+        {
+            composer.Text(Lang.Get("createacolony:priorities-none"), GuiKit.Body(), 0, y, Width);
+            return;
+        }
+        int pages = (keys.Count + PotteryRowsPerPage - 1) / PotteryRowsPerPage;
+        page = Math.Clamp(page, 0, pages - 1);
+        int shown = Math.Min(PotteryRowsPerPage, keys.Count - page * PotteryRowsPerPage);
+        composer.AddInset(ElementBounds.Fixed(0, y, Width, shown * PotteryRowHeight + 8), 3, 0.8f);
+        y += 4;
+        int number = page * PotteryRowsPerPage;
+        foreach (var key in keys.Skip(page * PotteryRowsPerPage).Take(PotteryRowsPerPage))
+        {
+            number++;
+            var row = rows[key];
+            var stack = new ItemStack(row.Stack);
+            if (!stack.ResolveBlockOrItem(capi.World)) continue;
+            var countFont = CairoFont.WhiteDetailText().WithColor(row.Have >= row.Keep ? GuiKit.GoodColor : GuiKit.WarnColor);
+            composer.AddRichtext(new RichTextComponentBase[]
+            {
+                new RichTextComponent(capi, number + ". ", CairoFont.WhiteSmallText()) { VerticalAlign = EnumVerticalAlign.Top },
+                new ItemstackTextComponent(capi, stack, 38, 10),
+                new RichTextComponent(capi, (row.Name ?? stack.GetName()) + "\n", CairoFont.WhiteSmallText()) { VerticalAlign = EnumVerticalAlign.Top },
+                new RichTextComponent(capi, Lang.Get("createacolony:priorities-have", row.Have, row.Keep), countFont)
+            }, ElementBounds.Fixed(6, y, Width - 150, PotteryRowHeight));
+            if (ViewerRole >= ColonyRole.Officer) AddMoveButtons(composer, key, Width - 136, y + 6, snapshot.Building.BuildingId);
+            y += PotteryRowHeight;
+        }
+        AddPager(composer, pages, y + 14);
     }
 
     static readonly double[] MissingColor = { 1.0, 0.4, 0.35, 1.0 };

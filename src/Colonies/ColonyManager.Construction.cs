@@ -184,23 +184,6 @@ public partial class ColonyManager
         MarkDirty(colony);
     }
 
-    /// <summary>Gives the builder the work order it is on, or the oldest one nobody is working on.</summary>
-    public Building? TakeWorkOrder(Colony colony, CitizenRecord builder)
-    {
-        var own = colony.Buildings.Find(b => (b.HasWorkOrder || b.Removing) && b.BuilderCitizenId == builder.CitizenId);
-        if (own != null) return own;
-
-        foreach (var building in colony.Buildings.Where(b => b.HasWorkOrder || b.Removing).OrderBy(b => b.BuildingId))
-        {
-            var current = colony.Citizens.Find(c => c.CitizenId == building.BuilderCitizenId);
-            if (current != null && current.Alive && current.JobCode == Jobs.Builder) continue;
-            building.BuilderCitizenId = builder.CitizenId;
-            MarkDirty(colony);
-            return building;
-        }
-        return null;
-    }
-
     /// <summary>The builder's hut a builder works from, assigning a free one if needed.</summary>
     public Building? EnsureBuilderHut(Colony colony, CitizenRecord builder) => EnsureWorkplace(colony, builder, BuildingTypes.Builder);
 

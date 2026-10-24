@@ -59,12 +59,10 @@ public partial class ColonyManager
     public List<SawKind> WantedRecipes(Colony colony, Building hut, CitizenRecord? worker)
     {
         if (hut.RecipeKeep.Count == 0) return new List<SawKind>();
-        return HutRecipeKinds(hut.Type)
+        return ByPriority(hut, HutRecipeKinds(hut.Type)
             .Where(k => RecipeKeep(hut, k.Key) > 0)
-            .Select(k => (Kind: k, Short: RecipeKeep(hut, k.Key) - RecipeStock(colony, hut, k, worker)))
-            .Where(k => k.Short > 0)
-            .OrderByDescending(k => k.Short)
-            .Select(k => k.Kind)
+            .Select(k => (Kind: k, k.Key, Short: RecipeKeep(hut, k.Key) - RecipeStock(colony, hut, k, worker)))
+            .Where(k => k.Short > 0))
             .ToList();
     }
 

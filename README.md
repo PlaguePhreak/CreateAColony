@@ -163,6 +163,11 @@ All three are on the new Mining tab of the Builder's Wand and use placeholder bl
 - **A full colony.** They join anyway, but sit at the Tavern (or the Town Hall) and do nothing. Their window says "waiting at the Tavern for room in the colony". When the population cap goes up they start work. They don't count towards the cap while they wait.
 - **The house comes down.** A builder takes the trader's house down without being asked, after any building work orders. It shows in the Builder's Hut's Work orders tab and the Town Hall as "Hilda's old house", with Cancel. The box is the structure the world placed (or the claim it had). Everything comes down from the top except natural ground, soil, plants, standing trees, snow and colony buildings. **Clutter** (the decorations you need glue to pick up) is destroyed; pick it up yourself with glue first if you want it. Everything else, and what is in chests, goes to the builder's hut. Houses more than 400 blocks from the Town Hall are left (`TraderTeardownMaxDistance`). Turn it off with `TraderHouseTeardown: false`.
 
+## Priorities tab (0.109.0)
+- **Builders.** The Builder's Hut's work order tab is now called **Priorities**. Each order has a number, ^ and v to move it, **Do next** to put it at the top, and Cancel. The Town Hall's Work orders list has the same buttons, and both show the same order. Builders always take the highest order nobody else is on; "Do next" makes a builder switch at once. Trader houses are in the same list.
+- **Crafting huts.** Every hut that makes more than one kind of thing has a **Priorities** tab: Cook, Potter, Smelter, Blacksmith, Sawmill, Primitive Craftsman, and the huts with a Crafting recipes tab. It lists what the hut keeps in stock (set on its other tabs), how many there are, and the order the worker makes what is short. Until you move something, the most wanted comes first (as before). Once you move a row, the worker follows your order.
+- Couriers, guards and miners have no Priorities tab: they each do one kind of work.
+
 ## Config (`ModConfig/createacolony.json`)
 - `Permadeath` (default `true`): settlers who die are gone. Set `false` to have them knocked out and recover after `DownedRecoveryDays`.
 - `StartingSettlersMin` / `StartingSettlersMax` (default 3 / 4).

@@ -111,12 +111,10 @@ public partial class ColonyManager
         var pit = CookFirepit(colony, hut);
         // With a Stone Bake Oven, dough goes in the oven rather than the fire pit.
         bool oven = CookOven(colony, hut) != null;
-        return KitchenKinds()
+        return ByPriority(hut, KitchenKinds()
             .Where(k => KitchenKeep(hut, k) > 0 && !(oven && k.Raw.All(IsBakeableCode)))
-            .Select(k => (Kind: k, Short: KitchenKeep(hut, k) - KitchenStock(colony, hut, k, cook, pit)))
-            .Where(k => k.Short > 0)
-            .OrderByDescending(k => k.Short)
-            .Select(k => k.Kind)
+            .Select(k => (Kind: k, k.Key, Short: KitchenKeep(hut, k) - KitchenStock(colony, hut, k, cook, pit)))
+            .Where(k => k.Short > 0))
             .ToList();
     }
 

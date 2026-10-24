@@ -247,7 +247,8 @@ public partial class ColonyManager
             .Where(k => KnowsBake(colony, cook, k))
             .Select(k => (Kind: k, Short: BakeKeep(hut, k) - BakeStock(colony, hut, k, cook, oven)))
             .Where(w => w.Short > 0)
-            .OrderByDescending(w => w.Short)
+            .OrderBy(w => hut.Priorities.Count == 0 ? 0 : PriorityIndex(hut.Priorities, w.Kind.Key))
+            .ThenByDescending(w => w.Short)
             .ToList();
         if (wanted.Count == 0) return null;
 

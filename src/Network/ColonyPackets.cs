@@ -422,6 +422,9 @@ public class HutSnapshot
     /// <summary>A hut with a Crafting recipes tab, and its rows (Clay is how many items one craft takes; Name says what it is made from).</summary>
     [ProtoMember(170)] public bool HasRecipes;
     [ProtoMember(171)] public List<PotteryView> Recipes = new();
+    /// <summary>Priorities tab: the keys of what the hut keeps (rows of its other tabs), in the order its worker makes them.</summary>
+    [ProtoMember(240)] public List<string> Priorities = new();
+    [ProtoMember(241)] public bool HasPriorities;
 
     // The Miner's Hut's Levels, Settings and Guards tabs (82-99).
     [ProtoMember(82)] public bool IsMiner;
@@ -767,6 +770,8 @@ public enum ColonyAction
     RemoveHut = 150,
     /// <summary>Stops taking a trader's old house down; BuildingId is the TeardownOrder id.</summary>
     CancelTeardown = 240,
+    /// <summary>Priorities tab: moves Text (a key) by Role (-1 up, 1 down, -1000 to the top). BuildingId 0 or a Builder's Hut: the builders' queue.</summary>
+    MovePriority = 241,
     /// <summary>Has the Miner's Hut with Text (its BuildingId) work the mine of the Mineshaft Entrance with BuildingId.</summary>
     LinkMineHut = 151,
     UnlinkMineHut = 152,
