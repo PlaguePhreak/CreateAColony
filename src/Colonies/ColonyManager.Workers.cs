@@ -137,8 +137,8 @@ public partial class ColonyManager
         if (hut.Type == BuildingTypes.Cook) return CookHutJunk();
         if (hut.Type == BuildingTypes.Smelter) return SmelterHutJunk();
         if (hut.Type == BuildingTypes.Blacksmith) return BlacksmithHutJunk();
-        if (hut.Type == BuildingTypes.Sawmill) return SawmillHutJunk(hut);
-        if (hut.Type == BuildingTypes.Craftsman) return CraftsmanHutJunk(hut);
+        if (hut.Type == BuildingTypes.Sawmill) return SawmillHutJunk(colony, hut);
+        if (hut.Type == BuildingTypes.Craftsman) return CraftsmanHutJunk(colony, hut);
         if (IsGuardPost(hut.Type)) return GuardTowerJunk(hut);
         var kind = GatherHuts[hut.Type];
         var worker = WorkerAt(colony, hut, kind.Job);

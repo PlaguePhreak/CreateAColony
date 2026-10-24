@@ -47,6 +47,11 @@ public class Blueprint
     /// the Miner's Hut's shaft or the Quarry's pit goes.
     /// </summary>
     public Dictionary<string, (int Dx, int Dy, int Dz)> Waypoints = new();
+    /// <summary>
+    /// The lowest solid block of each column the building stands on (at or below the hut block's level), as offsets:
+    /// builders fill any gap under these down to the ground (ColonyManager.Foundations.cs).
+    /// </summary>
+    public List<(int Dx, int Dy, int Dz)> Footing = new();
 }
 
 /// <summary>
@@ -369,9 +374,20 @@ public class BlueprintLibrary
             }
         }
 
+        // What the building stands on: the lowest solid block of each column, where it is at or below the hut block,
+        // except over a mine shaft or a quarry pit.
+        var openColumns = dugOut.Select(d => (d.Item1, d.Item3)).Concat(waypoints.Values.Select(w => (w.Dx, w.Dz))).ToHashSet();
+        var footing = solid
+            .Where(s => !openColumns.Contains((s.Dx, s.Dz)))
+            .GroupBy(s => (s.Dx, s.Dz))
+            .Select(g => g.OrderBy(s => s.Dy).First())
+            .Where(s => s.Dy <= 0)
+            .Select(s => (s.Dx, s.Dy, s.Dz))
+            .ToList();
+
         // Clear from the top down so nothing is left floating, then walls bottom-up, then torches, doors and the like.
         clear.Reverse();
-        return new Blueprint { Type = type, Level = level, Steps = clear.Concat(solid).Concat(decor).ToList(), Front = front, Waypoints = waypoints };
+        return new Blueprint { Type = type, Level = level, Steps = clear.Concat(solid).Concat(decor).ToList(), Front = front, Waypoints = waypoints, Footing = footing };
     }
 
     // ---- Mineshaft pieces ------------------------------------------------------------------

@@ -75,7 +75,7 @@ public class AiTaskSettlerBlacksmith : AiTaskSettlerWorker
 
         // The piece being made, if the ingots for it are on hand.
         if (kind != null && m.PackCount(citizen, kind.IsIngot) >= kind.Ingots && kind.Tier <= anvil.OwnMetalTier
-            && m.CraftKeep(hut, kind.Key) > m.SmithStock(colony, hut, kind, citizen))
+            && m.CraftWant(colony, hut, kind.Key) > m.SmithStock(colony, hut, kind, citizen))
         {
             var hot = m.PackItems(citizen).FirstOrDefault(kind.IsIngot);
             if (hot != null && ColonyManager.IsWorkable(hot)) return Go(Work.Smith, anvil.Pos, "smith-hammering");

@@ -141,8 +141,10 @@ public partial class ColonyManager
 
     /// <summary>The things there are too few of that the anvil by the hut can make, most wanted first.</summary>
     public List<SmithKind> WantedSmithing(Colony colony, Building hut, CitizenRecord? smith, int anvilTier) => ByPriority(hut, SmithKinds()
-        .Where(k => k.Tier <= anvilTier && CraftKeep(hut, k.Key) > 0)
-        .Select(k => (Kind: k, k.Key, Short: CraftKeep(hut, k.Key) - SmithStock(colony, hut, k, smith)))
+        .Where(k => k.Tier <= anvilTier)
+        .Select(k => (Kind: k, Want: CraftWant(colony, hut, k.Key)))
+        .Where(k => k.Want > 0)
+        .Select(k => (k.Kind, k.Kind.Key, Short: k.Want - SmithStock(colony, hut, k.Kind, smith)))
         .Where(k => k.Short > 0))
         .ToList();
 

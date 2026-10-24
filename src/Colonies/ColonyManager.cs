@@ -247,6 +247,7 @@ public partial class ColonyManager : ModSystem
             TickSkills(colony, now);
             TickHappiness(colony);
             EnsureMinStock(colony);
+            TickUpkeep(colony);
 
             foreach (var citizen in colony.Citizens.ToList())
             {

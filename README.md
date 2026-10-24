@@ -176,6 +176,13 @@ All three are on the new Mining tab of the Builder's Wand and use placeholder bl
 - Like loose stones, none of it is taken in or within two blocks of a colony building.
 - Each one has its own row on the Gatherer's Allowed to collect tab, all on at first.
 
+## Huts make for each other, lights, foundations (0.111.0)
+- **Crafting recipes tab.** Each row shows the thing on one line and what it is made from on a grey line under it. Rows grow to fit their text and never run into each other.
+- **Huts make what others need.** When a hut is waiting for something the warehouse does not have, another hut that can make it makes it, on top of what its own tab keeps. The Sawmill saws planks and boards for the mine, a hut with firewood on its Crafting recipes tab splits firewood, and so on. Couriers take it straight from that hut to the one that asked. The Required resources tab says where each missing thing will come from: "Warehouse: 12", "Sawmill makes it" or "Forester's Hut makes it" (orange), or "You have none" (red) when no hut makes it. Turn it off with `HutsMakeForOthers: false`.
+- **Lanterns and torches.** When the colony has no lantern, builders put up a lit torch where a blueprint has a lantern. Couriers bring a lit torch from the warehouse to every torch in a finished building that has gone out or burned out. Turn them off with `LanternTorchFallback: false` and `RelightTorches: false`.
+- **Foundations.** Builders fill gaps under a building's floor with soil, down to the ground (8 blocks at most, `FoundationDepth`).
+- **Upkeep.** Every 5 minutes (`BuildingUpkeepSeconds`) each finished building is looked over. If ground is inside it (it was built before 0.102.0, or the land changed) or there is a gap under it, it gets a work order and a builder digs the ground out and fills the gaps. Upkeep touches nothing else in the building. Soil or stone a player put inside a building's empty space is dug out too.
+
 ## Config (`ModConfig/createacolony.json`)
 - `Permadeath` (default `true`): settlers who die are gone. Set `false` to have them knocked out and recover after `DownedRecoveryDays`.
 - `StartingSettlersMin` / `StartingSettlersMax` (default 3 / 4).

@@ -58,10 +58,11 @@ public partial class ColonyManager
     /// <summary>The things a hut has too few of, most wanted first.</summary>
     public List<SawKind> WantedRecipes(Colony colony, Building hut, CitizenRecord? worker)
     {
-        if (hut.RecipeKeep.Count == 0) return new List<SawKind>();
+        if (hut.RecipeKeep.Count == 0 && !HasOrders(colony, hut)) return new List<SawKind>();
         return ByPriority(hut, HutRecipeKinds(hut.Type)
-            .Where(k => RecipeKeep(hut, k.Key) > 0)
-            .Select(k => (Kind: k, k.Key, Short: RecipeKeep(hut, k.Key) - RecipeStock(colony, hut, k, worker)))
+            .Select(k => (Kind: k, Want: RecipeWant(colony, hut, k.Key)))
+            .Where(k => k.Want > 0)
+            .Select(k => (k.Kind, k.Kind.Key, Short: k.Want - RecipeStock(colony, hut, k.Kind, worker)))
             .Where(k => k.Short > 0))
             .ToList();
     }
@@ -85,7 +86,7 @@ public partial class ColonyManager
     /// <summary>The things a hut keeps for recipes it is short of, so couriers leave them at the hut.</summary>
     ItemMatch HutRecipeInputs(Colony colony, Building hut)
     {
-        if (hut.RecipeKeep.Count == 0) return _ => false;
+        if (hut.RecipeKeep.Count == 0 && !HasOrders(colony, hut)) return _ => false;
         var parts = WantedRecipes(colony, hut, WorkerAt(colony, hut, JobOf(hut.Type) ?? ""))
             .SelectMany(k => k.Recipes).SelectMany(r => r.Inputs).Select(i => i.Part).ToList();
         return s => parts.Any(p => p.SatisfiesAsIngredient(s, false));

@@ -544,6 +544,37 @@ public class ColonyConfig
         ["game:spear-*flint"] = 2
     };
 
+    // Foundations and upkeep
+    /// <summary>Builders fill gaps under a building's floor with soil, down to the ground or this many blocks at most. 0 turns it off.</summary>
+    public int FoundationDepth = 8;
+    /// <summary>
+    /// How often, in seconds, each finished building is looked over for ground that got inside it or gaps under it,
+    /// which gives it an upkeep work order. 0 turns it off.
+    /// </summary>
+    public int BuildingUpkeepSeconds = 300;
+
+    // Lights
+    /// <summary>When the colony has no lantern, builders put up a torch where a blueprint has one.</summary>
+    public bool LanternTorchFallback = true;
+    /// <summary>Couriers put a lit torch from the warehouse up wherever a torch in a finished building has gone out.</summary>
+    public bool RelightTorches = true;
+    /// <summary>How often, in seconds, the colony's buildings are checked for torches that went out.</summary>
+    public int TorchCheckSeconds = 60;
+
+    // Huts make things for other huts
+    /// <summary>
+    /// When a hut is waiting for something the warehouse does not have, another hut that can make it makes it (the
+    /// Sawmill saws planks for the mine), and couriers bring it straight from that hut.
+    /// </summary>
+    public bool HutsMakeForOthers = true;
+    /// <summary>What huts gather by themselves, by hut type, so the Required resources tab can say which hut brings it in.</summary>
+    public System.Collections.Generic.Dictionary<string, string[]> HutGathers = new()
+    {
+        ["forester"] = new[] { "game:log-*" },
+        ["quarry"] = new[] { "game:rock-*", "game:stone-*" },
+        ["miner"] = new[] { "game:ore-*", "game:stone-*" }
+    };
+
     // Crafting recipes tab (huts that are not crafter huts)
     /// <summary>
     /// What each hut's worker may craft on its Crafting recipes tab, by hut type: the first part of the made

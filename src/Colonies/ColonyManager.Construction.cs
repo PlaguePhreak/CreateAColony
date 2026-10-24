@@ -176,6 +176,7 @@ public partial class ColonyManager
 
     public void CancelWorkOrder(Colony colony, Building building)
     {
+        building.Upkeep = false;
         building.TargetLevel = 0;
         building.Cursor = 0;
         building.BuilderCitizenId = 0;
@@ -189,6 +190,18 @@ public partial class ColonyManager
 
     public void CompleteWorkOrder(Colony colony, Building building)
     {
+        if (building.Upkeep)
+        {
+            // Upkeep done: the building stays at its level, quietly.
+            building.Upkeep = false;
+            building.TargetLevel = 0;
+            building.Cursor = 0;
+            building.BuilderCitizenId = 0;
+            BuildStatus.Remove(building.BuildingId);
+            CancelBuildRequests(colony, building);
+            MarkDirty(colony);
+            return;
+        }
         building.Level = building.TargetLevel;
         building.TargetLevel = 0;
         building.Cursor = 0;
@@ -259,6 +272,14 @@ public partial class ColonyManager
     /// <summary>Finds the next step that still needs doing, starting at the cursor and wrapping round once.</summary>
     public bool FindNextStep(Colony colony, Building building, Blueprint blueprint, out BuildStep step, out BlockPos pos)
     {
+        // Gaps under the floor are filled first, from the ground up (ColonyManager.Foundations.cs).
+        foreach (var gap in FoundationGaps(colony, building, blueprint))
+        {
+            if (IsStepDone(colony, gap.Step, gap.Pos)) continue;
+            step = gap.Step;
+            pos = gap.Pos;
+            return true;
+        }
         int count = blueprint.Steps.Count;
         for (int n = 0; n < count; n++)
         {
@@ -266,6 +287,8 @@ public partial class ColonyManager
             step = blueprint.Steps[i];
             pos = StepPos(building, step);
             if (IsStepDone(colony, step, pos)) continue;
+            // Upkeep only digs out ground that got in; everything else in the building stays as it is.
+            if (building.Upkeep && !IsUpkeepStep(step, pos)) continue;
             if (building.Cursor != i)
             {
                 building.Cursor = i;
@@ -283,10 +306,10 @@ public partial class ColonyManager
     {
         var needs = new Dictionary<string, (ItemStack, int)>();
         if (!Config.BuildersNeedMaterials) return needs;
-        foreach (var step in blueprint.Steps)
+        var foundation = FoundationGaps(colony, building, blueprint).Where(g => !IsStepDone(colony, g.Step, g.Pos)).ToList();
+        foreach (var (step, pos) in building.Upkeep ? foundation : foundation.Concat(blueprint.Steps.Select(s => (s, StepPos(building, s)))))
         {
             if (step.BlockId == 0) continue;
-            var pos = StepPos(building, step);
             if (IsStepDone(colony, step, pos)) continue;
             foreach (var cost in RemainingCost(colony, step, pos))
             {
@@ -327,14 +350,7 @@ public partial class ColonyManager
         foreach (var hut in HutsForPickup(colony).ToList())
         {
             // Request pickup now: everything goes, until the hut's storage is empty.
-            System.Func<ItemStack, bool> isJunk = hut.PickupNow ? _ => true
-                : hut.Type == BuildingTypes.Builder ? BuilderHutJunk(colony, hut) : WorkerHutJunk(colony, hut);
-            // What the Minimum stock tab keeps stays, unless everything was asked for.
-            if (!hut.PickupNow && hut.MinStock.Count > 0)
-            {
-                var junk = isJunk;
-                isJunk = s => junk(s) && !IsMinStock(hut, s);
-            }
+            System.Func<ItemStack, bool> isJunk = hut.PickupNow ? _ => true : SpareAt(colony, hut);
             var chest = HutStorage(colony, hut).FirstOrDefault(c => c.Inventory.Any(s => !s.Empty && isJunk(s.Itemstack)));
             if (chest != null) return (chest, isJunk);
             if (hut.PickupNow)
@@ -344,6 +360,14 @@ public partial class ColonyManager
             }
         }
         return null;
+    }
+
+    /// <summary>What a hut's storage can give away: what its worker does not need and its Minimum stock tab does not keep.</summary>
+    public System.Func<ItemStack, bool> SpareAt(Colony colony, Building hut)
+    {
+        var isJunk = hut.Type == BuildingTypes.Builder ? BuilderHutJunk(colony, hut) : WorkerHutJunk(colony, hut);
+        if (hut.MinStock.Count == 0) return isJunk;
+        return s => isJunk(s) && !IsMinStock(hut, s);
     }
 
     /// <summary>At a Builder's Hut everything but the current work order's materials and the builder's tools.</summary>

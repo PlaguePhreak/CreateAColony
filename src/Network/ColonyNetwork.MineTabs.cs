@@ -206,7 +206,19 @@ public partial class ColonyNetwork
             int have = Manager.CountItems(storage, match) + (miner == null ? 0 : Manager.PackCount(miner, match));
             snapshot.Resources.Add(new ResourceView { Stack = need.Sample.ToBytes(), Needed = need.Count, Have = have, Code = need.Code, AnyOf = AnyOfFor(need.Code, need.Sample) });
         }
+        AddMakers(snapshot, colony, ColonyManager.RequestTag(mine));
         AddPlayerHas(snapshot, viewerUid);
+    }
+
+    /// <summary>For each thing the hut is short of: how many the warehouse has, and which other hut makes it.</summary>
+    void AddMakers(HutSnapshot snapshot, Colony colony, string tag)
+    {
+        var warehouse = Manager.WarehouseContainers(colony).ToList();
+        foreach (var row in snapshot.Resources.Where(r => !r.IsTool && r.Code.Length > 0 && r.Have < r.Needed))
+        {
+            row.InColony = Manager.CountItems(warehouse, ColonyManager.Matcher(row.Code));
+            row.MadeBy = Manager.MakerName(colony, row.Code, tag) ?? "";
+        }
     }
 
     /// <summary>How many of each required resource the viewer carries, for the green rows and the give button.</summary>

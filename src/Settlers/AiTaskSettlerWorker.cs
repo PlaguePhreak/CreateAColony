@@ -180,7 +180,7 @@ public abstract class AiTaskSettlerWorker : SettlerTaskBase
 
         foreach (var want in wanted)
         {
-            int batches = System.Math.Clamp((m.RecipeKeep(hut, want.Key) - m.RecipeStock(colony, hut, want, citizen)) / System.Math.Max(1, want.Sample.StackSize) + 1,
+            int batches = System.Math.Clamp((m.RecipeWant(colony, hut, want.Key) - m.RecipeStock(colony, hut, want, citizen)) / System.Math.Max(1, want.Sample.StackSize) + 1,
                 1, m.Config.HutRecipeBatch);
             foreach (var r in want.Recipes)
             {

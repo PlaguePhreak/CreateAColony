@@ -95,7 +95,7 @@ public class AiTaskSettlerCraftsman : AiTaskSettlerWorker
                 strikes = 0;
                 return Go(Work.Knap, hut, "craftsman-knapping");
             }
-            int batch = System.Math.Clamp(m.CraftKeep(hut, want.Key) - m.KnapStock(colony, hut, want, citizen), 1, m.Config.CraftsmanBatch);
+            int batch = System.Math.Clamp(m.CraftWant(colony, hut, want.Key) - m.KnapStock(colony, hut, want, citizen), 1, m.Config.CraftsmanBatch);
             var chest = storage.FirstOrDefault(c => c.Inventory.Any(s => !s.Empty && want.IsStone(s.Itemstack)));
             if (chest != null && !m.PackFull(citizen))
             {

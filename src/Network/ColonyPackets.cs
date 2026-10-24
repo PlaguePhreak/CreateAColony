@@ -297,6 +297,10 @@ public class ResourceView
     [ProtoMember(6)] public string Code = "";
     /// <summary>How many of it the viewer carries.</summary>
     [ProtoMember(7)] public int PlayerHas;
+    /// <summary>The hut that makes it for this one when the colony has none ("Sawmill"), or empty.</summary>
+    [ProtoMember(8)] public string MadeBy = "";
+    /// <summary>How many are in the warehouse or other huts, ready for a courier to bring.</summary>
+    [ProtoMember(9)] public int InColony;
 }
 
 /// <summary>One level of a Miner's Hut's mineshaft, for the Levels tab.</summary>
@@ -511,6 +515,8 @@ public class PotteryView
     [ProtoMember(7)] public int NeedsLevel;
     [ProtoMember(8)] public int CookLevel;
     [ProtoMember(9)] public bool Locked;
+    /// <summary>A second, greyed line under the name (a recipe row: what it is made from).</summary>
+    [ProtoMember(10)] public string? Detail;
 }
 
 [ProtoContract]

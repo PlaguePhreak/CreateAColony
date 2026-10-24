@@ -111,7 +111,8 @@ public partial class ColonyManager
 
     /// <summary>The metals there are too few ingots of, most wanted first.</summary>
     public List<SmeltKind> WantedIngots(Colony colony, Building hut, CitizenRecord? smelter) => ByPriority(hut, SmeltKinds()
-        .Select(k => (Kind: k, k.Key, Short: CraftKeep(hut, k.Key) - (CraftKeep(hut, k.Key) > 0 ? SmeltStock(colony, hut, k, smelter) : 0)))
+        .Select(k => (Kind: k, Want: CraftWant(colony, hut, k.Key)))
+        .Select(k => (k.Kind, k.Kind.Key, Short: k.Want - (k.Want > 0 ? SmeltStock(colony, hut, k.Kind, smelter) : 0)))
         .Where(k => k.Short > 0))
         .ToList();
 

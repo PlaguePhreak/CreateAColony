@@ -547,7 +547,8 @@ public partial class ColonyNetwork : ModSystem
                 Keep = Manager.RecipeKeep(building, kind.Key),
                 Have = Manager.RecipeStock(colony, building, kind, worker),
                 Clay = recipe.InputCount,
-                Name = Lang.Get("createacolony:recipes-row", recipe.Output.StackSize, kind.Sample.GetName(), Manager.RecipeInputsText(recipe))
+                Name = Lang.Get("createacolony:recipes-row", recipe.Output.StackSize, kind.Sample.GetName()),
+                Detail = Lang.Get("createacolony:recipes-from", Manager.RecipeInputsText(recipe))
             });
         }
     }
@@ -1131,6 +1132,7 @@ public partial class ColonyNetwork : ModSystem
             string anyOf = AnyOfFor(code, sample);
             snapshot.Resources.Add(new ResourceView { Stack = sample.ToBytes(), Needed = count, Have = have, AnyOf = anyOf, Code = code });
         }
+        AddMakers(snapshot, colony, ColonyManager.RequestTag(current));
         AddPlayerHas(snapshot, viewerUid);
         return snapshot;
     }

@@ -294,7 +294,9 @@ public class Building
     /// <summary>A hut's Crafting recipes tab: how many of each thing its worker keeps crafted, by item code (ColonyManager.HutRecipes.cs). Empty is nothing.</summary>
     [ProtoMember(170)] public Dictionary<string, int> RecipeKeep = new();
 
-    public bool HasWorkOrder => TargetLevel > Level;
+    public bool HasWorkOrder => TargetLevel > Level || (Upkeep && Level > 0 && TargetLevel == Level);
+    /// <summary>The work order is upkeep of the finished building: digging out ground that got in and filling gaps under it (ColonyManager.Foundations.cs).</summary>
+    [ProtoMember(270)] public bool Upkeep;
 
     /// <summary>A Miner's Hut working a Mineshaft Entrance's mine: that entrance. Not saved; see Colony.LinkMines.</summary>
     public Building? Entrance;

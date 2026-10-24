@@ -59,7 +59,7 @@ public class AiTaskSettlerSawyer : AiTaskSettlerWorker
 
         foreach (var want in wanted)
         {
-            int batches = System.Math.Clamp((m.CraftKeep(hut, want.Key) - m.SawStock(colony, hut, want, citizen)) / System.Math.Max(1, want.Sample.StackSize) + 1,
+            int batches = System.Math.Clamp((m.CraftWant(colony, hut, want.Key) - m.SawStock(colony, hut, want, citizen)) / System.Math.Max(1, want.Sample.StackSize) + 1,
                 1, m.Config.SawmillBatch);
             foreach (var r in want.Recipes)
             {

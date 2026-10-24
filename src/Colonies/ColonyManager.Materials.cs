@@ -65,6 +65,8 @@ public partial class ColonyManager
         if (current is BlockBaseDoor && target is BlockBaseDoor && SameIgnoring(current, target, "state", "cover")) return true;
         // A torch is a torch, lit or burned out.
         if (IsTorch(target) && IsTorch(current) && LitTorch(current.Code).Equals(LitTorch(target.Code))) return true;
+        // A torch put up where the colony had no lantern stays, lit or not.
+        if (Config.LanternTorchFallback && IsLantern(target) && IsTorch(current)) return true;
         // Ground in a blueprint is any soil: grass comes and goes, and how fertile it is depends on the spot. Natural
         // ground of another kind (rock, gravel, sand) will do too, so builders do not dig out stone to put dirt there.
         if (IsSoil(target) && (IsSoil(current) || IsFarmland(current) || IsNaturalGround(current))) return true;
@@ -169,6 +171,8 @@ public partial class ColonyManager
             if (soil != null) return (soil, Costs(PickCost(colony, soil, pos)));
         }
         if (DaubPlacement(colony, VariedDaub(target, pos), pos) is { } daub) return daub;
+        // No lantern in the colony: a torch goes up instead (ColonyManager.Torches.cs).
+        if (TorchForLantern(colony, target, pos) is { } torch) return (torch, Costs(TorchCost(torch)));
         if (Config.BuildersNeedMaterials && PlacedItemCosts(step, target, pos, colony.AnyWoodOrStone) is { } placed) return (target, placed);
         // A roof's planks and logs, like every other block's, may be any wood when the colony allows it.
         if (Config.BuildersNeedMaterials && SavedCost(step, target) is { } saved) return (target, colony.AnyWoodOrStone ? OpenTypes(saved) : saved);

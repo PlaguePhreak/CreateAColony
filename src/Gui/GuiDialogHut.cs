@@ -22,8 +22,6 @@ public class GuiDialogHut : GuiDialog
     const double OrderRowHeight = 62;
     const int WorkAreaTab = 3;
     const int PotteryTab = 4;
-    const int PotteryRowsPerPage = 7;
-    const double PotteryRowHeight = 44;
     const int RecruitsTab = 5;
     const int KitchenTab = 6;
     const double RecruitRowHeight = 62;
@@ -1222,46 +1220,95 @@ public class GuiDialogHut : GuiDialog
             composer.Text(Lang.Get("createacolony:" + prefix + "-none"), GuiKit.Body(), 0, y, Width);
             return;
         }
-        int pages = (rows.Count + PotteryRowsPerPage - 1) / PotteryRowsPerPage;
-        page = Math.Clamp(page, 0, pages - 1);
-        int shown = Math.Min(PotteryRowsPerPage, rows.Count - page * PotteryRowsPerPage);
-        composer.AddInset(ElementBounds.Fixed(0, y, Width, shown * PotteryRowHeight + 8), 3, 0.8f);
-        y += 4;
-        foreach (var row in rows.Skip(page * PotteryRowsPerPage).Take(PotteryRowsPerPage))
+        // Each row is as tall as its wrapped text, and a page holds as many rows as fit, so long names never run into the next row.
+        var layouts = rows.Select(row => KeepRowLayout(row, prefix)).ToList();
+        var pageStarts = new List<int> { 0 };
+        double filled = 0;
+        for (int i = 0; i < layouts.Count; i++)
         {
+            if (filled > 0 && filled + layouts[i].Height > KeepListHeight)
+            {
+                pageStarts.Add(i);
+                filled = 0;
+            }
+            filled += layouts[i].Height;
+        }
+        int pages = pageStarts.Count;
+        page = Math.Clamp(page, 0, pages - 1);
+        int from = pageStarts[page], to = page + 1 < pages ? pageStarts[page + 1] : rows.Count;
+        double listHeight = layouts.Skip(from).Take(to - from).Sum(l => l.Height);
+        composer.AddInset(ElementBounds.Fixed(0, y, Width, listHeight + 8), 3, 0.8f);
+        y += 4;
+        for (int i = from; i < to; i++)
+        {
+            var row = rows[i];
+            var (height, name, nameHeight, detail, detailHeight, have) = layouts[i];
             var stack = new ItemStack(row.Stack);
             if (!stack.ResolveBlockOrItem(capi.World)) continue;
-            var countFont = CairoFont.WhiteDetailText().WithColor(row.Keep == 0 ? GuiKit.MutedColor
+            // A thin line between rows.
+            if (i > from) composer.AddInset(ElementBounds.Fixed(8, y, Width - 16, 1), 1, 0.4f);
+
+            var countFont = CairoFont.WhiteDetailText().WithColor(row.Locked ? GuiKit.WarnColor : row.Keep == 0 ? GuiKit.MutedColor
                 : row.Have >= row.Keep ? GuiKit.GoodColor : GuiKit.WarnColor);
-            // A locked meal shows greyed, with the Cooking level it takes ("Needs Cooking 6").
-            string have = Lang.Get("createacolony:" + prefix + "-have", row.Have, row.Clay);
-            if (row.Locked) have = Lang.Get("createacolony:kitchen-needs-level", row.NeedsLevel, row.CookLevel) + "  " + have;
-            else if (row.NeedsLevel > 0) have = Lang.Get("createacolony:kitchen-level", row.NeedsLevel) + "  " + have;
-            composer.AddRichtext(new RichTextComponentBase[]
+            composer.AddRichtext(new RichTextComponentBase[] { new ItemstackTextComponent(capi, stack, 36, 6) }, ElementBounds.Fixed(6, y + (height - 40) / 2, 44, 40));
+            double ty = y + KeepRowPad;
+            composer.AddStaticText(name, row.Locked ? GuiKit.Body().WithColor(GuiKit.MutedColor) : GuiKit.Body(), ElementBounds.Fixed(KeepTextX, ty, KeepTextWidth, nameHeight));
+            ty += nameHeight;
+            if (detailHeight > 0)
             {
-                new ItemstackTextComponent(capi, stack, 38, 10),
-                new RichTextComponent(capi, (row.Name ?? stack.GetName()) + "\n", row.Locked ? CairoFont.WhiteSmallText().WithColor(GuiKit.MutedColor) : CairoFont.WhiteSmallText()) { VerticalAlign = EnumVerticalAlign.Top },
-                new RichTextComponent(capi, have, row.Locked ? CairoFont.WhiteDetailText().WithColor(GuiKit.WarnColor) : countFont)
-            }, ElementBounds.Fixed(6, y, 330, PotteryRowHeight));
+                composer.AddStaticText(detail, GuiKit.Muted(), ElementBounds.Fixed(KeepTextX, ty, KeepTextWidth, detailHeight));
+                ty += detailHeight;
+            }
+            composer.AddStaticText(have, countFont, ElementBounds.Fixed(KeepTextX, ty, KeepTextWidth, KeepHaveHeight));
 
             string keep = Lang.Get("createacolony:" + prefix + "-keep", row.Keep);
+            double by = y + (height - 28) / 2;
             if (officer)
             {
                 var choices = snapshot.KeepChoices.Union(new[] { row.Keep }).OrderBy(c => c).ToList();
                 int at = choices.IndexOf(row.Keep);
                 string key = row.Key;
                 composer
-                    .AddSmallButton("<", () => SetKeep(action, key, choices[Math.Max(0, at - 1)]), ElementBounds.Fixed(Width - 210, y + 6, 36, 28))
-                    .AddStaticText(keep, GuiKit.Body().WithOrientation(EnumTextOrientation.Center), ElementBounds.Fixed(Width - 170, y + 10, 120, 25))
-                    .AddSmallButton(">", () => SetKeep(action, key, choices[Math.Min(choices.Count - 1, at + 1)]), ElementBounds.Fixed(Width - 46, y + 6, 36, 28));
+                    .AddSmallButton("<", () => SetKeep(action, key, choices[Math.Max(0, at - 1)]), ElementBounds.Fixed(Width - 200, by, 36, 28))
+                    .AddStaticText(keep, GuiKit.Body().WithOrientation(EnumTextOrientation.Center), ElementBounds.Fixed(Width - 162, by + 4, 106, 25))
+                    .AddSmallButton(">", () => SetKeep(action, key, choices[Math.Min(choices.Count - 1, at + 1)]), ElementBounds.Fixed(Width - 52, by, 36, 28));
             }
             else
             {
-                composer.AddStaticText(keep, GuiKit.Body().WithOrientation(EnumTextOrientation.Right), ElementBounds.Fixed(Width - 210, y + 10, 200, 25));
+                composer.AddStaticText(keep, GuiKit.Body().WithOrientation(EnumTextOrientation.Right), ElementBounds.Fixed(Width - 200, by + 4, 184, 25));
             }
-            y += PotteryRowHeight;
+            y += height;
         }
         AddPager(composer, pages, y + 14);
+    }
+
+    /// <summary>The Priorities tab's rows: one line of name each.</summary>
+    const int PotteryRowsPerPage = 7;
+    const double PotteryRowHeight = 44;
+    const double KeepTextX = 56;
+    const double KeepTextWidth = Width - 200 - KeepTextX - 12;
+    const double KeepRowPad = 6;
+    const double KeepHaveHeight = 18;
+    /// <summary>How tall the rows on one page of a keep list may be together.</summary>
+    const double KeepListHeight = 330;
+
+    /// <summary>
+    /// The text of one keep-list row and how tall it is: its name, what it is made from (a recipe row) and how
+    /// many the colony has, each measured at the width it wraps to.
+    /// </summary>
+    (double Height, string Name, double NameHeight, string Detail, double DetailHeight, string Have) KeepRowLayout(PotteryView row, string prefix)
+    {
+        var stack = new ItemStack(row.Stack);
+        string name = row.Name ?? (stack.ResolveBlockOrItem(capi.World) ? stack.GetName() : row.Key);
+        string detail = row.Detail ?? "";
+        // A locked meal shows greyed, with the Cooking level it takes ("Needs Cooking 6").
+        string have = Lang.Get("createacolony:" + prefix + "-have", row.Have, row.Clay);
+        if (row.Locked) have = Lang.Get("createacolony:kitchen-needs-level", row.NeedsLevel, row.CookLevel) + "  " + have;
+        else if (row.NeedsLevel > 0) have = Lang.Get("createacolony:kitchen-level", row.NeedsLevel) + "  " + have;
+        double nameHeight = GuiKit.TextHeight(capi, GuiKit.Body(), name, KeepTextWidth);
+        double detailHeight = GuiKit.TextHeight(capi, GuiKit.Muted(), detail, KeepTextWidth);
+        double height = Math.Max(48, KeepRowPad + nameHeight + detailHeight + KeepHaveHeight + KeepRowPad);
+        return (height, name, nameHeight, detail, detailHeight, have);
     }
 
     /// <summary>
@@ -1693,7 +1740,7 @@ public class GuiDialogHut : GuiDialog
 
     /// <summary>White when the hut has enough, green when you carry some, red when nobody has it.</summary>
     static CairoFont CountFont(ResourceView r) => r.Have >= r.Needed ? GuiKit.Detail()
-        : GuiKit.Detail().WithColor(r.PlayerHas > 0 ? GuiKit.GoodColor : MissingColor);
+        : GuiKit.Detail().WithColor(r.PlayerHas > 0 ? GuiKit.GoodColor : r.InColony > 0 || r.MadeBy.Length > 0 ? GuiKit.WarnColor : MissingColor);
 
     string ResourceName(ItemStack stack, ResourceView r) =>
         r.IsTool ? Lang.Get("createacolony:items-tool", Lang.Get("createacolony:tool-" + (stack.Collectible.Tool?.ToString().ToLowerInvariant() ?? "")))
@@ -1704,8 +1751,12 @@ public class GuiDialogHut : GuiDialog
     {
         if (r.Have >= r.Needed) return Lang.Get("createacolony:resources-ready");
         string line = Lang.Get("createacolony:resources-in-hut", r.Have);
-        return r.PlayerHas > 0 ? line + "   " + Lang.Get("createacolony:resources-you-have", r.PlayerHas)
-            : r.IsTool ? line : line + "   " + Lang.Get("createacolony:resources-nobody");
+        if (r.PlayerHas > 0) return line + "   " + Lang.Get("createacolony:resources-you-have", r.PlayerHas);
+        if (r.IsTool) return line;
+        // On its way: in the warehouse for a courier, or another hut makes it.
+        if (r.InColony > 0) return line + "   " + Lang.Get("createacolony:resources-in-warehouse", r.InColony);
+        if (r.MadeBy.Length > 0) return line + "   " + Lang.Get("createacolony:resources-made-by", r.MadeBy);
+        return line + "   " + Lang.Get("createacolony:resources-nobody");
     }
 
     /// <summary>

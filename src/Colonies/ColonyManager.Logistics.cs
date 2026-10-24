@@ -169,8 +169,8 @@ public partial class ColonyManager
     }
 
     /// <summary>
-    /// Gives the courier the oldest request the warehouse can serve, keeping one the courier already
-    /// holds. Returns null when there is nothing the warehouse has stock for.
+    /// Gives the courier the oldest request the warehouse (or another hut's spare things) can serve, keeping one
+    /// the courier already holds. Returns null when there is nothing in stock for any of them.
     /// </summary>
     public DeliveryRequest? LeaseRequest(Colony colony, CitizenRecord courier)
     {
@@ -179,12 +179,11 @@ public partial class ColonyManager
         if (own != null) return own;
 
         var warehouse = WarehouseContainers(colony).Cast<BlockEntityContainer>().ToList();
-        if (warehouse.Count == 0) return null;
 
         foreach (var request in colony.Requests.OrderBy(r => r.RequestId))
         {
             if (request.LeasedByCitizenId != 0 && request.LeaseUntilTotalHours > now) continue;
-            if (CountItems(warehouse, Matcher(request.ItemCode)) <= 0) continue;
+            if (CountItems(warehouse, Matcher(request.ItemCode)) <= 0 && SpareForRequest(colony, request) == null) continue;
 
             request.LeasedByCitizenId = courier.CitizenId;
             request.LeaseUntilTotalHours = now + RequestLeaseHours;

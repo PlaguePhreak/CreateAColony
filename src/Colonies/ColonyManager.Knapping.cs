@@ -118,8 +118,9 @@ public partial class ColonyManager
 
     /// <summary>The things there are too few of, most wanted first.</summary>
     public List<KnapKind> WantedKnapping(Colony colony, Building hut, CitizenRecord? craftsman) => ByPriority(hut, KnapKinds()
-        .Where(k => CraftKeep(hut, k.Key) > 0)
-        .Select(k => (Kind: k, k.Key, Short: CraftKeep(hut, k.Key) - KnapStock(colony, hut, k, craftsman)))
+        .Select(k => (Kind: k, Want: CraftWant(colony, hut, k.Key)))
+        .Where(k => k.Want > 0)
+        .Select(k => (k.Kind, k.Kind.Key, Short: k.Want - KnapStock(colony, hut, k.Kind, craftsman)))
         .Where(k => k.Short > 0))
         .ToList();
 
@@ -171,9 +172,9 @@ public partial class ColonyManager
     }
 
     /// <summary>At a Primitive Craftsman's hut stones, handles and unfinished heads stay; finished things go to the warehouse.</summary>
-    ItemMatch CraftsmanHutJunk(Building hut)
+    ItemMatch CraftsmanHutJunk(Colony colony, Building hut)
     {
-        var kept = KnapKinds().Where(k => CraftKeep(hut, k.Key) > 0).ToList();
+        var kept = KnapKinds().Where(k => CraftWant(colony, hut, k.Key) > 0).ToList();
         return s => !kept.Any(k => k.IsStone(s) || k.IsHandle(s) || (k.Assembly != null && k.IsPiece(s)));
     }
 

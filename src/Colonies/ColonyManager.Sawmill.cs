@@ -108,8 +108,9 @@ public partial class ColonyManager
 
     /// <summary>The things there are too few of, most wanted first.</summary>
     public List<SawKind> WantedSawing(Colony colony, Building hut, CitizenRecord? sawyer) => ByPriority(hut, SawKinds()
-        .Where(k => CraftKeep(hut, k.Key) > 0)
-        .Select(k => (Kind: k, k.Key, Short: CraftKeep(hut, k.Key) - SawStock(colony, hut, k, sawyer)))
+        .Select(k => (Kind: k, Want: CraftWant(colony, hut, k.Key)))
+        .Where(k => k.Want > 0)
+        .Select(k => (k.Kind, k.Kind.Key, Short: k.Want - SawStock(colony, hut, k.Kind, sawyer)))
         .Where(k => k.Short > 0))
         .ToList();
 
@@ -163,9 +164,9 @@ public partial class ColonyManager
     /// At a Sawmill the wood for what it keeps in stock and its saws stay; what was made goes to the
     /// warehouse, unless it is wood for something else it keeps.
     /// </summary>
-    ItemMatch SawmillHutJunk(Building hut)
+    ItemMatch SawmillHutJunk(Colony colony, Building hut)
     {
-        var inputs = SawKinds().Where(k => CraftKeep(hut, k.Key) > 0).SelectMany(k => k.Recipes).SelectMany(r => r.Inputs).Select(i => i.Part).ToList();
+        var inputs = SawKinds().Where(k => CraftWant(colony, hut, k.Key) > 0).SelectMany(k => k.Recipes).SelectMany(r => r.Inputs).Select(i => i.Part).ToList();
         return s => s.Collectible.Tool != EnumTool.Saw && !inputs.Any(p => p.SatisfiesAsIngredient(s, false));
     }
 
