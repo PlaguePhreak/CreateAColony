@@ -570,6 +570,8 @@ Smithing skill grows with both jobs.
 - More Map Icons has no licence, so none of its art is used. The pictures come from game-icons.net (CC BY 3.0)
   and the letters from DejaVu Sans Bold: see THIRD_PARTY_NOTICES.md. `tools/icons/marker_icons.py` makes them
   again. Not tested in game.
+- 0.79.1: the Add waypoint and Edit waypoint windows lay the icons out wider (`Map/WaypointIconGrid.cs`), about
+  twice as wide as tall and as wide as the screen allows, so they no longer run off the bottom of the screen.
 
 ### The barracks (0.54.0)
 - **Barracks** (2 bows + 7 planks), with a simple placeholder model and a placeholder level 1 blueprint (an open
