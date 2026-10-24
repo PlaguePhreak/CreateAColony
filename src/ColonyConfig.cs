@@ -721,6 +721,16 @@ public class ColonyConfig
     public double HappinessBreakHoursMin = 2;
     public double HappinessBreakHoursMax = 4;
 
+    // Settler animations (see Settlers/SettlerBody.cs and Settlers/SettlerSeats.cs)
+    /// <summary>Settlers hold a torch or lantern up the way a player does.</summary>
+    public bool HoldLightsLikePlayers = true;
+    /// <summary>Settlers with nothing to do now and then look around, scratch their head, cough, stretch or yawn, like an idle player.</summary>
+    public bool IdleAnimations = true;
+    /// <summary>Settlers sit down to eat: on a chair, stool or bench nearby, else on the floor.</summary>
+    public bool SitToEat = true;
+    /// <summary>Settlers taking a break sometimes sit down: on a chair, stool or bench near home, else on the floor.</summary>
+    public bool SitWhenIdle = true;
+
     // Town map (see Map/ColonyLandMap.cs)
     /// <summary>Blocks around the colony's land that the Town map shows, once a player or a settler has loaded them.</summary>
     public int TownMapRange = 1024;

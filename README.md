@@ -701,6 +701,15 @@ before shipping converted blueprints.
 
 ### The Town Hall window (0.24.0)
 
+### Settlers move like players (0.83.0)
+- A settler holding a torch or lantern holds it up the way a player does (`HoldLightsLikePlayers`).
+- A settler with nothing to do now and then looks around, scratches its head, coughs or stretches, like an idle
+  player. Late in the day it yawns (`IdleAnimations`).
+- Settlers sit down to eat, as a player sits (`SitToEat`). On a taken break they often sit for a while too
+  (`SitWhenIdle`). They pick a free chair, stool or bench nearby if there is one, also from other mods, else they
+  sit on the floor. Eating sitting down takes a little longer.
+- Eating uses the player's hand-to-mouth animation.
+
 ### Town map land drawn black (0.81.0)
 - The Town map showed loaded land as solid black: its textures were made without a size, so nothing was
   uploaded. They now get their size (256 by 256) up front, and get smaller copies for zooming far out.

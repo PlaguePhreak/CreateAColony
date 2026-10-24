@@ -23,6 +23,17 @@ public class SettlerAnimations : ModSystem
     /// <summary>Codes of the animations copied from the player, so tasks know they can use them.</summary>
     public static readonly HashSet<string> PlayerAnimations = new();
 
+    /// <summary>
+    /// The player's own settings for these animations (blend, weights, speed) are copied into the settler entity
+    /// types, so tasks can start them by code: holding a torch or lantern, the idle fidgets, sitting and eating.
+    /// Other player animations an item asks for (GetHeldTpIdleAnimation) come along too.
+    /// </summary>
+    public static readonly string[] FidgetAnimations = { "lookaround", "headscratch", "cough", "stretch", "yawn" };
+    /// <summary>Sitting on the floor, as a player does.</summary>
+    public const string SitFloor = "sitflooridle";
+    /// <summary>Sitting on the edge of a block with the legs hanging down, as a player does; used for chairs and benches.</summary>
+    public const string SitSeat = "sitflooredge";
+
     public override double ExecuteOrder() => 0.05;
 
     public override void AssetsLoaded(ICoreAPI api)
@@ -99,6 +110,37 @@ public class SettlerAnimations : ModSystem
             animations.Add(copy);
             have.Add(code);
             PlayerAnimations.Add(code);
+            added++;
+        }
+        return added;
+    }
+
+    /// <summary>
+    /// Copies the player's animation settings (from player.json) into a settler entity type's client animations,
+    /// for every player animation the settler type does not set itself. "eat" is taken from the player too: the
+    /// hand-to-mouth eating, in place of the villager's hand on the belly. The copies are never started by the
+    /// player's controls (no triggeredBy), and run on the server so every player sees them.
+    /// </summary>
+    internal static int CopyPlayerAnimationConfigs(JObject playerType, JObject settlerClient)
+    {
+        if (playerType["client"]?["animations"] is not JArray source) return 0;
+        if (settlerClient["animations"] is not JArray target) settlerClient["animations"] = target = new JArray();
+
+        if (source.OfType<JObject>().Any(a => (string?)a["code"] == "eat"))
+        {
+            foreach (var old in target.OfType<JObject>().Where(a => (string?)a["code"] == "eat").ToList()) old.Remove();
+        }
+        var have = new HashSet<string>(target.Select(a => (string?)a["code"] ?? "").Where(c => c.Length > 0));
+        int added = 0;
+        foreach (var anim in source.OfType<JObject>())
+        {
+            string? code = (string?)anim["code"];
+            if (code == null || code.EndsWith("-fp") || code.EndsWith("-ifp") || have.Contains(code)) continue;
+            var copy = (JObject)anim.DeepClone();
+            copy.Remove("triggeredBy");
+            copy.Remove("clientSide");
+            target.Add(copy);
+            have.Add(code);
             added++;
         }
         return added;

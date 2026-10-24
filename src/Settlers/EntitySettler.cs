@@ -14,6 +14,10 @@ namespace CreateAColony.Settlers;
 public class EntitySettler : EntityHumanoid
 {
     EntityBehaviorVillagerInv? hands;
+    Colonies.ColonyManager? manager;
+
+    /// <summary>Holding torches like a player, and the idle fidgets (see SettlerBody).</summary>
+    public SettlerBody? Body { get; private set; }
 
     /// <summary>The tool or weapon the settler works with.</summary>
     public override ItemSlot? RightHandItemSlot => hands?.Inventory[0];
@@ -24,6 +28,18 @@ public class EntitySettler : EntityHumanoid
     {
         base.Initialize(properties, api, InChunkIndex3d);
         hands = GetBehavior<EntityBehaviorVillagerInv>();
+        if (api.Side == EnumAppSide.Server)
+        {
+            manager = api.ModLoader.GetModSystem<Colonies.ColonyManager>();
+            Body = new SettlerBody(this);
+        }
+    }
+
+    /// <summary>The game calls this every tick on both sides; settlers do their hand poses and fidgets on the server.</summary>
+    protected override void HandleHandAnimations(float dt)
+    {
+        base.HandleHandAnimations(dt);
+        Body?.Tick(dt, manager?.Config);
     }
 
     public override void OnEntitySpawn()

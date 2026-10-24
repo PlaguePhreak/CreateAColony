@@ -20,6 +20,9 @@ namespace CreateAColony.Settlers;
 /// Before strolling, an idle settler tidies up: a guard drops off what it picked up at its tower, anyone
 /// walks over to items lying nearby to pick them up, and a settler without a torch fetches one from its
 /// hut or the warehouse for the dark.
+///
+/// Now and then, instead of strolling, it sits down for a while as a player does: on a free chair, stool or
+/// bench near its home if there is one, else on the floor where it stands (config SitWhenIdle).
 /// </summary>
 public class AiTaskSettlerIdle : SettlerTaskBase
 {
@@ -30,14 +33,24 @@ public class AiTaskSettlerIdle : SettlerTaskBase
     const long MaxStrollMs = 30_000;
     /// <summary>Further than this from home, the next stroll heads back there.</summary>
     const double FarFromHome = 12;
+    /// <summary>Chance that a break is spent sitting rather than strolling.</summary>
+    const double SitChance = 0.5;
+    /// <summary>How long a settler stays sitting, at least and at most.</summary>
+    const float MinSitSeconds = 20f;
+    const float MaxSitSeconds = 60f;
+    /// <summary>How far from home (or from where it stands) a settler looks for a seat.</summary>
+    const int SeatRange = 8;
 
     readonly int strollRadius;
     long nextStrollMs;
     long startedMs;
     Vec3d? spot;
-    enum Errand { Stroll, PickUp, Torch, Deposit }
+    enum Errand { Stroll, PickUp, Torch, Deposit, Sit }
     Errand errand;
     BlockPos? chestPos;
+    BlockPos? seat;
+    bool sitting;
+    float sitLeft;
 
     public AiTaskSettlerIdle(EntityAgent entity, JsonObject taskConfig, JsonObject aiConfig) : base(entity, taskConfig, aiConfig)
     {
@@ -52,9 +65,10 @@ public class AiTaskSettlerIdle : SettlerTaskBase
         nextStrollMs = now + MinPauseMs + (long)(entity.World.Rand.NextDouble() * (MaxPauseMs - MinPauseMs));
         if (Colony is not { } colony || Citizen is not { } citizen || citizen.IsDowned) return false;
         if (PlanErrand(colony, citizen)) return true;
+        var home = Home(colony, citizen);
+        if (PlanSit(home)) return true;
         errand = Errand.Stroll;
 
-        var home = Home(colony, citizen);
         // Back towards home when far from it, else anywhere within the stroll radius of it.
         bool far = entity.Pos.XYZ.HorizontalSquareDistanceTo(home.X + 0.5, home.Z + 0.5) > FarFromHome * FarFromHome;
         int r = far ? 2 : strollRadius;
@@ -62,6 +76,18 @@ public class AiTaskSettlerIdle : SettlerTaskBase
         var around = home.AddCopy(rand.Next(-r, r + 1), 0, rand.Next(-r, r + 1));
         spot = manager.FreeSpotNear(entity, around, 2);
         return spot != null && spot.SquareDistanceTo(entity.Pos.XYZ) > 2 * 2;
+    }
+
+    /// <summary>Sometimes a break is spent sitting: on a seat near home, else on the floor here. True when it is.</summary>
+    bool PlanSit(BlockPos home)
+    {
+        if (!manager!.Config.SitWhenIdle || entity.World.Rand.NextDouble() > SitChance) return false;
+        seat = SettlerSeats.FindSeat(entity, home, SeatRange) ?? SettlerSeats.FindSeat(entity, entity.Pos.AsBlockPos, SeatRange);
+        if (seat == null && !SettlerSeats.CanSitHere(entity)) return false;
+        errand = Errand.Sit;
+        spot = seat == null ? null : SettlerSeats.SeatSpot(seat);
+        sitLeft = MinSitSeconds + (float)entity.World.Rand.NextDouble() * (MaxSitSeconds - MinSitSeconds);
+        return true;
     }
 
     /// <summary>Picks a chore to do before strolling. True when there is one; spot (and chestPos) say where.</summary>
@@ -140,11 +166,22 @@ public class AiTaskSettlerIdle : SettlerTaskBase
     {
         base.StartExecute();
         startedMs = entity.World.ElapsedMilliseconds;
-        WalkTo(spot!, errand == Errand.Stroll ? 1f : 1.5f);
+        sitting = false;
+        if (errand == Errand.Sit && spot == null)
+        {
+            // Sits down where it stands: the walk animation the task started is not wanted.
+            StopWalking();
+            SettlerSeats.SitOnFloor(entity);
+            sitting = true;
+            return;
+        }
+        WalkTo(spot!, errand switch { Errand.Stroll => 1f, Errand.Sit => 1.2f, _ => 1.5f });
     }
 
     public override bool ContinueExecute(float dt)
     {
+        if (errand == Errand.Sit) return ContinueSitting(dt);
+
         // A stroll is given up at the first failure: it is not worth retrying, nor building Willpower for.
         if (Arrived || PathFailedOnce || entity.World.ElapsedMilliseconds - startedMs > MaxStrollMs)
         {
@@ -155,6 +192,37 @@ public class AiTaskSettlerIdle : SettlerTaskBase
         }
         KeepWalking();
         return true;
+    }
+
+    bool ContinueSitting(float dt)
+    {
+        if (sitting)
+        {
+            sitLeft -= dt;
+            return sitLeft > 0;
+        }
+        if (!Arrived && !PathFailedOnce && entity.World.ElapsedMilliseconds - startedMs <= MaxStrollMs)
+        {
+            KeepWalking();
+            return true;
+        }
+        // At the seat; or it could not be reached, and the settler sits where it is if it can.
+        StopWalking();
+        if (Arrived && seat != null && SettlerSeats.SitOn(entity, seat)) sitting = true;
+        else if (SettlerSeats.CanSitHere(entity))
+        {
+            SettlerSeats.SitOnFloor(entity);
+            sitting = true;
+        }
+        return sitting;
+    }
+
+    public override void FinishExecute(bool cancelled)
+    {
+        if (sitting) SettlerSeats.StandUp(entity);
+        sitting = false;
+        seat = null;
+        base.FinishExecute(cancelled);
     }
 
     public override string Describe(Colony colony, CitizenRecord citizen) => errand switch

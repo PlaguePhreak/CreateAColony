@@ -14,10 +14,16 @@ namespace CreateAColony.Settlers;
 /// groups they have not eaten lately. With no food anywhere they try again later and eventually starve.
 /// Settlers carrying packed food eat that on the go instead (ColonyManager.Lunch.cs) and only come here once
 /// it is gone and they are hungry; here they pack food for later.
+/// To eat, a settler sits down as a player does: on a chair, stool or bench near the food if there is a free
+/// one, else on the floor (config SitToEat).
 /// </summary>
 public class AiTaskSettlerEat : SettlerTaskBase
 {
     const float EatSeconds = 3f;
+    /// <summary>Sitting down, a settler takes its time over the meal.</summary>
+    const float SitEatSeconds = 10f;
+    /// <summary>How far from the food a settler looks for a seat.</summary>
+    const int SeatRange = 6;
     const long NoFoodRetryMs = 30_000;
     /// <summary>After failing to reach food, the settler waits this long before looking again.</summary>
     const long UnreachableRetryMs = 5_000;
@@ -27,6 +33,8 @@ public class AiTaskSettlerEat : SettlerTaskBase
     BlockPos? containerPos;
     float eatTime;
     bool eating;
+    BlockPos? seat;
+    bool sitting;
     long nextSearchMs;
     string? eatingName;
     readonly Dictionary<BlockPos, long> unreachable = new();
@@ -58,11 +66,27 @@ public class AiTaskSettlerEat : SettlerTaskBase
         eating = false;
         eatingName = null;
         eatTime = 0;
+        seat = null;
+        sitting = false;
         WalkTo(containerPos!.ToVec3d().Add(0.5, 0, 0.5), 1.5f);
     }
 
     public override bool ContinueExecute(float dt)
     {
+        if (seat != null)
+        {
+            // Food in hand, on the way to a seat. If it cannot be reached, the settler sits where it is.
+            if (!Arrived && !PathFailed)
+            {
+                KeepWalking();
+                return true;
+            }
+            StopWalking();
+            bool onSeat = Arrived && SettlerSeats.SitOn(entity, seat);
+            seat = null;
+            SitDown(onSeat);
+            return true;
+        }
         if (PathFailed)
         {
             // A hungry settler that cannot reach the nearest food used to try the same food again straight away,
@@ -84,11 +108,28 @@ public class AiTaskSettlerEat : SettlerTaskBase
             StopWalking();
             if (!TakeFood()) return false;
             eating = true;
-            PlayAnimation("eat");
+            if (manager!.Config.SitToEat && (seat = SettlerSeats.FindSeat(entity, containerPos!, SeatRange)) != null)
+            {
+                WalkTo(SettlerSeats.SeatSpot(seat), 1.2f);
+                return true;
+            }
+            SitDown(false);
         }
 
         eatTime += dt;
-        return eatTime < EatSeconds;
+        return eatTime < (sitting ? SitEatSeconds : EatSeconds);
+    }
+
+    /// <summary>Starts eating: on the seat it was just put on, else on the floor if it can sit there, else standing.</summary>
+    void SitDown(bool onSeat)
+    {
+        sitting = onSeat;
+        if (!onSeat && manager!.Config.SitToEat && SettlerSeats.CanSitHere(entity))
+        {
+            SettlerSeats.SitOnFloor(entity);
+            sitting = true;
+        }
+        PlayAnimation("eat");
     }
 
     bool IsUnreachable(BlockPos pos)
@@ -112,6 +153,9 @@ public class AiTaskSettlerEat : SettlerTaskBase
     public override void FinishExecute(bool cancelled)
     {
         StopAnimation("eat");
+        if (sitting) SettlerSeats.StandUp(entity);
+        sitting = false;
+        seat = null;
         eating = false;
         eatingName = null;
         base.FinishExecute(cancelled);
