@@ -68,7 +68,7 @@ public partial class ColonyManager
         foreach (var site in sites)
         {
             double dx = site.Pos.X - x, dz = site.Pos.Z - z, d2 = dx * dx + dz * dz;
-            if (d2 > range * range) continue;
+            if (d2 > range * range || site.Unread) continue;
             double w = 1 / (d2 + 16);
             total += w * ReadingQuality(site);
             weights += w;
@@ -77,11 +77,13 @@ public partial class ColonyManager
     }
 
     /// <summary>True when the colony already has a reading close to this spot.</summary>
-    bool Prospected(Colony colony, double x, double z)
-    {
-        double near = Math.Max(2, Config.ProspectorNearReading);
-        return colony.OreSites.Any(s => (s.Pos.X - x) * (s.Pos.X - x) + (s.Pos.Z - z) * (s.Pos.Z - z) < near * near);
-    }
+    bool Prospected(Colony colony, double x, double z) => ReadNear(colony, x, z, Math.Max(2, Config.ProspectorNearReading));
+
+    /// <summary>How close a reading must be to a gatherer's ore find to count as read there.</summary>
+    const double HintReadRange = 3;
+
+    bool ReadNear(Colony colony, double x, double z, double near) =>
+        colony.OreSites.Any(s => !s.Unread && (s.Pos.X - x) * (s.Pos.X - x) + (s.Pos.Z - z) * (s.Pos.Z - z) < near * near);
 
     /// <summary>
     /// The next spot to take a reading at, where the prospector stands (the air above the ground), or null
@@ -99,8 +101,9 @@ public partial class ColonyManager
         var rand = sapi.World.Rand;
         int radius = Math.Max(1, GatherRadius(hut));
 
-        // Ore bits the gatherer found come first: a reading right there, nearest first. A hint is done once read.
-        if (colony.OreHints.RemoveAll(h => Prospected(colony, h.Pos.X, h.Pos.Z)) > 0) MarkDirty(colony);
+        // Ore bits the gatherer found come first: a reading right there, nearest first. A hint is done once read
+        // right there; readings further off (even within ProspectorNearReading) do not count.
+        if (colony.OreHints.RemoveAll(h => ReadNear(colony, h.Pos.X, h.Pos.Z, HintReadRange)) > 0) MarkDirty(colony);
         foreach (var hint in colony.OreHints.OrderBy(h => h.Pos.HorDistanceSqTo(hut.HutPos.X, hut.HutPos.Z)))
         {
             if (hint.Pos.HorDistanceSqTo(hut.HutPos.X, hut.HutPos.Z) > (double)radius * radius) break;
@@ -115,7 +118,7 @@ public partial class ColonyManager
             return at;
         }
         double minStep = Math.Max(4, Config.ProspectorMinStep), maxStep = Math.Max(minStep, Config.ProspectorMaxStep);
-        var inRange = colony.OreSites.Where(s => s.Pos.HorDistanceSqTo(hut.HutPos.X, hut.HutPos.Z) <= (double)radius * radius).ToList();
+        var inRange = colony.OreSites.Where(s => !s.Unread && s.Pos.HorDistanceSqTo(hut.HutPos.X, hut.HutPos.Z) <= (double)radius * radius).ToList();
 
         // Where to walk on from: the last reading, a reading picked by how good it was, or the hut.
         var starts = new List<BlockPos> { lastReadings.GetValueOrDefault(hut.BuildingId) ?? hut.HutPos };
@@ -178,7 +181,7 @@ public partial class ColonyManager
             if (x * x + z * z > radius * radius) continue;
             all++;
             double px = hut.HutPos.X + x, pz = hut.HutPos.Z + z;
-            if (colony.OreSites.Any(s => (s.Pos.X - px) * (s.Pos.X - px) + (s.Pos.Z - pz) * (s.Pos.Z - pz) < near * near)) done++;
+            if (colony.OreSites.Any(s => !s.Unread && (s.Pos.X - px) * (s.Pos.X - px) + (s.Pos.Z - pz) * (s.Pos.Z - pz) < near * near)) done++;
         }
         return all == 0 ? 100 : done * 100 / all;
     }
@@ -218,7 +221,18 @@ public partial class ColonyManager
             site.Ores.Add(new OreFind { Code = code, Factor = ore.TotalFactor, Ppt = ore.PartsPerThousand });
         }
         site.Ores.Sort((a, b) => b.Factor.CompareTo(a.Factor));
-        colony.OreSites.Add(site);
+        // Read at a gatherer's ore find: miners dig for that ore here whatever the reading says.
+        bool AtFind(BlockPos p) => p.HorDistanceSqTo(site.Pos.X, site.Pos.Z) < HintReadRange * HintReadRange;
+        if (colony.OreHints.Find(h => AtFind(h.Pos)) is { } hint) site.HintOre = hint.Ore;
+        colony.OreHints.RemoveAll(h => AtFind(h.Pos));
+        // A find a miner already went to without a reading gets this one, keeping its spot for the miner's trip.
+        if (colony.OreSites.Find(s => s.Unread && AtFind(s.Pos)) is { } unread)
+        {
+            unread.Ores = site.Ores;
+            unread.TotalDays = site.TotalDays;
+            site = unread;
+        }
+        else colony.OreSites.Add(site);
         lastReadings[hut.BuildingId] = site.Pos.Copy();
         prospectTargets.Remove(hut.BuildingId);
         AddStat(hut, "readings");

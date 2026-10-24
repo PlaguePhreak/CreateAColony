@@ -370,7 +370,7 @@ public partial class ColonyManager
     {
         double near = Math.Max(1, Config.OreHintSpacing);
         if (colony.OreHints.Any(h => h.Ore == ore && h.Pos.HorDistanceSqTo(pos.X, pos.Z) < near * near)) return;
-        if (Prospected(colony, pos.X, pos.Z)) return;
+        if (ReadNear(colony, pos.X, pos.Z, HintReadRange)) return;
         colony.OreHints.Add(new OreHint { Pos = pos.Copy(), Ore = ore, TotalDays = sapi.World.Calendar.TotalDays });
         string kind = OreMarkerKind(ore);
         string metal = kind == "ore-any" ? OreName(ore) : Lang.Get("createacolony:marker-" + kind);

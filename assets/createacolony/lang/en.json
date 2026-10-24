@@ -984,6 +984,7 @@
 	"mine-any-ore": "any ore (the best found)",
 	"mine-digs-for": "Digs for: {0}",
 	"mine-site": "Prospected ore: {0} ({1}), {2}.",
+	"mine-site-found": "Ore a gatherer found: {0}, {1}.",
 	"mine-depth": "Staircase there: {0} blocks down, starting at {1}, {2}, {3}.",
 	"mine-shaft": "Shaft: {0} blocks deep, level {1} of {2}, at {3}, {4}, {5}.",
 	"mine-shaft-none": "Shaft: not started yet.",

@@ -43,6 +43,7 @@ public class ColonyOreMapLayer : OreMapLayer
         var readings = manager.All
             .Where(c => c.Members.Any(m => m.PlayerUid == player.PlayerUID))
             .SelectMany(c => c.OreSites)
+            .Where(s => !s.Unread)
             .Select(ToReading)
             .ToList();
         mapSink.SendMapDataToClient(this, player, SerializerUtil.Serialize(readings));

@@ -797,6 +797,13 @@ before shipping converted blueprints.
 
 ### The Town Hall window (0.24.0)
 
+### Miners and prospectors check the gatherer's ore finds (0.122.0)
+- Ore bits a gatherer picks up now always get checked. Before, a prospector's reading up to 16 blocks away counted
+  as checked, so the find was dropped without anyone going there (Aaron's report).
+- Prospectors read right at the find first. Miners dig for that ore there whatever the reading says, before other
+  prospected ore. With no reading yet, a miner goes and digs for it anyway. The Miner's Hut says "Ore a gatherer found".
+- Miners only go on ore trips when their mineshaft is done or waiting for materials, as before.
+
 ### Settlers step onto the wall at a ladder's top (0.120.0)
 - At the top of a ladder, a settler now steps onto the block the ladder hangs on and stands there before walking
   anywhere else. Before, it could step off the open side, fall and get stuck (Aaron's report).

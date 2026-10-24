@@ -694,7 +694,7 @@ public partial class ColonyNetwork : ModSystem
             Quests = sapi!.World.PlayerByUid(viewerUid) is IServerPlayer viewer ? QuestStates(viewer, colony) : new()
         };
 
-        snapshot.OreReadings = colony.OreSites.Count;
+        snapshot.OreReadings = colony.OreSites.Count(s => !s.Unread);
         snapshot.ProspectorHuts = colony.Buildings.Count(b => b.Type == BuildingTypes.Prospector);
         foreach (var ore in Manager.OreSummary(colony))
         {
@@ -1031,7 +1031,7 @@ public partial class ColonyNetwork : ModSystem
             snapshot.IsOreHut = true;
             snapshot.MineOre = building.MineOre;
             snapshot.MineProspected = building.MineProspected;
-            snapshot.OreReadings = colony.OreSites.Count;
+            snapshot.OreReadings = colony.OreSites.Count(s => !s.Unread);
             foreach (var ore in Manager.OreSummary(colony))
             {
                 snapshot.Ores.Add(new OreView { Code = ore.Code, Best = ore.Best, Sites = ore.Sites, MinedOut = ore.MinedOut, Where = ColonyManager.DirectionFrom(building.HutPos, ore.BestPos) });

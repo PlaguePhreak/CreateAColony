@@ -348,18 +348,39 @@ public partial class ColonyManager
             double dx = site.Pos.X - hut.HutPos.X, dz = site.Pos.Z - hut.HutPos.Z;
             double distance = Math.Sqrt(dx * dx + dz * dz);
             if (distance > radius || taken.Any(t => t.Equals(site.Pos))) continue;
-            foreach (var ore in site.Ores)
+            var ores = site.Ores.ToList();
+            if (site.HintOre.Length > 0 && !ores.Any(o => o.Code == site.HintOre)) ores.Add(new OreFind { Code = site.HintOre });
+            foreach (var ore in ores)
             {
-                if (ore.Factor < least || site.MinedOut.Contains(ore.Code)) continue;
+                bool found = ore.Code == site.HintOre;
+                if ((ore.Factor < least && !found) || site.MinedOut.Contains(ore.Code)) continue;
                 if (hut.MineOre.Length > 0 && ore.Code != hut.MineOre) continue;
                 if (!MayCollect(hut, "ore-" + ore.Code)) continue;
-                // A stronger reading wins; between equal ones, the nearer.
-                double score = ore.Factor - distance / 10000;
+                // Ore a gatherer found lying here comes first, then a stronger reading; between equal ones, the nearer.
+                double score = (found ? 1 : 0) + ore.Factor - distance / 10000;
                 if (score <= bestScore) continue;
                 (bestSite, bestOre, bestScore) = (site, ore.Code, score);
             }
         }
+        // Ore a gatherer found that no prospector has read yet: the miner goes and digs for it all the same.
+        foreach (var hint in colony.OreHints)
+        {
+            double dx = hint.Pos.X - hut.HutPos.X, dz = hint.Pos.Z - hut.HutPos.Z;
+            double distance = Math.Sqrt(dx * dx + dz * dz);
+            if (distance > radius || taken.Any(t => t.Equals(hint.Pos))) continue;
+            if (hut.MineOre.Length > 0 && hint.Ore != hut.MineOre) continue;
+            if (!MayCollect(hut, "ore-" + hint.Ore)) continue;
+            double score = 1 - distance / 10000;
+            if (score <= bestScore) continue;
+            bestSite = new OreSite { Pos = hint.Pos.Copy(), TotalDays = hint.TotalDays, HintOre = hint.Ore };
+            (bestOre, bestScore) = (hint.Ore, score);
+        }
         if (bestSite == null) return null;
+        if (bestSite.Unread && !colony.OreSites.Contains(bestSite))
+        {
+            colony.OreSites.Add(bestSite);
+            colony.OreHints.RemoveAll(h => h.Pos.Equals(bestSite.Pos));
+        }
         trip.Site = bestSite.Pos.Copy();
         trip.SiteOre = bestOre;
         trip.Entrance = trip.End = trip.Target = null;
@@ -869,7 +890,9 @@ public partial class ColonyManager
         if (trip.Site == null || trip.SiteOre.Length == 0) return null;
         var site = colony.OreSites.Find(s => s.Pos.Equals(trip.Site));
         var factor = site?.Ores.Find(o => o.Code == trip.SiteOre)?.Factor ?? 0;
-        string line = Lang.Get("createacolony:mine-site", OreName(trip.SiteOre), DensityName(factor), DirectionFrom(hut.HutPos, trip.Site));
+        string line = site?.HintOre == trip.SiteOre
+            ? Lang.Get("createacolony:mine-site-found", OreName(trip.SiteOre), DirectionFrom(hut.HutPos, trip.Site))
+            : Lang.Get("createacolony:mine-site", OreName(trip.SiteOre), DensityName(factor), DirectionFrom(hut.HutPos, trip.Site));
         if (trip.Entrance != null && trip.End != null)
         {
             line += "<br>" + Lang.Get("createacolony:mine-depth", Math.Max(0, trip.Entrance.Y - trip.End.Y), trip.Entrance.X, trip.Entrance.Y, trip.Entrance.Z);

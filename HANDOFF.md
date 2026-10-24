@@ -1,1 +1,2 @@
 - 0.120.0 (Bug Fixing 2, branch claude/project-thread-d1l1yu): settlers climbing up step onto the block the ladder hangs on (LadderClimb.OntoWall) and only finish on the ground there; a fall off the ladder ends the climb and retries the ladder once (ladderFalls).
+- 0.122.0 (Bug Fixing 2): gatherer ore finds (OreHints) only count as read by a reading within 3 blocks (HintReadRange); OreSite.HintOre (proto 5) makes miners dig that ore first whatever the reading; ChooseMineSite turns unread hints into Unread sites (hidden from ore map/Prospected).

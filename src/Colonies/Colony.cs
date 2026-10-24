@@ -523,6 +523,10 @@ public class OreSite
     [ProtoMember(3)] public List<OreFind> Ores = new();
     /// <summary>Ores a miner has dug out here, or found none of close enough to reach.</summary>
     [ProtoMember(4)] public List<string> MinedOut = new();
+    /// <summary>The ore whose bits a gatherer found here ("nativecopper"), so miners dig for it whatever the reading says.</summary>
+    [ProtoMember(5)] public string HintOre = "";
+    /// <summary>A gatherer's find that a miner went to before any prospector read it: it holds no reading.</summary>
+    public bool Unread => Ores.Count == 0 && HintOre.Length > 0;
 }
 
 /// <summary>A spot where ore bits lay on the ground ("nativecopper"), so a deposit is likely right below.</summary>
