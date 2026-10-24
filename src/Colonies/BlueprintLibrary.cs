@@ -886,6 +886,8 @@ public static class BuildingTypes
     public const string Quarry = "quarry";
     public const string Smelter = "smelter";
     public const string Blacksmith = "blacksmith";
+    public const string Armourer = "armourer";
+    public const string Weaponsmith = "weaponsmith";
     public const string Sawmill = "sawmill";
     public const string Craftsman = "craftsman";
     public const string Tailor = "tailor";

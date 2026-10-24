@@ -98,6 +98,72 @@ public partial class ColonyManager
         return smithKinds = kinds.Values.OrderBy(k => k.Metal).ThenBy(k => k.Key).ToList();
     }
 
+    /// <summary>
+    /// Which smith makes a thing (Aaron, TRADERS_DRAFT.md): "weapon" for the Weaponsmith (swords, spears, maces,
+    /// shields, arrowheads and blades), "armor" for the Armourer (chains, scales, plates and lamellae for
+    /// armor), "tools" for the Blacksmith (tools and everything else).
+    /// </summary>
+    public string SmithCategory(SmithKind kind)
+    {
+        foreach (var stack in new[] { kind.Sample, kind.Piece })
+        {
+            string part = FirstPart(stack.Collectible.Code);
+            if (Config.ArmourerParts.Contains(part) || IsArmor(stack)) return "armor";
+            if (Config.WeaponsmithParts.Contains(part) || stack.Collectible.Tool is { } tool && Config.WeaponTools.Contains(tool.ToString())) return "weapon";
+        }
+        return "tools";
+    }
+
+    static string SmithCategoryOf(string hutType) => hutType switch
+    {
+        BuildingTypes.Armourer => "armor",
+        BuildingTypes.Weaponsmith => "weapon",
+        _ => "tools"
+    };
+
+    /// <summary>
+    /// What a smith's hut makes: its own kind of thing. Until the colony has built an Armourer or a Weaponsmith,
+    /// the Blacksmith still makes their things too.
+    /// </summary>
+    public List<SmithKind> SmithKindsFor(Colony colony, string hutType)
+    {
+        string mine = SmithCategoryOf(hutType);
+        if (mine != "tools") return SmithKinds().Where(k => SmithCategory(k) == mine).ToList();
+        bool armourer = HasBuilt(colony, BuildingTypes.Armourer), weaponsmith = HasBuilt(colony, BuildingTypes.Weaponsmith);
+        return SmithKinds().Where(k => SmithCategory(k) switch
+        {
+            "armor" => !armourer,
+            "weapon" => !weaponsmith,
+            _ => true
+        }).ToList();
+    }
+
+    bool HasBuilt(Colony colony, string type) => colony.Buildings.Any(b => b.Type == type && b.Level > 0 && !b.Removing);
+
+    /// <summary>
+    /// A new Armourer or Weaponsmith was built: what the colony's Blacksmiths kept of its kind of thing moves
+    /// over to it, so armor and weapons are made there from now on.
+    /// </summary>
+    public void TakeOverSmithing(Colony colony, Building hut)
+    {
+        string mine = SmithCategoryOf(hut.Type);
+        if (mine == "tools" || hut.CraftChosen) return;
+        var keys = SmithKinds().Where(k => SmithCategory(k) == mine).Select(k => k.Key).ToHashSet();
+        var moved = new Dictionary<string, int>();
+        foreach (var smith in colony.Buildings.Where(b => b.Type == BuildingTypes.Blacksmith && b.CraftChosen))
+        {
+            foreach (var (key, keep) in smith.CraftKeep.Where(e => keys.Contains(e.Key)).ToList())
+            {
+                moved[key] = Math.Max(moved.GetValueOrDefault(key), keep);
+                smith.CraftKeep.Remove(key);
+            }
+        }
+        if (moved.Count == 0) return;
+        hut.CraftKeep = moved;
+        hut.CraftChosen = true;
+        MarkDirty(colony);
+    }
+
     /// <summary>A two-ingredient crafting recipe that takes this piece and one other thing (a stick), and that other thing.</summary>
     static (GridRecipe?, CraftingRecipeIngredient?) FindAssembly(List<GridRecipe> recipes, ItemStack piece)
     {
@@ -140,7 +206,7 @@ public partial class ColonyManager
     }
 
     /// <summary>The things there are too few of that the anvil by the hut can make, most wanted first.</summary>
-    public List<SmithKind> WantedSmithing(Colony colony, Building hut, CitizenRecord? smith, int anvilTier) => ByPriority(hut, SmithKinds()
+    public List<SmithKind> WantedSmithing(Colony colony, Building hut, CitizenRecord? smith, int anvilTier) => ByPriority(hut, SmithKindsFor(colony, hut.Type)
         .Where(k => k.Tier <= anvilTier)
         .Select(k => (Kind: k, Want: CraftWant(colony, hut, k.Key)))
         .Where(k => k.Want > 0)
@@ -163,7 +229,7 @@ public partial class ColonyManager
         Add(HutStorage(colony, hut).SelectMany(c => c.Inventory).Where(s => !s.Empty).Select(s => s.Itemstack));
         if (smith != null) Add(PackItems(smith));
         int tier = SmithAnvil(hut)?.OwnMetalTier ?? int.MaxValue;
-        return SmithKinds().Where(k => CraftKeep(hut, k.Key) > 0 || (metals.Contains(k.Ingot) && k.Tier <= tier)).ToList();
+        return SmithKindsFor(colony, hut.Type).Where(k => CraftKeep(hut, k.Key) > 0 || (metals.Contains(k.Ingot) && k.Tier <= tier)).ToList();
     }
 
     /// <summary>Puts the ingots for a piece in the forge, adds fuel if it has little, and lights it.</summary>
@@ -231,8 +297,18 @@ public partial class ColonyManager
         return true;
     }
 
-    /// <summary>At a Blacksmith's Hut ingots, handles and forge fuel stay; what was made goes to the warehouse.</summary>
-    ItemMatch BlacksmithHutJunk() => s => !IsIngot(s) && !IsForgeFuel(s) && !SmithKinds().Any(k => k.IsHandle(s));
+    /// <summary>
+    /// At a Blacksmith's, Armourer's or Weaponsmith's hut ingots, handles and forge fuel stay, and at an
+    /// Armourer's what its armor recipes take and worn metal armor; what was made goes to the warehouse.
+    /// </summary>
+    ItemMatch BlacksmithHutJunk(Colony colony, Building hut)
+    {
+        var kinds = SmithKindsFor(colony, hut.Type);
+        var recipeInputs = HasHutRecipes(hut.Type) ? HutRecipeInputs(colony, hut) : _ => false;
+        bool armourer = hut.Type == BuildingTypes.Armourer;
+        return s => !IsIngot(s) && !IsForgeFuel(s) && !kinds.Any(k => k.IsHandle(s)) && !recipeInputs(s)
+            && !(armourer && (ArmourerMendLeft(s) > 1 - Config.ArmourerMendBelow || IsArmourPart(s)));
+    }
 
     /// <summary>A line about the forge and the anvil for the hut window.</summary>
     public string BlacksmithInfo(Building hut)

@@ -212,6 +212,8 @@ public partial class ColonyManager
         RefreshClaim(colony);
 
         LogEvent(colony, "event-built", "@building-" + building.Type, building.Level.ToString());
+        // A new Armourer or Weaponsmith takes over its kind of smithing from the Blacksmith.
+        TakeOverSmithing(colony, building);
         if (colony.BannerOnNew) ReplaceBanners(colony, new[] { building });
         string message = Lang.Get("createacolony:build-finished", Lang.Get("createacolony:building-" + building.Type), building.Level);
         foreach (var member in colony.Members)

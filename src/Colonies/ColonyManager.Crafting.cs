@@ -18,7 +18,7 @@ public partial class ColonyManager
     public static string? CraftTabOf(string type) => type switch
     {
         BuildingTypes.Smelter => "smelting",
-        BuildingTypes.Blacksmith => "smithing",
+        BuildingTypes.Blacksmith or BuildingTypes.Armourer or BuildingTypes.Weaponsmith => "smithing",
         BuildingTypes.Sawmill => "sawmill",
         BuildingTypes.Craftsman => "knapping",
         _ => null
@@ -46,7 +46,7 @@ public partial class ColonyManager
     public IEnumerable<string> CraftKeys(Building hut) => hut.Type switch
     {
         BuildingTypes.Smelter => SmeltKinds().Select(k => k.Key),
-        BuildingTypes.Blacksmith => SmithKinds().Select(k => k.Key),
+        BuildingTypes.Blacksmith or BuildingTypes.Armourer or BuildingTypes.Weaponsmith => SmithKinds().Select(k => k.Key),
         BuildingTypes.Sawmill => SawKinds().Select(k => k.Key),
         BuildingTypes.Craftsman => KnapKinds().Select(k => k.Key),
         _ => Enumerable.Empty<string>()

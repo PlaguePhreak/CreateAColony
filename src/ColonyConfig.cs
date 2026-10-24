@@ -310,6 +310,8 @@ public class ColonyConfig
         ["quarry"] = 40,
         ["smelter"] = 30,
         ["blacksmith"] = 30,
+        ["armourer"] = 30,
+        ["weaponsmith"] = 30,
         ["sawmill"] = 30,
         ["craftsman"] = 30,
         ["tailor"] = 30,
@@ -505,6 +507,26 @@ public class ColonyConfig
     /// <summary>What a new Blacksmith's Hut keeps in stock until an officer changes it, by code (wildcards allowed). Everything else is 0.</summary>
     public System.Collections.Generic.Dictionary<string, int> BlacksmithDefaultKeep = new();
 
+    // Armourer and Weaponsmith (Blacksmith split, ColonyManager.Smithing.cs and ColonyManager.Armourer.cs)
+    /// <summary>What the anvil makes for the Armourer, by the first part of the code. Armor itself is the Armourer's too.</summary>
+    public string[] ArmourerParts = { "metalchain", "metalscale", "metalplate", "metallamellae" };
+    /// <summary>What the anvil makes for the Weaponsmith, by the first part of the code, besides anything the game calls a weapon (WeaponTools).</summary>
+    public string[] WeaponsmithParts = { "blade", "arrowhead", "spearhead" };
+    public string[] WeaponTools = { "Sword", "Spear", "Bow", "Sling", "Firearm", "Crossbow", "Javelin", "Pike", "Shield", "Club", "Mace", "Warhammer", "Poleaxe", "Halberd", "Polearm" };
+    /// <summary>Armor recipes can take many chains or plates; the Armourer may use ones with up to this many.</summary>
+    public int ArmourerMaxInputs = 32;
+    /// <summary>The Armourer mends metal armor below this share of its durability.</summary>
+    public float ArmourerMendBelow = 0.75f;
+    /// <summary>What mends metal armor, by how it is made (the part of its code after the body part); {metal} is the armor's metal.</summary>
+    public System.Collections.Generic.Dictionary<string, string> ArmourerMendWith = new()
+    {
+        ["chain"] = "game:metalchain-{metal}",
+        ["scale"] = "game:metalscale-{metal}",
+        ["plate"] = "game:metalplate-{metal}",
+        ["brigandine"] = "game:metalplate-{metal}",
+        ["lamellar"] = "game:metallamellae-{metal}"
+    };
+
     // Sawmill
     /// <summary>Seconds a sawyer takes to make one thing at the Sawmill (one crafting recipe, such as a log into planks).</summary>
     public float SawmillSecondsPerCraft = 5f;
@@ -593,7 +615,9 @@ public class ColonyConfig
         // The rest are Tailor's Delight's buttons, threads, leather bundles and strips, needles and awls.
         ["tailor"] = new[] { "clothes", "sewingkit", "armor-*-leather", "armor-*-linen", "buttons", "twine", "leatherbundle", "leatherstrips", "needle", "awl" },
         // Only jewellery (config JewelleryWords): our own recipes and any the game or other mods have.
-        ["jeweller"] = new[] { "clothes" }
+        ["jeweller"] = new[] { "clothes" },
+        // Metal armor only (leather and linen armor is the Tailor's), put together from the chains, scales and plates it smiths.
+        ["armourer"] = new[] { "armor" }
     };
     /// <summary>The mods whose things a hut may make, by hut type; "game" alone where a hut is not listed.</summary>
     public System.Collections.Generic.Dictionary<string, string[]> HutRecipeDomains = new()
@@ -619,7 +643,8 @@ public class ColonyConfig
         ["quarry"] = new[] { "pickaxe" },
         // Tailor's Delight adds needles and awls to many clothing recipes.
         ["tailor"] = new[] { "knife", "shears", "scissors", "needle", "awl" },
-        ["jeweller"] = new[] { "hammer", "chisel" }
+        ["jeweller"] = new[] { "hammer", "chisel" },
+        ["armourer"] = new[] { "hammer" }
     };
     /// <summary>Seconds a worker takes to craft one recipe at its hut.</summary>
     public float HutRecipeSecondsPerCraft = 4f;

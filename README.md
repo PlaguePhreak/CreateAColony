@@ -193,6 +193,16 @@ All three are on the new Mining tab of the Builder's Wand and use placeholder bl
 - Both huts start with no building: place the block and build around it yourself, like other huts without a design.
 - **Tailor's Delight** works with it: the Tailor also uses its needles and awls (it fetches them from its hut), its threads, buttons and leather bundles, and can make them. Its needles and awls count as hammers to the game, so no settler mistakes one for a hammer.
 
+## Blacksmith, Armourer and Weaponsmith (0.114.0)
+- **Three smiths.** Two new huts work like the Blacksmith's Hut, with a forge and an anvil within 8 blocks:
+  - **Armourer's Hut** (job Armourer): smiths chains, scales, plates and lamellae, and puts metal armor together from them on its Crafting recipes tab (recipes with up to 32 parts, `ArmourerMaxInputs`). It mends worn metal armor from its hut and the warehouse at the anvil, with one more part of the same kind and metal (a chain for chain mail), a quarter of the armor's durability each time (`ArmorMendShare`). It never mends leather or linen armor; that is the Tailor's.
+  - **Weaponsmith's Hut** (job Weaponsmith): smiths swords, spears, maces, shields, blades and arrowheads (`WeaponsmithParts`, `WeaponTools`).
+  - **Blacksmith's Hut**: tools and everything else.
+- **Moving over.** Until the colony has built an Armourer's or Weaponsmith's Hut, the Blacksmith still makes armor parts and weapons, so nothing changes for colonies without them. When one is built, the Blacksmith's keep-in-stock amounts for its things move to it.
+- **Worn armor.** A worn piece now counts for less when guards pick armor, so a guard swaps it for a better piece in the tower or warehouse and leaves the worn one there to be mended.
+- All three use the Smithing skill. A survival goods trader can now also become a Weaponsmith.
+- Both huts start with no building: place the block and build around it yourself.
+
 ## Recommended mods
 These work well with Vintage Colonies. Install them separately.
 - **Tailor's Delight** (Tels and Phiwa): more tools and materials for the Tailor.

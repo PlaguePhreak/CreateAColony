@@ -52,7 +52,10 @@ public partial class ColonyManager
         if (stack.Collectible.GetMaxDurability(stack) > 0 && stack.Collectible.GetRemainingDurability(stack) <= 0) return 0;
         var mods = wearable.GetProtectionModifiers(new DummySlot(stack));
         if (mods == null) return 0;
-        return mods.FlatDamageReduction + mods.RelativeProtection * 10 + mods.ProtectionTier;
+        // A worn piece counts for less, so a guard swaps it for a mended or new one and leaves it for the Armourer or Tailor.
+        int max = stack.Collectible.GetMaxDurability(stack);
+        float kept = max > 0 ? 0.5f + 0.5f * stack.Collectible.GetRemainingDurability(stack) / max : 1f;
+        return (mods.FlatDamageReduction + mods.RelativeProtection * 10 + mods.ProtectionTier) * kept;
     }
 
     /// <summary>What the settler wears, by slot (head, body, legs); null where the slot is empty.</summary>

@@ -36,10 +36,11 @@ public partial class ColonyManager
     sealed record MakerKind(string Key, ItemStack Sample, List<List<CraftingRecipeIngredient>>? Inputs);
 
     /// <summary>Everything a hut can make for another hut.</summary>
-    IEnumerable<MakerKind> MakerKinds(Building hut) => hut.Type switch
+    IEnumerable<MakerKind> MakerKinds(Colony colony, Building hut) => hut.Type switch
     {
         BuildingTypes.Sawmill => SawKinds().Select(k => new MakerKind(k.Key, k.Sample, k.Recipes.Select(r => r.Inputs.Select(i => i.Part).ToList()).ToList())),
-        BuildingTypes.Blacksmith => SmithKinds().Select(k => new MakerKind(k.Key, k.Sample, null)),
+        BuildingTypes.Blacksmith or BuildingTypes.Armourer or BuildingTypes.Weaponsmith => SmithKindsFor(colony, hut.Type).Select(k => new MakerKind(k.Key, k.Sample, null))
+            .Concat(HasHutRecipes(hut.Type) ? HutRecipeKinds(hut.Type).Select(k => new MakerKind(k.Key, k.Sample, k.Recipes.Select(r => r.Inputs.Select(i => i.Part).ToList()).ToList())) : Enumerable.Empty<MakerKind>()),
         BuildingTypes.Craftsman => KnapKinds().Select(k => new MakerKind(k.Key, k.Sample, null)),
         BuildingTypes.Smelter => SmeltKinds().Select(k => new MakerKind(k.Key, k.Sample, null)),
         _ => HasHutRecipes(hut.Type)
@@ -60,7 +61,7 @@ public partial class ColonyManager
         orderBooks.AddOrUpdate(colony, book);
         if (!Config.HutsMakeForOthers || colony.Requests.Count == 0) return book;
 
-        var makers = WorkingHuts(colony).Select(h => (Hut: h, Kinds: MakerKinds(h).ToList())).Where(m => m.Kinds.Count > 0).ToList();
+        var makers = WorkingHuts(colony).Select(h => (Hut: h, Kinds: MakerKinds(colony, h).ToList())).Where(m => m.Kinds.Count > 0).ToList();
         if (makers.Count == 0) return book;
         var warehouse = WarehouseContainers(colony).ToList();
         var stacks = WarehouseStacks(warehouse);
@@ -127,7 +128,7 @@ public partial class ColonyManager
         if (!Config.HutsMakeForOthers) return null;
         var match = Matcher(code);
         var huts = WorkingHuts(colony).ToList();
-        var makers = huts.Select(h => (Hut: h, Kinds: MakerKinds(h).ToList())).Where(m => m.Kinds.Count > 0).ToList();
+        var makers = huts.Select(h => (Hut: h, Kinds: MakerKinds(colony, h).ToList())).Where(m => m.Kinds.Count > 0).ToList();
         var found = FindMaker(makers, match, requestedBy, new List<ItemStack>(), Orders(colony))?.Hut
             ?? huts.FirstOrDefault(h => RequestTag(h) != requestedBy && Gathers(h.Type, code));
         if (found == null) return null;

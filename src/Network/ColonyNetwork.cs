@@ -500,9 +500,9 @@ public partial class ColonyNetwork : ModSystem
                 });
             }
         }
-        else if (building.Type == BuildingTypes.Blacksmith)
+        else if (building.Type is BuildingTypes.Blacksmith or BuildingTypes.Armourer or BuildingTypes.Weaponsmith)
         {
-            var smith = Manager.WorkerAt(colony, building, Jobs.Blacksmith);
+            var smith = Manager.WorkerAt(colony, building, ColonyManager.JobOf(building.Type)!);
             foreach (var kind in Manager.SmithRows(colony, building, smith))
             {
                 snapshot.Craft.Add(new PotteryView
@@ -999,7 +999,7 @@ public partial class ColonyNetwork : ModSystem
         }
         if (building.Type is BuildingTypes.Forester or BuildingTypes.Farmer or BuildingTypes.Potter or BuildingTypes.Cook
             or BuildingTypes.Prospector or BuildingTypes.Miner or BuildingTypes.Quarry
-            or BuildingTypes.Smelter or BuildingTypes.Blacksmith or BuildingTypes.Sawmill or BuildingTypes.Craftsman or BuildingTypes.Tailor or BuildingTypes.Jeweller
+            or BuildingTypes.Smelter or BuildingTypes.Blacksmith or BuildingTypes.Armourer or BuildingTypes.Weaponsmith or BuildingTypes.Sawmill or BuildingTypes.Craftsman or BuildingTypes.Tailor or BuildingTypes.Jeweller
             or BuildingTypes.Explorer or BuildingTypes.Gatherer or BuildingTypes.Hunter) snapshot.Info = Manager.WorkerHutInfo(colony, building);
         if (building.Type == BuildingTypes.Tavern)
         {

@@ -49,6 +49,8 @@ public partial class ColonyManager
         BuildingTypes.Cook => Jobs.Cook,
         BuildingTypes.Smelter => Jobs.Smelter,
         BuildingTypes.Blacksmith => Jobs.Blacksmith,
+        BuildingTypes.Armourer => Jobs.Armourer,
+        BuildingTypes.Weaponsmith => Jobs.Weaponsmith,
         BuildingTypes.Sawmill => Jobs.Sawyer,
         BuildingTypes.Craftsman => Jobs.Craftsman,
         BuildingTypes.Tailor => Jobs.Tailor,
@@ -138,7 +140,7 @@ public partial class ColonyManager
         if (hut.Type == BuildingTypes.Potter) return PotterHutJunk();
         if (hut.Type == BuildingTypes.Cook) return CookHutJunk();
         if (hut.Type == BuildingTypes.Smelter) return SmelterHutJunk();
-        if (hut.Type == BuildingTypes.Blacksmith) return BlacksmithHutJunk();
+        if (hut.Type is BuildingTypes.Blacksmith or BuildingTypes.Armourer or BuildingTypes.Weaponsmith) return BlacksmithHutJunk(colony, hut);
         if (hut.Type == BuildingTypes.Sawmill) return SawmillHutJunk(colony, hut);
         if (hut.Type == BuildingTypes.Craftsman) return CraftsmanHutJunk(colony, hut);
         if (hut.Type == BuildingTypes.Tailor) return TailorHutJunk(colony, hut);
@@ -263,7 +265,8 @@ public partial class ColonyManager
             if (CoolStoreInfo(colony, hut) is { } cool) lines.Add(cool);
         }
         if (hut.Type == BuildingTypes.Smelter) lines.Add(SmelterInfo(colony, hut));
-        if (hut.Type == BuildingTypes.Blacksmith) lines.Add(BlacksmithInfo(hut));
+        if (hut.Type is BuildingTypes.Blacksmith or BuildingTypes.Armourer or BuildingTypes.Weaponsmith) lines.Add(BlacksmithInfo(hut));
+        if (hut.Type == BuildingTypes.Armourer) lines.Add(ArmourerInfo(colony, hut));
         if (hut.Type == BuildingTypes.Sawmill) lines.Add(SawmillInfo(hut));
         if (hut.Type == BuildingTypes.Craftsman) lines.Add(CraftsmanInfo(hut));
         if (hut.Type == BuildingTypes.Tailor) lines.Add(TailorInfo(colony, hut));

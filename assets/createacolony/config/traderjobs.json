@@ -11,7 +11,8 @@
 		],
 		"survivalgoods": [
 			{ "job": "guard", "skill": "hunting" },
-			{ "job": "hunter", "skill": "fighting" }
+			{ "job": "hunter", "skill": "fighting" },
+			{ "job": "weaponsmith", "skill": "fighting" }
 		],
 		"buildmaterials": [
 			{ "job": "builder", "skill": "mining" },

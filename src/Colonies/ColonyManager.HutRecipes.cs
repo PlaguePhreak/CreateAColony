@@ -20,7 +20,7 @@ public partial class ColonyManager
     readonly Dictionary<string, string> partNames = new();
 
     /// <summary>True for a hut with a Crafting recipes tab.</summary>
-    public bool HasHutRecipes(string type) => CraftTabOf(type) == null && Config.HutRecipeOutputs.ContainsKey(type);
+    public bool HasHutRecipes(string type) => (CraftTabOf(type) == null || type == BuildingTypes.Armourer) && Config.HutRecipeOutputs.ContainsKey(type);
 
     /// <summary>Everything a hut of this type can craft, from the game's grid recipes (and other mods' with config HutRecipeDomains).</summary>
     public List<SawKind> HutRecipeKinds(string type)
@@ -36,7 +36,8 @@ public partial class ColonyManager
             kinds = ScanGridRecipes(_ => true,
                 tool => tools.Any(s => tool.SatisfiesAsIngredient(s, false)),
                 output => domains.Contains(output.Collectible.Code.Domain) && outputs.Any(o => OutputMatches(o, output.Collectible.Code)) && JewelleryFits(type, output),
-                Config.HutRecipeMaxInputs, traits, type is BuildingTypes.Tailor or BuildingTypes.Jeweller ? 2 : 1);
+                type == BuildingTypes.Armourer ? System.Math.Max(Config.HutRecipeMaxInputs, Config.ArmourerMaxInputs) : Config.HutRecipeMaxInputs,
+                traits, type is BuildingTypes.Tailor or BuildingTypes.Jeweller ? 2 : 1);
         }
         return hutRecipeKinds[type] = kinds;
     }
@@ -48,11 +49,12 @@ public partial class ColonyManager
     static bool OutputMatches(string entry, AssetLocation code) =>
         entry.Contains('*') ? WildcardUtil.Match(entry, code.Path) : FirstPart(code) == entry;
 
-    /// <summary>The Jeweller makes only jewellery, and the Tailor every other piece of clothing.</summary>
+    /// <summary>The Jeweller makes only jewellery, and the Tailor every other piece of clothing; the Armourer only metal armor.</summary>
     bool JewelleryFits(string type, ItemStack output) => type switch
     {
         BuildingTypes.Jeweller => IsJewellery(output),
         BuildingTypes.Tailor => !IsJewellery(output),
+        BuildingTypes.Armourer => IsArmor(output) && !IsClothArmor(output),
         _ => true
     };
 
