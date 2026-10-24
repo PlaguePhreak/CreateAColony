@@ -263,6 +263,7 @@ public partial class ColonyManager : ModSystem
                 if (entity != null && entity.Alive)
                 {
                     citizen.LastSeenTotalDays = now;
+                    citizen.LastSeenPos = entity.Pos.XYZ.Clone(); // where FarWork looks for it if its land unloads
                     continue;
                 }
 
