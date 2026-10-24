@@ -135,7 +135,8 @@ public partial class ColonyNetwork
 
     /// <summary>"wood" or "rock" when any wood or any stone will do for the item code, as the Builder's list says it; else empty.</summary>
     internal static string AnyOfFor(string code, ItemStack sample) =>
-        code.Contains('|') ? "binding"
+        code == "game:soil-*" ? "soil"
+        : code.Contains('|') ? "binding"
         : ColonyManager.AnyType(code) ? "wood"
         : code.StartsWith("heraldrybanners:banner") && code.Contains('{') ? "design"
         : !code.Contains('*') ? ""

@@ -173,6 +173,7 @@
 	"any-type-hint": "When on, any wood or stone of the same kind can be used, for example pine logs instead of oak.",
 	"items-any-wood": "{0} (any wood)",
 	"items-any-rock": "{0} (any stone)",
+	"items-any-soil": "Soil (any kind)",
 	"items-any-design": "{0} (with the blueprint's design)",
 	"items-any-binding": "Roof binding: flax fibers, cattail tops, papyrus tops or wild vines",
 	"bag-given": "{0} now wears the bag and has {1} inventory slots.",

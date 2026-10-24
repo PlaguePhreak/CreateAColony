@@ -67,7 +67,9 @@ public partial class ColonyManager
         if (IsTorch(target) && IsTorch(current) && LitTorch(current.Code).Equals(LitTorch(target.Code))) return true;
         // Ground in a blueprint is any soil: grass comes and goes, and how fertile it is depends on the spot. Natural
         // ground of another kind (rock, gravel, sand) will do too, so builders do not dig out stone to put dirt there.
-        if (IsSoil(target) && (IsSoil(current) || IsNaturalGround(current))) return true;
+        if (IsSoil(target) && (IsSoil(current) || IsFarmland(current) || IsNaturalGround(current))) return true;
+        // Farmland is farmland however wet or fertile it is (Aaron, 0.97.0): it dries out and wears down by itself.
+        if (IsFarmland(target) && IsFarmland(current)) return true;
         // A VS Roofing roof block turns bare or filled by itself as its materials load; either one is the roof.
         if (target.Code.Domain == RoofingDomain && VariantOf(current, "type") is { } roofState
             && target.CodeWithVariant("type", roofState).Equals(current.Code)) return true;
@@ -117,6 +119,23 @@ public partial class ColonyManager
     /// <summary>Plain soil blocks (soil-medium-normal and the like), not farmland, packed dirt or rammed earth.</summary>
     static bool IsSoil(Block block) => block.Code?.Domain == "game" && block.Code.Path.StartsWith("soil-");
 
+    /// <summary>Tilled farmland, wet or dry, of any fertility.</summary>
+    static bool IsFarmland(Block block) => block.Code?.Domain == "game" && block.Code.Path.StartsWith("farmland-");
+
+    /// <summary>The code to ask for when any wood or stone will do: the item's own code with its wood or rock left open.</summary>
+    static string OpenType(CollectibleObject collectible)
+    {
+        foreach (string v in SwappableVariants)
+        {
+            if (VariantOf(collectible, v) != null) return collectible.CodeWithVariant(v, "*").ToString();
+        }
+        return collectible.Code.ToString();
+    }
+
+    /// <summary>Costs with their wood or stone left open, so a roof's planks are asked for with the rest of the planks.</summary>
+    static IReadOnlyList<MaterialCost> OpenTypes(IReadOnlyList<MaterialCost> costs) =>
+        costs.Select(c => c.Code.Contains('*') || c.Code.Contains('|') || c.Code.Contains('{') ? c : c with { Code = OpenType(c.Sample.Collectible) }).ToList();
+
     // ---- What to place and what it costs --------------------------------------------------
 
     /// <summary>
@@ -140,7 +159,9 @@ public partial class ColonyManager
             if (start != null) return (start, Costs(ItemCost("game:drygrass", 1)));
         }
         if (DaubPlacement(colony, VariedDaub(target, pos), pos) is { } daub) return daub;
-        if (Config.BuildersNeedMaterials && (PlacedItemCosts(step, target, pos, colony.AnyWoodOrStone) ?? SavedCost(step, target)) is { } saved) return (target, saved);
+        if (Config.BuildersNeedMaterials && PlacedItemCosts(step, target, pos, colony.AnyWoodOrStone) is { } placed) return (target, placed);
+        // A roof's planks and logs, like every other block's, may be any wood when the colony allows it.
+        if (Config.BuildersNeedMaterials && SavedCost(step, target) is { } saved) return (target, colony.AnyWoodOrStone ? OpenTypes(saved) : saved);
         return (target, Costs(PickCost(colony, target, pos)));
     }
 
@@ -209,8 +230,9 @@ public partial class ColonyManager
         var key = (block.Id, colony.AnyWoodOrStone);
         if (pickCostCache.TryGetValue(key, out var cached)) return cached;
 
-        // Soil with grass on it cannot be picked up as such; any soil will do to fill a hole in the ground.
-        if (IsSoil(block))
+        // Soil with grass on it cannot be picked up as such; any soil will do to fill a hole in the ground, and
+        // farmland is tilled from any soil.
+        if (IsSoil(block) || IsFarmland(block))
         {
             var bare = sapi.World.GetBlock(new AssetLocation("game:soil-medium-none")) ?? block;
             var soil = new MaterialCost("game:soil-*", new ItemStack(bare), 1);
@@ -231,15 +253,7 @@ public partial class ColonyManager
         stack.StackSize = 1;
 
         string code = stack.Collectible.Code.ToString();
-        if (colony.AnyWoodOrStone)
-        {
-            foreach (string v in SwappableVariants)
-            {
-                if (VariantOf(stack.Collectible, v) == null) continue;
-                code = stack.Collectible.CodeWithVariant(v, "*").ToString();
-                break;
-            }
-        }
+        if (colony.AnyWoodOrStone) code = OpenType(stack.Collectible);
         var cost = new MaterialCost(code, stack, 1);
         pickCostCache[key] = cost;
         return cost;
