@@ -83,8 +83,8 @@ public partial class ColonyManager
             : colony.Citizens.Where(c => c.Alive && c.JobCode == job && c.WorkplacePos != null && c.WorkplacePos.Equals(hut.HutPos)).OrderBy(c => c.CitizenId).ToList();
     }
 
-    /// <summary>Huts with their own storage (and a Storage button): the worker huts and the Tavern, where gears can be left for hiring.</summary>
-    public static bool HasOwnStorage(string type) => IsWorkerHut(type) || type == BuildingTypes.Tavern;
+    /// <summary>Huts with their own storage (and a Storage button): the worker huts, the Tavern, where gears can be left for hiring, and the Residence.</summary>
+    public static bool HasOwnStorage(string type) => IsWorkerHut(type) || type == BuildingTypes.Tavern || type == BuildingTypes.Residence;
 
     /// <summary>What each forester's or farmer's hut is waiting on, for the hut window. Not saved: workers refresh it.</summary>
     public readonly Dictionary<int, string> WorkStatus = new();

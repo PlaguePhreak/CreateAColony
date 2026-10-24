@@ -90,6 +90,9 @@ public abstract class SettlerTaskBase : AiTaskBase
     /// <summary>A guard with a monster close by or an alarm to answer leaves what it is doing (eating, sleeping, sheltering).</summary>
     protected bool CalledToArms => manager != null && manager.GuardCalled(entity, Colony, Citizen);
 
+    /// <summary>For a guard going to or in bed: only a monster close by or an alarm gets it up (ColonyManager.GuardWoken).</summary>
+    protected bool WokenByThreat => manager != null && manager.GuardWoken(entity, Colony, Citizen);
+
     /// <summary>
     /// Starts walking to a position. Check Arrived / PathFailed from ContinueExecute and call KeepWalking.
     /// A far goal is walked in stretches; refresh, if given, works the goal out again for the last

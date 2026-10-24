@@ -296,6 +296,8 @@ public class ColonyConfig
     // Guard
     /// <summary>How far around the settler it protects (or the Town Hall) a guard looks for monsters.</summary>
     public float GuardThreatRadius = 16f;
+    /// <summary>How close a monster must come to wake a sleeping guard (or keep it from going to bed).</summary>
+    public float GuardWakeRadius = 8f;
     /// <summary>Damage a guard does with bare hands; with a weapon it does the weapon's damage.</summary>
     public float GuardFistDamage = 1.5f;
     /// <summary>Seconds between a guard's blows.</summary>

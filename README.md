@@ -701,6 +701,14 @@ before shipping converted blueprints.
 
 ### The Town Hall window (0.24.0)
 
+### Bug fixes (0.86.0)
+- Settlers lie along their bed like a player, using the player's lying pose, and stay put so a bedmate does not
+  push them askew. Vanilla beds use the game's own sleeping spot; furniture beds use the mod's seat and facing.
+- Guards (escorts too) go to bed at night unless a monster is within `GuardWakeRadius` (8) blocks on their level,
+  or a settler is attacked. Monsters further off, or in caves below, no longer keep them up all night.
+- The Residence hut block is storage, with Storage and Minimum stock like the other huts.
+- Settlers resend their animations to players every few seconds, so ones coming back into view are not stiff.
+
 ### Gatherer fix (0.84.0)
 - The gatherer only picked up loose stones on unclaimed land, but the Town Hall claims everything around the hut,
   so it found nothing and kept looking around. Now it also picks them up on the colony's own land, except in or

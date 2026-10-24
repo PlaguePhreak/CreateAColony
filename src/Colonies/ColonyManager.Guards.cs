@@ -249,6 +249,25 @@ public partial class ColonyManager
         return called;
     }
 
+    /// <summary>
+    /// Whether a guard gets up from (or does not go to) bed: only for a monster close by on its own level, or an
+    /// alarm from a settler being hurt. A monster further off, or in a cave below, does not keep it up all night.
+    /// </summary>
+    public bool GuardWoken(EntityAgent entity, Colony? colony, CitizenRecord? citizen)
+    {
+        if (colony == null || citizen == null || citizen.JobCode != Jobs.Guard || GuardsRetreating.Contains(entity.EntityId)) return false;
+        long now = sapi.World.ElapsedMilliseconds;
+        if (guardWokenCache.TryGetValue(entity.EntityId, out var cached) && cached.Until > now) return cached.Woken;
+        var tower = TowerOf(colony, citizen);
+        float radius = Math.Max(1, Config.GuardWakeRadius);
+        bool woken = sapi.World.GetNearestEntity(entity.Pos.XYZ, radius, 3, e => IsThreatFor(tower, e)) != null
+            || AlarmFor(colony, entity, tower) != null;
+        guardWokenCache[entity.EntityId] = (now + 1000, woken);
+        return woken;
+    }
+
+    readonly Dictionary<long, (long Until, bool Woken)> guardWokenCache = new();
+
     /// <summary>Called for every blow a settler takes, before it lands: armor softens it, monsters raise the alarm, towers count it.</summary>
     public float OnSettlerHurt(EntitySettler settler, DamageSource source, float damage)
     {

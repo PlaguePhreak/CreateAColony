@@ -130,6 +130,15 @@ public class SettlerAnimations : ModSystem
         {
             foreach (var old in target.OfType<JObject>().Where(a => (string?)a["code"] == "eat").ToList()) old.Remove();
         }
+        // Sleeping uses the player's own lying pose, the one a player has in bed; the villager's does not fit the player model.
+        if (PlayerAnimations.Contains("lie"))
+        {
+            foreach (var sleep in target.OfType<JObject>().Where(a => (string?)a["code"] == "sleep"))
+            {
+                sleep["animation"] = "lie";
+                sleep.Remove("blendMode");
+            }
+        }
         var have = new HashSet<string>(target.Select(a => (string?)a["code"] ?? "").Where(c => c.Length > 0));
         int added = 0;
         foreach (var anim in source.OfType<JObject>())

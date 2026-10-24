@@ -40,6 +40,22 @@ public class EntitySettler : EntityHumanoid
     {
         base.HandleHandAnimations(dt);
         Body?.Tick(dt, manager?.Config);
+        ResendAnimations(dt);
+    }
+
+    float resendTimer;
+
+    /// <summary>
+    /// Sends the running animations to players again every few seconds. A player who was too far away misses the
+    /// changes, and a settler coming back into view would otherwise glide or stand stiff until its next change.
+    /// </summary>
+    void ResendAnimations(float dt)
+    {
+        if (World.Side != EnumAppSide.Server || AnimManager == null) return;
+        resendTimer += dt;
+        if (resendTimer < 3f) return;
+        resendTimer = 0;
+        if (AnimManager.ActiveAnimationsByAnimCode.Count > 0) AnimManager.AnimationsDirty = true;
     }
 
     public override void OnEntitySpawn()

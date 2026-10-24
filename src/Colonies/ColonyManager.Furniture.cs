@@ -242,26 +242,39 @@ public partial class ColonyManager
     }
 
     /// <summary>
-    /// Where a settler lies down: on top of a vanilla bed, or on its own side of a furniture bed, as the
-    /// furniture mod seats a player (each sleeper of a double bed gets a half).
+    /// Where a settler lies down and which way it faces: as the game lays a player in a vanilla bed (along the
+    /// bed, head on the pillow), or on its own side of a furniture bed, as the furniture mod seats a player
+    /// (each sleeper of a double bed gets a half). Yaw is null when the bed does not say.
     /// </summary>
-    public Vec3d BedSpot(Colony colony, CitizenRecord citizen, BlockPos bed)
+    public (Vec3d Pos, float? Yaw) BedSpot(Colony colony, CitizenRecord citizen, BlockPos bed)
     {
         var fallback = new Vec3d(bed.X + 0.5, bed.Y + 0.6, bed.Z + 0.5);
         var be = sapi.World.BlockAccessor.GetBlockEntity(bed);
-        if (be == null || be.GetType().Name != FurnitureBedEntity) return fallback;
+        if (be is BlockEntityBed vanilla)
+        {
+            try
+            {
+                if (vanilla.Position is { } mount) return (new Vec3d(mount.X, mount.Y, mount.Z), mount.Yaw);
+            }
+            catch (Exception) { }
+            return (fallback, null);
+        }
+        if (be == null || be.GetType().Name != FurnitureBedEntity) return (fallback, null);
         int seat = colony.Citizens.Where(c => c.Alive && bed.Equals(c.HomeBedPos)).OrderBy(c => c.CitizenId).ToList().FindIndex(c => c.CitizenId == citizen.CitizenId);
         seatOffset ??= be.GetType().GetMethod("GetSeatWorldOffset");
-        if (seatOffset == null || seat < 0) return fallback;
+        if (seatOffset == null || seat < 0) return (fallback, null);
         try
         {
             var args = new object?[] { seat, 0.0, 0.0, 0.0, 0f };
             seatOffset.Invoke(be, args);
-            return new Vec3d(bed.X + (double)args[1]!, bed.Y + (double)args[2]!, bed.Z + (double)args[3]!);
+            float yaw = Convert.ToSingle(args[4]);
+            // Radians as the game uses; a value past a full turn can only be degrees.
+            if (Math.Abs(yaw) > GameMath.TWOPI + 0.01f) yaw *= GameMath.DEG2RAD;
+            return (new Vec3d(bed.X + (double)args[1]!, bed.Y + (double)args[2]!, bed.Z + (double)args[3]!), yaw);
         }
         catch (Exception)
         {
-            return fallback;
+            return (fallback, null);
         }
     }
 
