@@ -28,6 +28,7 @@ Everything listed under "What we have" and "Partly done" has been tested in game
 - Explorer's Hut and Gatherer's Hut: an explorer marks ore, clay, traders, animals and danger on a Colony markers map layer, and a gatherer forages berries, mushrooms and loose stones and marks plants; works with More Map Icons (0.77.0, placeholder models and buildings, not tested yet)
 - Vintage Colonies' own map icons: 120 waypoint icons covering every More Map Icons sheet entry, used by colony markers (0.79.0, not tested yet)
 - A marker icon for every ore, fruit, vegetable, grain, animal, trader and story location, other mods' too (0.80.0, not tested yet)
+- Paintings: 17 original framed paintings in four sizes, a blank canvas from 8 boards and 4 linen painted with buckets of dye in the grid, hung by builders from blueprints (0.105.0-0.105.1, not tested yet)
 
 **Colony systems**
 - Colony land that grows with every hut and Town Hall level *(tested)*
@@ -64,12 +65,11 @@ Everything listed under "What we have" and "Partly done" has been tested in game
 1. **Smelter** (started in 0.50.0): still to do are alloys such as bronze, and a bloomery for iron
 2. **Happiness** came in 0.61.0. Still to add: safety (raids), health, and how crowded the colony is
 3. **A request list**: players can see and fill what workers need (the Sawmill came first, in 0.52.0)
-4. **Animal herders and a Tanner**: chickens, pigs, sheep and goats in pens for meat, eggs and hides, and a Tanner who makes leather in barrels. Jobless settlers can also keep a few animals in their own gardens, mostly chickens, the way many 13th and 14th century households did, feeding them and collecting the eggs.
-5. **Butcher's Hut**: a butcher takes the animals the Hunter (0.99.0) and herders bring home and cuts them up for meat, hides, fat and bones, then stores the meat with the food from 0.100.0. Works with the **Butchering** mod by CaptainOats when it is installed: the butcher hangs carcasses on its hooks, uses its tables, catches blood in buckets and smokes meat on its racks for more food per animal. Without the mod, the butcher uses a knife like the game does. The mod lists no licence, so we will never copy or bundle its files. It stays an optional extra that players download themselves.
-6. **Ranged guards and a rally banner** (the Barracks came in 0.54.0), then **Raids**: now and then, enemies turn up and attack the player's colony. The player is warned in chat and on the Town Hall window. There are several raid factions, from bandits (who use the settler models) to the game's own monsters such as drifters and shivers.
-7. **Hospital and Graveyard**: a healer with poultices and bandages, and an undertaker who buries the dead
-8. **School, Library and University** with a **research tree** that unlocks faster work and new huts
-9. **Blacksmith** (started in 0.50.0): still to do are repairs, armor, and making the tools workers ask for
+4. **Animal herders and a Tanner**: chickens, pigs, sheep and goats in pens for meat, eggs and hides, and a Tanner who makes leather in barrels
+5. **Ranged guards and a rally banner** (the Barracks came in 0.54.0), then **Raids**: now and then, enemies turn up and attack the player's colony. The player is warned in chat and on the Town Hall window. There are several raid factions, from bandits (who use the settler models) to the game's own monsters such as drifters and shivers.
+6. **Hospital and Graveyard**: a healer with poultices and bandages, and an undertaker who buries the dead
+7. **School, Library and University** with a **research tree** that unlocks faster work and new huts
+8. **Blacksmith** (started in 0.50.0): still to do are repairs, armor, and making the tools workers ask for
 
 **Later**
 - More huts from MineColonies: Stonemason, Baker, Fisher, Beekeeper, Plantation (reeds and cattails), Composter, Crusher and Sifter (quern and panning), Florist, Dyer, Fletcher and Mechanic (windmills and gears)
@@ -78,10 +78,11 @@ Everything listed under "What we have" and "Partly done" has been tested in game
 - Settler chat bubbles where settlers ask for things or complain
 - Walls, wells, roads and other decorations to order from the Builder's Wand
 - **Outposts**: a ready-made bundle of buildings that can be placed outside the colony's border. Its buildings level up all together or one at a time. An outpost works as its own small base and tries to look after itself. It keeps a small military force away from home to protect workers out in the field, and gives them a safe place to go when they are attacked, or at night when the outpost is closer than home.
+- **Alchemist's Hut**: a new Alchemist settler who works with the **Alchemy** mod by llama3013 when it is installed. The Alchemist grows and gathers herbs, dries them on herb racks, grinds them with a mortar and pestle, and brews potions in the brewing cauldron. Guards get fighting and healing flasks, miners get Miner's Flasks, hunters get Hunter's Delight, and the Hospital gets Healing Oil. The mod uses the CC BY 4.0 licence, so we may reuse its work if we credit the author. We still plan to keep it an optional mod that players download themselves.
 - Working with more popular Vintage Story mods, such as cooking with A Culinary Artillery and Expanded Foods
 
 **Left out on purpose**
-- Concrete Mixer, Enchanter, Alchemist, Netherworker and the Mystical Site: Vintage Story has nothing to match them. An herbalist making poultices could take the Alchemist's place.
+- Concrete Mixer, Enchanter, Alchemist, Netherworker and the Mystical Site: Vintage Story has nothing to match them. MineColonies' Alchemist comes back as the Alchemist's Hut above, using the Alchemy mod.
 
 ## Far future: AI settlements
 
