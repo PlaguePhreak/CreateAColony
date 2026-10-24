@@ -669,18 +669,29 @@ before shipping converted blueprints.
 
 ### The Town Hall window (0.24.0)
 
+### The Town map shows all loaded land (0.78.0)
+- The server draws every chunk near a colony that is loaded, whether a player or a settler loaded it (far
+  workers keep their land loaded), in the world map's own colours and shading (`Map/ColonyLandMap.cs`). Each
+  chunk is drawn again when it changes, or every 5 minutes while loaded, a dozen chunks every quarter second,
+  those nearest the Town Hall first. The pictures are kept in the save, so land stays on the map after it
+  unloads, like the world map. Land over `TownMapRange` (1024) blocks from the colony's land is left out.
+- The Town map asks the server for new chunks every 2 seconds while it is open (its own network channel,
+  `createacolony-landmap`, so it does not touch the main one) and keeps them as textures of 8 by 8 chunks.
+- Zoom goes from the whole area down to 16 pixels a block, and dragging can move the map anywhere in the area.
+  **Redraw map** is gone (the map keeps itself up to date); **Find me** moves the map to you.
+
 The Town Hall window is laid out like MineColonies', with eight tabs down the left:
 
 - **Actions**: the colony's name and the Town Hall's level on a panel like a hut's Main tab (the pencil
   renames the colony), the colony's numbers, the Town Hall's own upgrade, cancel and turn buttons, how
   much land the colony claims, and a **?** guide.
-- **Town map**: the colony from above (0.24.0). The ground is drawn from the land your game has loaded (dark where it
-  is not loaded), the colony's land is tinted with a gold edge, and each building's ground is a box (gold Town
-  Hall, blue huts, dashed orange while being built). Settlers are green dots (wanderers yellow, knocked out red)
-  and you are white. Point at a building for its name and level; **Redraw map** draws the ground again after
-  you walked around. Large colonies get one pixel per few blocks (at most 320 pixels a side). Since 0.33.0 the
-  mouse wheel (or the **+** and **−** buttons) zooms in up to 10x around the pointer, holding the left button
-  and dragging moves the map, and **Fit** shows the whole colony again.
+- **Town map**: the colony from above (0.24.0). Since 0.78.0 it looks like the world map and shows all land
+  within `TownMapRange` (1024) blocks of the colony's land that you, another player or a settler has loaded,
+  dark where nobody has been. The colony's land is tinted with a gold edge, and each building's ground is a box
+  (gold Town Hall, blue huts, dashed orange while being built). Settlers are green dots (wanderers yellow,
+  knocked out red) and you are white. Point at a building for its name and level. The mouse wheel (or **+** and
+  **−**) zooms around the pointer, from the whole area down to 16 pixels a block; drag with the left button to
+  move; **Fit** shows the whole colony again and **Find me** moves the map to you.
 - **Banners**: the colony banner, see Colony banners below.
 - **Information**: **Events**, a log of the last 100 things that happened (the colony founded, settlers
   hired, wanderers arriving, welcomed, turned away or leaving, settlers knocked out, recovering or dying,

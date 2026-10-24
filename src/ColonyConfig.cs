@@ -720,4 +720,8 @@ public class ColonyConfig
     /// <summary>In-game hours a breakdown lasts (rolled between the two).</summary>
     public double HappinessBreakHoursMin = 2;
     public double HappinessBreakHoursMax = 4;
+
+    // Town map (see Map/ColonyLandMap.cs)
+    /// <summary>Blocks around the colony's land that the Town map shows, once a player or a settler has loaded them.</summary>
+    public int TownMapRange = 1024;
 }

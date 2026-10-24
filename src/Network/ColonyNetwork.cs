@@ -115,6 +115,9 @@ public partial class ColonyNetwork : ModSystem
         serverChannel!.SendPacket(BuildSnapshot(colony, player.PlayerUID, openWindow: true), player);
     }
 
+    /// <summary>Whether a player has this colony's Town Hall window open.</summary>
+    public bool IsViewing(string playerUid, string colonyId) => viewersByColony.TryGetValue(colonyId, out var viewers) && viewers.Contains(playerUid);
+
     void OnAction(IServerPlayer player, ColonyActionPacket packet)
     {
         // A building planned with the wand has no colony or building yet.

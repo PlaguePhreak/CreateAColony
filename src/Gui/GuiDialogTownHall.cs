@@ -40,8 +40,6 @@ public class GuiDialogTownHall : GuiDialog
     const double OreRowHeight = 44;
     const int QuestsTab = 9;
     const double MapHeight = 380;
-    // The map is at most this many pixels a side; bigger colonies get one pixel per few blocks.
-    const int MapMaxSide = 320;
     const int MapMargin = 16;
     // Opened with the ? button on the Actions tab, with a Back button.
     const int HelpView = 20;
@@ -64,8 +62,6 @@ public class GuiDialogTownHall : GuiDialog
     int statPeriod = 1;
     // Which page of the Citizens tab: 0 the living (and wanderers), 1 the dead.
     int citizensPage;
-    // The Town map's ground, kept until the player asks for a fresh one or the colony's land changes.
-    ColonyMapTerrain? terrain;
     // Where the Town map is looking and how far zoomed in, kept while the window is open.
     readonly ColonyMapView mapView = new();
     GuiElementColonyMap? mapElement;
@@ -88,8 +84,7 @@ public class GuiDialogTownHall : GuiDialog
         if (fresh.Name != snapshot.Name && !renaming) pendingName = fresh.Name;
         snapshot = fresh;
         // On the Town map, timed refreshes only move the dots, so a zoom or a drag in progress is kept.
-        if (fresh.Periodic && currentTab == MapTab && mapElement != null && terrain != null
-            && MapBox(fresh) is { } box && terrain.Covers(box.MinX, box.MinZ, box.MaxX, box.MaxZ, MapMaxSide))
+        if (fresh.Periodic && currentTab == MapTab && mapElement != null && MapBox(fresh) is not null)
         {
             mapElement.SetSnapshot(fresh, capi.World.Player?.Entity?.Pos.XYZ);
             return;
@@ -395,7 +390,7 @@ public class GuiDialogTownHall : GuiDialog
     /// <summary>
     /// The Town map: the colony's land and buildings from above, with the settlers and the player.
     /// The mouse wheel or the + and − buttons zoom, dragging moves the map, Fit shows it all again, and
-    /// pointing at a building names it. The ground is drawn from what this client has loaded.
+    /// pointing at a building names it. The ground is all land near the colony that a player or a settler has loaded.
     /// </summary>
     void ComposeMap(GuiComposer composer)
     {
@@ -405,27 +400,22 @@ public class GuiDialogTownHall : GuiDialog
             composer.Text(Lang.Get("createacolony:townmap-empty"), GuiKit.Body(), 0, y, Width);
             return;
         }
-        if (terrain == null || !terrain.Covers(box.MinX, box.MinZ, box.MaxX, box.MaxZ, MapMaxSide))
-        {
-            terrain = ColonyMapTerrain.Build(capi, box.MinX, box.MinZ, box.MaxX, box.MaxZ, MapMaxSide);
-        }
-
         var mapBounds = ElementBounds.Fixed(0, y, Width, MapHeight);
-        mapElement = new GuiElementColonyMap(capi, mapBounds, terrain, snapshot, capi.World.Player?.Entity?.Pos.XYZ, mapView);
+        mapElement = new GuiElementColonyMap(capi, mapBounds, snapshot, box, capi.World.Player?.Entity?.Pos.XYZ, mapView);
         composer
             .AddInset(mapBounds.FlatCopy(), 3, 0.8f)
             .AddInteractiveElement(mapElement, "townmap");
         y += MapHeight + 8;
 
-        // Zoom buttons on the left, Redraw on the right, the key between them.
+        // Zoom buttons on the left, Find me on the right.
         composer
             .AddSmallButton(Lang.Get("createacolony:townmap-zoomout"), () => { mapElement?.ZoomBy(1 / 1.5); return true; }, ElementBounds.Fixed(0, y, 34, 28))
             .AddSmallButton(Lang.Get("createacolony:townmap-zoomin"), () => { mapElement?.ZoomBy(1.5); return true; }, ElementBounds.Fixed(40, y, 34, 28))
             .AddSmallButton(Lang.Get("createacolony:townmap-fit"), () => { mapElement?.Fit(); return true; }, ElementBounds.Fixed(80, y, 50, 28))
-            .AddSmallButton(Lang.Get("createacolony:townmap-redraw"), () => { terrain = null; Compose(); return true; }, ElementBounds.Fixed(Width - 150, y, 150, 28));
+            .AddSmallButton(Lang.Get("createacolony:townmap-findme"), () => { mapElement?.CenterOnPlayer(); return true; }, ElementBounds.Fixed(Width - 110, y, 110, 28));
         y += 36;
         y = composer.Text(Lang.Get("createacolony:townmap-legend"), GuiKit.Detail(), 0, y, Width, 6);
-        composer.Text(Lang.Get("createacolony:townmap-hint", terrain.Step), GuiKit.Muted(), 0, y, Width);
+        composer.Text(Lang.Get("createacolony:townmap-hint"), GuiKit.Muted(), 0, y, Width);
     }
 
     // ---- Banners tab ----------------------------------------------------------------------
