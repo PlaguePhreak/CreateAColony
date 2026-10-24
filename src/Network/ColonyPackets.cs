@@ -734,7 +734,9 @@ public enum ColonyAction
     RemoveMarkers = 121,
     /// <summary>Colony militia switches (officers); Text is "1" or "0".</summary>
     SetSelfDefence = 140,
-    SetSupportAllies = 141
+    SetSupportAllies = 141,
+    /// <summary>Shows or hides the box outlines of the buildings nearby in the placement preview (kept per player).</summary>
+    PlacementNearbyOutlines = 150
 }
 
 /// <summary>The Builder's Wand building list: each building type with how many of its blocks the player carries.</summary>
@@ -801,6 +803,8 @@ public class PlacementSnapshot
     [ProtoMember(19)] public List<string> OverlapsLater = new();
     /// <summary>How many buildings nearby have their outlines shown.</summary>
     [ProtoMember(20)] public int Nearby;
+    /// <summary>The player hid the nearby buildings' outlines.</summary>
+    [ProtoMember(23)] public bool NearbyHidden;
     /// <summary>The variant shown (see BlueprintLibrary.Variants), and all the type's variants in this style, in order.</summary>
     [ProtoMember(21)] public string Variant = "";
     [ProtoMember(22)] public List<string> Variants = new();

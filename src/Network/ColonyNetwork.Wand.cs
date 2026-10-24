@@ -77,6 +77,9 @@ public partial class ColonyNetwork
                 planned.Remove(uid);
                 ClearOutline(player);
                 return;
+            case ColonyAction.PlacementNearbyOutlines:
+                ToggleNearbyOutlines(player);
+                break;
             case ColonyAction.PlacementTurn:
                 plan = plan with { Rotation = (plan.Rotation + (packet.Text == "-1" ? 270 : 90)) % 360 };
                 break;
@@ -199,6 +202,7 @@ public partial class ColonyNetwork
             Overlaps = outline.Overlaps,
             OverlapsLater = outline.OverlapsLater,
             Nearby = outline.Nearby,
+            NearbyHidden = NearbyHidden(player),
             CanAdjust = true,
             CanOrder = true,
             Planned = true,

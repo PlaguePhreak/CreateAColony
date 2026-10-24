@@ -410,7 +410,7 @@ While you place a building, the colony's other buildings close by get **box outl
 the new one right beside them: purple for the size they are now (or are being built to), faint purple
 for the size they grow to at their top level, and orange for any the new building would overlap. The
 placement window names the buildings it overlaps. `NearbyOutlineRange` (default 32 blocks, 0 = off) and
-`NearbyOutlineMax` (default 30) in the mod config change how far and how many.
+`NearbyOutlineMax` (default 30) in the mod config change how far and how many. The **Hide nearby outlines** button in the placement window hides them (overlaps are still named); the choice is kept per player (0.89.0).
 
 
 **Placing by hand for making blueprints (0.49.0).** An admin can type `/colony handplace on` (or set

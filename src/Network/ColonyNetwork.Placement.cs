@@ -76,6 +76,7 @@ public partial class ColonyNetwork
             Overlaps = outline.Overlaps,
             OverlapsLater = outline.OverlapsLater,
             Nearby = outline.Nearby,
+            NearbyHidden = NearbyHidden(player),
             CanAdjust = role >= ColonyRole.Officer && building.Level == 0 && !building.HasWorkOrder,
             CanOrder = role >= ColonyRole.Officer && !building.HasWorkOrder && building.Level < max,
             OpenWindow = openWindow,
@@ -102,8 +103,22 @@ public partial class ColonyNetwork
         }
         bool ghost = ShowGhost(player, building, blueprint);
         var (positions, colors, blocked, total) = Manager.Outline(building, blueprint, MaxOutlineBlocks, blockedOnly: ghost && !OutlineToo);
-        var (overlaps, later, nearby) = Manager.NearbyOutlines(building, blueprint, positions, colors, MaxOutlineBlocks + MaxNearbyBlocks);
+        // Hidden, the nearby buildings are still checked for overlaps, just not drawn.
+        bool hidden = NearbyHidden(player);
+        var (overlaps, later, nearby) = Manager.NearbyOutlines(building, blueprint, hidden ? new List<BlockPos>(positions) : positions,
+            hidden ? new List<int>(colors) : colors, MaxOutlineBlocks + MaxNearbyBlocks);
         return new Preview(positions, colors, blocked, total, overlaps, later, nearby);
+    }
+
+    const string NearbyHiddenKey = "createacolony:hideNearbyOutlines";
+
+    /// <summary>True when the player hid the nearby buildings' outlines; saved with the player.</summary>
+    static bool NearbyHidden(IServerPlayer player) => player.ServerData.CustomPlayerData.TryGetValue(NearbyHiddenKey, out var v) && v == "1";
+
+    static void ToggleNearbyOutlines(IServerPlayer player)
+    {
+        if (NearbyHidden(player)) player.ServerData.CustomPlayerData.Remove(NearbyHiddenKey);
+        else player.ServerData.CustomPlayerData[NearbyHiddenKey] = "1";
     }
 
     void ClearOutline(IServerPlayer player)
@@ -125,6 +140,12 @@ public partial class ColonyNetwork
         if (packet.Action is ColonyAction.OpenPlacement or ColonyAction.ReopenPlacement)
         {
             SendPlacement(player, colony, building, true);
+            return;
+        }
+        if (packet.Action == ColonyAction.PlacementNearbyOutlines)
+        {
+            ToggleNearbyOutlines(player);
+            SendPlacement(player, colony, building, false);
             return;
         }
         if (packet.Action == ColonyAction.PlacementLevel)
