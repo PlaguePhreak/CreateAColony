@@ -79,10 +79,13 @@ public partial class ColonyManager
         mineshaftWorking.Remove(hut.BuildingId);
         for (int round = 0; round < 3; round++)
         {
-            var job = ScanMineshaft(colony, hut, miner, pieces, at, skip, out status, out bool busy);
-            if (job != null || busy) return job;
+            var job = ScanMineshaft(colony, hut, miner, pieces, at, skip, out status, out bool busy, out bool waitingForMaterials);
+            if (job != null || busy && waitingForMaterials) return job;
+            // Nothing to do, or only spots it could not get to a little while ago: those wait, and the mine grows
+            // on meanwhile through its open sides, rather than the miner standing about (Aaron, 0.82.0).
             if (!GrowMineshaft(colony, hut, pieces))
             {
+                if (busy) return null;
                 status = "mineshaft-done";
                 mineshaftNeeds.Remove(hut.BuildingId);
                 return null;
@@ -98,10 +101,11 @@ public partial class ColonyManager
     /// be dug (water beside them, someone else's land) do not count.
     /// </summary>
     MineJob? ScanMineshaft(Colony colony, Building hut, CitizenRecord miner, List<PlacedPiece> pieces, BlockPos at, System.Func<BlockPos, bool> skip,
-        out string status, out bool busy)
+        out string status, out bool busy, out bool waitingForMaterials)
     {
         status = "";
         busy = false;
+        waitingForMaterials = false;
         var ba = sapi.World.BlockAccessor;
         ShaftFor(colony, hut, out bool marked);
         var (boxes, keep) = DigLimits(colony, hut, marked);
@@ -169,6 +173,7 @@ public partial class ColonyManager
                 if (!canPay)
                 {
                     busy = true;
+                    waitingForMaterials = true;
                     if (found == null) status = "mineshaft-materials";
                     continue;
                 }
@@ -354,6 +359,7 @@ public partial class ColonyManager
             .Where(s => LevelAt(pieces, s.Out.Y) <= levels)
             .Where(s => !pieces.Any(p => s.Out.X >= p.Min.X && s.Out.X <= p.Max.X && s.Out.Y >= p.Min.Y && s.Out.Y <= p.Max.Y && s.Out.Z >= p.Min.Z && s.Out.Z <= p.Max.Z))
             .OrderBy(s => hut.MineLevel > 0 && LevelAt(pieces, s.Out.Y) == hut.MineLevel ? 0 : 1).ThenBy(_ => rand.Next()).ToList();
+        int tooHigh = 0, overlap = 0, notOurs = 0;
         foreach (var (_, face, outside) in sides)
         {
             var choices = BlueprintLibrary.MineSections.SelectMany(name => new[] { 0, 90, 180, 270 }.Select(turn => (name, turn)))
@@ -367,15 +373,27 @@ public partial class ColonyManager
                 var origin = new BlockPos(outside.X - back.X, outside.Y - back.Y, outside.Z - back.Z);
                 var placed = new PlacedPiece(next, origin);
                 // Sections stay under the entrance's ground layer, so none breaks out at the surface.
-                if (placed.Min.Y <= 3 || placed.Max.Y >= pieces[0].Origin.Y || Overlaps(placed.Min, placed.Max) || !CanWorkAt(colony, origin)) continue;
+                if (placed.Min.Y <= 3 || placed.Max.Y >= pieces[0].Origin.Y) { tooHigh++; continue; }
+                if (Overlaps(placed.Min, placed.Max)) { overlap++; continue; }
+                if (!CanWorkAt(colony, origin)) { notOurs++; continue; }
                 hut.Sections.Add(new MineSection { Name = name, Rotation = turn, Origin = origin });
                 AddStat(hut, "mine-sections");
                 MarkDirty(colony);
                 return true;
             }
         }
+        // Why not, in the log once per change, for mines that stop growing.
+        string why = $"{sides.Count} open sides on levels 1-{levels}; sections tried: {tooHigh} too high or low, {overlap} overlapping, {notOurs} on others' land";
+        if (mineshaftStuck.GetValueOrDefault(hut.BuildingId) != why)
+        {
+            mineshaftStuck[hut.BuildingId] = why;
+            Mod.Logger.Notification("Mineshaft of {0} cannot grow: {1}", hut.CustomName ?? "Miner's Hut " + hut.BuildingId, why);
+        }
         return false;
     }
+
+    /// <summary>The last reason each Miner's Hut's mineshaft could not grow, so it is logged once. Not saved.</summary>
+    readonly Dictionary<int, string> mineshaftStuck = new();
 
     /// <summary>The Miner's Hut window line for a mineshaft made of pieces: how many sections, and how many blocks are left.</summary>
     string? MineshaftInfo(Colony colony, Building hut)
