@@ -2214,5 +2214,18 @@
 	"stat-blocks-removed": "Blocks taken down",
 	"event-removing": "{0} is being taken down",
 	"event-mine-derelict": "The mine of {0} is now derelict",
-	"event-mine-taken": "{0} took on a derelict mine"
+	"event-mine-taken": "{0} took on a derelict mine",
+	"item-creature-corpse": "Corpse",
+	"corpse-name": "{0}'s corpse",
+	"corpse-things-name": "{0}'s things",
+	"corpse-collect": "Take all (hold)",
+	"corpse-not-yours": "This is not your corpse.",
+	"corpse-free": "Anyone can take from it now.",
+	"corpse-colony": "Members of their colony can take from it.",
+	"corpse-created": "Died {0}",
+	"death-waypoint-name": "Death: {0}",
+	"item-corpsecompass": "Corpse Compass",
+	"item-handbooktitle-createacolony:corpsecompass": "Usage",
+	"item-handbooktext-createacolony:corpsecompass": "Right-click to point at your nearest corpse, or a settler's corpse from your colony. It also works in the off hand.<br/><br/>Searches 7x7 chunks around you.",
+	"corpsecompass-corpses-not-found": "No corpses nearby."
 }

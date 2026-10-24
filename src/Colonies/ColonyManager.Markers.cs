@@ -209,6 +209,16 @@ public partial class ColonyManager
         AddMarker(colony, null, "grave", pos, title, citizen.CitizenId);
     }
 
+    /// <summary>Takes away a settler's grave marker near a spot, when their corpse there has been emptied.</summary>
+    public void ClearFallen(Colony colony, int citizenId, Vec3d pos)
+    {
+        int removed = colony.Markers.RemoveAll(m => m.Kind == "grave" && m.CitizenId == citizenId
+            && (m.X - pos.X) * (m.X - pos.X) + (m.Z - pos.Z) * (m.Z - pos.Z) < 4 * 4);
+        if (removed == 0) return;
+        MarkDirty(colony);
+        ShareMarkers(colony);
+    }
+
     /// <summary>Takes away every marker a hut's worker put down. Returns how many there were.</summary>
     public int RemoveHutMarkers(Colony colony, Building hut)
     {

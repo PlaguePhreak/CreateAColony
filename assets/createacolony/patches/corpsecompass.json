@@ -1,0 +1,22 @@
+[
+	{
+		"file": "createacolony:recipes/grid/corpsecompass.json",
+		"op": "replace",
+		"path": "/enabled",
+		"value": false,
+		"condition": {
+			"when": "createacolony:CorpseCompassEnabled",
+			"isValue": "false"
+		}
+	},
+	{
+		"file": "createacolony:itemtypes/corpsecompass.json",
+		"op": "replace",
+		"path": "/enabled",
+		"value": false,
+		"condition": {
+			"when": "createacolony:CorpseCompassEnabled",
+			"isValue": "false"
+		}
+	}
+]

@@ -701,6 +701,24 @@ before shipping converted blueprints.
 
 ### The Town Hall window (0.24.0)
 
+### Corpses for players and settlers (0.94.0)
+Built in from [Player Corpse](https://mods.vintagestory.at/playercorpse) by DArkHekRoMaNT (MIT licence, see
+`THIRD_PARTY_NOTICES.md`), brought up to 1.22 and without its CommonLib dependency.
+- When a player dies, their things go into a corpse where they fell, instead of spilling on the ground. Hold
+  right-click on it to take everything back. Only the owner can do this at first; after 240 in-game hours anyone can.
+  A death waypoint is added to the map and goes when the corpse is collected.
+- When a settler dies, their pack, bags, tools, armour and clothes go into "Name's corpse". A knocked-out settler
+  leaves "Name's things" (their clothes stay on). Any member of their colony can collect it. The RIP marker on the
+  map sits on the corpse. The "fell here" marker of a knocked-out settler goes once their things are collected.
+- The Corpse Compass (rusty gears, bones and a temporal gear) points at your nearest corpse, or a settler's corpse
+  from your colony.
+- `/returnthings list <player>` and `/returnthings get <player> <give to> [id]` give back what a player lost in one
+  of their last 10 deaths (needs the gamemode privilege).
+- Config: `ModConfig/createacolony-corpses.json`. `PlayerCorpses` and `SettlerCorpses` turn each part off. With
+  corpses off, things drop on the ground as before. If the Player Corpse mod is installed too, it makes the player
+  corpses and this mod only makes settler ones.
+- Code: `src/Corpses/`; entity `createacolony:corpse`, item `createacolony:corpsecompass`. No new save fields.
+
 ### What killed a settler; gatherer marks resin and beehives (0.93.0)
 - The Town Hall's Dead Citizens page has a "Killed by" column: the creature (Wolf), the player or settler, or what
   happened (Starved, A fall, Drowned, Fire). Settlers who died before 0.93.0 show "unknown". Save data:

@@ -184,7 +184,8 @@ public class EntityBehaviorColonyCitizen : EntityBehavior
         if (record != null && record.EntityId != entity.EntityId && entity.World.GetEntityById(record.EntityId) is { Alive: true }) record = null;
         if (record != null && manager != null)
         {
-            // What they carried, bags included, falls where they died instead of vanishing with them.
+            // What they carried, bags included, stays where they died instead of vanishing with them.
+            Vec3d? fellAt = null;
             var colony = manager.GetById(((EntitySettler)entity).ColonyId!);
             if (colony != null)
             {
@@ -195,10 +196,16 @@ public class EntityBehaviorColonyCitizen : EntityBehavior
                     dropped.Add(hand.TakeOutWhole());
                     entity.GetBehavior<EntityBehaviorVillagerInv>()?.storeInv();
                 }
-                if (!record.Visitor && manager.Permadeath(colony)) dropped.AddRange(manager.TakeOffClothes(colony, record));
-                foreach (var stack in dropped)
+                bool died = record.Visitor || manager.Permadeath(colony);
+                if (!record.Visitor && died) dropped.AddRange(manager.TakeOffClothes(colony, record));
+                // Into a corpse where they fell, so nothing scatters or despawns; on the ground if corpses are off.
+                fellAt = entity.Api.ModLoader.GetModSystem<Corpses.CorpseSystem>()?.SpawnSettlerCorpse(entity, colony, record, dropped, knockedOut: !died);
+                if (fellAt == null)
                 {
-                    entity.World.SpawnItemEntity(stack, entity.Pos.XYZ.Add(0, 0.5, 0));
+                    foreach (var stack in dropped)
+                    {
+                        entity.World.SpawnItemEntity(stack, entity.Pos.XYZ.Add(0, 0.5, 0));
+                    }
                 }
             }
 
@@ -214,7 +221,7 @@ public class EntityBehaviorColonyCitizen : EntityBehavior
                 record.DeathCause = DeathCause(damageSourceForDeath);
                 manager.LogEvent(colony, "event-died", record.Name);
                 manager.MournDeath(colony, record);
-                manager.MarkFallen(colony, record, entity.Pos.XYZ, died: true);
+                manager.MarkFallen(colony, record, fellAt ?? entity.Pos.XYZ, died: true);
             }
             else
             {
@@ -223,7 +230,7 @@ public class EntityBehaviorColonyCitizen : EntityBehavior
                 record.DownedUntilTotalDays = now + manager.Config.DownedRecoveryDays * manager.TraitMult(record, "downedDays"); // Fast / Slow Healer
                 if (colony != null) manager.LogEvent(colony, "event-downed", record.Name);
                 if (colony != null) manager.CountKnockOut(colony, record, now); // towards Shaken
-                if (colony != null) manager.MarkFallen(colony, record, entity.Pos.XYZ, died: false); // their things lie there
+                if (colony != null) manager.MarkFallen(colony, record, fellAt ?? entity.Pos.XYZ, died: false); // their things lie there
                 manager.AddThought(record, "knockedout");
             }
         }
