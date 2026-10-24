@@ -1,6 +1,6 @@
 # Vintage Colonies: roadmap
 
-Vintage Colonies brings the ideas of the Minecraft mod MineColonies to Vintage Story. This page shows what the mod has today (version 0.72.0), what it does not have yet, and the order we plan to build it in. It comes from a side-by-side check against the MineColonies wiki. Plans can change as things get tested in game.
+Vintage Colonies brings the ideas of the Minecraft mod MineColonies to Vintage Story. This page shows what the mod has today (version 0.124.0), what it does not have yet, and the order we plan to build it in. It comes from a side-by-side check against the MineColonies wiki. Plans can change as things get tested in game.
 
 Everything listed under "What we have" and "Partly done" has been tested in game.
 
@@ -29,15 +29,21 @@ Everything listed under "What we have" and "Partly done" has been tested in game
 - Armourer's Hut and Weaponsmith's Hut: the Blacksmith split in three; the armourer makes and mends metal armor, the weaponsmith makes weapons (0.114.0, placeholder models, no buildings yet, not tested yet)
 - Repair button on every hut: a builder puts the building back as its blueprint has it, takes out stray blocks and fills holes under it (0.118.0, not tested yet)
 - Healing: badly hurt settlers go home to bed to recover and use a bandage or poultice they carry; a Healer's Hut makes bandages and treats them; settlers make horsetail poultices; the Gatherer picks horsetail (0.117.0, placeholder model, no building yet, not tested yet)
+- Hunter's Hut: a hunter hunts wild animals and brings the meat and hides home; jobless settlers skin animals and cook simple meals at home (0.99.0, not tested yet)
 - Explorer's Hut and Gatherer's Hut: an explorer marks ore, clay, traders, animals and danger on a Colony markers map layer, and a gatherer forages berries, mushrooms and loose stones and marks plants; works with More Map Icons (0.77.0, placeholder models and buildings, not tested yet)
 - Vintage Colonies' own map icons: 120 waypoint icons covering every More Map Icons sheet entry, used by colony markers (0.79.0, not tested yet)
 - A marker icon for every ore, fruit, vegetable, grain, animal, trader and story location, other mods' too (0.80.0, not tested yet)
 - Paintings: 17 original framed paintings in four sizes, a blank canvas from 8 boards and 4 linen painted with buckets of dye in the grid, hung by builders from blueprints (0.105.0-0.105.1, not tested yet)
 
 **Colony systems**
+- Cellar storage, settlers eat the oldest food first, and a Kitchen tab with food on hand, crocks and settler bowls (0.100.0 and 0.124.0, not tested yet)
+- Huts make what other huts need, a Crafting recipes tab and a Priorities tab on crafting huts (0.101.0-0.111.0, not tested yet)
+- Settlers decorate their homes with paintings, trophies, weapons, books and banners (0.106.0, not tested yet)
+- Traders join the colony as settlers with a job that fits their goods (0.108.0, not tested yet)
 - Colony land that grows with every hut and Town Hall level *(tested)*
 - Town Hall window: actions, town map, banners, events, work orders, citizens, statistics, permissions, settings, prospecting and quests *(tested)*
 - Settlers who eat real meals, like a varied diet, sleep in beds, shelter from storms and come back after dying (or not, with Permadeath) *(tested)*
+- Firefighting: settlers put out fires on the colony's land with watering cans, and the potter clears grass around its pit kiln first (0.123.0, not tested yet)
 - Skills (13) and traits, inherited by children *(tested)*
 - RimWorld-style skills 0 to 20 with passions, decay and perks, and a Happiness system *(0.61.0, not tested yet)*
 - Families: couples, children who grow up, surnames, a population cap *(tested)*
@@ -55,7 +61,7 @@ Everything listed under "What we have" and "Partly done" has been tested in game
 - **Cook's Hut**: baking comes from the Stone Bake Oven mod (0.55.0); still no place where the Cook serves food, no food-mod cooking stations *(tested)*
 - **Town Hall window**: alliances, happiness, reordering work orders, custom ranks, permission logs, auto hiring and housing, and enter and leave messages say "Coming later" *(tested)*
 - **Permissions**: no custom ranks, no hostile or neutral list, no log of who did what *(tested)*
-- **Requests**: no list players can see and fill, and no crafter huts that make what is asked for *(tested)*
+- **Requests**: no list players can see and fill (huts that make what others ask for came in 0.111.0)
 - **Hiring and housing**: no auto-hire switch, and homes can't be picked by hand *(tested)*
 - **Guards**: no ranged guards yet; the Barracks came in 0.54.0 *(not tested yet)*
 - **Blueprints**: no in-game scan tool for your own buildings, and the wand's Education, Walls and Decoration tabs are still empty *(tested)*
@@ -74,7 +80,7 @@ Everything listed under "What we have" and "Partly done" has been tested in game
 6. **Ranged guards and a rally banner** (the Barracks came in 0.54.0), then **Raids**: now and then, enemies turn up and attack the player's colony. The player is warned in chat and on the Town Hall window. There are several raid factions, from bandits (who use the settler models) to the game's own monsters such as drifters and shivers.
 7. **Graveyard**: an undertaker who buries the dead (the Healer, bandages and poultices came in 0.117.0)
 8. **School, Library and University** with a **research tree** that unlocks faster work and new huts
-9. **Blacksmith** (started in 0.50.0): still to do are repairs, armor, and making the tools workers ask for
+9. **Blacksmith**: mostly done. Armor, mending and the Weaponsmith came in 0.114.0, and huts make what workers ask for since 0.111.0. Still to do: the Armourer's and Weaponsmith's buildings
 
 **Later**
 - More huts from MineColonies: Stonemason, Baker, Fisher, Beekeeper, Plantation (reeds and cattails), Composter, Crusher and Sifter (quern and panning), Florist, Dyer, Fletcher and Mechanic (windmills and gears)
