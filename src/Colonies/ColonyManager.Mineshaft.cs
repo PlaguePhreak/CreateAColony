@@ -14,7 +14,8 @@ namespace CreateAColony.Colonies;
 /// mineshaft folder holds an entrance (the way down) and sections
 /// (cross, tee, straight). The miner digs and builds the entrance, then grows the mine a section at a time:
 /// at an open side with nothing beyond it yet, it picks a section at random, turned so one of its open
-/// sides meets that one, and digs and builds it. Each hut level allows MinerSectionsPerHutLevel sections.
+/// sides meets that one, and digs and builds it. Each hut level opens MinerMineLevelsPerHutLevel more levels
+/// for sections; how many sections there are is not limited unless MinerSectionsPerHutLevel is set.
 /// A piece's empty spots are dug out, its natural ground is left as it is, and everything else in it is
 /// built from the hut's storage (couriers are asked for what is missing). Without an entrance in any
 /// style the miner digs its spiral shaft as before.
@@ -333,14 +334,15 @@ public partial class ColonyManager
 
     /// <summary>
     /// Adds a section to the mineshaft: at the first open side (entrance first, then the sections in the
-    /// order they were dug) with nothing beyond it, a random section turned to fit, that keeps clear of
-    /// the other pieces and of buildings and is in the colony's land. False when the hut level allows no
-    /// more, or there is nowhere to put one.
+    /// order they were dug) with nothing beyond it, on a level the hut level has opened, a random section
+    /// turned to fit, that keeps clear of the other pieces and of buildings and is in the colony's land.
+    /// False when there is nowhere to put one (or a section limit is set and reached).
     /// </summary>
     bool GrowMineshaft(Colony colony, Building hut, List<PlacedPiece> pieces)
     {
         int limit = MineshaftSectionLimit(hut);
         if (hut.Sections.Count >= limit || MineshaftStyle(hut) is not { } style) return false;
+        int levels = MineshaftLevelsOpen(hut, pieces);
         var rand = sapi.World.Rand;
         var others = colony.Buildings.Where(b => b != hut).Select(b => BuildingBox(b)).ToList();
         bool Overlaps(BlockPos min, BlockPos max) =>
@@ -349,6 +351,7 @@ public partial class ColonyManager
 
         // Every open side with nothing beyond it yet, in a random order, so the mine branches out as a maze.
         var sides = pieces.SelectMany(piece => piece.Piece.Open.Select(o => (piece, o.Face, Out: piece.Origin.AddCopy(o.X + o.Face.Normali.X, o.Y, o.Z + o.Face.Normali.Z))))
+            .Where(s => LevelAt(pieces, s.Out.Y) <= levels)
             .Where(s => !pieces.Any(p => s.Out.X >= p.Min.X && s.Out.X <= p.Max.X && s.Out.Y >= p.Min.Y && s.Out.Y <= p.Max.Y && s.Out.Z >= p.Min.Z && s.Out.Z <= p.Max.Z))
             .OrderBy(s => hut.MineLevel > 0 && LevelAt(pieces, s.Out.Y) == hut.MineLevel ? 0 : 1).ThenBy(_ => rand.Next()).ToList();
         foreach (var (_, face, outside) in sides)
@@ -388,8 +391,7 @@ public partial class ColonyManager
             bool done = step.BlockId == 0 ? IsClear(pos) || NearLiquid(pos) : KeepsBlock(colony, ba.GetBlock(pos), step.BlockId, pos);
             if (!done) left++;
         }
-        int limit = MineshaftSectionLimit(hut);
         var o = pieces[0].Origin;
-        return Lang.Get("createacolony:mineshaft-info", hut.Sections.Count, limit, left, o.X, o.Y, o.Z);
+        return Lang.Get("createacolony:mineshaft-info", hut.Sections.Count, MineshaftLevelsOpen(hut, pieces), LevelCount(pieces), left, o.X, o.Y, o.Z);
     }
 }

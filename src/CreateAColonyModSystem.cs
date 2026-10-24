@@ -60,6 +60,7 @@ public class CreateAColonyModSystem : ModSystem
         api.RegisterItemClass("ItemColonyLedger", typeof(Items.ItemColonyLedger));
 
         AiTaskRegistry.Register<AiTaskSettlerFlee>("settlerflee");
+        AiTaskRegistry.Register<AiTaskSettlerDefend>("settlerdefend");
         AiTaskRegistry.Register<AiTaskSettlerShelter>("settlershelter");
         AiTaskRegistry.Register<AiTaskSettlerSleep>("settlersleep");
         AiTaskRegistry.Register<AiTaskSettlerEat>("settlereat");

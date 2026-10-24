@@ -4,6 +4,7 @@ using CreateAColony.Settlers;
 using Vintagestory.API.Common;
 using Vintagestory.API.Common.Entities;
 using Vintagestory.API.MathTools;
+using Vintagestory.GameContent;
 
 namespace CreateAColony.Colonies;
 
@@ -48,6 +49,25 @@ public partial class ColonyManager
     }
 
     public void StopFleeing(Entity settler) => fleeing.Remove(settler.EntityId);
+
+    /// <summary>
+    /// True when a settler hurt by a creature fights it instead of running (AiTaskSettlerDefend): not a guard
+    /// or a child, it carries a weapon, it is not badly hurt, and no guard is near enough to deal with it.
+    /// </summary>
+    public bool FightsBack(Colony colony, CitizenRecord citizen, EntityAgent settler)
+    {
+        if (!Config.FightBackWhenAttacked || citizen.JobCode == Jobs.Guard || citizen.IsDowned || citizen.IsChild) return false;
+        if (settler.GetBehavior<EntityBehaviorHealth>() is { } hp && hp.Health < hp.MaxHealth * Config.FightBackMinHealth) return false;
+        if (!(settler.RightHandItemSlot?.Itemstack is { } held && IsWeapon(held)) && PackCount(citizen, IsWeapon) == 0) return false;
+        return !GuardNear(colony, settler.Pos.XYZ, Config.FightBackGuardRadius);
+    }
+
+    /// <summary>A worker carrying no weapon takes one from its hut's storage, to fight back with if attacked.</summary>
+    public void TakeSpareWeapon(Colony colony, CitizenRecord citizen, IEnumerable<BlockEntityContainer> storage)
+    {
+        if (!Config.FightBackWhenAttacked || PackCount(citizen, IsWeapon) > 0) return;
+        if (TakeItems(storage, IsWeapon, 1) is { } weapon) AddToPack(colony, citizen, weapon);
+    }
 
     /// <summary>
     /// Where a hurt settler runs: home, or the guard it is safest to run to. Each choice costs its distance,

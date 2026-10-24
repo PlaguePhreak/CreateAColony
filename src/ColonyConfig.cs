@@ -7,7 +7,7 @@ public class ColonyConfig
 {
     public const string FileName = "createacolony.json";
     /// <summary>Bumped when a default changes in a way old config files should pick up; see ColonyManager.UpgradeConfig.</summary>
-    public const int CurrentConfigVersion = 5;
+    public const int CurrentConfigVersion = 6;
 
     /// <summary>Which defaults this file has been brought up to. Files from before 0.33.0 have none, so read as 0.</summary>
     public int ConfigVersion;
@@ -161,8 +161,10 @@ public class ColonyConfig
     public int MinerTorchesCarried = 8;
     /// <summary>When a mine at prospected ore is finished, the miner fills its staircase back in with dirt this many blocks down from the surface.</summary>
     public int MinerFillDepth = 6;
-    /// <summary>Mineshaft sections (cross, tee, straight) a Miner's Hut's mineshaft may grow per hut level, when the style has mineshaft pieces.</summary>
-    public int MinerSectionsPerHutLevel = 4;
+    /// <summary>Mineshaft sections (cross, tee, straight) a Miner's Hut's mineshaft may grow per hut level. 0 (since 0.76.0): no limit, only levels are.</summary>
+    public int MinerSectionsPerHutLevel = 0;
+    /// <summary>Levels of a mineshaft made of pieces that sections may go on, per Miner's Hut level (a level 0 hut counts as 1).</summary>
+    public int MinerMineLevelsPerHutLevel = 1;
     /// <summary>
     /// How many times a mineshaft entrance's stairs repeat further down for each level of the Miner's Hut. 0 (since
     /// 0.73.0): the entrance is used as drawn, as Aaron's current one already has tunnel starts on two levels.
@@ -303,6 +305,14 @@ public class ColonyConfig
     public float FleeGuardRadius = 48f;
     /// <summary>Once safe, a settler stops running when its attacker is further away than this.</summary>
     public float FleeSafeDistance = 24f;
+    /// <summary>A settler with a weapon fights back against a creature that hurts it, instead of running, when no guard is near.</summary>
+    public bool FightBackWhenAttacked = true;
+    /// <summary>A guard this close to a hurt settler deals with the attacker, so the settler runs to it instead of fighting.</summary>
+    public float FightBackGuardRadius = 24f;
+    /// <summary>A settler below this share of its health stops fighting and runs.</summary>
+    public float FightBackMinHealth = 0.3f;
+    /// <summary>A settler fighting back stops once its attacker is further away than this; it does not give chase.</summary>
+    public float FightBackChaseDistance = 6f;
 
     // Potter
     /// <summary>Seconds a potter takes to shape one layer of clay on the clay forming block.</summary>
@@ -480,6 +490,15 @@ public class ColonyConfig
     public bool LadderClimbing = true;
     /// <summary>How far around itself, in blocks, a settler looks for a ladder to climb.</summary>
     public int LadderSearchRadius = 8;
+    /// <summary>
+    /// Settlers carry ladders and, when there is no way up and no ladder nearby, put a column of them up
+    /// against the cliff and climb it. The ladders stay for the next trip. Workers take them from their hut's storage.
+    /// </summary>
+    public bool ScaffoldClimbing = true;
+    /// <summary>How many ladders a worker takes from its hut's storage to carry.</summary>
+    public int ScaffoldCarry = 16;
+    /// <summary>The highest cliff, in blocks, a settler puts ladders up.</summary>
+    public int ScaffoldMaxHeight = 16;
     /// <summary>
     /// The deepest drop, in blocks, a settler's path may walk down. Anything deeper (a hole, a cliff edge, a pit
     /// kiln shaft) is planned around, or climbed by ladder. The game's own limit for creatures is 4.

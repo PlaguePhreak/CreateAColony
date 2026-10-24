@@ -250,6 +250,12 @@ public abstract class SettlerTaskBase : AiTaskBase
                     legTry++;
                     StartLeg();
                 }
+                // No stretch can be walked: a cliff in the way. Climb it by ladder, or put ladders up.
+                else if (ladderPhase == LadderPhase.None && now >= retryAtMs)
+                {
+                    retryAtMs = now + RetryDelayMs;
+                    if (TryLadder()) legTry = 0;
+                }
             }
             else if (attempts < MaxPathAttempts && now >= retryAtMs)
             {
@@ -335,6 +341,12 @@ public abstract class SettlerTaskBase : AiTaskBase
     {
         if (manager == null || !manager.Config.LadderClimbing || goal == null) return false;
         var climb = LadderClimb.Find(manager, entity, goal, System.Math.Max(2, manager.Config.LadderSearchRadius), triedLadders);
+        // No ladder there: put one up against the cliff from the ladders the settler carries.
+        if (climb == null && manager.Config.ScaffoldClimbing && Colony is { } colony && Citizen is { } citizen)
+        {
+            int have = manager.PackCount(citizen, ColonyManager.IsLadderStack);
+            climb = manager.FindScaffoldSpot(colony, entity, goal, 4, have, triedLadders);
+        }
         if (climb == null) return false;
         ladder = climb;
         if (manager.PathDebug) manager.Mod.Logger.Notification("[pathing] settler {0} at {1} climbs the ladder at {2} towards {3}", entity.EntityId, entity.Pos.AsBlockPos, climb.Column, goal.AsBlockPos);
@@ -355,6 +367,15 @@ public abstract class SettlerTaskBase : AiTaskBase
     void StartClimbing()
     {
         pathTraverser.Stop();
+        if (ladder!.ToPlace != null && (Colony is not { } colony || Citizen is not { } citizen || !manager!.PlaceScaffold(colony, citizen, ladder)))
+        {
+            // The ladders could not go up after all: walk on without them.
+            triedLadders.Add(ladder.Column);
+            EndLadder();
+            failed = true;
+            retryAtMs = entity.World.ElapsedMilliseconds + RetryDelayMs;
+            return;
+        }
         ladderPhase = LadderPhase.Climbing;
         ladder!.Begin(entity);
         failed = false;

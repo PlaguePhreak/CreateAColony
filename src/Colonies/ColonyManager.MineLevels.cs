@@ -28,7 +28,20 @@ public partial class ColonyManager
     /// <summary>The most levels the hut's level allows, before the Max depth setting.</summary>
     public int MineshaftLevelsAllowed(Building hut) => 1 + Math.Max(0, Config.MinerEntranceRepeatsPerHutLevel) * Math.Max(1, hut.Level);
 
-    public int MineshaftSectionLimit(Building hut) => Math.Max(0, Config.MinerSectionsPerHutLevel) * Math.Max(1, hut.Level);
+    /// <summary>How many sections the mineshaft may have; int.MaxValue when MinerSectionsPerHutLevel is 0 (no limit, since 0.76.0).</summary>
+    public int MineshaftSectionLimit(Building hut) =>
+        Config.MinerSectionsPerHutLevel <= 0 ? int.MaxValue : Config.MinerSectionsPerHutLevel * Math.Max(1, hut.Level);
+
+    /// <summary>
+    /// The deepest level new sections may go on, as Aaron asked (0.76.0): MinerMineLevelsPerHutLevel per hut
+    /// level, no deeper than the mineshaft goes, nor than the Max depth setting.
+    /// </summary>
+    int MineshaftLevelsOpen(Building hut, List<PlacedPiece> pieces)
+    {
+        int open = Math.Max(1, Config.MinerMineLevelsPerHutLevel) * Math.Max(1, hut.Level);
+        if (hut.MaxMineLevels > 0) open = Math.Min(open, hut.MaxMineLevels);
+        return Math.Min(open, LevelCount(pieces));
+    }
 
     /// <summary>The height of level 1's tunnels: the entrance's highest open side, or its anchor when it has none.</summary>
     static int TopLevelY(PlacedPiece entrance) =>

@@ -108,6 +108,11 @@ public partial class ColonyManager : ModSystem
             // 0.75.4: work areas go out to 1000 and 2000 blocks.
             if ((config.GatherRadiusChoices ?? Array.Empty<int>()).SequenceEqual(new[] { 16, 32, 64, 128, 200, 300, 500 })) config.GatherRadiusChoices = new ColonyConfig().GatherRadiusChoices;
         }
+        if (config.ConfigVersion < 6)
+        {
+            // 0.76.0: mineshafts are limited by levels per hut level, not by sections.
+            if (config.MinerSectionsPerHutLevel == 4) config.MinerSectionsPerHutLevel = 0;
+        }
         config.ConfigVersion = ColonyConfig.CurrentConfigVersion;
     }
 

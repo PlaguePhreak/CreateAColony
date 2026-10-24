@@ -51,6 +51,8 @@
 				"aitasks": [
 					// Highest priority wins. Job work sits between eating and wandering; each job task only runs for its own job.
 					// Runs from a creature that hurt it (not guards): home or to a guard, see AiTaskSettlerFlee.
+					// Armed, with no guard near: fights the creature that hurt it instead of running, see AiTaskSettlerDefend.
+					{ "code": "settlerdefend", "animation": "walk", "animationSpeed": 1.4, "priority": 3.6, "movespeed": 0.03 },
 					{ "code": "settlerflee", "animation": "walk", "animationSpeed": 1.6, "priority": 3.5, "movespeed": 0.034 },
 					{ "code": "settlershelter", "animation": "walk", "priority": 3.0, "movespeed": 0.025 },
 					{ "code": "settlersleep", "animation": "walk", "priority": 2.0, "movespeed": 0.018 },

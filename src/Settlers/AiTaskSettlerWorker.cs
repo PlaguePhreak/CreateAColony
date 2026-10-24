@@ -212,7 +212,7 @@ public abstract class AiTaskSettlerWorker : SettlerTaskBase
     bool HasSurplus(CitizenRecord citizen)
     {
         var items = manager!.PackItems(citizen);
-        return items.Any(s => !IsMyTool(s) && !Stock(s) && !AlsoKeeps(s))
+        return items.Any(s => !IsMyTool(s) && !Stock(s) && !AlsoKeeps(s) && !ColonyManager.IsLadderStack(s))
             || items.Where(Stock).Sum(s => s.StackSize) > manager.SeedReserve(Job);
     }
 
@@ -264,6 +264,8 @@ public abstract class AiTaskSettlerWorker : SettlerTaskBase
         {
             case Step.FetchTool:
                 if (!Take(colony, citizen, s => IsToolStack(s), 1)) return Wait();
+                manager!.TopUpLadders(colony, citizen, manager.HutStorage(colony, hut).Cast<BlockEntityContainer>());
+                manager.TakeSpareWeapon(colony, citizen, manager.HutStorage(colony, hut).Cast<BlockEntityContainer>());
                 break;
             case Step.FetchSupplies:
                 if (!Take(colony, citizen, supplyMatch, supplyWant)) return Wait();
@@ -274,6 +276,9 @@ public abstract class AiTaskSettlerWorker : SettlerTaskBase
                     SetStatus("hut-chest-full");
                     return Wait();
                 }
+                // Ladders for cliffs on the way (ColonyManager.Scaffold.cs).
+                manager!.TopUpLadders(colony, citizen, manager.HutStorage(colony, hut).Cast<BlockEntityContainer>());
+                manager.TakeSpareWeapon(colony, citizen, manager.HutStorage(colony, hut).Cast<BlockEntityContainer>());
                 break;
             case Step.Work:
                 if (workAnim == null)
@@ -320,7 +325,7 @@ public abstract class AiTaskSettlerWorker : SettlerTaskBase
     bool Deposit(Colony colony, CitizenRecord citizen, Building hut)
     {
         var storage = manager!.HutStorage(colony, hut).Cast<BlockEntityContainer>().ToList();
-        manager.UnloadPack(colony, citizen, storage, s => !IsMyTool(s) && !Stock(s) && !AlsoKeeps(s));
+        manager.UnloadPack(colony, citizen, storage, s => !IsMyTool(s) && !Stock(s) && !AlsoKeeps(s) && !ColonyManager.IsLadderStack(s));
 
         int extra = manager.PackCount(citizen, Stock) - manager.SeedReserve(Job);
         if (extra > 0 && manager.TakeFromPack(colony, citizen, Stock, extra) is { } seeds)

@@ -28,6 +28,10 @@ public class LadderClimb
     /// <summary>The ladder column the settler climbs in.</summary>
     public BlockPos Column = null!;
     public bool Up;
+    /// <summary>Ladders the settler puts up itself before climbing (see ColonyManager.Scaffold.cs), or null for a ladder already there.</summary>
+    public List<BlockPos>? ToPlace;
+    /// <summary>The side of the ladders the wall is on.</summary>
+    public BlockFacing? WallSide;
 
     bool steppingOff;
     double lastY;
