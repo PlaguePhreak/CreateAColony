@@ -201,6 +201,12 @@ public abstract class SettlerTaskBase : AiTaskBase
     {
         if (goal == null || arrived) return;
         StepUpFromStairs();
+        // Another task finishing, or a work animation ending, can stop the shared walk animation while this
+        // task is still walking, and the settler glides. Start it again whenever it is moving without it.
+        if (animMeta != null && ladderPhase == LadderPhase.None && pathTraverser.Active && !entity.AnimManager.IsAnimationActive(animMeta.Code))
+        {
+            entity.AnimManager.StartAnimation(animMeta);
+        }
         if (Will is { } will && will.Relocations != seenRelocations)
         {
             // Willpower moved the settler: plan the walk again from the new spot.
