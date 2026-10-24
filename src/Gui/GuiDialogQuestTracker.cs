@@ -53,7 +53,7 @@ public class GuiDialogQuestTracker : HudElement
 
     void Compose()
     {
-        var dialogBounds = ElementStdBounds.AutosizedMainDialog.WithAlignment(EnumDialogArea.RightTop).WithFixedAlignmentOffset(-8, 60);
+        var dialogBounds = ElementStdBounds.AutosizedMainDialog.WithAlignment(EnumDialogArea.LeftTop).WithFixedAlignmentOffset(8, 8);
         var bgBounds = ElementBounds.Fill.WithFixedPadding(8);
         bgBounds.BothSizing = ElementSizing.FitToChildren;
         var composer = capi.Gui.CreateCompo("createacolony-questtracker", dialogBounds)
