@@ -30,7 +30,8 @@ public partial class ColonyManager
         ["knockedout"] = (-12, 48),
         ["death"] = (-6, 72),
         ["familydeath"] = (-20, 144),
-        ["catharsis"] = (20, 24)
+        ["catharsis"] = (20, 24),
+        ["decorated"] = (5, 48)
     };
 
     /// <summary>Mood bands from the top: the lowest happiness each starts at, and the word for it.</summary>

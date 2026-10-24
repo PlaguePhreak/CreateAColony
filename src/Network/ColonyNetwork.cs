@@ -52,7 +52,8 @@ public partial class ColonyNetwork : ModSystem
             .RegisterMessageType<QuestBookSnapshot>()
             .RegisterMessageType<QuestActionPacket>()
             .RegisterMessageType<SettlerSlotPacket>()
-            .RegisterMessageType<HandPlacePacket>();
+            .RegisterMessageType<HandPlacePacket>()
+            .RegisterMessageType<DisplayRedrawPacket>();
     }
 
     // ---- Server ---------------------------------------------------------------------------
@@ -98,6 +99,9 @@ public partial class ColonyNetwork : ModSystem
 
     /// <summary>Tells every player the PlaceHutsByHand setting after /colony handplace changes it.</summary>
     public void SendHandPlace() => serverChannel!.BroadcastPacket(new HandPlacePacket { On = Manager.Config.PlaceHutsByHand });
+
+    /// <summary>Tells players to redraw what a rack or shelf shows, after a settler put something on it.</summary>
+    public void SendDisplayRedraw(BlockPos pos) => serverChannel?.BroadcastPacket(new DisplayRedrawPacket { X = pos.X, Y = pos.Y, Z = pos.Z });
 
     void OnOpenRequest(IServerPlayer player, TownHallOpenRequest req)
     {
@@ -1101,8 +1105,24 @@ public partial class ColonyNetwork : ModSystem
             .SetMessageHandler<WandChooserSnapshot>(OnWandChooserSnapshot)
             .SetMessageHandler<GhostPreviewPacket>(OnGhostPreview)
             .SetMessageHandler<QuestBookSnapshot>(OnQuestBookSnapshot)
-            .SetMessageHandler<HandPlacePacket>(p => WandOnly.ClientHandPlacing = p.On);
+            .SetMessageHandler<HandPlacePacket>(p => WandOnly.ClientHandPlacing = p.On)
+            .SetMessageHandler<DisplayRedrawPacket>(OnDisplayRedraw);
         StartQuestsClient(api);
+    }
+
+    /// <summary>
+    /// Redraws a rack's or shelf's things a moment later, once the block entity's new contents have arrived
+    /// (the packet can come first).
+    /// </summary>
+    void OnDisplayRedraw(DisplayRedrawPacket p)
+    {
+        var pos = new BlockPos(p.X, p.Y, p.Z);
+        capi?.Event.RegisterCallback(_ =>
+        {
+            if (capi.World.BlockAccessor.GetBlockEntity(pos) is not BlockEntityDisplay display) return;
+            display.MarkMeshesDirty();
+            capi.World.BlockAccessor.MarkBlockDirty(pos);
+        }, 500);
     }
 
     /// <summary>Called by the Town Hall block when a player right-clicks it.</summary>

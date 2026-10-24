@@ -142,6 +142,18 @@ All three are on the new Mining tab of the Builder's Wand and use placeholder bl
 - **Blueprints**: save a building with paintings on its walls and builders hang them. The Builder's list asks for the exact picture (for example "Painting: Mountain Lake").
 - **Adding pictures**: add a function, an entry to `PAINTINGS` and its dyes to `DYES` in `tools/paintings/paintings.py`, run it (it rewrites the textures, the four shapes and `blocktypes/painting.json`), and add the name to `lang/en.json`. `--sheet out.png` makes a preview sheet.
 
+## Settlers decorate their homes (0.106.0)
+- Now and then a settler puts up things its household owns inside its home. "Owns" means it is in a chest in that home.
+- **Paintings**: any painting in a home chest gets hung on a wall at eye height, near the settler's bed, with room for its size.
+- **Trophies**: antlers (anything the game's antler mount takes) go on an antler mount. A Hunter also takes trophies from its hut or the warehouse.
+- **Weapons**: swords, spears, bows and other weapons in a home chest go on a tool rack. Never the weapons the settler carries.
+- **Books**: go in a bookshelf. **Bottles** (A Culinary Artillery): go in a bottle rack. **Banners** (Heraldry : Banners): go on a wall banner pole.
+- The empty rack, shelf, mount or pole comes from a home chest, else the warehouse. Players make or buy those; settlers do not craft them.
+- Wall pieces hang about eye height (banners one higher, so they hang down). Shelves and racks stand on the floor with their back to a wall and room to walk in front. Nothing goes within 2 blocks of a door, next to a chest or bed, or outside under the sky.
+- A rack or shelf gets filled before a new one goes up. At most `DecorPerKind` (2) of each per home.
+- Any grown-up settler near home (`DecorRange`, 64 blocks) does it, jobless or not, checking every `DecorCheckSeconds` (90). It is a short break from work. Afterwards it feels "Made their home nicer" (+5 mood, 2 days).
+- Turn it off with `SettlersDecorate: false`.
+
 ## Config (`ModConfig/createacolony.json`)
 - `Permadeath` (default `true`): settlers who die are gone. Set `false` to have them knocked out and recover after `DownedRecoveryDays`.
 - `StartingSettlersMin` / `StartingSettlersMax` (default 3 / 4).

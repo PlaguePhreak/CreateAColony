@@ -221,6 +221,14 @@ public class HandPlacePacket
 {
     [ProtoMember(1)] public bool On;
 }
+/// <summary>A settler put something on a rack or shelf whose block entity does not redraw by itself when the server changes it (A Culinary Artillery's bottle rack).</summary>
+[ProtoContract]
+public class DisplayRedrawPacket
+{
+    [ProtoMember(1)] public int X;
+    [ProtoMember(2)] public int Y;
+    [ProtoMember(3)] public int Z;
+}
 /// <summary>One trait of a settler for the windows.</summary>
 [ProtoContract]
 public class TraitView

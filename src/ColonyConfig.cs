@@ -803,6 +803,21 @@ public class ColonyConfig
     /// <summary>How far outside its home, in blocks, a household's fire pit may stand.</summary>
     public int JoblessFirepitReach = 4;
 
+    // Home decorations (see ColonyManager.Decor.cs)
+    /// <summary>
+    /// Settlers put up things the household owns inside their home: paintings, antlers and other trophies on an
+    /// antler mount, weapons on a tool rack, books in a bookshelf, bottles in a bottle rack (A Culinary Artillery)
+    /// and banners on a wall pole (Heraldry : Banners). The things come from chests in the home; the empty rack,
+    /// shelf, mount or pole from a chest at home or the warehouse.
+    /// </summary>
+    public bool SettlersDecorate = true;
+    /// <summary>How many of each kind of rack, shelf, mount or pole a home gets at most (paintings have no limit but wall space).</summary>
+    public int DecorPerKind = 2;
+    /// <summary>How often, in real seconds, a settler looks for something to put up at home.</summary>
+    public float DecorCheckSeconds = 90;
+    /// <summary>How near its home, in blocks, a settler must be to go and decorate it.</summary>
+    public int DecorRange = 64;
+
     // Happiness (see ColonyManager.Happiness.cs)
     /// <summary>Settlers have a mood from 0 to 100 made of thoughts (meals, home, family, passions); it changes how well they work and learn.</summary>
     public bool Happiness = true;
