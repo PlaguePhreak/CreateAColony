@@ -145,6 +145,16 @@ public partial class ColonyManager
         ("olivine", "ore-olivine"), ("quartz", "ore-quartz"), ("saltpeter", "ore-saltpeter"), ("halite", "ore-salt"), ("rocksalt", "ore-salt"),
     };
 
+    /// <summary>The marker kind for an ore ("nativecopper" is ore-cuprum), or ore-any.</summary>
+    public static string OreMarkerKind(string ore)
+    {
+        foreach (var (orePart, kind) in OreParts)
+        {
+            if (ore.Contains(orePart)) return kind;
+        }
+        return "ore-any";
+    }
+
     /// <summary>The element icon for an ore ("nativecopper" is vc-copper), or null.</summary>
     public static string? OreElementIcon(string ore)
     {

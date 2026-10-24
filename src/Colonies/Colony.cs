@@ -484,6 +484,15 @@ public class OreSite
     [ProtoMember(4)] public List<string> MinedOut = new();
 }
 
+/// <summary>A spot where ore bits lay on the ground ("nativecopper"), so a deposit is likely right below.</summary>
+[ProtoContract]
+public class OreHint
+{
+    [ProtoMember(1)] public BlockPos Pos = new BlockPos(0);
+    [ProtoMember(2)] public string Ore = "";
+    [ProtoMember(3)] public double TotalDays;
+}
+
 /// <summary>One ore in a reading: the deposit code, the pick's density factor (0 to 1) and parts per thousand.</summary>
 [ProtoContract]
 public class OreFind
@@ -600,6 +609,8 @@ public class Colony
     [ProtoMember(81)] public bool? SupportAllies;
     /// <summary>Mines whose Miner's Hut or Mineshaft Entrance was removed. Their blocks stay; the next Miner's Hut or entrance near one takes it on.</summary>
     [ProtoMember(90)] public List<Building> DerelictMines = new();
+    /// <summary>Where the gatherer picked up ore bits: likely a deposit below, for the prospectors to check.</summary>
+    [ProtoMember(91)] public List<OreHint> OreHints = new();
 
     [ProtoAfterDeserialization]
     void AfterLoad() => LinkMines();

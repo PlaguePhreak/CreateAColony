@@ -98,6 +98,22 @@ public partial class ColonyManager
 
         var rand = sapi.World.Rand;
         int radius = Math.Max(1, GatherRadius(hut));
+
+        // Ore bits the gatherer found come first: a reading right there, nearest first. A hint is done once read.
+        if (colony.OreHints.RemoveAll(h => Prospected(colony, h.Pos.X, h.Pos.Z)) > 0) MarkDirty(colony);
+        foreach (var hint in colony.OreHints.OrderBy(h => h.Pos.HorDistanceSqTo(hut.HutPos.X, hut.HutPos.Z)))
+        {
+            if (hint.Pos.HorDistanceSqTo(hut.HutPos.X, hut.HutPos.Z) > (double)radius * radius) break;
+            var at = hint.Pos.Copy();
+            if (ba.GetChunkAtBlockPos(at) != null)
+            {
+                at.Y = ba.GetTerrainMapheightAt(at) + 1;
+                if (ba.GetBlock(at.DownCopy(), BlockLayersAccess.Fluid).Id != 0) continue;
+            }
+            if (skip(at) || !CanWorkAt(colony, at)) continue;
+            prospectTargets[hut.BuildingId] = at;
+            return at;
+        }
         double minStep = Math.Max(4, Config.ProspectorMinStep), maxStep = Math.Max(minStep, Config.ProspectorMaxStep);
         var inRange = colony.OreSites.Where(s => s.Pos.HorDistanceSqTo(hut.HutPos.X, hut.HutPos.Z) <= (double)radius * radius).ToList();
 

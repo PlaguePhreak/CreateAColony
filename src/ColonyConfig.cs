@@ -164,6 +164,11 @@ public class ColonyConfig
     /// not tidy away stones placed on purpose.
     /// </summary>
     public bool GathererPicksUpStones = true;
+    /// <summary>
+    /// When the gatherer picks up ore bits, the spot is marked as a likely deposit and the prospectors read
+    /// there first; at most one such spot per ore within this many blocks.
+    /// </summary>
+    public int OreHintSpacing = 16;
 
     // Map markers
     /// <summary>

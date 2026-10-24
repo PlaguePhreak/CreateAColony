@@ -125,7 +125,7 @@ public partial class ColonyManager
     /// <summary>When each Gatherer's Hut's gatherer last went for a look around, so it does not wander all the time.</summary>
     readonly Dictionary<int, long> lastForageWalk = new();
 
-    /// <summary>What a gatherer could take from a block: "fruit", "mushroom", "loose", or null for nothing.</summary>
+    /// <summary>What a gatherer could take from a block: "fruit", "mushroom", "crop", "loose", or null for nothing.</summary>
     string? Forage(Colony colony, BlockPos pos)
     {
         var ba = sapi.World.BlockAccessor;
@@ -134,13 +134,21 @@ public partial class ColonyManager
         var block = ba.GetBlock(pos);
         string path = block.Code?.Path ?? "";
         if (path.StartsWith("mushroom-")) return IsPoisonousMushroom(block) ? null : "mushroom";
-        if (Config.GathererPicksUpStones && (path.StartsWith("loosestones-") || path.StartsWith("looseflints-") || path.StartsWith("loosestick")))
+        // A wild crop (not on farmland) only once it is fully grown.
+        if (IsWildCrop(block, pos)) return IsFullyGrown((BlockCrop)block) && CanWorkAt(colony, pos) && !NearBuilding(colony, pos) ? "crop" : null;
+        if (Config.GathererPicksUpStones && (path.StartsWith("loosestones-") || path.StartsWith("looseflints-") || path.StartsWith("loosestick") || path.StartsWith("looseores-")))
         {
             // On open land or the colony's own, but not in or beside a building, so stones placed on purpose stay.
             return CanWorkAt(colony, pos) && !NearBuilding(colony, pos) ? "loose" : null;
         }
         return null;
     }
+
+    /// <summary>A crop growing in the wild: not on farmland, so no one's field.</summary>
+    bool IsWildCrop(Block block, BlockPos pos) => block is BlockCrop { CropProps: not null }
+        && sapi.World.BlockAccessor.GetBlockEntity(pos.DownCopy()) is not BlockEntityFarmland;
+
+    static bool IsFullyGrown(BlockCrop crop) => crop.CurrentCropStage >= crop.CropProps.GrowthStages;
 
     /// <summary>Each colony's building footprints, two blocks wider all round, and when they were worked out.</summary>
     readonly Dictionary<string, (long Ms, List<Cuboidi> Boxes)> buildingBoxes = new();
@@ -186,8 +194,14 @@ public partial class ColonyManager
             for (int y = top; y <= top + 1; y++)
             {
                 pos.Y = y;
-                string path = ba.GetBlock(pos).Code?.Path ?? "";
-                if (path.StartsWith("mushroom-") || path.StartsWith("loosestones-") || path.StartsWith("looseflints-") || path.StartsWith("loosestick"))
+                var found = ba.GetBlock(pos);
+                string path = found.Code?.Path ?? "";
+                if (IsWildCrop(found, pos))
+                {
+                    scanner.Found[pos.Copy()] = IsFullyGrown((BlockCrop)found);
+                    continue;
+                }
+                if (path.StartsWith("mushroom-") || path.StartsWith("loosestones-") || path.StartsWith("looseflints-") || path.StartsWith("loosestick") || path.StartsWith("looseores-"))
                 {
                     scanner.Found[pos.Copy()] = true;
                 }
@@ -207,7 +221,7 @@ public partial class ColonyManager
             if (ba.GetChunkAtBlockPos(pos) != null)
             {
                 string? kind = Forage(colony, pos);
-                if (kind == null && !IsFruitBearer(ba.GetBlockEntity(pos)))
+                if (kind == null && !IsFruitBearer(ba.GetBlockEntity(pos)) && !IsWildCrop(ba.GetBlock(pos), pos))
                 {
                     scanner.Found.Remove(pos); // picked, broken, or never worth it
                     continue;
@@ -262,12 +276,30 @@ public partial class ColonyManager
         {
             var block = sapi.World.BlockAccessor.GetBlock(pos);
             var drops = DropsOf(block, pos);
+            if (Map.MarkerSubjects.OreKey(block) is { } ore) NoteOreHint(colony, hut, pos, ore);
             BreakQuietly(pos);
             StoreHarvest(colony, hut, worker, drops, pos);
         }
         AddStat(hut, "gathered");
         MarkDirty(colony);
         return true;
+    }
+
+    /// <summary>
+    /// Ore bits on the ground (native copper in claystone) mean a deposit is likely right below: the spot is
+    /// marked "Underground copper deposit" on the colony's map, and the prospectors go and take a reading there
+    /// first, so the miners can dig it if it is good. One hint per ore within OreHintSpacing blocks.
+    /// </summary>
+    void NoteOreHint(Colony colony, Building hut, BlockPos pos, string ore)
+    {
+        double near = Math.Max(1, Config.OreHintSpacing);
+        if (colony.OreHints.Any(h => h.Ore == ore && h.Pos.HorDistanceSqTo(pos.X, pos.Z) < near * near)) return;
+        if (Prospected(colony, pos.X, pos.Z)) return;
+        colony.OreHints.Add(new OreHint { Pos = pos.Copy(), Ore = ore, TotalDays = sapi.World.Calendar.TotalDays });
+        string kind = OreMarkerKind(ore);
+        string metal = kind == "ore-any" ? OreName(ore) : Lang.Get("createacolony:marker-" + kind);
+        AddMarker(colony, hut, kind, pos.ToVec3d().Add(0.5, 0.5, 0.5), Lang.Get("createacolony:marker-ore-hint", metal));
+        AddStat(hut, "ore-hints");
     }
 
     /// <summary>The Gatherer's Hut window line: how many markers it put down.</summary>
