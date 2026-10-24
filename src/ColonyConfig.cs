@@ -460,12 +460,19 @@ public class ColonyConfig
     public int CookFirepitRadius = 8;
     /// <summary>Raw food that needs more heat than this to cook is left to players (a fire pit with firewood reaches about 700).</summary>
     public int CookMaxTemperature = 500;
-    /// <summary>How many of each cooked food a new Cook's Hut keeps in stock until an officer changes it.</summary>
-    public int KitchenDefaultKeep = 8;
-    /// <summary>How many baked pies a new Cook's Hut with a Stone Bake Oven keeps in stock (bread uses KitchenDefaultKeep).</summary>
+    /// <summary>
+    /// Until an officer picks dishes on the Kitchen tab, the cook makes what it can from the food on hand and keeps
+    /// this many of each such cooked food. Dishes it has nothing for are not kept.
+    /// </summary>
+    public int KitchenAutoKeep = 4;
+    /// <summary>How many baked pies a Cook's Hut with a Stone Bake Oven keeps until dishes are picked (bread uses KitchenAutoKeep).</summary>
     public int OvenDefaultPieKeep = 2;
-    /// <summary>How many servings of each pot meal a new Cook's Hut keeps in stock until an officer changes it.</summary>
-    public int KitchenDefaultMealKeep = 6;
+    /// <summary>How many servings of each pot meal the cook keeps until dishes are picked, for meals it has the ingredients for.</summary>
+    public int KitchenAutoMealKeep = 4;
+    /// <summary>The cook pours pot meals into crocks. It keeps this many empty crocks on hand and orders more from the Potter's Hut.</summary>
+    public int CookSpareCrocks = 2;
+    /// <summary>How far, in blocks, a settler or cook walks to water to wash out a bowl or crock of rotten food.</summary>
+    public int WashWaterRadius = 32;
     /// <summary>The "Keep in stock" amounts the Kitchen tab offers.</summary>
     public int[] KitchenKeepChoices = { 0, 2, 4, 8, 16, 32, 64 };
 
@@ -968,6 +975,8 @@ public class ColonyConfig
     public bool KeepFoodCool = true;
     /// <summary>Food is only carried to storage where it spoils at most this share as fast as where it is now (0.75 = a quarter slower or better).</summary>
     public float CoolStoreMaxRateShare = 0.75f;
+    /// <summary>Each adult settler carries a bowl in its food slots, to take a serving of a meal from a crock or pot along. Settlers without one take one, and the Potter's Hut makes more.</summary>
+    public bool CarryBowl = true;
     /// <summary>In the dark settlers hold a lit torch they carry, and fetch one from their hut or the warehouse when they have none.</summary>
     public bool CarryTorches = true;
     /// <summary>Workers within this many blocks of their hut drop off what they do not need on their way past.</summary>

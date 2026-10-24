@@ -159,7 +159,7 @@ public class GuiDialogHut : GuiDialog
             case MineGuardsTab: ComposeMineGuards(composer); break;
             case WorkAreaTab: ComposeWorkArea(composer); break;
             case PotteryTab: ComposeKeepList(composer, snapshot.Pottery, "pottery", ColonyAction.SetPotteryKeep); break;
-            case KitchenTab: ComposeKeepList(composer, snapshot.Kitchen, "kitchen", ColonyAction.SetKitchenKeep); break;
+            case KitchenTab: ComposeKitchen(composer); break;
             case CraftTab: ComposeKeepList(composer, snapshot.Craft, snapshot.CraftTab, ColonyAction.SetCraftKeep); break;
             case RecipesTab: ComposeKeepList(composer, snapshot.Recipes, "recipes", ColonyAction.SetRecipeKeep); break;
             case PrioritiesTab: ComposePriorities(composer); break;
@@ -1209,10 +1209,10 @@ public class GuiDialogHut : GuiDialog
     /// with how many the colony has and how many to keep. Kinds kept in stock come first. Lang keys start
     /// with the prefix: "-hint", "-none", "-have" and "-keep".
     /// </summary>
-    void ComposeKeepList(GuiComposer composer, List<PotteryView> list, string prefix, ColonyAction action)
+    void ComposeKeepList(GuiComposer composer, List<PotteryView> list, string prefix, ColonyAction action, double? top = null, double pageHeight = KeepListHeight)
     {
         bool officer = ViewerRole >= ColonyRole.Officer;
-        double y = composer.Text(Lang.Get("createacolony:" + prefix + "-hint"), GuiKit.Muted(), 0, 30, Width, 10);
+        double y = top ?? composer.Text(Lang.Get("createacolony:" + prefix + "-hint"), GuiKit.Muted(), 0, 30, Width, 10);
         // Meals the cook cannot make yet sink to the bottom.
         var rows = list.OrderBy(p => p.Locked).ThenByDescending(p => p.Keep > 0).ThenBy(p => p.Key).ToList();
         if (rows.Count == 0)
@@ -1226,7 +1226,7 @@ public class GuiDialogHut : GuiDialog
         double filled = 0;
         for (int i = 0; i < layouts.Count; i++)
         {
-            if (filled > 0 && filled + layouts[i].Height > KeepListHeight)
+            if (filled > 0 && filled + layouts[i].Height > pageHeight)
             {
                 pageStarts.Add(i);
                 filled = 0;
@@ -1281,6 +1281,49 @@ public class GuiDialogHut : GuiDialog
         }
         AddPager(composer, pages, y + 14);
     }
+
+    /// <summary>
+    /// The Kitchen tab of a Cook's Hut: the food the cook has on hand, then the dishes it can make from it, each with
+    /// how many to keep (ColonyManager.KitchenMenu.cs). Until an officer picks amounts, the cook chooses for itself.
+    /// </summary>
+    void ComposeKitchen(GuiComposer composer)
+    {
+        double y = composer.Text(Lang.Get("createacolony:kitchen-onhand"), GuiKit.Body(), 0, 30, Width, 4);
+        var food = snapshot.KitchenOnHand;
+        if (food.Count == 0) y = composer.Text(Lang.Get("createacolony:kitchen-onhand-none"), GuiKit.Muted(), 0, y, Width, 8);
+        else
+        {
+            int perRow = (int)(Width / OnHandCell);
+            int rows = Math.Min(2, (food.Count + perRow - 1) / perRow);
+            composer.AddInset(ElementBounds.Fixed(0, y, Width, rows * OnHandCellHeight + 6), 2, 0.6f);
+            for (int i = 0; i < Math.Min(food.Count, rows * perRow); i++)
+            {
+                var stack = new ItemStack(food[i].Stack);
+                if (!stack.ResolveBlockOrItem(capi.World)) continue;
+                double cx = 4 + i % perRow * OnHandCell, cy = y + 3 + i / perRow * OnHandCellHeight;
+                composer.AddRichtext(new RichTextComponentBase[] { new ItemstackTextComponent(capi, stack, 30, 4) }, ElementBounds.Fixed(cx + 4, cy, 38, 36));
+                composer.AddStaticText(food[i].Count.ToString(), CairoFont.WhiteDetailText().WithOrientation(EnumTextOrientation.Center), ElementBounds.Fixed(cx, cy + 34, OnHandCell - 4, 16));
+            }
+            y += rows * OnHandCellHeight + 12;
+        }
+
+        string mode = Lang.Get(snapshot.KitchenChosen ? "createacolony:kitchen-chosen" : "createacolony:kitchen-auto");
+        if (snapshot.KitchenChosen && Officer)
+        {
+            composer.AddSmallButton(Lang.Get("createacolony:kitchen-reset"), () =>
+            {
+                network.SendAction(new ColonyActionPacket { ColonyId = snapshot.ColonyId, Action = ColonyAction.SetKitchenKeep, BuildingId = snapshot.Building.BuildingId, Text = "" });
+                return true;
+            }, ElementBounds.Fixed(Width - 170, y, 170, 26));
+            y = composer.Text(mode, GuiKit.Muted(), 0, y + 2, Width - 180, 10);
+        }
+        else y = composer.Text(mode, GuiKit.Muted(), 0, y, Width, 10);
+        y = Math.Max(y, 30 + 24);
+        ComposeKeepList(composer, snapshot.Kitchen, "kitchen", ColonyAction.SetKitchenKeep, y, Math.Max(120, KeepListHeight + 60 - y));
+    }
+
+    const double OnHandCell = 46;
+    const double OnHandCellHeight = 52;
 
     /// <summary>The Priorities tab's rows: one line of name each.</summary>
     const int PotteryRowsPerPage = 7;

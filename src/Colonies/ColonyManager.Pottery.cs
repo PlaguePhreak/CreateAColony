@@ -136,7 +136,8 @@ public partial class ColonyManager
         foreach (var kind in PotteryKinds().OrderBy(k => PriorityIndex(hut.Priorities, k.Key)))
         {
             int keep = PotteryKeep(hut, kind);
-            if (keep <= 0 || PotteryStock(colony, hut, kind, potter) >= keep) continue;
+            // Crocks a cook or bowls settlers are short of are made on top of what the tab keeps (ColonyManager.Crocks.cs).
+            if ((keep <= 0 || PotteryStock(colony, hut, kind, potter) >= keep) && !PotteryOrderOpen(colony, hut, kind, potter)) continue;
             foreach (var recipe in kind.Recipes)
             {
                 int cost = ClayCost(recipe);
@@ -148,7 +149,7 @@ public partial class ColonyManager
 
     /// <summary>True when some kind is short and wants clay, so the potter should ask for some.</summary>
     public bool WantsPottery(Colony colony, Building hut, CitizenRecord potter) =>
-        PotteryKinds().Any(k => PotteryKeep(hut, k) is > 0 and var keep && keep > PotteryStock(colony, hut, k, potter));
+        PotteryKinds().Any(k => PotteryKeep(hut, k) is > 0 and var keep && keep > PotteryStock(colony, hut, k, potter) || PotteryOrderOpen(colony, hut, k, potter));
 
     bool SameItem(ItemStack a, ItemStack b) => a.Equals(sapi.World, b, GlobalConstants.IgnoredStackAttributes);
 

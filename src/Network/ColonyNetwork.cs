@@ -20,6 +20,8 @@ public partial class ColonyNetwork : ModSystem
 {
     const string ChannelName = "createacolony";
     const int MaxNameLength = 40;
+    /// <summary>How many kinds of food the Kitchen tab lists as on hand.</summary>
+    const int KitchenOnHandShown = 24;
 
     ICoreServerAPI? sapi;
     IServerNetworkChannel? serverChannel;
@@ -474,6 +476,12 @@ public partial class ColonyNetwork : ModSystem
         if (role < ColonyRole.Officer) return "createacolony:denied-officer";
         var building = colony.Buildings.Find(b => b.BuildingId == packet.BuildingId);
         if (building == null || building.Type != BuildingTypes.Cook) return "createacolony:bad-building";
+        // No dish named: the cook chooses again.
+        if (packet.Text.Length == 0)
+        {
+            Manager.SetKitchenKeep(colony, building, "", 0);
+            return null;
+        }
         int bar = packet.Text.LastIndexOf('|');
         if (bar <= 0 || !int.TryParse(packet.Text[(bar + 1)..], out int keep) || keep < 0 || keep > 999) return "createacolony:bad-building";
         string key = packet.Text[..bar];
@@ -1055,7 +1063,8 @@ public partial class ColonyNetwork : ModSystem
                     Stack = kind.Sample.ToBytes(),
                     Keep = Manager.PotteryKeep(building, kind),
                     Have = Manager.PotteryStock(colony, building, kind, potter),
-                    Clay = kind.Recipes.Min(ColonyManager.ClayCost)
+                    Clay = kind.Recipes.Min(ColonyManager.ClayCost),
+                    Detail = Manager.PotteryOrdered(colony, kind) is > 0 and var ordered ? Lang.Get("createacolony:pottery-ordered", ordered) : null
                 });
             }
         }
@@ -1064,48 +1073,30 @@ public partial class ColonyNetwork : ModSystem
             snapshot.IsCookHut = true;
             snapshot.KeepChoices = Manager.Config.KitchenKeepChoices.ToList();
             var cook = Manager.WorkerAt(colony, building, Jobs.Cook);
-            foreach (var kind in Manager.KitchenKinds())
+            Manager.UpgradeKitchenList(colony, building);
+            snapshot.KitchenChosen = building.KitchenChosen;
+            // Only the dishes the cook can make from the food on hand, and the ones the hut keeps (ColonyManager.KitchenMenu.cs).
+            int cookLevel = cook == null ? 0 : Manager.CookLevel(colony, cook);
+            foreach (var dish in Manager.KitchenMenu(colony, building, cook))
             {
                 snapshot.Kitchen.Add(new PotteryView
                 {
-                    Key = kind.Key,
-                    Stack = kind.Sample.ToBytes(),
-                    Keep = Manager.KitchenKeep(building, kind),
-                    Have = Manager.KitchenStock(colony, building, kind, cook)
+                    Key = dish.Key,
+                    Name = dish.Name,
+                    Stack = dish.Icon.ToBytes(),
+                    Keep = dish.Keep,
+                    Have = dish.Have,
+                    Detail = dish.Detail,
+                    NeedsLevel = dish.NeedsLevel,
+                    CookLevel = System.Math.Max(0, cookLevel),
+                    Locked = dish.Locked
                 });
             }
-            int cookLevel = cook == null ? -1 : Manager.CookLevel(colony, cook);
-            foreach (var recipe in Manager.MealRecipes())
+            foreach (var (sample, count) in Manager.KitchenOnHand(colony, building, cook).Take(KitchenOnHandShown))
             {
-                if (Manager.MealIcon(recipe) is not { } icon) continue;
-                int needs = Manager.MealLevel(recipe);
-                snapshot.Kitchen.Add(new PotteryView
-                {
-                    Key = ColonyManager.MealKey(recipe),
-                    Name = Manager.MealName(recipe),
-                    Stack = icon.ToBytes(),
-                    Keep = Manager.MealKeep(building, recipe),
-                    Have = Manager.MealStock(colony, building, recipe, cook),
-                    NeedsLevel = needs,
-                    CookLevel = System.Math.Max(0, cookLevel),
-                    Locked = cook != null && needs > cookLevel
-                });
-            }
-            // Stone Bake Oven bakes, when the mod is installed (ColonyManager.StoneOven.cs).
-            foreach (var bake in Manager.OvenKinds())
-            {
-                int needs = Manager.BakeLevel(bake);
-                snapshot.Kitchen.Add(new PotteryView
-                {
-                    Key = bake.Key,
-                    Name = bake.IsPie ? Lang.Get("createacolony:kitchen-pie") : Lang.Get("createacolony:kitchen-bake", bake.Sample.GetName()),
-                    Stack = bake.Sample.ToBytes(),
-                    Keep = Manager.BakeKeep(building, bake),
-                    Have = Manager.BakeStock(colony, building, bake, cook),
-                    NeedsLevel = needs,
-                    CookLevel = System.Math.Max(0, cookLevel),
-                    Locked = cook != null && needs > cookLevel
-                });
+                var one = sample.Clone();
+                one.StackSize = 1;
+                snapshot.KitchenOnHand.Add(new HutItemView { Stack = one.ToBytes(), Count = count });
             }
         }
         if (ColonyManager.CraftTabOf(building.Type) is { } craftTab) AddCraftRows(snapshot, colony, building, craftTab);

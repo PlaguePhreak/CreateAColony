@@ -204,7 +204,7 @@ public partial class ColonyManager
     public bool KnowsBake(Colony colony, CitizenRecord cook, OvenKind kind) => !Config.Skills || BakeLevel(kind) <= CookLevel(colony, cook);
 
     public int BakeKeep(Building hut, OvenKind kind) =>
-        hut.KitchenChosen ? hut.KitchenKeep.GetValueOrDefault(kind.Key) : kind.IsPie ? Config.OvenDefaultPieKeep : Config.KitchenDefaultKeep;
+        hut.KitchenChosen ? hut.KitchenKeep.GetValueOrDefault(kind.Key) : kind.IsPie ? Config.OvenDefaultPieKeep : Config.KitchenAutoKeep;
 
     /// <summary>How many of a baked food are ready or baking: at the hut, in the warehouse, with the cook and in the oven.</summary>
     public int BakeStock(Colony colony, Building hut, OvenKind kind, CitizenRecord? cook) =>

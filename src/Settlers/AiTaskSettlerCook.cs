@@ -17,11 +17,12 @@ namespace CreateAColony.Settlers;
 /// the hut storage, where hungry settlers eat. Raw food and firewood come from the hut storage and shelves,
 /// which couriers fill from the warehouse. With a Stone Bake Oven by the hut it also bakes bread and pies
 /// there (ColonyManager.StoneOven.cs): it loads the baking spaces, keeps the oven's fire going while
-/// something bakes and takes out what is done.
+/// something bakes and takes out what is done. Pot meals go into crocks, and crocks and pots of rotten food are
+/// washed out in water (ColonyManager.Crocks.cs).
 /// </summary>
 public class AiTaskSettlerCook : AiTaskSettlerWorker
 {
-    enum Work { Load, LoadMeal, Fuel, Empty, Shelve, OvenLoad, OvenFuel, OvenEmpty }
+    enum Work { Load, LoadMeal, Fuel, Empty, Shelve, OvenLoad, OvenFuel, OvenEmpty, Wash }
 
     Work work;
     ColonyManager.KitchenKind? kind;
@@ -41,14 +42,22 @@ public class AiTaskSettlerCook : AiTaskSettlerWorker
     protected override ItemMatch Stock => manager!.IsGrillable;
     protected override float WorkSeconds => manager!.Config.CookSecondsPerStep;
 
-    /// <summary>It carries firewood, a cooking pot and the ingredients of the meal it is about to cook.</summary>
+    /// <summary>
+    /// It carries firewood, a cooking pot, the ingredients of the meal it is about to cook, empty crocks to pour meals
+    /// into, and rotten crocks and pots it takes to wash.
+    /// </summary>
     protected override bool AlsoKeeps(ItemStack stack) =>
-        ColonyManager.IsFirewood(stack) || ColonyManager.IsCleanPot(stack) || meal?.Uses(stack) == true || bake?.Uses(stack) == true;
+        ColonyManager.IsFirewood(stack) || ColonyManager.IsCleanPot(stack) || meal?.Uses(stack) == true || bake?.Uses(stack) == true
+        || manager!.IsEmptyCrock(stack) || manager.IsRottenMeal(stack);
 
     protected override string WorkAnimation(ItemSlot? hand) => "interactstatic";
 
-    /// <summary>A dish it carries that is not an ingredient of the meal it is about to cook.</summary>
-    bool IsDishToShelve(ItemStack s) => manager!.IsDish(s) && meal?.Uses(s) != true && bake?.Uses(s) != true && !ColonyManager.IsCleanPot(s);
+    /// <summary>A dish it carries that is not an ingredient of the meal it is about to cook, nor a pot of meal it is about to pour into crocks.</summary>
+    bool IsDishToShelve(ItemStack s) => manager!.IsDish(s) && meal?.Uses(s) != true && bake?.Uses(s) != true && !ColonyManager.IsCleanPot(s)
+        && !(crockAtHand && manager.IsCookedPot(s));
+
+    /// <summary>Whether an empty crock was at hand when the cook last planned, so cooked pots wait to be poured.</summary>
+    bool crockAtHand;
 
     /// <summary>
     /// Dishes go on the kitchen shelves before anything goes to the hut storage. With nothing to put away, it
@@ -57,6 +66,10 @@ public class AiTaskSettlerCook : AiTaskSettlerWorker
     protected override bool PlanFirst(Colony colony, CitizenRecord citizen, Building hut)
     {
         var m = manager!;
+        // Pot meals go into crocks: they keep there and the pot is free for the next meal (ColonyManager.Crocks.cs).
+        crockAtHand = m.CrockAtHand(colony, hut, citizen);
+        if (m.FillCrocks(colony, citizen) > 0) SetStatus("filling-crocks");
+        if (PlanCrocks(colony, citizen, hut)) return true;
         // Food fetched to keep cool goes down to the cool chest it was fetched for.
         if (coolTo != null)
         {
@@ -100,6 +113,7 @@ public class AiTaskSettlerCook : AiTaskSettlerWorker
     protected override bool PlanWork(Colony colony, CitizenRecord citizen, Building hut, List<BlockEntityContainer> storage)
     {
         var m = manager!;
+        m.UpgradeKitchenList(colony, hut);
         // Ingredients on the kitchen shelves (a vegetable basket, an egg shelf) are used as well as the hut storage.
         storage = storage.Concat(m.KitchenShelves(colony, hut)).ToList();
         // The oven first: baked bread burns if it is left in too long.
@@ -169,8 +183,63 @@ public class AiTaskSettlerCook : AiTaskSettlerWorker
         }
 
         if (CoolFood(colony, citizen, hut)) return true;
+        if (PlanWash(colony, citizen, hut, storage)) return true;
         SetStatus(wantedFood.Count > 0 ? "needs-raw-food" : "kitchen-stocked");
         return false;
+    }
+
+    /// <summary>
+    /// Gets a cooked pot and an empty crock together so the pot can be poured out: a crock from the kitchen for the pot
+    /// it carries, or a pot from the kitchen when it has a crock at hand. With no empty crock in the kitchen it asks
+    /// couriers for one from the warehouse; with none anywhere the Potter's Hut makes more.
+    /// </summary>
+    bool PlanCrocks(Colony colony, CitizenRecord citizen, Building hut)
+    {
+        var m = manager!;
+        if (m.PackFull(citizen)) return false;
+        var stores = m.KitchenStores(colony, hut).Where(c => !IsUnreachable(c.Pos)).ToList();
+        var pack = m.PackItems(citizen);
+        var pot = pack.FirstOrDefault(m.IsCookedPot);
+        if (pot != null)
+        {
+            float servings = ((IBlockMealContainer)pot.Block).GetQuantityServings(entity.World, pot);
+            var crockChest = stores.FirstOrDefault(c => c.Inventory.Any(s => !s.Empty && m.IsEmptyCrock(s.Itemstack)));
+            if (crockChest != null)
+            {
+                SetStatus("fetching-crock");
+                return FetchSupplies(crockChest.Pos, m.IsEmptyCrock, System.Math.Max(1, (int)System.Math.Ceiling(servings / 4)));
+            }
+            var warehouseCrock = m.WarehouseContainers(colony).SelectMany(c => c.Inventory).FirstOrDefault(s => !s.Empty && m.IsEmptyCrock(s.Itemstack));
+            if (warehouseCrock != null) m.EnsureCookRequest(colony, hut, warehouseCrock.Itemstack!.Collectible.Code.ToString(), m.Config.CookSpareCrocks);
+            return false;
+        }
+        if (!pack.Any(m.IsEmptyCrock)) return false;
+        var potChest = stores.FirstOrDefault(c => c.Inventory.Any(s => !s.Empty && m.IsCookedPot(s.Itemstack)));
+        if (potChest == null) return false;
+        SetStatus("fetching-pot-meal");
+        return FetchSupplies(potChest.Pos, m.IsCookedPot, 1);
+    }
+
+    /// <summary>
+    /// A crock or pot of rotten food in the kitchen is taken to water and washed out, as a player does by dropping
+    /// it in water. False when there is none, or no water within WashWaterRadius.
+    /// </summary>
+    bool PlanWash(Colony colony, CitizenRecord citizen, Building hut, List<BlockEntityContainer> storage)
+    {
+        var m = manager!;
+        bool carries = m.PackItems(citizen).Any(s => m.IsRottenMeal(s, update: true));
+        var chest = carries || m.PackFull(citizen) ? null : storage.FirstOrDefault(c => !IsUnreachable(c.Pos) && c.Inventory.Any(s => !s.Empty && m.IsRottenMeal(s.Itemstack)));
+        if (!carries && chest == null) return false;
+        var water = m.WashWater(colony, hut.HutPos);
+        if (water == null || IsUnreachable(water)) return false;
+        if (!carries)
+        {
+            SetStatus("fetching-rotten");
+            return FetchSupplies(chest!.Pos, s => m.IsRottenMeal(s), 1);
+        }
+        work = Work.Wash;
+        SetStatus("washing");
+        return GoWork(water);
     }
 
     /// <summary>
@@ -346,6 +415,11 @@ public class AiTaskSettlerCook : AiTaskSettlerWorker
                 .OrderBy(t => t.Pos.DistanceTo(target));
             if (m.LoadOven(colony, citizen, near, bake) == 0) MarkUnreachable(target);
             bake = null;
+            return;
+        }
+        if (work == Work.Wash)
+        {
+            m.WashCarried(colony, citizen, entity.Pos.XYZ);
             return;
         }
         if (entity.World.BlockAccessor.GetBlockEntity(target) is not BlockEntityFirepit pit) return;

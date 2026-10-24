@@ -21,6 +21,7 @@ namespace CreateAColony.Settlers;
 /// walks over to items lying nearby to pick them up, a settler without a torch fetches one from its
 /// hut or the warehouse for the dark, one in rags or cold changes into better clothes from the warehouse, and
 /// one without first aid takes a bandage or poultice, or makes a poultice from horsetail (ColonyManager.Healing.cs).
+/// One without a bowl takes one, and one carrying a bowl of rotten food washes it out in water (ColonyManager.Crocks.cs).
 ///
 /// Now and then, instead of strolling, it sits down for a while as a player does: on a free chair, stool or
 /// bench near its home if there is one, else on the floor where it stands (config SitWhenIdle).
@@ -46,7 +47,7 @@ public class AiTaskSettlerIdle : SettlerTaskBase
     long nextStrollMs;
     long startedMs;
     Vec3d? spot;
-    enum Errand { Stroll, PickUp, Torch, Deposit, Sit, Dress, FirstAid, MakeRemedy }
+    enum Errand { Stroll, PickUp, Torch, Deposit, Sit, Dress, FirstAid, MakeRemedy, Bowl, Wash }
     Errand errand;
     BlockPos? chestPos;
     BlockPos? seat;
@@ -122,6 +123,22 @@ public class AiTaskSettlerIdle : SettlerTaskBase
             return true;
         }
 
+        // A bowl to take a serving of a crock or pot meal along, and rotten food washed out of one (ColonyManager.Crocks.cs).
+        if (manager.BowlChest(colony, citizen) is { } bowlChest)
+        {
+            errand = Errand.Bowl;
+            chestPos = bowlChest.Pos.Copy();
+            spot = chestPos.ToVec3d().Add(0.5, 0, 0.5);
+            return true;
+        }
+        if (manager.CarriesRotten(citizen) && manager.WashWater(colony, entity.Pos.AsBlockPos) is { } water)
+        {
+            errand = Errand.Wash;
+            chestPos = water;
+            spot = manager.FreeSpotNear(entity, water, 2) ?? water.ToVec3d().Add(0.5, 0, 0.5);
+            return true;
+        }
+
         // In rags or cold, or without jewellery: better clothes from the warehouse (ColonyManager.Clothing.cs).
         if (manager.ClothesChest(colony, citizen) is { } clothesChest)
         {
@@ -153,6 +170,12 @@ public class AiTaskSettlerIdle : SettlerTaskBase
                 break;
             case Errand.Torch:
                 if (entity.World.BlockAccessor.GetBlockEntity(chestPos!) is Vintagestory.GameContent.BlockEntityContainer torchChest) manager!.TakeTorch(colony, citizen, torchChest);
+                break;
+            case Errand.Bowl:
+                if (entity.World.BlockAccessor.GetBlockEntity(chestPos!) is Vintagestory.GameContent.BlockEntityContainer bowlChest) manager!.TakeBowl(colony, citizen, bowlChest);
+                break;
+            case Errand.Wash:
+                manager!.WashCarried(colony, citizen, entity.Pos.XYZ);
                 break;
             case Errand.Dress:
                 if (entity.World.BlockAccessor.GetBlockEntity(chestPos!) is Vintagestory.GameContent.BlockEntityContainer clothesChest) manager!.ChangeClothesAt(colony, citizen, clothesChest);
@@ -259,6 +282,8 @@ public class AiTaskSettlerIdle : SettlerTaskBase
         Errand.Torch => Lang.Get("createacolony:activity-fetching-torch"),
         Errand.Deposit => Lang.Get("createacolony:activity-dropping-off"),
         Errand.Dress => Lang.Get("createacolony:activity-changing-clothes"),
+        Errand.Bowl => Lang.Get("createacolony:activity-fetching-bowl"),
+        Errand.Wash => Lang.Get("createacolony:activity-washing"),
         Errand.FirstAid => Lang.Get("createacolony:activity-fetching-first-aid"),
         Errand.MakeRemedy => Lang.Get("createacolony:activity-making-poultice"),
         _ => Lang.Get(citizen.Visitor ? "createacolony:activity-visitor-waiting" : "createacolony:activity-idle")

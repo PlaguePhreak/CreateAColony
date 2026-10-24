@@ -36,6 +36,8 @@ public partial class ColonyManager
     /// </summary>
     FoodNutritionProperties[]? LunchProps(ItemStack stack, EntityAgent eater)
     {
+        // A bowl with a meal in it is packed food too (ColonyManager.Crocks.cs); a pot, crock or pie stays in the kitchen.
+        if (stack.Block is BlockMeal bowl) return BowlProps(stack, bowl, eater);
         if (stack.Block is IBlockMealContainer or BlockPie) return null;
         FoodNutritionProperties[]? props;
         try
@@ -50,6 +52,23 @@ public partial class ColonyManager
         return props;
     }
 
+    /// <summary>What a serving of the meal in a carried bowl gives. Null for an empty or rotten bowl.</summary>
+    FoodNutritionProperties[]? BowlProps(ItemStack stack, BlockMeal bowl, EntityAgent eater)
+    {
+        try
+        {
+            var copy = stack.Clone();
+            if (bowl.GetQuantityServings(sapi.World, copy) <= 0 || IsRottenMeal(copy, update: true)) return null;
+            var props = MealServingProps(new DummySlot(copy), bowl, bowl.GetNonEmptyContents(sapi.World, copy) ?? Array.Empty<ItemStack>(), eater);
+            if (props == null || props.Sum(p => p.Satiety) <= 0 || props.Sum(p => p.Health) < 0) return null;
+            return props;
+        }
+        catch (Exception)
+        {
+            return null;
+        }
+    }
+
     public bool IsLunchFood(ItemStack stack, EntityAgent eater) => LunchProps(stack, eater) != null;
 
     /// <summary>True when the settler has packed food left that it can eat.</summary>
@@ -59,7 +78,8 @@ public partial class ColonyManager
     void ClearSpoiledLunch(Colony colony, CitizenRecord citizen, EntityAgent eater, List<ItemStack> items)
     {
         bool changed = false;
-        foreach (var stack in items.Where(s => LunchProps(s, eater) == null).ToList())
+        // Bowls stay in the food slots: an empty one for the next meal, a rotten one to wash out.
+        foreach (var stack in items.Where(s => !IsBowl(s) && LunchProps(s, eater) == null).ToList())
         {
             AddToPack(colony, citizen, stack);
             if (stack.StackSize <= 0) changed = true;
@@ -95,8 +115,19 @@ public partial class ColonyManager
         if (best == null || bestProps == null) return null;
 
         string name = best.GetName();
-        if (IsCookedFood(best)) AddThought(citizen, "meal");
-        best.StackSize--;
+        if (best.Block is BlockMeal)
+        {
+            // The bowl is kept for the next meal.
+            AddThought(citizen, "meal");
+            int at = items.IndexOf(best);
+            if (EatenBowl(best) is { } empty) items[at] = empty;
+            else best.StackSize--;
+        }
+        else
+        {
+            if (IsCookedFood(best)) AddThought(citizen, "meal");
+            best.StackSize--;
+        }
         SaveLunch(colony, citizen, items);
         citizen.Saturation = Math.Min(Config.SaturationMax, citizen.Saturation + bestProps.Sum(p => p.Satiety));
         AddNutrition(citizen, bestProps);
@@ -114,8 +145,12 @@ public partial class ColonyManager
     /// </summary>
     public int PackLunch(Colony colony, CitizenRecord citizen, EntityAgent eater, BlockEntityContainer container)
     {
-        if (!Config.CarryFood || !IsFoodStore(container) || container is IBlockEntityMealContainer) return 0;
+        if (!Config.CarryFood || !IsFoodStore(container)) return 0;
         var items = LunchItems(citizen);
+        // A serving of a crock or pot meal goes along in the settler's bowl (ColonyManager.Crocks.cs).
+        bool bowlFilled = FillBowl(colony, citizen, container, items);
+        if (bowlFilled) SaveLunch(colony, citizen, items);
+        if (container is IBlockEntityMealContainer) return bowlFilled ? 1 : 0;
         float carried = items.Sum(s => (LunchProps(s, eater)?.Sum(p => p.Satiety) ?? 0) * s.StackSize);
         IEnumerable<ItemSlot> slots = container is BlockEntityFirepit firepit ? new[] { firepit.outputSlot } : container.Inventory;
         var choices = slots.Where(s => !s.Empty)
@@ -152,7 +187,7 @@ public partial class ColonyManager
             container.MarkDirty(true);
             SaveLunch(colony, citizen, items);
         }
-        return taken;
+        return taken + (bowlFilled ? 1 : 0);
     }
 
     /// <summary>A lit torch, the kind that lights up the one who holds it.</summary>

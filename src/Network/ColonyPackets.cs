@@ -366,6 +366,10 @@ public class HutSnapshot
     /// <summary>A Cook's Hut, whose window has a Kitchen tab. Its rows reuse PotteryView (Clay unused).</summary>
     [ProtoMember(29)] public bool IsCookHut;
     [ProtoMember(30)] public List<PotteryView> Kitchen = new();
+    /// <summary>Kitchen: the food the cook has to cook with (its inventory, the hut, the warehouse), most first.</summary>
+    [ProtoMember(190)] public List<HutItemView> KitchenOnHand = new();
+    /// <summary>Kitchen: an officer has picked dishes; else the cook makes what it can.</summary>
+    [ProtoMember(191)] public bool KitchenChosen;
 
     // The Main tab every hut has.
     /// <summary>The building's name (its own or its type's), without the level.</summary>

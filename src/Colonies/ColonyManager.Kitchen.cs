@@ -15,7 +15,7 @@ namespace CreateAColony.Colonies;
 /// anything the game cooks in a fire pit into something edible) in the fire pit by the hut, adds
 /// firewood, lights it, and takes the cooked food out once the game has cooked it. Cooked food goes on
 /// the hut's Food Shelves shelves when it has any (ColonyManager.FoodShelves.cs), else stays in the hut's
-/// storage, where hungry settlers find it. The Kitchen tab says how much of each to keep.
+/// storage, where hungry settlers find it. The Kitchen tab says how much of each to keep (ColonyManager.KitchenMenu.cs).
 /// </summary>
 public partial class ColonyManager
 {
@@ -71,21 +71,7 @@ public partial class ColonyManager
 
     /// <summary>How many of a cooked food the hut keeps in stock.</summary>
     public int KitchenKeep(Building hut, KitchenKind kind) =>
-        hut.KitchenChosen ? hut.KitchenKeep.GetValueOrDefault(kind.Key) : Config.KitchenDefaultKeep;
-
-    public void SetKitchenKeep(Colony colony, Building hut, string key, int keep)
-    {
-        if (!hut.KitchenChosen)
-        {
-            // The defaults become the hut's own list, so changing one food keeps the others.
-            hut.KitchenKeep = KitchenKinds().ToDictionary(k => k.Key, k => KitchenKeep(hut, k));
-            foreach (var recipe in MealRecipes()) hut.KitchenKeep[MealKey(recipe)] = MealKeep(hut, recipe);
-            foreach (var bake in OvenKinds()) hut.KitchenKeep[bake.Key] = BakeKeep(hut, bake);
-            hut.KitchenChosen = true;
-        }
-        hut.KitchenKeep[key] = keep;
-        MarkDirty(colony);
-    }
+        hut.KitchenChosen ? hut.KitchenKeep.GetValueOrDefault(kind.Key) : Config.KitchenAutoKeep;
 
     /// <summary>How much of a cooked food is ready: at the hut (and on its kitchen shelves), in the warehouse, with the cook and in the fire pit.</summary>
     public int KitchenStock(Colony colony, Building hut, KitchenKind kind, CitizenRecord? cook) =>

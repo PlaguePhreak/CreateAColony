@@ -223,6 +223,14 @@ These work well with Vintage Colonies. Install them separately.
 - **Stone Bake Oven**: the Cook bakes in it.
 - **C&N Jewelry Adornments** (KenigVovan): more jewellery for settlers to wear. Fuller support comes in a later release.
 
+## Kitchen: cook from what's on hand, crocks and bowls (0.124.0)
+- The Kitchen tab now shows the food the cook has on hand (cook, Cook's Hut and warehouse), and only the dishes it can make from it right now: fire pit food, pot meals and oven bakes. Pot meals are named from the ingredients the cook would use.
+- The cook no longer tries to keep 8 of every food. Until you pick dishes, it makes a few of each dish it can (`KitchenAutoKeep`, 4, and `KitchenAutoMealKeep`, 4 servings).
+- Change an amount to pick dishes yourself. The dishes shown keep their amounts, and from then on the cook only makes your picks. A picked dish it can't make right now stays on the list as "Not enough food to make it now". **Let the cook choose** goes back to the cook choosing. Old huts that kept 8 of everything go back to the cook choosing.
+- The cook pours each pot meal into crocks (4 servings each) and uses the pot again. It keeps `CookSpareCrocks` (2) empty crocks on hand. When the colony runs short, the Potter's Hut makes more on top of its Pottery tab, which says how many are wanted.
+- Every adult settler carries a bowl in its food slots (`CarryBowl`). After a meal at a crock or pot it fills the bowl with a serving and eats it later, then keeps the empty bowl. Settlers without one take one from home, their hut, the warehouse or a Cook's Hut. The Potter's Hut makes bowls when there are not enough.
+- Rotten food in a bowl, crock or pot gets washed out in water, as you do by dropping it in water. Settlers wash the bowls they carry, and the cook washes the crocks and pots in its hut. Water must be within `WashWaterRadius` (32) blocks. The rot is kept for compost.
+
 ## Settlers put out fires (0.123.0)
 - Fire spreads through grass and wood. If something catches fire on your colony's land, the Town Hall log says "Fire near ...!" and up to 3 settlers within 64 blocks come running. They even get out of bed.
 - Each one needs a watering can. A settler without one takes it from a chest at home, the warehouse or a hut (the Farmer's Hut keeps them). An empty can gets filled at the nearest water first.
@@ -562,7 +570,7 @@ Forester's and Farmer's Huts have a **Work area** tab in their window (officers 
   as raw meat, fish or dough, from any mod) in the fire pit, adds firewood, lights it and takes the cooked food
   out, using the game's own fire pit. Cooked food stays in the hut's storage, where hungry settlers eat it.
 - The Kitchen tab lists every food the game cooks this way, with how much is ready (hut, warehouse, cook and
-  fire pit) and how much to keep (`KitchenDefaultKeep`, 8, until an officer changes it). Raw food and firewood
+  fire pit) and how much to keep. Since 0.124.0 it only lists what the cook can make from the food on hand (see "Kitchen: cook from what's on hand"). Raw food and firewood
   come from the hut storage; the cook asks couriers for raw food the warehouse has, and for firewood.
 - A fire pit holding something the cook does not know how to cook is left alone.
 - **Pot meals (0.17.0):** with an empty cooking pot in the hut storage or warehouse, the cook also cooks the
@@ -570,7 +578,7 @@ Forester's and Farmer's Huts have a **Work area** tab in their window (officers 
   the fire pit, its slots filled with ingredients that make the recipe, fire lit. It makes as many servings as
   the ingredients and the pot allow (up to 6), picking different ingredients where it can. The cooked pot goes
   into the hut storage and settlers eat from it a serving at a time; the emptied pot is used again. The
-  Kitchen tab lists every meal with servings ready and to keep (`KitchenDefaultMealKeep`, 6). Meals come
+  Kitchen tab lists the meals it can make, with servings ready and to keep. Meals come
   before grilling. Recipes that need water or another liquid are left to players.
 - **Food Shelves (0.51.0):** with the Food Shelves mod, any of its shelves, baskets and cabinets inside the
   Cook's Hut (the building as its blueprint stands) are kitchen shelves. The cook puts what it cooks (grilled

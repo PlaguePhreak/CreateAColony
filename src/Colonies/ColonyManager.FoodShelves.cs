@@ -210,7 +210,8 @@ public partial class ColonyManager
     public bool IsDish(ItemStack s)
     {
         if (s.Block is BlockPie pie) return pie.State != "raw";
-        if (s.Block is IBlockMealContainer meal) return meal.GetQuantityServings(sapi.World, s) > 0;
+        // A meal gone rotten is washed out, not shelved (ColonyManager.Crocks.cs).
+        if (s.Block is IBlockMealContainer meal) return meal.GetQuantityServings(sapi.World, s) > 0 && !IsRottenMeal(s);
         return KitchenKinds().Any(k => k.IsMine(s)) || OvenKinds().Any(k => k.IsMine(s));
     }
 
