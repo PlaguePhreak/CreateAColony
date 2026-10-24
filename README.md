@@ -701,6 +701,17 @@ before shipping converted blueprints.
 
 ### The Town Hall window (0.24.0)
 
+### Mine levels (0.87.0)
+- Aaron's new pieces: a new entrance (the surface, level 0) and a level piece (blueprints/medievaloak/mineshaft/level.json).
+  Level pieces stack under the entrance's shaft, each just under the floor of the one above, lined up as in his
+  combined example. Each level opens the floor above where its top layer is open and carries its ladder up.
+- Tunnels start at each patch of Mine waypoints in a room's floor (away from the piece's edges), facing away from
+  the middle. Sections (tee, straight, cross) branch off them at random on every level, so every level has the
+  same middle and different branches. Sections keep off the rooms' dug and built spots, not their whole box.
+- A level 0 Miner's Hut has level 1, each upgrade adds a level (`MinerMineLevelsPerHutLevel`), and a hut at its top
+  level goes down as far as the world allows. Max depth still caps it. A style without level.json works as before.
+- Preview: tools/blueprints/mineshaft_preview/render_levels.py.
+
 ### Far workers keep their hut loaded (0.86.1)
 - A worker plans every trip from its hut, so when no player was near the hut it found no hut storage and stopped.
   Now the hut's chunk column stays loaded while it has a worker and no player is near.

@@ -58,9 +58,23 @@ public partial class ColonyManager
         // The entrance's ground layer goes in the ground, just under where a settler stands.
         var anchor = hut.MineshaftPos.DownCopy();
         var pieces = new List<PlacedPiece> { new(entrance, anchor) };
+        // Level pieces hang one under the other below the entrance's shaft, each just under the floor above.
+        if (Blueprints.GetMinePiece(style, BlueprintLibrary.MineLevel, hut.Rotation) is { Period: > 0 } level && entrance.Open.Count > 0)
+        {
+            int floor = entrance.Open.Max(o => o.Y);
+            for (int k = 0; k < MineshaftHubLevels(hut); k++)
+            {
+                pieces.Add(new PlacedPiece(level, anchor.AddCopy(entrance.Shaft.X, floor - 1 - k * level.Period, entrance.Shaft.Z)));
+            }
+        }
+        // A section that runs into the entrance or a level (one dug for an older entrance) is left out.
+        HashSet<BlockPos>? hubCells = pieces.Count > 1 ? new HashSet<BlockPos>(pieces.SelectMany(p => p.Piece.Steps.Select(p.At))) : null;
         foreach (var section in hut.Sections)
         {
-            if (Blueprints.GetMinePiece(style, section.Name, section.Rotation) is { } piece) pieces.Add(new PlacedPiece(piece, section.Origin));
+            if (Blueprints.GetMinePiece(style, section.Name, section.Rotation) is not { } piece) continue;
+            var placed = new PlacedPiece(piece, section.Origin);
+            if (hubCells != null && piece.Steps.Any(step => hubCells.Contains(placed.At(step)))) continue;
+            pieces.Add(placed);
         }
         return pieces;
     }
@@ -350,14 +364,25 @@ public partial class ColonyManager
         int levels = MineshaftLevelsOpen(hut, pieces);
         var rand = sapi.World.Rand;
         var others = colony.Buildings.Where(b => b != hut).Select(b => BuildingBox(b)).ToList();
-        bool Overlaps(BlockPos min, BlockPos max) =>
-            pieces.Any(p => min.X <= p.Max.X && max.X >= p.Min.X && min.Y <= p.Max.Y && max.Y >= p.Min.Y && min.Z <= p.Max.Z && max.Z >= p.Min.Z)
-            || others.Any(o => min.X <= o.Max.X && max.X >= o.Min.X && min.Y <= o.Max.Y && max.Y >= o.Min.Y && min.Z <= o.Max.Z && max.Z >= o.Min.Z);
+        // The entrance and the level pieces are big rooms in a lot of untouched rock, so sections only keep off
+        // the spots they dig and build; sections keep off each other's whole box, as before.
+        var hubs = pieces.Where(IsHub).ToList();
+        var hubCells = new HashSet<BlockPos>(hubs.SelectMany(p => p.Piece.Steps.Select(p.At)));
+        var sectionsPlaced = pieces.Where(p => !IsHub(p)).ToList();
+        bool Overlaps(PlacedPiece placed)
+        {
+            BlockPos min = placed.Min, max = placed.Max;
+            return sectionsPlaced.Any(p => min.X <= p.Max.X && max.X >= p.Min.X && min.Y <= p.Max.Y && max.Y >= p.Min.Y && min.Z <= p.Max.Z && max.Z >= p.Min.Z)
+                || others.Any(o => min.X <= o.Max.X && max.X >= o.Min.X && min.Y <= o.Max.Y && max.Y >= o.Min.Y && min.Z <= o.Max.Z && max.Z >= o.Min.Z)
+                || placed.Piece.Steps.Any(step => hubCells.Contains(placed.At(step)));
+        }
+        bool Taken(BlockPos pos) => hubCells.Contains(pos)
+            || sectionsPlaced.Any(p => pos.X >= p.Min.X && pos.X <= p.Max.X && pos.Y >= p.Min.Y && pos.Y <= p.Max.Y && pos.Z >= p.Min.Z && pos.Z <= p.Max.Z);
 
         // Every open side with nothing beyond it yet, in a random order, so the mine branches out as a maze.
         var sides = pieces.SelectMany(piece => piece.Piece.Open.Select(o => (piece, o.Face, Out: piece.Origin.AddCopy(o.X + o.Face.Normali.X, o.Y, o.Z + o.Face.Normali.Z))))
             .Where(s => LevelAt(pieces, s.Out.Y) <= levels)
-            .Where(s => !pieces.Any(p => s.Out.X >= p.Min.X && s.Out.X <= p.Max.X && s.Out.Y >= p.Min.Y && s.Out.Y <= p.Max.Y && s.Out.Z >= p.Min.Z && s.Out.Z <= p.Max.Z))
+            .Where(s => !Taken(s.Out))
             .OrderBy(s => hut.MineLevel > 0 && LevelAt(pieces, s.Out.Y) == hut.MineLevel ? 0 : 1).ThenBy(_ => rand.Next()).ToList();
         int tooHigh = 0, overlap = 0, notOurs = 0;
         foreach (var (_, face, outside) in sides)
@@ -374,7 +399,7 @@ public partial class ColonyManager
                 var placed = new PlacedPiece(next, origin);
                 // Sections stay under the entrance's ground layer, so none breaks out at the surface.
                 if (placed.Min.Y <= 3 || placed.Max.Y >= pieces[0].Origin.Y) { tooHigh++; continue; }
-                if (Overlaps(placed.Min, placed.Max)) { overlap++; continue; }
+                if (Overlaps(placed)) { overlap++; continue; }
                 if (!CanWorkAt(colony, origin)) { notOurs++; continue; }
                 hut.Sections.Add(new MineSection { Name = name, Rotation = turn, Origin = origin });
                 AddStat(hut, "mine-sections");

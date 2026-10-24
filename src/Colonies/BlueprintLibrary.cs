@@ -67,6 +67,11 @@ public class MinePiece
     public int Period;
     /// <summary>Where the piece's waypoint blocks were (offsets, as for Steps): the ground there is left alone, and nothing is filled in on or above them.</summary>
     public HashSet<(int X, int Y, int Z)> Markers = new();
+    /// <summary>
+    /// The entrance: the middle of the shaft down through its ground layer, as an offset; the level pieces hang
+    /// under it. A level piece: always 0, as it lines up by the middle of the hole in its top layer.
+    /// </summary>
+    public (int X, int Z) Shaft;
 
     readonly Dictionary<int, MinePiece> deeper = new();
 
@@ -355,6 +360,12 @@ public class BlueprintLibrary
 
     /// <summary>The pieces a Miner's Hut's mineshaft is made of: the way in, and the sections it grows from there.</summary>
     public const string MineEntrance = "entrance";
+    /// <summary>
+    /// One level of the mine under the entrance (Aaron, 0.87.0): the same middle on every level, stacked under
+    /// the entrance's shaft, with sections branching off its tunnel starts. Optional: without it the mine grows
+    /// from the entrance alone, as before.
+    /// </summary>
+    public const string MineLevel = "level";
     public static readonly string[] MineSections = { "cross", "tee", "straight" };
 
     readonly Dictionary<(string, string, int), MinePiece?> mineCache = new();
@@ -416,6 +427,7 @@ public class BlueprintLibrary
 
         int sx = schematic.SizeX, sy = schematic.SizeY, sz = schematic.SizeZ;
         bool entrance = name == MineEntrance;
+        bool level = name == MineLevel;
         bool Empty(int x, int y, int z) => !blocks.TryGetValue((x, y, z), out var b) || b.Id == 0;
 
         // The entrance's ground layer: the highest layer whose edge is mostly filled in, by natural ground or by
@@ -440,6 +452,10 @@ public class BlueprintLibrary
             }
         }
         var anchor = entrance ? (sx / 2, ground, sz / 2) : (sx / 2, 0, sz / 2);
+        // The entrance's shaft: the opening in its ground layer nearest its middle. A level piece lines up by
+        // the opening in its top layer nearest its middle, which goes right under it.
+        (int X, int Z)? hole = entrance ? MiddleOpening(Empty, sx, sz, ground) : level ? MiddleOpening(Empty, sx, sz, sy - 1) : null;
+        if (level && hole is { } topHole) anchor = (topHole.X, sy - 1, topHole.Z);
         var (ax, ay, az) = anchor;
 
         var digs = new List<BuildStep>();
@@ -468,6 +484,19 @@ public class BlueprintLibrary
             var step = new BuildStep(dx - ax, dy - ay, dz - az, block.Id, saved.GetValueOrDefault((dx, dy, dz)));
             if (IsSolid(block)) solid.Add(step);
             else decor.Add(step);
+        }
+
+        // A level piece opens the floor of the level above where its top layer is open (the shaft) and carries its
+        // ladders up through it, so the levels join.
+        if (level)
+        {
+            for (int dx = 0; dx < sx; dx++)
+            for (int dz = 0; dz < sz; dz++)
+            {
+                blocks.TryGetValue((dx, sy - 1, dz), out var top);
+                if (top == null || top.Id == 0) digs.Add(new BuildStep(dx - ax, sy - ay, dz - az, 0));
+                else if (top.Climbable) decor.Add(new BuildStep(dx - ax, sy - ay, dz - az, top.Id));
+            }
         }
 
         // The open sides of a section, in its bottom four layers: the middle of the widest gap along each edge,
@@ -531,6 +560,46 @@ public class BlueprintLibrary
                     }
                 }
             }
+        }
+        if (entrance || level)
+        {
+            // Tunnels also start off the rooms inside (Aaron's 0.87.0 entrance and levels): each patch of Mine
+            // waypoints in a floor below the ground layer, away from the edges, is a doorway out, facing away from
+            // the middle. The tunnel starts just past its outer edge, level with it.
+            int mx = hole?.X ?? ax, mz = hole?.Z ?? az;
+            var seen = new HashSet<(int, int, int)>();
+            for (int y = 0; y < (entrance ? ground : sy); y++)
+            for (int x = 1; x < sx - 1; x++)
+            for (int z = 1; z < sz - 1; z++)
+            {
+                if (seen.Contains((x, y, z)) || !blocks.TryGetValue((x, y, z), out var b) || !IsWaypoint(b)) continue;
+                var patch = new List<(int X, int Z)>();
+                var todo = new Stack<(int X, int Z)>();
+                todo.Push((x, z));
+                seen.Add((x, y, z));
+                while (todo.Count > 0)
+                {
+                    var (px, pz) = todo.Pop();
+                    patch.Add((px, pz));
+                    foreach (var (nx, nz) in new[] { (px + 1, pz), (px - 1, pz), (px, pz + 1), (px, pz - 1) })
+                    {
+                        if (seen.Contains((nx, y, nz)) || !blocks.TryGetValue((nx, y, nz), out var n) || !IsWaypoint(n)) continue;
+                        seen.Add((nx, y, nz));
+                        todo.Push((nx, nz));
+                    }
+                }
+                if (patch.Count < 2 || patch.Any(p => p.X == 0 || p.Z == 0 || p.X == sx - 1 || p.Z == sz - 1)) continue;
+                int x1 = patch.Min(p => p.X), x2 = patch.Max(p => p.X), z1 = patch.Min(p => p.Z), z2 = patch.Max(p => p.Z);
+                double cx = (x1 + x2) / 2.0 - mx, cz = (z1 + z2) / 2.0 - mz;
+                var face = Math.Abs(cx) >= Math.Abs(cz) ? (cx < 0 ? BlockFacing.WEST : BlockFacing.EAST) : (cz < 0 ? BlockFacing.NORTH : BlockFacing.SOUTH);
+                int ox = face == BlockFacing.WEST ? x1 : face == BlockFacing.EAST ? x2 : (x1 + x2) / 2;
+                int oz = face == BlockFacing.NORTH ? z1 : face == BlockFacing.SOUTH ? z2 : (z1 + z2) / 2;
+                bool underFloor = patch.All(p => blocks.TryGetValue((p.X, y + 1, p.Z), out var above) && above.Id != 0 && !IsNaturalGround(above) && !IsWaypoint(above));
+                open.Add((face, ox - ax, (underFloor ? y + 1 : y) - ay, oz - az));
+            }
+        }
+        if (entrance)
+        {
             // Without waypoints: one tunnel off the widest gap at its bottom.
             if (open.Count == 0)
             {
@@ -539,19 +608,49 @@ public class BlueprintLibrary
                 if (widest.Face != null) AddOpen(widest.Face, widest.Gap!.Value, 0);
             }
         }
-        else
+        else if (!level)
         {
             foreach (var face in BlockFacing.HORIZONTALS)
             {
                 if (Gap(face) is { } gap) AddOpen(face, gap, 0);
             }
         }
+        // A level piece repeats every Period layers: its top layer sits just under the floor of the level above.
+        int period = entrance ? ground : level && open.Count > 0 ? -open.Max(o => o.Item3) + 1 : 0;
         return new MinePiece
         {
             Name = name, Steps = digs.Concat(solid).Concat(decor).ToList(), Open = open,
-            Min = (-ax, -ay, -az), Max = (sx - 1 - ax, sy - 1 - ay, sz - 1 - az),
-            Period = entrance ? ground : 0, Markers = markers
+            Min = (-ax, -ay, -az), Max = (sx - 1 - ax, (level ? sy : sy - 1) - ay, sz - 1 - az),
+            Period = period, Markers = markers,
+            Shaft = entrance && hole is { } shaft ? (shaft.X - ax, shaft.Z - az) : (0, 0)
         };
+    }
+
+    /// <summary>The middle of the opening in a layer nearest the layer's middle (one connected patch of empty spots), or null when the layer has none.</summary>
+    static (int X, int Z)? MiddleOpening(System.Func<int, int, int, bool> empty, int sx, int sz, int y)
+    {
+        (int X, int Z)? start = null;
+        int best = int.MaxValue;
+        for (int x = 0; x < sx; x++)
+        for (int z = 0; z < sz; z++)
+        {
+            int d = (x - sx / 2) * (x - sx / 2) + (z - sz / 2) * (z - sz / 2);
+            if (d < best && empty(x, y, z)) (start, best) = ((x, z), d);
+        }
+        if (start is not { } first) return null;
+        var patch = new HashSet<(int X, int Z)> { first };
+        var todo = new Stack<(int X, int Z)>(patch);
+        while (todo.Count > 0)
+        {
+            var (px, pz) = todo.Pop();
+            foreach (var n in new[] { (px + 1, pz), (px - 1, pz), (px, pz + 1), (px, pz - 1) })
+            {
+                if (n.Item1 < 0 || n.Item2 < 0 || n.Item1 >= sx || n.Item2 >= sz || patch.Contains(n) || !empty(n.Item1, y, n.Item2)) continue;
+                patch.Add(n);
+                todo.Push(n);
+            }
+        }
+        return ((patch.Min(p => p.X) + patch.Max(p => p.X)) / 2, (patch.Min(p => p.Z) + patch.Max(p => p.Z)) / 2);
     }
 
     /// <summary>

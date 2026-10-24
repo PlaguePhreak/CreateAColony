@@ -205,7 +205,7 @@ public class ColonyConfig
     public int MinerFillDepth = 6;
     /// <summary>Mineshaft sections (cross, tee, straight) a Miner's Hut's mineshaft may grow per hut level. 0 (since 0.76.0): no limit, only levels are.</summary>
     public int MinerSectionsPerHutLevel = 0;
-    /// <summary>Levels of a mineshaft made of pieces that sections may go on, per Miner's Hut level (a level 0 hut counts as 1).</summary>
+    /// <summary>Levels of a mineshaft made of pieces that sections may go on, per Miner's Hut level (a level 0 hut counts as 1). With a level piece: levels each hut upgrade adds below the entrance (a level 0 hut has level 1; the top hut level has no limit).</summary>
     public int MinerMineLevelsPerHutLevel = 1;
     /// <summary>
     /// How many times a mineshaft entrance's stairs repeat further down for each level of the Miner's Hut. 0 (since
