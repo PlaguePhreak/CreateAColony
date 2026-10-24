@@ -283,6 +283,8 @@ public class Building
     [ProtoMember(112)] public double ExploreStartedTotalDays;
     /// <summary>A gathering hut: what its worker is set not to collect (ColonyManager.CollectKinds keys). Empty is everything.</summary>
     [ProtoMember(160)] public List<string> CollectOff = new();
+    /// <summary>A hut's Crafting recipes tab: how many of each thing its worker keeps crafted, by item code (ColonyManager.HutRecipes.cs). Empty is nothing.</summary>
+    [ProtoMember(170)] public Dictionary<string, int> RecipeKeep = new();
 
     public bool HasWorkOrder => TargetLevel > Level;
 

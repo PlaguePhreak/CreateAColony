@@ -162,6 +162,7 @@ public partial class ColonyNetwork : ModSystem
             ColonyAction.SetPotteryKeep => PotteryAction(colony, role, packet),
             ColonyAction.SetKitchenKeep => KitchenAction(colony, role, packet),
             ColonyAction.SetCraftKeep => CraftAction(colony, role, packet),
+            ColonyAction.SetRecipeKeep => RecipeAction(colony, role, packet),
             ColonyAction.SetMineOre or ColonyAction.SetMineProspected or ColonyAction.NewMine => MiningAction(colony, role, packet),
             ColonyAction.SetWorkRole => WorkRoleAction(colony, role, packet),
             >= ColonyAction.SetMineLevel and <= ColonyAction.UnassignMineGuard => MineTabAction(colony, role, packet),
@@ -466,6 +467,41 @@ public partial class ColonyNetwork : ModSystem
                 });
             }
         }
+    }
+
+    /// <summary>The rows of a hut's Crafting recipes tab: everything it can craft, with what each takes.</summary>
+    void AddRecipeRows(HutSnapshot snapshot, Colony colony, Building building)
+    {
+        snapshot.HasRecipes = true;
+        snapshot.KeepChoices = Manager.Config.CraftKeepChoices.ToList();
+        var worker = Manager.WorkerAt(colony, building, ColonyManager.JobOf(building.Type) ?? "");
+        foreach (var kind in Manager.HutRecipeKinds(building.Type))
+        {
+            var recipe = kind.Recipes[0];
+            snapshot.Recipes.Add(new PotteryView
+            {
+                Key = kind.Key,
+                Stack = kind.Sample.ToBytes(),
+                Keep = Manager.RecipeKeep(building, kind.Key),
+                Have = Manager.RecipeStock(colony, building, kind, worker),
+                Clay = recipe.InputCount,
+                Name = Lang.Get("createacolony:recipes-row", recipe.Output.StackSize, kind.Sample.GetName(), Manager.RecipeInputsText(recipe))
+            });
+        }
+    }
+
+    /// <summary>How many of a thing a hut's worker keeps crafted (Crafting recipes tab).</summary>
+    string? RecipeAction(Colony colony, ColonyRole role, ColonyActionPacket packet)
+    {
+        if (role < ColonyRole.Officer) return "createacolony:denied-officer";
+        var building = colony.Buildings.Find(b => b.BuildingId == packet.BuildingId);
+        if (building == null || !Manager.HasHutRecipes(building.Type)) return "createacolony:bad-building";
+        int bar = packet.Text.LastIndexOf('|');
+        if (bar <= 0 || !int.TryParse(packet.Text[(bar + 1)..], out int keep) || keep < 0 || keep > 999) return "createacolony:bad-building";
+        string key = packet.Text[..bar];
+        if (!Manager.HutRecipeKinds(building.Type).Any(k => k.Key == key)) return "createacolony:bad-building";
+        Manager.SetRecipeKeep(colony, building, key, keep);
+        return null;
     }
 
     /// <summary>How many of a thing a crafter hut keeps in stock.</summary>
@@ -990,6 +1026,7 @@ public partial class ColonyNetwork : ModSystem
             }
         }
         if (ColonyManager.CraftTabOf(building.Type) is { } craftTab) AddCraftRows(snapshot, colony, building, craftTab);
+        if (Manager.HasHutRecipes(building.Type)) AddRecipeRows(snapshot, colony, building);
         if (building.Type is BuildingTypes.Miner or BuildingTypes.MineshaftEntrance) AddMineTabs(snapshot, colony, building, viewerUid);
         if (!snapshot.IsBuilderHut) return snapshot;
 

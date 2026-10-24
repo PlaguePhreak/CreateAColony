@@ -751,6 +751,20 @@ Built in from [Player Corpse](https://mods.vintagestory.at/playercorpse) by DArk
   Choosing an ore on the Ore tab turns it back on.
 - Building field 160 (CollectOff), ColonyAction 160 (SetCollect), ColonyManager.Collecting.cs. Not tested in game.
 
+### Crafting recipes tab on huts (0.101.0)
+- Aaron asked for a "Crafting recipes" tab on each hut, so the player can have a hut craft things, such as the
+  Forester making firewood or sticks. The tab sits right under Main, as in MineColonies.
+- Huts with the tab: Forester (firewood, sticks, debarked logs), Farmer (flax twine, rope, linen, hay), Gatherer
+  (torches, baskets, flax twine), Miner and Quarry (cobblestone, stone bricks, torches or stone paths). The recipes
+  come from the game's crafting grid, so only things the game has a recipe for show up. Each row says what it
+  takes, such as "4 Firewood from 1 Log + Axe". Config HutRecipeOutputs and HutRecipeTools change the lists.
+- Officers set how many to keep. Nothing is kept at first. When the colony (warehouse, hut and worker) has fewer,
+  the worker crafts at the hut block between its other jobs: from what it carries, or what is in the hut storage.
+  If the things are only in the warehouse, couriers are asked to bring them and the worker goes on with its job.
+  A recipe that needs a tool uses the job's own tool (the Forester's axe); the worker never fetches another.
+- The Smelter, Blacksmith and Sawmill keep their own tabs, which already do this. Building field 170 (RecipeKeep),
+  ColonyAction 170 (SetRecipeKeep), ColonyManager.HutRecipes.cs, AiTaskSettlerWorker.PlanRecipe. Not tested in game.
+
 ### Builder's list: one line per item, daub from wattle, any farmland (0.97.0)
 - Aaron's Residence asked for the same item more than once. With "any wood or stone" on, a roof's planks and logs
   were still asked for in the exact wood; now they are any wood too, so they join the other planks and logs.

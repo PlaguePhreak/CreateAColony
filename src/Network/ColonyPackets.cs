@@ -409,6 +409,9 @@ public class HutSnapshot
     [ProtoMember(80)] public string CraftTab = "";
     /// <summary>The rows of that tab. Clay is how many of the input each one takes (nuggets per ingot, ingots per piece).</summary>
     [ProtoMember(81)] public List<PotteryView> Craft = new();
+    /// <summary>A hut with a Crafting recipes tab, and its rows (Clay is how many items one craft takes; Name says what it is made from).</summary>
+    [ProtoMember(170)] public bool HasRecipes;
+    [ProtoMember(171)] public List<PotteryView> Recipes = new();
 
     // The Miner's Hut's Levels, Settings and Guards tabs (82-99).
     [ProtoMember(82)] public bool IsMiner;
@@ -756,7 +759,9 @@ public enum ColonyAction
     LinkMineHut = 151,
     UnlinkMineHut = 152,
     /// <summary>Text "key|1" or "key|0": whether the gathering hut with BuildingId collects that; "*" turns all on, "-" all off.</summary>
-    SetCollect = 160
+    SetCollect = 160,
+    /// <summary>How many of a thing a hut's worker keeps crafted (Crafting recipes tab): Text = "code|amount".</summary>
+    SetRecipeKeep = 170
 }
 
 /// <summary>One Miner's Hut on a Mineshaft Entrance's Main tab.</summary>

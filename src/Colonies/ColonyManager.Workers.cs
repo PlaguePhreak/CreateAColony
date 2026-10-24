@@ -140,7 +140,9 @@ public partial class ColonyManager
         var kind = GatherHuts[hut.Type];
         var worker = WorkerAt(colony, hut, kind.Job);
         bool keepSeeds = worker != null && PackCount(worker, kind.Stock) < SeedReserve(kind.Job);
-        return s => s.Collectible.Tool != kind.Tool && !kind.Keeps(s) && !(keepSeeds && kind.Stock(s));
+        // What its Crafting recipes tab needs stays too.
+        var recipeInputs = HutRecipeInputs(colony, hut);
+        return s => s.Collectible.Tool != kind.Tool && !kind.Keeps(s) && !(keepSeeds && kind.Stock(s)) && !recipeInputs(s);
     }
 
     /// <summary>
@@ -256,6 +258,7 @@ public partial class ColonyManager
         if (hut.Type == BuildingTypes.Smelter) lines.Add(SmelterInfo(colony, hut));
         if (hut.Type == BuildingTypes.Blacksmith) lines.Add(BlacksmithInfo(hut));
         if (hut.Type == BuildingTypes.Sawmill) lines.Add(SawmillInfo(hut));
+        if (HasHutRecipes(hut.Type) && hut.RecipeKeep.Count > 0) lines.Add(HutRecipesInfo(hut));
         if (hut.Type == BuildingTypes.Prospector) lines.Add(ProspectorInfo(colony, hut));
         if (hut.Type == BuildingTypes.Miner) lines.Add(MineInfo(colony, hut));
         if (hut.Type == BuildingTypes.Quarry) lines.Add(QuarryInfo(hut));

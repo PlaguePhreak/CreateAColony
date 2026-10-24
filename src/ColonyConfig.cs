@@ -495,6 +495,34 @@ public class ColonyConfig
         ["game:plank-*"] = 16
     };
 
+    // Crafting recipes tab (huts that are not crafter huts)
+    /// <summary>
+    /// What each hut's worker may craft on its Crafting recipes tab, by hut type: the first part of the made
+    /// thing's code (firewood in firewood, stick in stick). Recipes come from the game's crafting grid recipes.
+    /// </summary>
+    public System.Collections.Generic.Dictionary<string, string[]> HutRecipeOutputs = new()
+    {
+        ["forester"] = new[] { "firewood", "stick", "debarkedlog" },
+        ["farmer"] = new[] { "flaxtwine", "rope", "linen", "hay" },
+        ["gatherer"] = new[] { "torch", "basket", "flaxtwine" },
+        ["miner"] = new[] { "cobblestone", "stonebricks", "torch" },
+        ["quarry"] = new[] { "cobblestone", "stonebricks", "stonepath" }
+    };
+    /// <summary>The tools a hut's recipes may use, by hut type (first part of the tool's code). Recipes needing another tool are left out.</summary>
+    public System.Collections.Generic.Dictionary<string, string[]> HutRecipeTools = new()
+    {
+        ["forester"] = new[] { "axe" },
+        ["farmer"] = new[] { "hoe" },
+        ["miner"] = new[] { "pickaxe" },
+        ["quarry"] = new[] { "pickaxe" }
+    };
+    /// <summary>Seconds a worker takes to craft one recipe at its hut.</summary>
+    public float HutRecipeSecondsPerCraft = 4f;
+    /// <summary>Recipes that take more items than this are left to players.</summary>
+    public int HutRecipeMaxInputs = 9;
+    /// <summary>The most times over a worker fetches or asks couriers for the things of one recipe at once.</summary>
+    public int HutRecipeBatch = 4;
+
     // Recruiting
     /// <summary>How many settlers a built Tavern offers for hire each day.</summary>
     public int TavernRecruits = 3;

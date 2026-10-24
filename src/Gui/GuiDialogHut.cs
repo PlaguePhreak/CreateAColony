@@ -45,6 +45,8 @@ public class GuiDialogHut : GuiDialog
     const int MarkersTab = 18;
     /// <summary>A gathering hut's Allowed to collect tab.</summary>
     const int CollectTab = 19;
+    /// <summary>The Crafting recipes tab of huts that are not crafter huts (Forester, Farmer and others).</summary>
+    const int RecipesTab = 24;
     const int OreRowsPerPage = 6;
     const double OreRowHeight = 44;
     /// <summary>Households shown per page of a Residence's Residents tab.</summary>
@@ -94,13 +96,14 @@ public class GuiDialogHut : GuiDialog
     bool Officer => ViewerRole >= ColonyRole.Officer;
 
     /// <summary>
-    /// The tabs down the left side, in MineColonies' order: Main, then the hut's own tabs (Work orders,
+    /// The tabs down the left side, in MineColonies' order: Main, Crafting recipes, then the hut's own tabs (Work orders,
     /// Levels, Ore...), then the shared ones where the hut has a use for them: Settings, Guards, Required
     /// resources, Minimum stock and Statistics.
     /// </summary>
     List<(int Id, string Lang)> Tabs()
     {
         var tabs = new List<(int, string)> { (0, "tab-main") };
+        if (snapshot.HasRecipes) tabs.Add((RecipesTab, "tab-recipes"));
         if (snapshot.IsBuilderHut) tabs.Add((1, "tab-orders"));
         if (snapshot.MineLevels.Count > 0) tabs.Add((LevelsTab, "tab-levels"));
         if (snapshot.IsGatherHut) tabs.Add((WorkAreaTab, "tab-workarea"));
@@ -157,6 +160,7 @@ public class GuiDialogHut : GuiDialog
             case PotteryTab: ComposeKeepList(composer, snapshot.Pottery, "pottery", ColonyAction.SetPotteryKeep); break;
             case KitchenTab: ComposeKeepList(composer, snapshot.Kitchen, "kitchen", ColonyAction.SetKitchenKeep); break;
             case CraftTab: ComposeKeepList(composer, snapshot.Craft, snapshot.CraftTab, ColonyAction.SetCraftKeep); break;
+            case RecipesTab: ComposeKeepList(composer, snapshot.Recipes, "recipes", ColonyAction.SetRecipeKeep); break;
             case RecruitsTab: ComposeRecruits(composer); break;
             case ResidentsTab: ComposeResidents(composer); break;
             case OreTab: ComposeOre(composer); break;

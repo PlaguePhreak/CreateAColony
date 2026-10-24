@@ -53,22 +53,29 @@ public partial class ColonyManager
     bool IsWoodPart(CraftingRecipeIngredient part) => part.Code?.Domain == "game" && Config.SawmillWoodParts.Contains(FirstPart(part.Code));
 
     /// <summary>Everything the game's crafting recipes make from wood alone, with a saw or no tool.</summary>
-    public List<SawKind> SawKinds()
+    public List<SawKind> SawKinds() => sawKinds ??= ScanGridRecipes(IsWoodPart,
+        tool => Config.SawmillToolParts.Contains(FirstPart(tool.Code)), _ => true, Config.SawmillMaxInputs);
+
+    /// <summary>
+    /// The game's crafting recipes whose inputs and output pass the tests, grouped by what they make, with
+    /// at most one tool. Used by the Sawmill and the huts' Crafting recipes tab.
+    /// </summary>
+    List<SawKind> ScanGridRecipes(System.Func<CraftingRecipeIngredient, bool> inputOk, System.Func<CraftingRecipeIngredient, bool> toolOk,
+        System.Func<ItemStack, bool> outputOk, int maxInputs)
     {
-        if (sawKinds != null) return sawKinds;
         var kinds = new Dictionary<string, SawKind>();
         foreach (var recipe in sapi.World.GridRecipes)
         {
             var output = recipe?.Output?.ResolvedItemStack;
             if (recipe == null || output == null || !recipe.Enabled || recipe.RequiresTrait != null || recipe.ResolvedIngredients == null) continue;
-            if (output.Collectible.Code.Domain == "createacolony") continue;
+            if (output.Collectible.Code.Domain == "createacolony" || !outputOk(output)) continue;
             var parts = recipe.ResolvedIngredients.Where(i => i != null).Select(i => i!).ToList();
             if (parts.Count == 0) continue;
             var tools = parts.Where(i => i.IsTool || !i.Consume).ToList();
             var inputs = parts.Where(i => !(i.IsTool || !i.Consume)).ToList();
             if (inputs.Count == 0 || tools.Count > 1) continue;
-            if (tools.Count == 1 && !Config.SawmillToolParts.Contains(FirstPart(tools[0].Code))) continue;
-            if (!inputs.All(IsWoodPart)) continue;
+            if (tools.Count == 1 && !toolOk(tools[0])) continue;
+            if (!inputs.All(inputOk)) continue;
             // Repairs and the like give back what they take.
             if (inputs.Any(i => i.SatisfiesAsIngredient(output, false))) continue;
 
@@ -76,7 +83,7 @@ public partial class ColonyManager
                 .Select(g => (Part: g.First(), Quantity: g.Sum(i => Math.Max(1, i.Quantity))))
                 .ToList();
             var saw = new SawRecipe { Inputs = grouped, Tool = tools.FirstOrDefault(), Output = output.Clone() };
-            if (saw.InputCount > Config.SawmillMaxInputs) continue;
+            if (saw.InputCount > maxInputs) continue;
             string key = output.Collectible.Code.ToString();
             if (!kinds.TryGetValue(key, out var kind))
             {
@@ -87,7 +94,7 @@ public partial class ColonyManager
             kind.Recipes.Add(saw);
         }
         foreach (var kind in kinds.Values) kind.Recipes.Sort((a, b) => a.InputCount.CompareTo(b.InputCount));
-        return sawKinds = kinds.Values.OrderBy(k => FirstPart(k.Sample.Collectible.Code)).ThenBy(k => k.Key).ToList();
+        return kinds.Values.OrderBy(k => FirstPart(k.Sample.Collectible.Code)).ThenBy(k => k.Key).ToList();
     }
 
     /// <summary>How many of a thing are ready: at the hut, in the warehouse and with the sawyer.</summary>
@@ -133,17 +140,24 @@ public partial class ColonyManager
     /// </summary>
     public bool SawCraft(Colony colony, Building hut, CitizenRecord sawyer, SawRecipe recipe)
     {
-        if (!HasSawInputs(sawyer, recipe)) return false;
-        foreach (var (part, quantity) in recipe.Inputs)
-        {
-            int left = quantity;
-            // A part can match several kinds (plank-*): take from each until there is enough.
-            while (left > 0 && TakeFromPack(colony, sawyer, s => part.SatisfiesAsIngredient(s, false), left) is { } taken) left -= taken.StackSize;
-        }
+        if (!SawCraftInputs(colony, sawyer, recipe)) return false;
         var made = recipe.Output.Clone();
         int count = made.StackSize;
         StoreHarvest(colony, hut, sawyer, new[] { made }, hut.HutPos);
         AddStat(hut, "sawn", count);
+        return true;
+    }
+
+    /// <summary>Takes what the recipe uses from the worker's inventory. False, taking nothing, if some is missing.</summary>
+    bool SawCraftInputs(Colony colony, CitizenRecord worker, SawRecipe recipe)
+    {
+        if (!HasSawInputs(worker, recipe)) return false;
+        foreach (var (part, quantity) in recipe.Inputs)
+        {
+            int left = quantity;
+            // A part can match several kinds (plank-*): take from each until there is enough.
+            while (left > 0 && TakeFromPack(colony, worker, s => part.SatisfiesAsIngredient(s, false), left) is { } taken) left -= taken.StackSize;
+        }
         return true;
     }
 
