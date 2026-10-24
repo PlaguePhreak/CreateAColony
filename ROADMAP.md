@@ -25,6 +25,10 @@ Everything listed under "What we have" and "Partly done" has been tested in game
 - Blacksmith's Hut: heats ingots in the forge and makes tool heads and finished tools on the anvil (0.50.0, placeholder model and building, not tested yet)
 - Sawmill: a sawyer saws logs into planks and makes other wooden things from the game's recipes (0.52.0, placeholder model and building, not tested yet)
 - Primitive Craftsman: a craftsman knaps flint and stones into tool heads and puts them on sticks, making stone tools for the colony (0.103.0, placeholder model and building, not tested yet)
+- Tailor's Hut and Jeweller's Workshop: a tailor makes and mends clothes and leather or linen armor, a jeweller makes jewellery from our own recipes; clothes wear out, and cold or ragged settlers are unhappy (0.113.0, placeholder models, no buildings yet, not tested yet)
+- Armourer's Hut and Weaponsmith's Hut: the Blacksmith split in three; the armourer makes and mends metal armor, the weaponsmith makes weapons (0.114.0, placeholder models, no buildings yet, not tested yet)
+- Repair button on every hut: a builder puts the building back as its blueprint has it, takes out stray blocks and fills holes under it (0.118.0, not tested yet)
+- Healing: badly hurt settlers go home to bed to recover and use a bandage or poultice they carry; a Healer's Hut makes bandages and treats them; settlers make horsetail poultices; the Gatherer picks horsetail (0.117.0, placeholder model, no building yet, not tested yet)
 - Explorer's Hut and Gatherer's Hut: an explorer marks ore, clay, traders, animals and danger on a Colony markers map layer, and a gatherer forages berries, mushrooms and loose stones and marks plants; works with More Map Icons (0.77.0, placeholder models and buildings, not tested yet)
 - Vintage Colonies' own map icons: 120 waypoint icons covering every More Map Icons sheet entry, used by colony markers (0.79.0, not tested yet)
 - A marker icon for every ore, fruit, vegetable, grain, animal, trader and story location, other mods' too (0.80.0, not tested yet)
@@ -67,7 +71,7 @@ Everything listed under "What we have" and "Partly done" has been tested in game
 3. **A request list**: players can see and fill what workers need (the Sawmill came first, in 0.52.0)
 4. **Animal herders and a Tanner**: chickens, pigs, sheep and goats in pens for meat, eggs and hides, and a Tanner who makes leather in barrels
 5. **Ranged guards and a rally banner** (the Barracks came in 0.54.0), then **Raids**: now and then, enemies turn up and attack the player's colony. The player is warned in chat and on the Town Hall window. There are several raid factions, from bandits (who use the settler models) to the game's own monsters such as drifters and shivers.
-6. **Hospital and Graveyard**: a healer with poultices and bandages, and an undertaker who buries the dead
+6. **Graveyard**: an undertaker who buries the dead (the Healer, bandages and poultices came in 0.117.0)
 7. **School, Library and University** with a **research tree** that unlocks faster work and new huts
 8. **Blacksmith** (started in 0.50.0): still to do are repairs, armor, and making the tools workers ask for
 
@@ -78,11 +82,10 @@ Everything listed under "What we have" and "Partly done" has been tested in game
 - Settler chat bubbles where settlers ask for things or complain
 - Walls, wells, roads and other decorations to order from the Builder's Wand
 - **Outposts**: a ready-made bundle of buildings that can be placed outside the colony's border. Its buildings level up all together or one at a time. An outpost works as its own small base and tries to look after itself. It keeps a small military force away from home to protect workers out in the field, and gives them a safe place to go when they are attacked, or at night when the outpost is closer than home.
-- **Alchemist's Hut**: a new Alchemist settler who works with the **Alchemy** mod by llama3013 when it is installed. The Alchemist grows and gathers herbs, dries them on herb racks, grinds them with a mortar and pestle, and brews potions in the brewing cauldron. Guards get fighting and healing flasks, miners get Miner's Flasks, hunters get Hunter's Delight, and the Hospital gets Healing Oil. The mod uses the CC BY 4.0 licence, so we may reuse its work if we credit the author. We still plan to keep it an optional mod that players download themselves.
 - Working with more popular Vintage Story mods, such as cooking with A Culinary Artillery and Expanded Foods
 
 **Left out on purpose**
-- Concrete Mixer, Enchanter, Netherworker and the Mystical Site: Vintage Story has nothing to match them. (The Alchemist is now planned above, using the Alchemy mod.)
+- Concrete Mixer, Enchanter, Alchemist, Netherworker and the Mystical Site: Vintage Story has nothing to match them. An herbalist making poultices could take the Alchemist's place.
 
 ## Far future: AI settlements
 
