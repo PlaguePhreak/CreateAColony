@@ -69,6 +69,8 @@ public class CitizenRecord
     [ProtoMember(25)] public double LastChildTotalDays;
     /// <summary>When a settler died for good (permadeath); 0 if alive, or dead before 0.33.0 recorded it.</summary>
     [ProtoMember(26)] public double DiedTotalDays;
+    /// <summary>What killed them: "entity:game:wolf-male", "player:Name" or "type:Hunger"; empty when not known.</summary>
+    [ProtoMember(63)] public string DeathCause = "";
     /// <summary>Whether a dead settler has been buried. Nothing sets it yet: burial and mourning are coming later.</summary>
     [ProtoMember(27)] public bool Buried;
     /// <summary>XP in each skill, by skill code (config/skills.json); the level follows from it. See ColonyManager.Skills.cs.</summary>

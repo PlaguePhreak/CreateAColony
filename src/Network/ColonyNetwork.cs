@@ -605,6 +605,7 @@ public partial class ColonyNetwork : ModSystem
                 Child = c.IsChild,
                 GrowsUpHours = Manager.HoursToGrowUp(c),
                 DiedTotalDays = c.DiedTotalDays,
+                DeathCause = c.DeathCause,
                 Buried = c.Buried,
                 VisitorHoursLeft = c.Visitor ? (int)System.Math.Ceiling(System.Math.Max(0, c.VisitorUntilTotalDays - sapi!.World.Calendar.TotalDays) * sapi.World.Calendar.HoursPerDay) : 0,
                 TraitsText = Manager.TraitsText(c),

@@ -162,6 +162,21 @@ public class EntityBehaviorColonyCitizen : EntityBehavior
         }
     }
 
+    /// <summary>What killed the settler, for the Dead Citizens page: the creature or player, else the kind of damage.</summary>
+    static string DeathCause(DamageSource? source)
+    {
+        if (source == null) return "";
+        var killer = source.GetCauseEntity() ?? source.SourceEntity;
+        if (killer is EntityPlayer player) return "player:" + (player.Player?.PlayerName ?? "");
+        if (killer is EntitySettler settler) return "settler:" + (settler.GetName() ?? "");
+        if (killer?.Code != null) return "entity:" + killer.Code;
+        if (source.Source is EnumDamageSource.Fall) return "type:Fall";
+        if (source.Source is EnumDamageSource.Drown) return "type:Drown";
+        if (source.Source is EnumDamageSource.Explosion) return "type:Explosion";
+        if (source.Source is EnumDamageSource.Block && source.Type != EnumDamageType.Fire) return "type:Block";
+        return "type:" + source.Type;
+    }
+
     public override void OnEntityDeath(DamageSource damageSourceForDeath)
     {
         var record = FindRecord();
@@ -196,6 +211,7 @@ public class EntityBehaviorColonyCitizen : EntityBehavior
             {
                 record.Alive = false;
                 record.DiedTotalDays = entity.World.Calendar.TotalDays;
+                record.DeathCause = DeathCause(damageSourceForDeath);
                 manager.LogEvent(colony, "event-died", record.Name);
                 manager.MournDeath(colony, record);
                 manager.MarkFallen(colony, record, entity.Pos.XYZ, died: true);

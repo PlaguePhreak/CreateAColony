@@ -31,6 +31,8 @@ public class CitizenView
     [ProtoMember(12)] public int GrowsUpHours;
     /// <summary>For the dead: when they died (0 if unknown) and whether they have been buried.</summary>
     [ProtoMember(13)] public double DiedTotalDays;
+    /// <summary>CitizenRecord.DeathCause, named on the client.</summary>
+    [ProtoMember(31)] public string DeathCause = "";
     [ProtoMember(14)] public bool Buried;
     /// <summary>In a hut's worker lists: the settler's level in the hut's job skill, and the skill's code.</summary>
     [ProtoMember(15)] public int SkillLevel;

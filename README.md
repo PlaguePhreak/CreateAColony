@@ -701,6 +701,11 @@ before shipping converted blueprints.
 
 ### The Town Hall window (0.24.0)
 
+### What killed a settler (0.93.0)
+- The Town Hall's Dead Citizens page has a "Killed by" column: the creature (Wolf), the player or settler, or what
+  happened (Starved, A fall, Drowned, Fire). Settlers who died before 0.93.0 show "unknown". Save data:
+  `CitizenRecord` 63 `DeathCause`; `CitizenView` 31.
+
 ### Gatherer: ore bits and wild crops; clearer map markers (0.92.0)
 - The gatherer picks up ore bits lying on the ground (native copper in claystone and the like). Each spot is
   marked "Underground copper deposit" (or the ore's own name) on the Colony markers map, and the prospectors

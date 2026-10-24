@@ -612,9 +612,10 @@ public class GuiDialogTownHall : GuiDialog
         {
             composer
                 .AddStaticText(Lang.Get("createacolony:col-name"), GuiKit.Muted(), ElementBounds.Fixed(10, top, 150, 20))
-                .AddStaticText(Lang.Get("createacolony:col-job"), GuiKit.Muted(), ElementBounds.Fixed(165, top, 130, 20))
-                .AddStaticText(Lang.Get("createacolony:col-died"), GuiKit.Muted(), ElementBounds.Fixed(300, top, 130, 20))
-                .AddStaticText(Lang.Get("createacolony:col-burial"), GuiKit.Muted(), ElementBounds.Fixed(435, top, 125, 20));
+                .AddStaticText(Lang.Get("createacolony:col-job"), GuiKit.Muted(), ElementBounds.Fixed(140, top, 95, 20))
+                .AddStaticText(Lang.Get("createacolony:col-died"), GuiKit.Muted(), ElementBounds.Fixed(240, top, 105, 20))
+                .AddStaticText(Lang.Get("createacolony:col-cause"), GuiKit.Muted(), ElementBounds.Fixed(350, top, 115, 20))
+                .AddStaticText(Lang.Get("createacolony:col-burial"), GuiKit.Muted(), ElementBounds.Fixed(470, top, 90, 20));
 
             int pages = (dead.Count + RowsPerPage - 1) / RowsPerPage;
             page = Math.Clamp(page, 0, pages - 1);
@@ -626,16 +627,41 @@ public class GuiDialogTownHall : GuiDialog
                 string died = c.DiedTotalDays > 0 ? When(c.DiedTotalDays) : Lang.Get("createacolony:citizens-died-unknown");
                 var burialFont = c.Buried ? GuiKit.Detail().WithColor(GuiKit.GoodColor) : GuiKit.Detail().WithColor(GuiKit.WarnColor);
                 composer
-                    .AddStaticText(c.Name, GuiKit.Body().WithColor(GuiKit.MutedColor), ElementBounds.Fixed(10, y + 6, 150, 25))
-                    .AddStaticText(c.Child ? Lang.Get("createacolony:citizens-child") : JobName(c.Job), GuiKit.Detail(), ElementBounds.Fixed(165, y + 8, 130, 25))
-                    .AddStaticText(died, GuiKit.Detail(), ElementBounds.Fixed(300, y + 8, 130, 25))
-                    .AddStaticText(Lang.Get(c.Buried ? "createacolony:citizens-buried" : "createacolony:citizens-not-buried"), burialFont, ElementBounds.Fixed(435, y + 8, 125, 25));
+                    .AddStaticText(c.Name, GuiKit.Body().WithColor(GuiKit.MutedColor), ElementBounds.Fixed(10, y + 6, 128, 25))
+                    .AddStaticText(c.Child ? Lang.Get("createacolony:citizens-child") : JobName(c.Job), GuiKit.Detail(), ElementBounds.Fixed(140, y + 8, 95, 25))
+                    .AddStaticText(died, GuiKit.Detail(), ElementBounds.Fixed(240, y + 8, 105, 25))
+                    .AddStaticText(DeathCauseName(c.DeathCause), GuiKit.Detail(), ElementBounds.Fixed(350, y + 8, 115, 25))
+                    .AddStaticText(Lang.Get(c.Buried ? "createacolony:citizens-buried" : "createacolony:citizens-not-buried"), burialFont, ElementBounds.Fixed(470, y + 8, 90, 25));
                 y += RowHeight;
             }
             composer.Pager(page, pages, y + 14, Width, p => { page = p; Compose(); });
             y += pages > 1 ? 54 : 16;
         }
         ComingLater(composer, "townhall-later-burial", y);
+    }
+
+    /// <summary>What killed a settler, in words: "Wolf (male)", a player's name, or "Starved".</summary>
+    static string DeathCauseName(string cause)
+    {
+        int colon = cause.IndexOf(':');
+        if (colon < 0) return Lang.Get("createacolony:citizens-died-unknown");
+        string kind = cause[..colon], what = cause[(colon + 1)..];
+        switch (kind)
+        {
+            case "player":
+            case "settler":
+                return what.Length > 0 ? what : Lang.Get("createacolony:death-cause-" + kind);
+            case "entity":
+                var code = new AssetLocation(what);
+                string key = code.Domain + ":item-creature-" + code.Path;
+                if (Lang.HasTranslation(key)) return Lang.Get(key);
+                // A creature with no name of its own: its first code part ("wolf" of wolf-male).
+                string first = code.Domain + ":item-creature-" + code.Path.Split('-')[0];
+                return Lang.HasTranslation(first) ? Lang.Get(first) : code.Path;
+            default:
+                string type = "createacolony:death-cause-" + what.ToLowerInvariant();
+                return Lang.HasTranslation(type) ? Lang.Get(type) : what;
+        }
     }
 
     /// <summary>The living, with their state, food and bed, and (for officers) their job and Recall.</summary>
