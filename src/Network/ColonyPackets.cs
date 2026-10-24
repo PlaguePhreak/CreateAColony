@@ -109,6 +109,8 @@ public class BuildingView
     [ProtoMember(12)] public string Variant = "";
     /// <summary>Remove hut was pressed: a builder is taking it down (ProgressPercent and Status are for that).</summary>
     [ProtoMember(13)] public bool Removing;
+    /// <summary>Not a building but a trader's old house a builder is taking down (TeardownOrder.Id); Name is the trader's.</summary>
+    [ProtoMember(240)] public int TeardownId;
 }
 
 /// <summary>One line of the Town Hall's event log; the window fills the lang key in.</summary>
@@ -763,6 +765,8 @@ public enum ColonyAction
     SetSupportAllies = 141,
     /// <summary>Remove hut: the hut's workers lose their job, a builder takes the building down and the hut block comes back.</summary>
     RemoveHut = 150,
+    /// <summary>Stops taking a trader's old house down; BuildingId is the TeardownOrder id.</summary>
+    CancelTeardown = 240,
     /// <summary>Has the Miner's Hut with Text (its BuildingId) work the mine of the Mineshaft Entrance with BuildingId.</summary>
     LinkMineHut = 151,
     UnlinkMineHut = 152,

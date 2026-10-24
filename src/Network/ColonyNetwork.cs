@@ -161,6 +161,7 @@ public partial class ColonyNetwork : ModSystem
             ColonyAction.SetRole => SetRole(colony, role, packet.PlayerUid, (ColonyRole)packet.Role),
             ColonyAction.RemoveMember => SetRole(colony, role, packet.PlayerUid, ColonyRole.Visitor),
             ColonyAction.Build or ColonyAction.CancelBuild or ColonyAction.Rotate => BuildAction(colony, role, packet),
+            ColonyAction.CancelTeardown => CancelTeardown(colony, role, packet.BuildingId),
             ColonyAction.SetAnyWoodOrStone => SetAnyWoodOrStone(colony, role, packet.Text == "1"),
             ColonyAction.SetWorkRadius or ColonyAction.SetEscort or ColonyAction.SetCollectBerries => WorkAreaAction(colony, role, packet),
             ColonyAction.SetPotteryKeep => PotteryAction(colony, role, packet),
@@ -288,12 +289,33 @@ public partial class ColonyNetwork : ModSystem
         var citizen = colony.Citizens.Find(c => c.CitizenId == citizenId);
         if (citizen == null || !citizen.Alive) return "createacolony:bad-citizen";
         if (citizen.Visitor) return "createacolony:visitor-no-job";
+        if (citizen.WaitingForRoom && job.Length > 0) return "createacolony:waiting-no-job";
         if (citizen.IsChild && job.Length > 0) return "createacolony:child-no-job";
         if (job.Length > 0 && Manager.IncapableOfJob(citizen, job) != null) return "createacolony:job-incapable";
         if (citizen.JobCode != (job.Length == 0 ? null : job)) citizen.WorkplacePos = null;
         citizen.JobCode = job.Length == 0 ? null : job;
         return null;
     }
+
+    string? CancelTeardown(Colony colony, ColonyRole role, int id)
+    {
+        if (role < ColonyRole.Officer) return "createacolony:denied-officer";
+        var order = colony.Teardowns.Find(t => t.Id == id);
+        if (order == null) return "createacolony:bad-building";
+        Manager.CancelTeardown(colony, order);
+        return null;
+    }
+
+    /// <summary>A trader's old house in the work order lists.</summary>
+    BuildingView TeardownViewFor(Colony colony, TeardownOrder t) => new()
+    {
+        TeardownId = t.Id,
+        Type = "traderhouse",
+        Name = t.Owner,
+        Removing = true,
+        Status = Manager.BuildStatus.GetValueOrDefault(-t.Id, "queued"),
+        ProgressPercent = t.Total <= 0 ? 0 : System.Math.Min(100, 100 * t.Done / t.Total)
+    };
 
     string? BuildAction(Colony colony, ColonyRole role, ColonyActionPacket packet)
     {
@@ -626,7 +648,8 @@ public partial class ColonyNetwork : ModSystem
             HeraldryInstalled = sapi!.ModLoader.IsModEnabled("heraldrybanners"),
             BuildingCount = colony.Buildings.Count,
             Events = colony.Events.Select(e => new EventView { TotalDays = e.TotalDays, Key = e.Key, Args = e.Args.ToList() }).ToList(),
-            WorkOrders = colony.Buildings.Where(b => b.HasWorkOrder || b.Removing).OrderBy(b => b.BuildingId).Select(b => BuildingViewFor(colony, b)).ToList(),
+            WorkOrders = colony.Buildings.Where(b => b.HasWorkOrder || b.Removing).OrderBy(b => b.BuildingId).Select(b => BuildingViewFor(colony, b))
+                .Concat(colony.Teardowns.OrderBy(t => t.Id).Select(t => TeardownViewFor(colony, t))).ToList(),
             Jobs = Manager.JobCounts(colony).Select(j => new JobView { Job = j.Job, Workers = j.Workers, Places = j.Places }).ToList(),
             Stats = Manager.ColonyStatSummary(colony).Select(r => new StatView { Key = r.Key, Counts = r.Counts }).ToList(),
             Quests = sapi!.World.PlayerByUid(viewerUid) is IServerPlayer viewer ? QuestStates(viewer, colony) : new()
@@ -644,6 +667,7 @@ public partial class ColonyNetwork : ModSystem
             string state = !c.Alive ? "dead"
                 : c.IsDowned ? "downed"
                 : c.Visitor ? "visitor"
+                : c.WaitingForRoom ? "waiting"
                 : c.Saturation >= 0 && c.Saturation < config.SaturationMax * config.EatBelowFraction ? "hungry"
                 : "ok";
             snapshot.Citizens.Add(new CitizenView
@@ -826,7 +850,7 @@ public partial class ColonyNetwork : ModSystem
             CitizenId = citizen.CitizenId,
             Name = citizen.Name,
             Job = citizen.JobCode ?? "",
-            State = !citizen.Alive ? "dead" : citizen.IsDowned ? "downed" : citizen.Visitor ? "visitor"
+            State = !citizen.Alive ? "dead" : citizen.IsDowned ? "downed" : citizen.Visitor ? "visitor" : citizen.WaitingForRoom ? "waiting"
                 : citizen.Saturation >= 0 && citizen.Saturation < config.SaturationMax * config.EatBelowFraction ? "hungry" : "ok",
             FoodPercent = citizen.Saturation < 0 ? 100 : (int)(100 * citizen.Saturation / config.SaturationMax),
             HasBed = citizen.HomeBedPos != null,
@@ -1053,6 +1077,7 @@ public partial class ColonyNetwork : ModSystem
         {
             snapshot.Orders.Add(BuildingViewFor(colony, order));
         }
+        foreach (var t in colony.Teardowns.OrderBy(t => t.Id)) snapshot.Orders.Add(TeardownViewFor(colony, t));
 
         var builder = colony.Citizens.Find(c => c.Alive && c.JobCode == Jobs.Builder && c.WorkplacePos != null && c.WorkplacePos.Equals(building.HutPos));
         if (builder == null) return snapshot;

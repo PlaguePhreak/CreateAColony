@@ -93,7 +93,7 @@ public class AiTaskSettlerIdle : SettlerTaskBase
     /// <summary>Picks a chore to do before strolling. True when there is one; spot (and chestPos) say where.</summary>
     bool PlanErrand(Colony colony, CitizenRecord citizen)
     {
-        if (citizen.Visitor || citizen.IsChild) return false;
+        if (citizen.Visitor || citizen.WaitingForRoom || citizen.IsChild) return false;
         chestPos = null;
 
         // A guard's things go to its tower; other jobs drop theirs off themselves, and couriers take loose loads to the warehouse.

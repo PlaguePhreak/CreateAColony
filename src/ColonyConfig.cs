@@ -94,6 +94,26 @@ public class ColonyConfig
     /// </summary>
     public string[] ClearedWorldgenClaims = { "trader" };
 
+    // Traders join the colony (see Colonies/ColonyManager.Traders.cs)
+    /// <summary>Every trader's land claim in the world is taken away, near a colony or not, so players can take what they want from trader houses.</summary>
+    public bool RemoveAllTraderClaims = true;
+    /// <summary>A trader a settler finds joins the colony as a new settler, skilled for its trade.</summary>
+    public bool TradersJoin = true;
+    /// <summary>How close, in blocks, a settler must come to a trader (and see it) to find it.</summary>
+    public int TraderFindRange = 16;
+    /// <summary>The chance each stack a trader was selling, and its money, goes to the warehouse when it joins. The rest is lost.</summary>
+    public double TraderGoodsChance = 0.25;
+    /// <summary>Level of a former trader's main skill (rolled between the two), with two passions.</summary>
+    public int TraderMainSkillMin = 6;
+    public int TraderMainSkillMax = 10;
+    /// <summary>Level of a former trader's second skill (rolled between the two), with one passion.</summary>
+    public int TraderSecondSkillMin = 3;
+    public int TraderSecondSkillMax = 4;
+    /// <summary>A builder takes down the house of a trader who joined, without being asked.</summary>
+    public bool TraderHouseTeardown = true;
+    /// <summary>Trader houses further than this from the Town Hall, in blocks, are left standing: too far for a builder to walk.</summary>
+    public int TraderTeardownMaxDistance = 400;
+
     // Forester
     /// <summary>How far from the Forester's Hut, in blocks, a forester looks for trees.</summary>
     public int ForesterRadius = 16;

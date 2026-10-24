@@ -566,8 +566,9 @@ public class GuiDialogTownHall : GuiDialog
                 .AddStaticText(GuiDialogHut.StatusText(o), GuiKit.Detail().WithColor(GuiStyle.ActiveButtonTextColor), ElementBounds.Fixed(10, y + 30, Width - 150, 22));
             if (Officer)
             {
-                int id = o.BuildingId;
-                composer.AddSmallButton(Lang.Get("createacolony:build-cancel"), () => Send(ColonyAction.CancelBuild, id), ElementBounds.Fixed(Width - 130, y + 14, 120, 28));
+                int id = o.TeardownId > 0 ? o.TeardownId : o.BuildingId;
+                var action = o.TeardownId > 0 ? ColonyAction.CancelTeardown : ColonyAction.CancelBuild;
+                composer.AddSmallButton(Lang.Get("createacolony:build-cancel"), () => Send(action, id), ElementBounds.Fixed(Width - 130, y + 14, 120, 28));
             }
             y += OrderRowHeight;
         }

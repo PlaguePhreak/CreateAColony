@@ -154,6 +154,15 @@ All three are on the new Mining tab of the Builder's Wand and use placeholder bl
 - Any grown-up settler near home (`DecorRange`, 64 blocks) does it, jobless or not, checking every `DecorCheckSeconds` (90). It is a short break from work. Afterwards it feels "Made their home nicer" (+5 mood, 2 days).
 - Turn it off with `SettlersDecorate: false`.
 
+## Traders join the colony (0.108.0)
+- **No trader claims.** Every trader's land claim in the world is taken away, near a colony or not, so players can take what they want from trader houses. Turn it off with `RemoveAllTraderClaims: false`.
+- **Finding a trader.** When a grown-up settler comes within 16 blocks of a trader (`TraderFindRange`) and can see it, the trader leaves in a puff of smoke and a new settler takes its place, with the trader's name. Nobody may be trading with it at the time. An Explorer far away sends them home to the Town Hall.
+- **Skills for the trade.** The new settler gets a job that fits the trader's goods (`assets/createacolony/config/traderjobs.json`): its skill at level 6 to 10 with ++, a second skill at 3 to 4 with +, the job's trait, and never a trait that rules the job out. They start work at once when a hut for that job has room.
+  - Agriculture: Farmer, Cook or Gatherer. Survival goods: Guard or Hunter. Building materials: Builder or Quarrier. Commodities: Courier. Artisan: Potter or Blacksmith. Furniture: Sawyer. Treasure hunter: Explorer or Prospector. Clothing: Gatherer and Luxuries: Courier until the Tailor and Jeweller come. Traders from other mods: a random job.
+- **Goods.** Each stack the trader was selling, and its money, has a 25% chance (`TraderGoodsChance`) to go to the warehouse. The rest is lost.
+- **A full colony.** They join anyway, but sit at the Tavern (or the Town Hall) and do nothing. Their window says "waiting at the Tavern for room in the colony". When the population cap goes up they start work. They don't count towards the cap while they wait.
+- **The house comes down.** A builder takes the trader's house down without being asked, after any building work orders. It shows in the Builder's Hut's Work orders tab and the Town Hall as "Hilda's old house", with Cancel. The box is the structure the world placed (or the claim it had). Everything comes down from the top except natural ground, soil, plants, standing trees, snow and colony buildings. **Clutter** (the decorations you need glue to pick up) is destroyed; pick it up yourself with glue first if you want it. Everything else, and what is in chests, goes to the builder's hut. Houses more than 400 blocks from the Town Hall are left (`TraderTeardownMaxDistance`). Turn it off with `TraderHouseTeardown: false`.
+
 ## Config (`ModConfig/createacolony.json`)
 - `Permadeath` (default `true`): settlers who die are gone. Set `false` to have them knocked out and recover after `DownedRecoveryDays`.
 - `StartingSettlersMin` / `StartingSettlersMax` (default 3 / 4).

@@ -41,6 +41,7 @@ public partial class ColonyManager
         if (hut.Removing) return "createacolony:remove-no-workers";
         if (!citizen.Alive || citizen.Visitor) return "createacolony:bad-citizen";
         if (citizen.IsChild) return "createacolony:child-no-job";
+        if (citizen.WaitingForRoom) return "createacolony:waiting-no-job";
         if (IncapableOfJob(citizen, job) != null) return "createacolony:job-incapable";
         var workers = WorkersAt(colony, hut);
         if (workers.Contains(citizen)) return null;

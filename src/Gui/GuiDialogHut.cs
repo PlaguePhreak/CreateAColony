@@ -1527,8 +1527,9 @@ public class GuiDialogHut : GuiDialog
                 .AddStaticText(StatusText(o), GuiKit.Detail().WithColor(GuiStyle.ActiveButtonTextColor), ElementBounds.Fixed(10, y + 30, Width - 150, 22));
             if (ViewerRole >= ColonyRole.Officer)
             {
-                int id = o.BuildingId;
-                composer.AddSmallButton(Lang.Get("createacolony:build-cancel"), () => Send(ColonyAction.CancelBuild, id), ElementBounds.Fixed(Width - 130, y + 14, 120, 28));
+                int id = o.TeardownId > 0 ? o.TeardownId : o.BuildingId;
+                var action = o.TeardownId > 0 ? ColonyAction.CancelTeardown : ColonyAction.CancelBuild;
+                composer.AddSmallButton(Lang.Get("createacolony:build-cancel"), () => Send(action, id), ElementBounds.Fixed(Width - 130, y + 14, 120, 28));
             }
             y += OrderRowHeight;
         }
@@ -1665,7 +1666,7 @@ public class GuiDialogHut : GuiDialog
         : Lang.Get("createacolony:build-status", b.TargetLevel, b.ProgressPercent, Lang.Get("createacolony:buildstatus-" + b.Status));
 
     /// <summary>A work order's title in the lists: the building and the level it goes to, or that it comes down.</summary>
-    internal static string OrderTitle(BuildingView o) => o.Removing
+    internal static string OrderTitle(BuildingView o) => o.TeardownId > 0 ? Lang.Get("createacolony:teardown-name", o.Name) : o.Removing
         ? Lang.Get("createacolony:order-remove", o.Name)
         : Lang.Get("createacolony:building-" + o.Type) + " " + Lang.Get("createacolony:order-level", o.TargetLevel);
 

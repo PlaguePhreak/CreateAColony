@@ -230,12 +230,15 @@ public partial class ColonyManager : ModSystem
     void OnColonyTick(float dt)
     {
         double now = sapi.World.Calendar.TotalDays;
+        LiftAllTraderClaims();
         foreach (var colony in colonies.Values)
         {
             if (sapi.World.BlockAccessor.GetChunkAtBlockPos(colony.TownHallPos) == null) continue;
             EnsureCoreBuildings(colony);
             RefreshClaim(colony);
             TickWanderers(colony, now);
+            TickTraders(colony);
+            TickWaitingForRoom(colony);
             TickFamilies(colony, now);
             EnsureSkills(colony);
             EnsureTraits(colony);

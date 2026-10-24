@@ -60,7 +60,7 @@ public partial class ColonyManager
     /// member who is not knocked out.
     /// </summary>
     public static bool IsJobless(CitizenRecord citizen) =>
-        string.IsNullOrEmpty(citizen.JobCode) && citizen.Alive && !citizen.Visitor && !citizen.IsChild && !citizen.IsDowned;
+        string.IsNullOrEmpty(citizen.JobCode) && citizen.Alive && !citizen.Visitor && !citizen.WaitingForRoom && !citizen.IsChild && !citizen.IsDowned;
 
     // ---- Home plots -----------------------------------------------------------------------
 

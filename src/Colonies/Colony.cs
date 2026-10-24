@@ -124,6 +124,12 @@ public class CitizenRecord
     /// 0 to SaturationMax, as the player's nutrition bars: eating fills a group, and it drains with hunger.
     /// </summary>
     [ProtoMember(62)] public List<float> Nutrition = new();
+    /// <summary>A former trader who joined while the colony was full: sits at the Tavern doing nothing until there is room.</summary>
+    [ProtoMember(240)] public bool WaitingForRoom;
+    /// <summary>The trade of a trader who joined the colony ("foods", "survivalgoods" ...), empty for everyone else.</summary>
+    [ProtoMember(241)] public string FormerTrade = "";
+    /// <summary>The job a former trader takes once there is room and a hut for it.</summary>
+    [ProtoMember(242)] public string PlannedJob = "";
 
     public bool IsDowned => DownedUntilTotalDays > 0;
     public bool IsChild => GrowsUpTotalDays > 0;
@@ -423,6 +429,28 @@ public class ColonyEvent
     [ProtoMember(3)] public List<string> Args = new();
 }
 
+/// <summary>A trader's old house for a builder to take down: everything in the box but natural ground and plants.</summary>
+[ProtoContract]
+public class TeardownOrder
+{
+    [ProtoMember(1)] public int Id;
+    /// <summary>The trader's name, for "Take down Hilda's old house".</summary>
+    [ProtoMember(2)] public string Owner = "";
+    [ProtoMember(3)] public int X1;
+    [ProtoMember(4)] public int Y1;
+    [ProtoMember(5)] public int Z1;
+    [ProtoMember(6)] public int X2;
+    [ProtoMember(7)] public int Y2;
+    [ProtoMember(8)] public int Z2;
+    [ProtoMember(9)] public int BuilderCitizenId;
+    /// <summary>Blocks there were to take down when the order was made, for the progress bar.</summary>
+    [ProtoMember(10)] public int Total;
+    [ProtoMember(11)] public int Done;
+
+    public Cuboidi Area => new(X1, Y1, Z1, X2, Y2, Z2);
+    public BlockPos Center => new((X1 + X2) / 2, Y1, (Z1 + Z2) / 2);
+}
+
 /// <summary>Someone at the Tavern who joins the colony for a price in rusty gears.</summary>
 [ProtoContract]
 public class RecruitOffer
@@ -615,6 +643,9 @@ public class Colony
     [ProtoMember(90)] public List<Building> DerelictMines = new();
     /// <summary>Where the gatherer picked up ore bits: likely a deposit below, for the prospectors to check.</summary>
     [ProtoMember(91)] public List<OreHint> OreHints = new();
+    /// <summary>Houses of traders who joined the colony, for a builder to take down (ColonyManager.Traders.cs).</summary>
+    [ProtoMember(240)] public List<TeardownOrder> Teardowns = new();
+    [ProtoMember(241, IsRequired = true)] public int NextTeardownId = 1;
 
     [ProtoAfterDeserialization]
     void AfterLoad() => LinkMines();

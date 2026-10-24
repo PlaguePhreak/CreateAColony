@@ -41,7 +41,7 @@ public partial class ColonyManager
             {
                 foreach (var citizen in colony.Citizens)
                 {
-                    if (!citizen.Alive || citizen.IsDowned || !WorksFarOut(citizen.JobCode)) continue;
+                    if (!citizen.Alive || citizen.IsDowned || !WorksFarOut(citizen.JobCode) && !colony.Teardowns.Any(t => t.BuilderCitizenId == citizen.CitizenId)) continue;
                     // The worker plans every trip from its hut and takes what it gathered there, so a hut no player is
                     // near stays loaded too; without it the worker finds no hut storage and stops.
                     if (citizen.WorkplacePos is { } hutPos && FarFromPlayers(players, hutPos.ToVec3d(), GlobalConstants.DefaultSimulationRange))
