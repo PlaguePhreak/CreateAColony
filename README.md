@@ -544,8 +544,8 @@ Smithing skill grows with both jobs.
   to hunt, danger (wolves, bears, drifters and the like), translocators and mountains. When it has seen
   everything it starts over after `ExplorerRevisitDays` (7). New Exploring skill.
 - The **gatherer** forages up to `GathererRadius` (48) blocks out: ripe berries and fruit, mushrooms that are
-  safe to eat (going by what eating them does), and loose stones, flints and sticks on unclaimed land only
-  (`GathererPicksUpStones`). Around wherever it works it marks berry bushes, fruit trees, mushrooms (poisonous
+  safe to eat (going by what eating them does), and loose stones, flints and sticks on unclaimed or colony land,
+  not in or next to a building (`GathererPicksUpStones`, 0.84.0). Around wherever it works it marks berry bushes, fruit trees, mushrooms (poisonous
   ones apart), wild crops, cattails, resin and wild bees. With nothing to pick it walks out to look around at
   most every two minutes. New Foraging skill.
 - **Colony markers** is a new world map layer (`Map/ColonyMarkerMapLayer.cs`), listed after the game's Owned
@@ -700,6 +700,11 @@ before shipping converted blueprints.
   (couriers keep that many in the tower) and Statistics.
 
 ### The Town Hall window (0.24.0)
+
+### Gatherer fix (0.84.0)
+- The gatherer only picked up loose stones on unclaimed land, but the Town Hall claims everything around the hut,
+  so it found nothing and kept looking around. Now it also picks them up on the colony's own land, except in or
+  within two blocks of a building. The Gatherer's Hut window shows how many things are ready to pick.
 
 ### Settlers move like players (0.83.0)
 - A settler holding a torch or lantern holds it up the way a player does (`HoldLightsLikePlayers`).

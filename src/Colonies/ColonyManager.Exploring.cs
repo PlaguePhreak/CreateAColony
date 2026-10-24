@@ -136,11 +136,29 @@ public partial class ColonyManager
         if (path.StartsWith("mushroom-")) return IsPoisonousMushroom(block) ? null : "mushroom";
         if (Config.GathererPicksUpStones && (path.StartsWith("loosestones-") || path.StartsWith("looseflints-") || path.StartsWith("loosestick")))
         {
-            // Only on land no one has claimed, so stones placed on purpose stay.
-            var claims = sapi.World.Claims.Get(pos);
-            return claims == null || claims.Length == 0 ? "loose" : null;
+            // On open land or the colony's own, but not in or beside a building, so stones placed on purpose stay.
+            return CanWorkAt(colony, pos) && !NearBuilding(colony, pos) ? "loose" : null;
         }
         return null;
+    }
+
+    /// <summary>Each colony's building footprints, two blocks wider all round, and when they were worked out.</summary>
+    readonly Dictionary<string, (long Ms, List<Cuboidi> Boxes)> buildingBoxes = new();
+
+    /// <summary>True when a spot is in a colony building or within two blocks of one.</summary>
+    bool NearBuilding(Colony colony, BlockPos pos)
+    {
+        long now = sapi.World.ElapsedMilliseconds;
+        if (!buildingBoxes.TryGetValue(colony.ColonyId, out var cached) || now - cached.Ms > 30_000)
+        {
+            var boxes = colony.Buildings.Select(b =>
+            {
+                var box = Footprint(b);
+                return new Cuboidi(box.X1 - 2, box.Y1 - 2, box.Z1 - 2, box.X2 + 3, box.Y2 + 3, box.Z2 + 3);
+            }).ToList();
+            buildingBoxes[colony.ColonyId] = cached = (now, boxes);
+        }
+        return cached.Boxes.Any(b => b.Contains(pos.X, pos.Y, pos.Z));
     }
 
     /// <summary>Notes every berry bush, fruit tree branch, mushroom and loose stone in a chunk column.</summary>
@@ -253,5 +271,9 @@ public partial class ColonyManager
     }
 
     /// <summary>The Gatherer's Hut window line: how many markers it put down.</summary>
-    string GathererInfo(Colony colony, Building hut) => Lang.Get("createacolony:gatherer-progress", MarkerCount(colony, hut));
+    string GathererInfo(Colony colony, Building hut)
+    {
+        int ready = scanners.TryGetValue((hut.BuildingId, "forage"), out var scanner) ? scanner.Found.Count(f => f.Value) : 0;
+        return Lang.Get("createacolony:gatherer-progress", MarkerCount(colony, hut), ready);
+    }
 }
