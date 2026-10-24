@@ -33,6 +33,7 @@ def piece(name,turns=0):
         for y in range(sy):
             for z in range(sz):
                 v=B.get((x,y,z))
+                if v and "waypoint" in v and not ent and y>0: v=None
                 if v and ("waypoint" in v or nat(v)): continue
                 cells[(x-ax,y-ay,z-az)]= 'dig' if v is None else v
     def edge(face,i):
@@ -58,7 +59,7 @@ def piece(name,turns=0):
             for y in range(min(4,sy)):
                 st=-1
                 for i in range(L+1):
-                    x,z=edge(face,min(i,L-1)); em=i<L and (x,y,z) not in B
+                    x,z=edge(face,min(i,L-1)); em=i<L and ((x,y,z) not in B or 'waypoint' in B[(x,y,z)])
                     if em and st<0: st=i
                     if em or st<0: continue
                     if best is None or i-1-st>best[1]-best[0]: best=(st,i-1)
@@ -79,7 +80,7 @@ def grow(seed,count,repeats=0):
     rnd=random.Random(seed)
     ent=deeper(piece('entrance'),repeats)
     placed=[(ent,(0,0,0))]
-    lib={(n,t):piece(n,t) for n in ('tee','straight') for t in range(4)}
+    lib={(n,t):piece(n,t) for n in ('tee','straight','corner') for t in range(4)}
     while len(placed)-1<count:
         sides=[]
         for p,o in placed:

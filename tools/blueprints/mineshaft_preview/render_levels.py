@@ -18,7 +18,7 @@ def grow(seed,levels,count):
     for k in range(levels):
         placed.append((l,(e['shaft'][0],floor-1-k*l['period'],e['shaft'][1])))
     hub=set(at(o,c) for p,o in placed for c in p['cells'])
-    lib={(n,t):mine.piece(n,t) for n in ('tee','straight') for t in range(4)}
+    lib={(n,t):mine.piece(n,t) for n in ('tee','straight','corner') for t in range(4)}
     secs=[]
     def lvl(y): return max(1,min(1+levels,round((floor-y)/l['period'])+1))
     stats=[0,0]

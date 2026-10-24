@@ -366,7 +366,7 @@ public class BlueprintLibrary
     /// from the entrance alone, as before.
     /// </summary>
     public const string MineLevel = "level";
-    public static readonly string[] MineSections = { "cross", "tee", "straight" };
+    public static readonly string[] MineSections = { "cross", "tee", "straight", "corner" };
 
     readonly Dictionary<(string, string, int), MinePiece?> mineCache = new();
 
@@ -469,6 +469,13 @@ public class BlueprintLibrary
             blocks.TryGetValue((dx, dy, dz), out var block);
             // A waypoint sits in the floor where the tunnels start: the miner lays the floor's planks there (the
             // block beside it in the floor), never fill.
+            // In a section, waypoints standing above the floor fill a doorway (Aaron's corner marks its far end so):
+            // they are dug out like the air around them.
+            if (block != null && IsWaypoint(block) && !entrance && !level && dy > 0)
+            {
+                digs.Add(new BuildStep(dx - ax, dy - ay, dz - az, 0));
+                continue;
+            }
             if (block != null && IsWaypoint(block))
             {
                 markers.Add((dx - ax, dy - ay, dz - az));
@@ -500,7 +507,8 @@ public class BlueprintLibrary
         }
 
         // The open sides of a section, in its bottom four layers: the middle of the widest gap along each edge,
-        // on its floor (the bottom layer), so pieces line up by their ways through whatever their size.
+        // on its floor (the bottom layer), so pieces line up by their ways through whatever their size. Waypoints
+        // count as gaps: they mark where the next section joins.
         (int From, int To)? Gap(BlockFacing face)
         {
             int length = face.Axis == EnumAxis.X ? sz : sx;
@@ -512,7 +520,7 @@ public class BlueprintLibrary
                 {
                     int x = face == BlockFacing.EAST ? sx - 1 : face == BlockFacing.WEST ? 0 : i;
                     int z = face == BlockFacing.SOUTH ? sz - 1 : face == BlockFacing.NORTH ? 0 : i;
-                    bool empty = i < length && Empty(x, y, z);
+                    bool empty = i < length && (Empty(x, y, z) || blocks.TryGetValue((x, y, z), out var w) && IsWaypoint(w));
                     if (empty && start < 0) start = i;
                     if (empty || start < 0) continue;
                     if (best is not { } b || i - 1 - start > b.To - b.From) best = (start, i - 1);
