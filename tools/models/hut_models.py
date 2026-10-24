@@ -208,6 +208,12 @@ jeweller=shape(["sides","planks","metal","gold","gem"], base+[
   box("RingC",[11,9,10.5],[11.5,9.5,11.5],"gold"), box("RingD",[12.5,9,10.5],[13,9.5,11.5],"gold"),
   box("Gem",[3,9,11],[4.5,10.5,12.5],"gem"),
 ])
+# Healer's Hut: a red cross on the lid, a rolled bandage and a little jar of salve.
+healer=shape(["sides","planks","cross","roll","jar"], base+[
+  box("CrossA",[3,9,6],[8,9.3,7.5],"cross"), box("CrossB",[4.75,9,4.25],[6.25,9.3,9.25],"cross"),
+  box("Roll",[9,9,3],[13,12,6],"roll"), box("RollEnd",[8.6,9.5,3.5],[9,11.5,5.5],"planks"),
+  box("Jar",[9.5,9,9.5],[12.5,12,12.5],"jar"), box("JarLid",[9.2,12,9.2],[12.8,12.6,12.8],"planks"),
+])
 # Armourer's Hut: a helmet on a stand and a coil of chain.
 armourer=shape(["sides","planks","metal","dark"], base+[
   box("Stand",[7,9,7],[9,13,9],"planks"),
@@ -236,5 +242,5 @@ if __name__ == "__main__":
     out = sys.argv[1] if len(sys.argv) > 1 else os.path.join(os.path.dirname(__file__), "../../assets/createacolony/shapes/block")
     for name, (tex, el) in models.items():
         json.dump(shape(tex, base + el), open(f"{out}/{name}.json", "w"), indent=1)
-    for name, model in {"hut-smelter": smelter, "hut-blacksmith": smith, "hut-sawmill": saw, "hut-barracks": barracks, "hut-explorer": explorer, "hut-gatherer": gatherer, "hut-hunter": hunter, "hut-craftsman": craftsman, "hut-tailor": tailor, "hut-jeweller": jeweller, "hut-armourer": armourer, "hut-weaponsmith": weaponsmith, "hut-mineshaftentrance": entrance, "supplycamp": camp, "fieldmarker": crow}.items():
+    for name, model in {"hut-smelter": smelter, "hut-blacksmith": smith, "hut-sawmill": saw, "hut-barracks": barracks, "hut-explorer": explorer, "hut-gatherer": gatherer, "hut-hunter": hunter, "hut-craftsman": craftsman, "hut-tailor": tailor, "hut-jeweller": jeweller, "hut-healer": healer, "hut-armourer": armourer, "hut-weaponsmith": weaponsmith, "hut-mineshaftentrance": entrance, "supplycamp": camp, "fieldmarker": crow}.items():
         json.dump(model, open(f"{out}/{name}.json", "w"), indent=1)

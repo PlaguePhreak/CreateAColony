@@ -130,6 +130,9 @@ public class CitizenRecord
     [ProtoMember(241)] public string FormerTrade = "";
     /// <summary>The job a former trader takes once there is room and a hut for it.</summary>
     [ProtoMember(242)] public string PlannedJob = "";
+    // 280-289: healing (ColonyManager.Healing.cs).
+    /// <summary>The bandage or poultice the settler carries for when it gets hurt, kept apart from its inventory so it is never hauled off.</summary>
+    [ProtoMember(280)] public byte[]? FirstAid;
 
     public bool IsDowned => DownedUntilTotalDays > 0;
     public bool IsChild => GrowsUpTotalDays > 0;

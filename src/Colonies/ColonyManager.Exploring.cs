@@ -151,7 +151,7 @@ public partial class ColonyManager
     /// <summary>
     /// What else lies about that a gatherer can take, by how it is taken: "loose" (stones, flint, sticks, ore bits
     /// and seashells on the ground), "reed" (cattail, papyrus and tule tops, cut the way a knife does, so the plant
-    /// stays) or "dig" (clay and peat on the surface). Null for anything else.
+    /// stays), "dig" (clay and peat on the surface) or "herb" (horsetail and other plants for healing). Null for anything else.
     /// </summary>
     string? WildKind(Block block)
     {
@@ -160,6 +160,8 @@ public partial class ColonyManager
             || path.StartsWith("looseores-") || block is BlockSeashell)) return "loose";
         if (Config.GathererCutsReeds && block is BlockReeds && block.Variant["state"] == "normal") return "reed";
         if (Config.GathererDigsClay && (path.StartsWith("rawclay-") || path.StartsWith("peat-"))) return "dig";
+        // Horsetail and other plants for bandages and poultices (ColonyManager.Healing.cs).
+        if (IsHerb(block)) return "herb";
         return null;
     }
 
@@ -284,6 +286,7 @@ public partial class ColonyManager
                 }
                 scanner.Found[pos] = kind != null;
                 if (kind == null || !MayCollect(hut, ForageKey(pos))) continue;
+                if (kind == "herb" && HerbStocked(colony, hut, ba.GetBlock(pos))) continue;
             }
             else if (!ready) continue;
             if (skip(pos) || !CanWorkAt(colony, pos)) continue;
@@ -324,6 +327,7 @@ public partial class ColonyManager
     {
         string? kind = Forage(colony, pos);
         if (kind == null || !MayCollect(hut, ForageKey(pos))) return false;
+        if (kind == "herb" && HerbStocked(colony, hut, sapi.World.BlockAccessor.GetBlock(pos))) return false;
         if (kind == "fruit")
         {
             if (!PickFruit(colony, hut, worker, pos)) return false;

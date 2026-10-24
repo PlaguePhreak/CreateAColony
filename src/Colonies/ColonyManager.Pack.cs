@@ -156,6 +156,8 @@ public partial class ColonyManager
     public List<ItemStack> EmptyPackAndBags(Colony colony, CitizenRecord citizen)
     {
         var all = PackItems(citizen).Concat(PackBags(citizen)).Concat(ToolBarItems(citizen).OfType<ItemStack>()).Concat(LunchItems(citizen)).ToList();
+        if (FirstAidOf(citizen) is { } aid) all.Add(aid);
+        citizen.FirstAid = null;
         citizen.Pack.Clear();
         citizen.Bags.Clear();
         citizen.ToolBar.Clear();

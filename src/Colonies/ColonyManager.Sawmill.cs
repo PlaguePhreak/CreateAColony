@@ -71,7 +71,7 @@ public partial class ColonyManager
             var output = recipe?.Output?.ResolvedItemStack;
             if (recipe == null || output == null || !recipe.Enabled || recipe.ResolvedIngredients == null) continue;
             // Recipes only some player classes can make are left out, unless this worker counts as that class.
-            if (recipe.RequiresTrait != null && (traits == null || !traits.Contains(recipe.RequiresTrait))) continue;
+            if (recipe.RequiresTrait != null && (traits == null || !(traits.Contains(recipe.RequiresTrait) || traits.Contains("*")))) continue;
             if (output.Collectible.Code.Domain == "createacolony" || !outputOk(output)) continue;
             var parts = recipe.ResolvedIngredients.Where(i => i != null).Select(i => i!).ToList();
             if (parts.Count == 0) continue;

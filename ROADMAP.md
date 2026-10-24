@@ -27,6 +27,7 @@ Everything listed under "What we have" and "Partly done" has been tested in game
 - Primitive Craftsman: a craftsman knaps flint and stones into tool heads and puts them on sticks, making stone tools for the colony (0.103.0, placeholder model and building, not tested yet)
 - Tailor's Hut and Jeweller's Workshop: a tailor makes and mends clothes and leather or linen armor, a jeweller makes jewellery from our own recipes; clothes wear out, and cold or ragged settlers are unhappy (0.113.0, placeholder models, no buildings yet, not tested yet)
 - Armourer's Hut and Weaponsmith's Hut: the Blacksmith split in three; the armourer makes and mends metal armor, the weaponsmith makes weapons (0.114.0, placeholder models, no buildings yet, not tested yet)
+- Healing: badly hurt settlers go home to bed to recover and use a bandage or poultice they carry; a Healer's Hut makes bandages and treats them; settlers make horsetail poultices; the Gatherer picks horsetail (0.117.0, placeholder model, no building yet, not tested yet)
 - Explorer's Hut and Gatherer's Hut: an explorer marks ore, clay, traders, animals and danger on a Colony markers map layer, and a gatherer forages berries, mushrooms and loose stones and marks plants; works with More Map Icons (0.77.0, placeholder models and buildings, not tested yet)
 - Vintage Colonies' own map icons: 120 waypoint icons covering every More Map Icons sheet entry, used by colony markers (0.79.0, not tested yet)
 - A marker icon for every ore, fruit, vegetable, grain, animal, trader and story location, other mods' too (0.80.0, not tested yet)
@@ -69,7 +70,7 @@ Everything listed under "What we have" and "Partly done" has been tested in game
 3. **A request list**: players can see and fill what workers need (the Sawmill came first, in 0.52.0)
 4. **Animal herders and a Tanner**: chickens, pigs, sheep and goats in pens for meat, eggs and hides, and a Tanner who makes leather in barrels
 5. **Ranged guards and a rally banner** (the Barracks came in 0.54.0), then **Raids**: now and then, enemies turn up and attack the player's colony. The player is warned in chat and on the Town Hall window. There are several raid factions, from bandits (who use the settler models) to the game's own monsters such as drifters and shivers.
-6. **Hospital and Graveyard**: a healer with poultices and bandages, and an undertaker who buries the dead
+6. **Graveyard**: an undertaker who buries the dead (the Healer, bandages and poultices came in 0.117.0)
 7. **School, Library and University** with a **research tree** that unlocks faster work and new huts
 8. **Blacksmith** (started in 0.50.0): still to do are repairs, armor, and making the tools workers ask for
 

@@ -19,7 +19,8 @@ namespace CreateAColony.Settlers;
 ///
 /// Before strolling, an idle settler tidies up: a guard drops off what it picked up at its tower, anyone
 /// walks over to items lying nearby to pick them up, a settler without a torch fetches one from its
-/// hut or the warehouse for the dark, and one in rags or cold changes into better clothes from the warehouse.
+/// hut or the warehouse for the dark, one in rags or cold changes into better clothes from the warehouse, and
+/// one without first aid takes a bandage or poultice, or makes a poultice from horsetail (ColonyManager.Healing.cs).
 ///
 /// Now and then, instead of strolling, it sits down for a while as a player does: on a free chair, stool or
 /// bench near its home if there is one, else on the floor where it stands (config SitWhenIdle).
@@ -45,7 +46,7 @@ public class AiTaskSettlerIdle : SettlerTaskBase
     long nextStrollMs;
     long startedMs;
     Vec3d? spot;
-    enum Errand { Stroll, PickUp, Torch, Deposit, Sit, Dress }
+    enum Errand { Stroll, PickUp, Torch, Deposit, Sit, Dress, FirstAid, MakeRemedy }
     Errand errand;
     BlockPos? chestPos;
     BlockPos? seat;
@@ -129,6 +130,15 @@ public class AiTaskSettlerIdle : SettlerTaskBase
             spot = chestPos.ToVec3d().Add(0.5, 0, 0.5);
             return true;
         }
+
+        // No bandage or poultice: take one, or make a poultice where the herbs are (ColonyManager.Healing.cs).
+        if (manager.FirstAidErrand(colony, citizen) is { } aid)
+        {
+            errand = aid.Make ? Errand.MakeRemedy : Errand.FirstAid;
+            chestPos = aid.Chest.Pos.Copy();
+            spot = chestPos.ToVec3d().Add(0.5, 0, 0.5);
+            return true;
+        }
         return false;
     }
 
@@ -146,6 +156,12 @@ public class AiTaskSettlerIdle : SettlerTaskBase
                 break;
             case Errand.Dress:
                 if (entity.World.BlockAccessor.GetBlockEntity(chestPos!) is Vintagestory.GameContent.BlockEntityContainer clothesChest) manager!.ChangeClothesAt(colony, citizen, clothesChest);
+                break;
+            case Errand.FirstAid:
+                if (entity.World.BlockAccessor.GetBlockEntity(chestPos!) is Vintagestory.GameContent.BlockEntityContainer aidChest) manager!.TakeFirstAid(colony, citizen, aidChest);
+                break;
+            case Errand.MakeRemedy:
+                manager!.MakeRemedy(colony, citizen);
                 break;
             case Errand.Deposit:
                 if (citizen.WorkplacePos != null && manager!.GetBuilding(colony, citizen.WorkplacePos) is { } tower)
@@ -243,6 +259,8 @@ public class AiTaskSettlerIdle : SettlerTaskBase
         Errand.Torch => Lang.Get("createacolony:activity-fetching-torch"),
         Errand.Deposit => Lang.Get("createacolony:activity-dropping-off"),
         Errand.Dress => Lang.Get("createacolony:activity-changing-clothes"),
+        Errand.FirstAid => Lang.Get("createacolony:activity-fetching-first-aid"),
+        Errand.MakeRemedy => Lang.Get("createacolony:activity-making-poultice"),
         _ => Lang.Get(citizen.Visitor ? "createacolony:activity-visitor-waiting" : "createacolony:activity-idle")
     };
 }

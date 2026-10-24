@@ -38,6 +38,8 @@ public partial class ColonyManager
 
         var building = new Building { BuildingId = colony.NextBuildingId++, Type = type, HutPos = hutPos.Copy(), Rotation = rotation };
         colony.Buildings.Add(building);
+        // A new Healer's Hut keeps a few bandages from the start (ColonyManager.Healing.cs).
+        if (type == BuildingTypes.Healer) KeepBandagesAtStart(building);
         LogEvent(colony, "event-placed", "@building-" + type);
         MarkDirty(colony);
         RefreshClaim(colony);

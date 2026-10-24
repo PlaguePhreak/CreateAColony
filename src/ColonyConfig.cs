@@ -316,6 +316,7 @@ public class ColonyConfig
         ["craftsman"] = 30,
         ["tailor"] = 30,
         ["jeweller"] = 30,
+        ["healer"] = 30,
         ["barracks"] = 40,
         ["explorer"] = 30,
         ["gatherer"] = 30,
@@ -617,7 +618,9 @@ public class ColonyConfig
         // Only jewellery (config JewelleryWords): our own recipes and any the game or other mods have.
         ["jeweller"] = new[] { "clothes" },
         // Metal armor only (leather and linen armor is the Tailor's), put together from the chains, scales and plates it smiths.
-        ["armourer"] = new[] { "armor" }
+        ["armourer"] = new[] { "armor" },
+        // Bandages, and poultices too (any settler can make a poultice, config HomemadeRemedies).
+        ["healer"] = new[] { "bandage", "poultice" }
     };
     /// <summary>The mods whose things a hut may make, by hut type; "game" alone where a hut is not listed.</summary>
     public System.Collections.Generic.Dictionary<string, string[]> HutRecipeDomains = new()
@@ -632,7 +635,9 @@ public class ColonyConfig
     public System.Collections.Generic.Dictionary<string, string[]> HutRecipeTraits = new()
     {
         ["tailor"] = new[] { "clothier" },
-        ["jeweller"] = new[] { "tinkerer" }
+        ["jeweller"] = new[] { "tinkerer" },
+        // "*": the Healer may make healing recipes whatever class they are for.
+        ["healer"] = new[] { "*" }
     };
     /// <summary>The tools a hut's recipes may use, by hut type (first part of the tool's code). Recipes needing another tool are left out.</summary>
     public System.Collections.Generic.Dictionary<string, string[]> HutRecipeTools = new()
@@ -644,7 +649,8 @@ public class ColonyConfig
         // Tailor's Delight adds needles and awls to many clothing recipes.
         ["tailor"] = new[] { "knife", "shears", "scissors", "needle", "awl" },
         ["jeweller"] = new[] { "hammer", "chisel" },
-        ["armourer"] = new[] { "hammer" }
+        ["armourer"] = new[] { "hammer" },
+        ["healer"] = new[] { "knife", "shears", "scissors" }
     };
     /// <summary>Seconds a worker takes to craft one recipe at its hut.</summary>
     public float HutRecipeSecondsPerCraft = 4f;
@@ -652,6 +658,36 @@ public class ColonyConfig
     public int HutRecipeMaxInputs = 9;
     /// <summary>The most times over a worker fetches or asks couriers for the things of one recipe at once.</summary>
     public int HutRecipeBatch = 4;
+
+    // Healing: going home to recover, first aid, the Healer and herbs (ColonyManager.Healing.cs)
+    /// <summary>Hurt settlers (not guards) go home to their bed to recover.</summary>
+    public bool RecoverAtHome = true;
+    /// <summary>A settler goes home to recover below this share of its health, and gets up again at RecoverUntilHealth.</summary>
+    public float RecoverBelowHealth = 0.4f;
+    public float RecoverUntilHealth = 0.9f;
+    /// <summary>Health a settler resting in bed gets back each in-game hour, on top of what it heals anyway.</summary>
+    public float RestHealPerHour = 2f;
+    /// <summary>Settlers carry one bandage or poultice, taken from the warehouse, a Healer's Hut or a chest at home, and use it when badly hurt.</summary>
+    public bool SettlersCarryFirstAid = true;
+    /// <summary>Settlers with no first aid to take make their own from these (first part of the code, as in poultice-reed-horsetail).</summary>
+    public bool SettlersMakeRemedies = true;
+    public string[] HomemadeRemedies = { "poultice" };
+    /// <summary>The tools a settler may use to make one (it must carry the tool already).</summary>
+    public string[] HomemadeRemedyTools = { "knife" };
+    /// <summary>The Healer walks to settlers recovering in bed and treats them with what its hut has, healing this much more.</summary>
+    public bool HealerTreatsPatients = true;
+    public float HealerHealBonus = 1.5f;
+    /// <summary>Seconds the Healer takes to treat someone.</summary>
+    public float HealerTreatSeconds = 4f;
+    /// <summary>How many of each bandage a new Healer's Hut keeps on its Crafting recipes tab.</summary>
+    public int HealerStartKeep = 4;
+    /// <summary>
+    /// The Gatherer picks herbs: plants that go into the game's bandage and poultice recipes, and blocks matching
+    /// GathererHerbs. It stops taking a herb once the colony has GathererHerbKeep of it.
+    /// </summary>
+    public bool GathererPicksHerbs = true;
+    public string[] GathererHerbs = { "flower-horsetail-*" };
+    public int GathererHerbKeep = 16;
 
     // Clothes, the Tailor and the Jeweller (ColonyManager.Clothing.cs)
     /// <summary>How much of its condition (0 to 1) a worn piece of clothing loses each in-game day. 0.01 wears it out in 100 days.</summary>

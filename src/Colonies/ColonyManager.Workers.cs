@@ -55,6 +55,7 @@ public partial class ColonyManager
         BuildingTypes.Craftsman => Jobs.Craftsman,
         BuildingTypes.Tailor => Jobs.Tailor,
         BuildingTypes.Jeweller => Jobs.Jeweller,
+        BuildingTypes.Healer => Jobs.Healer,
         BuildingTypes.GuardTower => Jobs.Guard,
         BuildingTypes.Barracks => Jobs.Guard,
         _ => GatherHuts.TryGetValue(type, out var kind) ? kind.Job : null
@@ -145,6 +146,7 @@ public partial class ColonyManager
         if (hut.Type == BuildingTypes.Craftsman) return CraftsmanHutJunk(colony, hut);
         if (hut.Type == BuildingTypes.Tailor) return TailorHutJunk(colony, hut);
         if (hut.Type == BuildingTypes.Jeweller) return JewellerHutJunk(colony, hut);
+        if (hut.Type == BuildingTypes.Healer) return HealerHutJunk(colony, hut);
         if (IsGuardPost(hut.Type)) return GuardTowerJunk(hut);
         var kind = GatherHuts[hut.Type];
         var worker = WorkerAt(colony, hut, kind.Job);
@@ -270,6 +272,7 @@ public partial class ColonyManager
         if (hut.Type == BuildingTypes.Sawmill) lines.Add(SawmillInfo(hut));
         if (hut.Type == BuildingTypes.Craftsman) lines.Add(CraftsmanInfo(hut));
         if (hut.Type == BuildingTypes.Tailor) lines.Add(TailorInfo(colony, hut));
+        if (hut.Type == BuildingTypes.Healer) lines.Add(HealerInfo(colony, hut));
         if (HasHutRecipes(hut.Type) && hut.RecipeKeep.Count > 0) lines.Add(HutRecipesInfo(hut));
         if (hut.Type == BuildingTypes.Prospector) lines.Add(ProspectorInfo(colony, hut));
         if (hut.Type == BuildingTypes.Miner) lines.Add(MineInfo(colony, hut));

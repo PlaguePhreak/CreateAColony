@@ -1,0 +1,32 @@
+{
+	"code": "hut-healer",
+	"class": "BlockColonyHut",
+	"entityClass": "ColonyHut",
+	"attributes": {
+		"buildingType": "healer",
+		// The hut's own storage; chests next to it add more.
+		"defaultType": "hut",
+		"inventoryClassName": "colonyhut",
+		"quantitySlots": { "hut": 25 },
+		"quantityColumns": { "hut": 5 },
+		"dialogTitleLangCode": { "hut": "createacolony:hut-storage" }
+	},
+	"creativeinventory": { "general": ["*"], "vintagecolonies": ["*"] },
+	"blockmaterial": "Wood",
+	"drawtype": "json",
+	// The seed of the Healer's Hut. Simple placeholder model: a crate with a red cross, a rolled bandage and a jar.
+	"shape": { "base": "createacolony:block/hut-healer" },
+	"textures": {
+		"sides": { "base": "game:block/wood/table/aged/sides" },
+		"planks": { "base": "game:block/wood/planks/aged1" },
+		"cross": { "base": "game:block/cloth/linen/red" },
+		"roll": { "base": "game:block/wood/debarked/aged" },
+		"jar": { "base": "game:block/metal/ingot/iron" }
+	},
+	"sideopaque": { "all": false },
+	"sidesolid": { "all": false },
+	"emitSideAo": { "all": false },
+	"lightAbsorption": 0,
+	"resistance": 2,
+	"sounds": { "place": "game:block/planks", "break": "game:block/planks", "hit": "game:block/planks" }
+}

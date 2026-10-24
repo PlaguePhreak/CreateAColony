@@ -203,6 +203,14 @@ All three are on the new Mining tab of the Builder's Wand and use placeholder bl
 - All three use the Smithing skill. A survival goods trader can now also become a Weaponsmith.
 - Both huts start with no building: place the block and build around it yourself.
 
+## Healing, the Healer and poultices (0.117.0)
+- **Going home to recover.** A settler below 40% health (`RecoverBelowHealth`) goes home and lies in its bed until it is back to 90% (`RecoverUntilHealth`). In bed it heals 2 health an in-game hour faster (`RestHealPerHour`). Running from an attacker comes first, and a very hungry settler gets up to eat. Guards don't: they pull back to their tower as before. Turn it off with `RecoverAtHome: false`.
+- **First aid.** Each settler carries one bandage or poultice. An idle settler with none takes the best one from a chest at home, a Healer's Hut or the warehouse. When it lies down to recover, it uses it. It sits in its own slot, so couriers never haul it off, and it drops with the settler's things if it dies.
+- **Horsetail poultice.** A settler with no first aid to take makes a poultice from the game's own recipe, from what is in its home chests or the warehouse. It keeps one and leaves the rest in the chest. Turn it off with `SettlersMakeRemedies: false`.
+- **Healer's Hut** (new job: Healer, skill Medicine). Its Crafting recipes tab lists the game's bandage and poultice recipes, and a new hut keeps 4 of each bandage. Bandages need linen, which the Farmer can make on its own tab. When a settler lies in bed recovering, the healer takes a bandage from the hut, walks to the bed and treats them. That heals half as much again as a bandage used on oneself (`HealerHealBonus`). Treating always comes before making things.
+- **Herbs for the Gatherer.** The Gatherer picks horsetail and any other plant the game's bandage and poultice recipes take, and brings it to its hut. Each herb has a row on its Allowed to collect tab. It leaves a herb alone once the colony has 16 of it (`GathererHerbKeep`), so it does not strip the land. Turn it off with `GathererPicksHerbs: false`.
+- The hut starts with no building: place the block (planks around linen) and build around it yourself.
+
 ## Recommended mods
 These work well with Vintage Colonies. Install them separately.
 - **Tailor's Delight** (Tels and Phiwa): more tools and materials for the Tailor.

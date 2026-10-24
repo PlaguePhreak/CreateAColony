@@ -892,6 +892,7 @@ public static class BuildingTypes
     public const string Craftsman = "craftsman";
     public const string Tailor = "tailor";
     public const string Jeweller = "jeweller";
+    public const string Healer = "healer";
     public const string Explorer = "explorer";
     public const string Gatherer = "gatherer";
     public const string Hunter = "hunter";
