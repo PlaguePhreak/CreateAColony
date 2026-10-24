@@ -573,6 +573,22 @@ Smithing skill grows with both jobs.
 - 0.79.1: the Add waypoint and Edit waypoint windows lay the icons out wider (`Map/WaypointIconGrid.cs`), about
   twice as wide as tall and as wide as the screen allows, so they no longer run off the bottom of the screen.
 
+### A marker for every ore, crop, animal, trader and story place (0.80.0)
+- When the game starts, Vintage Colonies makes a list of every ore, fruit, vegetable, grain, animal, trader and
+  story location there is, the game's and other mods' (`Map/MarkerSubjects.cs`), and gives each one a waypoint
+  icon. Ores come from ore blocks, food from items whose food group is fruit, vegetable or grain (another mod's
+  raw food only, not what is cooked from it), animals and traders from creature types, and story locations
+  from every `worldgen/storystructures.json`.
+- Things with a picture of their own use it (the worldmap icons, or one of 106 pictures in
+  `textures/icons/vcart/`, also made by `tools/icons/marker_icons.py`). Things that share a picture, or have
+  none (most other mods' things), get their kind's picture with letters from their name in the corner.
+- The icons are added to the Add waypoint window with their names, so players can use them too.
+- Explorers and Gatherers mark each thing with its own icon and name: each ore, each wild crop, berry bush and
+  fruit tree by what it grows, each animal and trader. Animals that hunt players are marked as danger.
+  Explorers also mark story locations they come near, under Landmarks. Two different things close together
+  both get a marker; markers put down before 0.80.0 keep their old icons.
+- The server and every player make the same list, so the names of the icons match. Not tested in game.
+
 ### The barracks (0.54.0)
 - **Barracks** (2 bows + 7 planks), with a simple placeholder model and a placeholder level 1 blueprint (an open
   plank shed). It is on the wand's Military tab. It is a second kind of guard post and works like a Guard

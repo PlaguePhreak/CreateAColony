@@ -4,6 +4,7 @@ using System.Linq;
 using Vintagestory.API.Common;
 using Vintagestory.API.Common.Entities;
 using Vintagestory.API.Config;
+using Vintagestory.API.Datastructures;
 using Vintagestory.API.MathTools;
 using Vintagestory.API.Server;
 using Vintagestory.GameContent;
@@ -13,15 +14,15 @@ namespace CreateAColony.Colonies;
 /// <summary>
 /// Map markers the colony's settlers put down: what the Explorer and Gatherer find, and where settlers fell.
 /// The colony keeps them, and every member sees them on the "Colony markers" layer of their world map
-/// (Map.ColonyMarkerMapLayer). The icons are More Map Icons' (moreicons) when a player has that mod, and the
-/// game's own icons when they don't.
+/// (Map.ColonyMarkerMapLayer). Each ore, fruit, vegetable, grain, animal, trader and story location has an icon
+/// of its own (Map.MarkerSubjects), other mods' too; the kinds below give the group, colour and spare icon.
 /// </summary>
 public partial class ColonyManager
 {
     /// <summary>
-    /// A kind of marker: the group that switches it on and off on the hut window, the icon to use (a More Map
-    /// Icons one), the game's own icon when a player does not have that, the waypoint colour, and the lang key
-    /// of its name. The colours are the ones More Map Icons suggests names for.
+    /// A kind of marker: the group that switches it on and off on the hut window, the icon to use, the game's own
+    /// icon if that one is missing, and the waypoint colour. The "-any" kinds are for things with their own icon
+    /// (Map.MarkerSubjects); the rest are kept for markers put down before 0.80.0, and for things without one.
     /// </summary>
     public readonly record struct MarkerKind(string Code, string Group, string Icon, string Fallback, string Color);
 
@@ -118,6 +119,15 @@ public partial class ColonyManager
         new MarkerKind("reeds-cattail", "reeds", "vc-cattail", "circle", "#8D6E63"),
         new MarkerKind("resin-tree", "resin", "vc-resin", "circle", "#FFB300"),
         new MarkerKind("bees-hive", "bees", "vc-bees", "bee", "#FFD54F"),
+        // Things with an icon of their own (Map.MarkerSubjects).
+        new MarkerKind("ore-any", "ore", "vc-ingots", "pick", White),
+        new MarkerKind("berries-any", "berries", "vc-berries", "circle", "#AB47BC"),
+        new MarkerKind("fruit-any", "fruit", "vc-fruittree", "circle", "#FB8C00"),
+        new MarkerKind("crops-any", "crops", "vc-sprout", "circle", "#94C948"),
+        new MarkerKind("animal-any", "animals", "vc-deer", "circle", Game),
+        new MarkerKind("danger-any", "danger", "vc-deadly", "circle", Danger),
+        new MarkerKind("trader-any", "traders", "vc-trader", "trader", White),
+        new MarkerKind("story-any", "landmarks", "vc-ruins", "ruins", "#FDBB3A"),
         // A settler fell here.
         new MarkerKind("grave", "graves", "vc-rip", "gravestone", "#C8C8C8"),
     }.ToDictionary(k => k.Code);
@@ -135,6 +145,16 @@ public partial class ColonyManager
         ("olivine", "ore-olivine"), ("quartz", "ore-quartz"), ("saltpeter", "ore-saltpeter"), ("halite", "ore-salt"), ("rocksalt", "ore-salt"),
     };
 
+    /// <summary>The element icon for an ore ("nativecopper" is vc-copper), or null.</summary>
+    public static string? OreElementIcon(string ore)
+    {
+        foreach (var (orePart, kind) in OreParts)
+        {
+            if (ore.Contains(orePart)) return Kinds[kind].Icon;
+        }
+        return null;
+    }
+
     public static string MarkerGroup(string kind) => Kinds.TryGetValue(kind, out var k) ? k.Group : "";
 
     /// <summary>The icon, the game's icon for players without More Map Icons, and the colour of a kind of marker.</summary>
@@ -144,12 +164,13 @@ public partial class ColonyManager
     /// Puts a marker down for the colony, unless one of the same kind is already close by, the hut is set not to
     /// mark that group, or the colony has as many markers as the config allows. True when a marker was added.
     /// </summary>
-    public bool AddMarker(Colony colony, Building? hut, string kind, Vec3d pos, string? title = null, int citizenId = 0)
+    public bool AddMarker(Colony colony, Building? hut, string kind, Vec3d pos, string? title = null, int citizenId = 0, Map.MarkerSubject? subject = null)
     {
         if (!Kinds.TryGetValue(kind, out var def)) return false;
         if (hut != null && hut.MarkersOff.Contains(def.Group)) return false;
         double spacing = Config.MarkerSpacing.GetValueOrDefault(def.Group, 32);
-        if (colony.Markers.Any(m => m.Kind == kind && (m.X - pos.X) * (m.X - pos.X) + (m.Z - pos.Z) * (m.Z - pos.Z) < spacing * spacing)) return false;
+        string icon = subject?.Icon ?? "";
+        if (colony.Markers.Any(m => m.Kind == kind && m.Icon == icon && (m.X - pos.X) * (m.X - pos.X) + (m.Z - pos.Z) * (m.Z - pos.Z) < spacing * spacing)) return false;
         if (hut != null && colony.Markers.Count(m => m.BuildingId != 0) >= Config.MaxColonyMarkers) return false;
 
         colony.Markers.Add(new ColonyMarker
@@ -157,7 +178,8 @@ public partial class ColonyManager
             MarkerId = colony.NextMarkerId++,
             Kind = kind,
             X = pos.X, Y = pos.Y, Z = pos.Z,
-            Title = title ?? Lang.Get("createacolony:marker-" + kind),
+            Title = title ?? subject?.Name ?? Lang.Get("createacolony:marker-" + kind),
+            Icon = icon,
             BuildingId = hut?.BuildingId ?? 0,
             TotalDays = sapi.World.Calendar.TotalDays,
             CitizenId = citizenId
@@ -233,9 +255,8 @@ public partial class ColonyManager
                 pos.Y = y;
                 var block = ba.GetBlock(pos);
                 if (block.Id == 0) continue;
-                string? kind = BlockMarker(block, pos);
-                if (kind == null || !wanted.Contains(MarkerGroup(kind))) continue;
-                if (AddMarker(colony, hut, kind, pos.ToVec3d().Add(0.5, 0.5, 0.5))) placed++;
+                if (BlockMarker(block, pos) is not var (kind, subject) || !wanted.Contains(MarkerGroup(kind))) continue;
+                if (AddMarker(colony, hut, kind, pos.ToVec3d().Add(0.5, 0.5, 0.5), subject: subject)) placed++;
             }
         }
 
@@ -247,27 +268,87 @@ public partial class ColonyManager
                 && AddMarker(colony, hut, "landmark-mountain", new Vec3d(center.X + 0.5, top + 1, center.Z + 0.5))) placed++;
         }
 
+        // Story locations the explorer comes near: a marker at their middle.
+        if (wanted.Contains("landmarks") && sapi.ModLoader.GetModSystem<GenStoryStructures>()?.Structures is { } story)
+        {
+            foreach (var (code, location) in story)
+            {
+                if (location?.CenterPos == null) continue;
+                var area = location.Location;
+                double distance = area != null
+                    ? area.ShortestDistanceFrom(center.X, area.Y1, center.Z)
+                    : Math.Sqrt((double)(location.CenterPos.X - center.X) * (location.CenterPos.X - center.X) + (double)(location.CenterPos.Z - center.Z) * (location.CenterPos.Z - center.Z));
+                if (distance > radius + 32 || Map.MarkerSubjects.Get(sapi, Map.MarkerSubjects.Story, code) is not { } subject) continue;
+                if (AddMarker(colony, hut, "story-any", location.CenterPos.ToVec3d().Add(0.5, 0, 0.5), subject: subject)) placed++;
+            }
+        }
+
         foreach (var entity in sapi.World.GetEntitiesAround(center.ToVec3d(), radius + 8, 24, e => e.Alive && e is not EntityPlayer))
         {
-            string? kind = CreatureMarker(entity);
-            if (kind == null || !wanted.Contains(MarkerGroup(kind))) continue;
-            if (AddMarker(colony, hut, kind, entity.Pos.XYZ)) placed++;
+            if (CreatureMarker(entity) is not var (kind, subject) || !wanted.Contains(MarkerGroup(kind))) continue;
+            if (AddMarker(colony, hut, kind, entity.Pos.XYZ, subject: subject)) placed++;
         }
         return placed;
     }
 
-    /// <summary>The marker for a block, or null when it is not worth one.</summary>
-    string? BlockMarker(Block block, BlockPos pos)
+    /// <summary>The marker for a block, and what it marks if that has its own icon; null when it is not worth one.</summary>
+    (string Kind, Map.MarkerSubject? Subject)? BlockMarker(Block block, BlockPos pos)
     {
-        string path = block.Code.Path;
-        if (path.StartsWith("looseores-") || path.StartsWith("ore-"))
+        if (Map.MarkerSubjects.OreKey(block) is { } ore)
         {
+            if (Map.MarkerSubjects.Get(sapi, Map.MarkerSubjects.Ore, ore) is { } subject) return ("ore-any", subject);
             foreach (var (orePart, kind) in OreParts)
             {
-                if (path.Contains(orePart)) return kind;
+                if (ore.Contains(orePart)) return (kind, null);
             }
             return null;
         }
+        string path = block.Code.Path;
+        var ba = sapi.World.BlockAccessor;
+        if (block is BlockCrop)
+        {
+            if (!(ba.GetBlockEntity(pos.DownCopy()) is BlockEntityFarmland) && Produce(block, TypeOf(block)) is { } crop) return ("crops-any", crop);
+        }
+        else if (path.Contains("berrybush") || path.StartsWith("fruitingbush"))
+        {
+            if (Produce(block, TypeOf(block)) is { } berries) return ("berries-any", berries);
+        }
+        else if (ba.GetBlockEntity(pos) is BlockEntityFruitTreePart { PartType: not EnumTreePartType.Stem } part
+            && Produce(block, part.TreeType) is { } fruit) return ("fruit-any", fruit);
+        var plain = PlainBlockMarker(block, pos);
+        return plain == null ? null : (plain, null);
+    }
+
+    /// <summary>The produce of a wild crop, berry bush or fruit tree: what it is called by ("carrot"), or its drops.</summary>
+    Map.MarkerSubject? Produce(Block block, string? type)
+    {
+        foreach (string category in new[] { Map.MarkerSubjects.Fruit, Map.MarkerSubjects.Vegetable, Map.MarkerSubjects.Grain })
+        {
+            if (Map.MarkerSubjects.Get(sapi, category, type) is { } subject) return subject;
+        }
+        try
+        {
+            foreach (var drop in block.Drops ?? Array.Empty<BlockDropItemStack>())
+            {
+                drop.Resolve(sapi.World, "produce marker", block.Code);
+                if (Map.MarkerSubjects.FoodKey(drop.ResolvedItemstack?.Collectible) is { } food
+                    && Map.MarkerSubjects.Get(sapi, food.Category, food.Key) is { } subject) return subject;
+            }
+        }
+        catch (Exception)
+        {
+            // Unusual drops: the plant gets its group's icon.
+        }
+        return null;
+    }
+
+    static string? TypeOf(Block block) =>
+        block.Variant.TryGetValue("type", out var type) && !string.IsNullOrEmpty(type) ? type : block.Code.Path.Split('-').ElementAtOrDefault(1);
+
+    /// <summary>The marker for a block that is not ore, or null when it is not worth one.</summary>
+    string? PlainBlockMarker(Block block, BlockPos pos)
+    {
+        string path = block.Code.Path;
         if (path.StartsWith("rawclay-")) return path.Contains("blue") ? "clay-blue" : path.Contains("fire") ? "clay-fire" : path.Contains("red") ? "clay-red" : null;
         if (path.StartsWith("peat-")) return "soil-peat";
         if (path.Contains("terrapreta")) return "soil-terrapreta";
@@ -332,8 +413,46 @@ public partial class ColonyManager
         return false;
     }
 
-    /// <summary>The marker for a creature, or null when it is not worth one.</summary>
-    static string? CreatureMarker(Entity entity)
+    /// <summary>The marker for a creature and what it is, or null when it is not worth one.</summary>
+    (string Kind, Map.MarkerSubject? Subject)? CreatureMarker(Entity entity)
+    {
+        if (Map.MarkerSubjects.CreatureKey(sapi, entity.Properties) is { } creature
+            && Map.MarkerSubjects.Get(sapi, creature.Category, creature.Key) is { } subject)
+        {
+            if (creature.Category == Map.MarkerSubjects.Trader) return ("trader-any", subject);
+            return (IsDangerous(entity.Properties) ? "danger-any" : "animal-any", subject);
+        }
+        var plain = PlainCreatureMarker(entity);
+        return plain == null ? null : (plain, null);
+    }
+
+    /// <summary>Creature types found to go after players or not, by code.</summary>
+    readonly Dictionary<AssetLocation, bool> dangerous = new();
+
+    /// <summary>A creature that seeks out players to attack them (wolves, bears, drifters), going by its AI.</summary>
+    bool IsDangerous(EntityProperties props)
+    {
+        if (dangerous.TryGetValue(props.Code, out bool known)) return known;
+        bool result = false;
+        foreach (var behavior in props.Server?.BehaviorsAsJsonObj ?? Array.Empty<JsonObject>())
+        {
+            if (behavior["code"].AsString() != "taskai") continue;
+            foreach (var task in behavior["aitasks"].AsArray() ?? Array.Empty<JsonObject>())
+            {
+                string code = task["code"].AsString() ?? "";
+                if (code != "seekentity" && code != "meleeattack" && code != "stayclosetotarget") continue;
+                if (task["entityCodes"].AsArray<string>() is { } codes && codes.Any(c => c.StartsWith("player"))
+                    && (code == "seekentity" || task["retaliateAttacks"].AsBool(true) == false)) result = true;
+            }
+        }
+        string path = props.Code.Path;
+        result |= path.StartsWith("drifter") || path.StartsWith("locust") || path.StartsWith("bell") || path.StartsWith("shiver")
+            || path.StartsWith("bowtorn") || path.StartsWith("eidolon") || path.StartsWith("erel");
+        return dangerous[props.Code] = result;
+    }
+
+    /// <summary>The marker for a creature without an icon of its own, or null when it is not worth one.</summary>
+    static string? PlainCreatureMarker(Entity entity)
     {
         string path = entity.Code.Path;
         if (entity is EntityTrader || path.StartsWith("humanoid-trader-"))

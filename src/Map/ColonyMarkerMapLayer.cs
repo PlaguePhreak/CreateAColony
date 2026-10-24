@@ -22,7 +22,7 @@ public class ColonyMarkerView
     [ProtoMember(2)] public double Y;
     [ProtoMember(3)] public double Z;
     [ProtoMember(4)] public string Title = "";
-    /// <summary>The waypoint icon, one of Vintage Colonies' own (vc-...).</summary>
+    /// <summary>The waypoint icon, one of Vintage Colonies' own (vc-..., some made as the game starts: MarkerSubjects).</summary>
     [ProtoMember(5)] public string Icon = "";
     /// <summary>The game's own icon, if the first is missing.</summary>
     [ProtoMember(6)] public string Fallback = "circle";
@@ -51,7 +51,28 @@ public class ColonyMarkerMapLayer : MarkerMapLayer
     Vec2f viewPosRef = new();
     int hovered = -1;
 
-    public ColonyMarkerMapLayer(ICoreAPI api, IWorldMapManager mapSink) : base(api, mapSink) { }
+    public ColonyMarkerMapLayer(ICoreAPI api, IWorldMapManager mapSink) : base(api, mapSink)
+    {
+        // Every ore, crop, animal, trader and story location gets its waypoint icon once the game has loaded
+        // them all, before the map is first opened.
+        if (api is ICoreClientAPI capi) capi.Event.LevelFinalize += AddSubjectIcons;
+    }
+
+    bool subjectIconsAdded;
+
+    void AddSubjectIcons()
+    {
+        if (subjectIconsAdded || WaypointLayer() is not { } wpLayer) return;
+        subjectIconsAdded = true;
+        try
+        {
+            MarkerSubjects.RegisterIcons((ICoreClientAPI)api, wpLayer);
+        }
+        catch (Exception e)
+        {
+            api.Logger.Warning("[createacolony] Could not add the colony marker icons to the waypoint list: {0}", e);
+        }
+    }
 
     public override string Title => "Colony markers";
     public override string LayerGroupCode => Code;
@@ -81,7 +102,7 @@ public class ColonyMarkerMapLayer : MarkerMapLayer
                     X = marker.X, Y = marker.Y, Z = marker.Z,
                     Title = marker.Title,
                     // The game names icons by their file name, which asset paths keep in lower case.
-                    Icon = kind.Icon.ToLowerInvariant(),
+                    Icon = (marker.Icon.Length > 0 ? marker.Icon : kind.Icon).ToLowerInvariant(),
                     Fallback = kind.Fallback.ToLowerInvariant(),
                     Color = ColorUtil.Hex2Int(kind.Color),
                     ColonyName = colony.Name
@@ -102,6 +123,7 @@ public class ColonyMarkerMapLayer : MarkerMapLayer
 
     public override void OnMapOpenedClient()
     {
+        AddSubjectIcons();
         // The game's waypoint layer keeps the colour list the Add waypoint window offers.
         if (WaypointLayer() is { } wpLayer)
         {

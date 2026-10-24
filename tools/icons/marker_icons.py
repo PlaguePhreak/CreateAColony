@@ -105,6 +105,40 @@ ICONS = {
     "vc-exclamation": ("!", "", "!", "#FFFFFF"), "vc-question": ("?", "", "?", "#FFFFFF"),
 }
 
+# Pictures for the markers of things the game (or another mod) has, made when the game starts
+# (Map/MarkerSubjects.cs): one per ore, fruit, vegetable, grain, animal, trader and story location. They go in
+# textures/icons/vcart/, not in the waypoint list; the game's waypoint list gets the finished marker icons.
+# "base-*" are the pictures for things without their own, with a letter added in the corner.
+ART = {
+    "base-ore": "gold-nuggets", "base-fruit": "fruit-bowl", "base-vegetable": "basket", "base-grain": "grain-bundle",
+    "base-animal": "paw-print", "base-trader": "coins", "base-story": "scroll-unfurled",
+    # Fruit
+    "orange": "orange", "peach": "peach", "plum": "plum", "lemon": "lemon", "lime": "lemon", "banana": "banana",
+    "coconut": "coconuts", "grape": "grapes", "olive": "olive", "kiwi": "kiwi-fruit", "currant": "elderberry",
+    "saguaro": "cactus", "apple": "shiny-apple",
+    # Vegetables and grains
+    "potato": "potato", "tomato": "tomato", "corn": "corn", "maize": "corn", "garlic": "garlic", "beet": "beet",
+    "peanut": "peanut", "bellpepper": "bell-pepper", "pepper": "chili-pepper", "flax": "flax", "sunflower": "sunflower",
+    "rice": "bowl-of-rice", "grain": "wheat", "hops": "hops",
+    # Animals
+    "fox": "fox", "hare": "rabbit", "rabbit": "rabbit", "raccoon": "raccoon-head", "sheep": "sheep", "bighorn": "ram",
+    "ram": "ram", "bison": "bison", "crab": "crab", "butterfly": "butterfly", "hyena": "hyena-head",
+    "polar": "polar-bear", "panda": "panda", "duck": "duck", "goose": "goose", "owl": "owl", "bat": "bat",
+    "beaver": "beaver", "squirrel": "squirrel", "turtle": "turtle", "frog": "frog", "toad": "frog", "snake": "snake",
+    "hedgehog": "hedgehog", "badger": "badger", "walrus": "walrus-head", "penguin": "penguin", "cow": "cow",
+    "aurochs": "cow", "rooster": "rooster", "mouse": "mouse", "rat": "rat", "lynx": "lynx-head", "tiger": "tiger",
+    "lion": "lion", "monkey": "monkey", "gorilla": "gorilla", "kangaroo": "kangaroo", "camel": "camel",
+    "donkey": "donkey", "elephant": "elephant", "snail": "snail", "raven": "raven", "crow": "raven",
+    "eagle": "eagle-head", "swan": "swan", "seagull": "seagull", "gull": "seagull", "gecko": "gecko",
+    "cat": "cat", "termite": "ant", "ant": "ant", "bee": "bee", "moose": "deer", "elk": "deer", "caribou": "deer",
+    "gazelle": "deer", "salmon": "salmon", "seal": "walrus-head", "ladybug": "ladybug", "dragonfly": "dragonfly",
+    # Monsters
+    "drifter": "shambling-zombie", "bell": "ringing-bell", "shiver": "floating-ghost", "bowtorn": "skeleton",
+    "eidolon": "rock-golem", "erel": "bat-wing", "locust": "ant",
+    # Story locations
+    "village": "village", "cave": "cave-entrance", "devastation": "castle-ruins", "lazaret": "hut",
+}
+
 SIZE = 512
 
 
@@ -160,7 +194,7 @@ def main():
     out = sys.argv[3] if len(sys.argv) > 3 else os.path.join(os.path.dirname(__file__), "../../assets/createacolony/textures/icons/worldmap")
     os.makedirs(out, exist_ok=True)
     letters = Letters(font)
-    missing = [p for _, p, _, _ in ICONS.values() if p and p not in icons]
+    missing = [p for _, p, _, _ in ICONS.values() if p and p not in icons] + [p for p in ART.values() if p not in icons]
     if missing:
         sys.exit("Not in the icon set: " + ", ".join(missing))
     for name, (_, picture, text, _) in ICONS.items():
@@ -168,7 +202,14 @@ def main():
                f'<svg xmlns="http://www.w3.org/2000/svg" width="{SIZE}" height="{SIZE}" viewBox="0 0 {SIZE} {SIZE}">'
                f'<g fill="#ffffff">{body(icons, letters, picture, text)}</g></svg>\n')
         open(os.path.join(out, name + ".svg"), "w").write(svg)
-    print(f"{len(ICONS)} icons written to {out}")
+    art = os.path.join(out, "../vcart")
+    os.makedirs(art, exist_ok=True)
+    for name, picture in ART.items():
+        svg = (f'<?xml version="1.0" encoding="UTF-8"?>\n'
+               f'<svg xmlns="http://www.w3.org/2000/svg" width="{SIZE}" height="{SIZE}" viewBox="0 0 {SIZE} {SIZE}">'
+               f'<g fill="#ffffff">{body(icons, letters, picture, "")}</g></svg>\n')
+        open(os.path.join(art, name + ".svg"), "w").write(svg)
+    print(f"{len(ICONS)} icons written to {out}, {len(ART)} pictures to {os.path.normpath(art)}")
 
 
 if __name__ == "__main__":

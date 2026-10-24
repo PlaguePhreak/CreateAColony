@@ -514,6 +514,8 @@ public class ColonyMarker
     [ProtoMember(9)] public double TotalDays;
     /// <summary>For a grave: the settler who fell there, so only their latest spot is kept.</summary>
     [ProtoMember(10)] public int CitizenId;
+    /// <summary>The waypoint icon of what it marks (Map.MarkerSubjects), or "" for its kind's icon.</summary>
+    [ProtoMember(11)] public string Icon = "";
 }
 
 [ProtoContract]
