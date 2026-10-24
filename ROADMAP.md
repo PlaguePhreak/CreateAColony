@@ -82,7 +82,7 @@ Everything listed under "What we have" and "Partly done" has been tested in game
 - Working with more popular Vintage Story mods, such as cooking with A Culinary Artillery and Expanded Foods
 
 **Left out on purpose**
-- Concrete Mixer, Enchanter, Alchemist, Netherworker and the Mystical Site: Vintage Story has nothing to match them. MineColonies' Alchemist comes back as the Alchemist's Hut above, using the Alchemy mod.
+- Concrete Mixer, Enchanter, Netherworker and the Mystical Site: Vintage Story has nothing to match them. (The Alchemist is now planned above, using the Alchemy mod.)
 
 ## Far future: AI settlements
 
