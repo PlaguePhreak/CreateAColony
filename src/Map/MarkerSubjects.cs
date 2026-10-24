@@ -118,18 +118,6 @@ public static class MarkerSubjects
         return (category, path);
     }
 
-    /// <summary>Parts of a creature's code that say its age or sex, or its colour, not what it is.</summary>
-    static readonly HashSet<string> NotTheKind = new()
-    {
-        "male", "female", "baby", "pup", "cub", "calf", "kid", "lamb", "piglet", "foal", "fawn", "chick", "juvenile",
-        "adult", "young", "rooster", "hen", "sow", "boar-male", "wild", "domestic", "tame", "tamed", "small", "large",
-        "normal", "elder", "old"
-    };
-    static readonly HashSet<string> NotTheKindVariants = new()
-    {
-        "gender", "sex", "age", "stage", "color", "colour", "coat", "pattern", "skin", "texture", "state", "size", "fur"
-    };
-
     static readonly Dictionary<string, Type?> entityClasses = new();
 
     static Type? EntityClass(ICoreAPI api, string? className)
@@ -145,21 +133,63 @@ public static class MarkerSubjects
         }
     }
 
-    /// <summary>A creature's kind and key: ("trader", "luxuries"), ("animal", "wolf"), or null for anything else.</summary>
+    /// <summary>A creature's kind and key: ("trader", "trader"), ("animal", "bear"), or null for anything else.</summary>
     public static (string Category, string Key)? CreatureKey(ICoreAPI api, EntityProperties? props)
     {
         if (props?.Code == null || props.Code.Domain == "createacolony") return null;
         string path = props.Code.Path;
         var type = EntityClass(api, props.Class);
-        if (path.StartsWith("humanoid-trader-")) return (Trader, path["humanoid-trader-".Length..]);
-        if (type != null && typeof(EntityTrader).IsAssignableFrom(type)) return (Trader, path);
+        // One marker for every trader.
+        if (path.StartsWith("humanoid-trader-") || (type != null && typeof(EntityTrader).IsAssignableFrom(type))) return (Trader, "trader");
         if (type == null || !typeof(EntityAgent).IsAssignableFrom(type) || typeof(EntityPlayer).IsAssignableFrom(type)
             || typeof(EntityHumanoid).IsAssignableFrom(type) || path.StartsWith("humanoid")) return null;
 
-        var drop = new HashSet<string>(props.Variant.Where(v => NotTheKindVariants.Contains(v.Key)).Select(v => v.Value));
-        var parts = path.Split('-').Where(p => p.Length > 0 && !NotTheKind.Contains(p) && !drop.Contains(p)).ToList();
-        if (parts.Count == 0) parts.Add(path.Split('-')[0]);
-        return (Animal, string.Join("-", parts));
+        // Every bear is a bear and every butterfly a butterfly: the first part of the code.
+        return (Animal, path.Split('-')[0]);
+    }
+
+    /// <summary>
+    /// The food a wild plant gives, with the key to list it by when the plant names it its own way (a fruit
+    /// tree's type), or null to go by the food's own code.
+    /// </summary>
+    static IEnumerable<(string? Key, ItemStack Stack)> WildFood(IWorldAccessor world, Block block)
+    {
+        var stacks = new List<(string?, BlockDropItemStack)>();
+        string path = block.Code.Path;
+        if (block is BlockCrop || path.Contains("berrybush") || path.StartsWith("fruitingbush"))
+        {
+            foreach (var drop in block.Drops ?? Array.Empty<BlockDropItemStack>()) stacks.Add((null, drop));
+        }
+        if ((path.Contains("berrybush") || path.StartsWith("fruitingbush"))
+            && block.Variant.TryGetValue("type", out var berry) && world.GetItem(new AssetLocation(block.Code.Domain, "fruit-" + berry)) is { } fruit)
+        {
+            yield return (null, new ItemStack(fruit));
+        }
+        if (block is BlockFruitTreeBranch { TypeProps: { } types })
+        {
+            foreach (var (type, props) in types)
+            {
+                foreach (var drop in props.FruitStacks ?? Array.Empty<BlockDropItemStack>()) stacks.Add((type, drop));
+            }
+        }
+        if (block.GetBehavior<BlockBehaviorHarvestable>() is { harvestedStacks: { } harvested })
+        {
+            foreach (var drop in harvested) stacks.Add((null, drop));
+        }
+        foreach (var (key, drop) in stacks)
+        {
+            ItemStack? stack = null;
+            try
+            {
+                drop.Resolve(world, "colony marker icons", block.Code);
+                stack = drop.ResolvedItemstack;
+            }
+            catch (Exception)
+            {
+                // A drop that does not resolve: not food we can name.
+            }
+            if (stack != null) yield return (key, stack);
+        }
     }
 
     // ---- Building the list --------------------------------------------------------------------
@@ -188,15 +218,21 @@ public static class MarkerSubjects
             if (block?.Code == null || OreKey(block) is not { } ore) continue;
             Add(Ore, ore, () => Lang.GetIfExists("ore-" + ore) ?? Lang.GetIfExists(block.Code.Domain + ":ore-" + ore) ?? Pretty(ore));
         }
-        foreach (var item in world.Items)
+        // Food only from what grows wild: crops, berry bushes, fruit trees and plants that can be picked.
+        foreach (var block in world.Blocks)
         {
-            if (FoodKey(item) is not { } food) continue;
-            Add(food.Category, food.Key, () => item.GetHeldItemName(new ItemStack(item)));
+            if (block?.Code == null) continue;
+            foreach (var (key, stack) in WildFood(world, block))
+            {
+                if (FoodKey(stack.Collectible) is not { } food) continue;
+                Add(food.Category, key ?? food.Key, () => stack.GetName());
+            }
         }
         foreach (var props in world.EntityTypes)
         {
             if (CreatureKey(api, props) is not { } creature) continue;
-            Add(creature.Category, creature.Key, () => Lang.GetIfExists("createacolony:subject-" + creature.Key) ?? CreatureName(props));
+            Add(creature.Category, creature.Key, () => Lang.GetIfExists("createacolony:subject-" + creature.Key)
+                ?? Lang.GetIfExists(props.Code.Domain + ":item-creature-" + creature.Key) ?? Pretty(creature.Key));
         }
         foreach (string code in StoryCodes(api))
         {
@@ -306,14 +342,6 @@ public static class MarkerSubjects
         string pool = words[0][0] + string.Concat(words.Skip(1).Select(w => w[0])) + words[0][1..];
         string s = pool[..Math.Min(length, pool.Length)].ToLowerInvariant();
         return char.ToUpperInvariant(s[0]) + s[1..];
-    }
-
-    static string CreatureName(EntityProperties props)
-    {
-        string name = Lang.GetIfExists(props.Code.Domain + ":item-creature-" + props.Code.Path) ?? Pretty(props.Code.Path.Split('-')[0]);
-        // "Wolf (male)" → "Wolf"
-        int paren = name.IndexOf(" (", StringComparison.Ordinal);
-        return paren > 0 ? name[..paren] : name;
     }
 
     static string Pretty(string code)
