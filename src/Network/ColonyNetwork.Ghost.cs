@@ -85,6 +85,9 @@ public partial class ColonyNetwork
         {
             var block = sapi!.World.GetBlock(step.BlockId);
             if (block == null) continue;
+            // A roof without its saved details has nothing to draw, and could keep the whole chunk from drawing
+            // (0.96.0: the Mineshaft Entrance's roofs had none and its preview showed nothing).
+            if (step.Saved == null && block.Code.Domain == "vsroofing") continue;
             var pos = corner.AddCopy(step.Dx - minX, step.Dy - minY, step.Dz - minZ);
             if (block.ForFluidsLayer) dim.SetBlock(step.BlockId, pos, BlockLayersAccess.Fluid);
             else dim.SetBlock(step.BlockId, pos);

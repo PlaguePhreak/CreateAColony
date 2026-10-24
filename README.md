@@ -747,6 +747,13 @@ Built in from [Player Corpse](https://mods.vintagestory.at/playercorpse) by DArk
   Choosing an ore on the Ore tab turns it back on.
 - Building field 160 (CollectOff), ColonyAction 160 (SetCollect), ColonyManager.Collecting.cs. Not tested in game.
 
+### The Mineshaft Entrance's preview (0.96.0)
+- Aaron saw no building preview when placing the Mineshaft Entrance. The mine entrance piece (entrance.json) had
+  its roofs but not their saved details, so they had nothing to draw. Its 61 roof details now come from Aaron's
+  SurfaceMineshaftExample (same blocks, 11 layers up and 2 rows over), so the roofs show and get built properly.
+- The ghost preview leaves out a roof block with no saved details, so one can't keep the rest from showing.
+  Not tested in game.
+
 ### The Mineshaft Entrance's building (0.95.0)
 - Aaron saw the Mineshaft Entrance had no building. Its building is now the pack's mine entrance piece: the
   placement outline shows it, and Build (or the first linked miner) sets the mine there. Linked miners dig and
