@@ -549,9 +549,8 @@ Smithing skill grows with both jobs.
   ones apart), wild crops, cattails, resin and wild bees. With nothing to pick it walks out to look around at
   most every two minutes. New Foraging skill.
 - **Colony markers** is a new world map layer (`Map/ColonyMarkerMapLayer.cs`), listed after the game's Owned
-  creatures, with Colony prospecting moved there too. Every member sees the markers of their colonies. The
-  icons are More Map Icons' (`moreicons`, client-side mod) when the player has it installed, and the game's own
-  (pick, rocks, vessel, trader, circle, bee, spiral, gravestone) when they don't. The layer adds the two
+  creatures, with Colony prospecting moved there too. Every member sees the markers of their colonies. Since
+  0.79.0 the icons are Vintage Colonies' own (see below), with the game's own as a fallback. The layer adds the two
   colours More Map Icons names that the game's colour list leaves out (#03D941 and #885530), so the Add
   waypoint window can make Olivine, Emerald, Brown Coal and Peat too.
 - A marker of the same kind is never put within `MarkerSpacing` blocks of another (per group: animals and
@@ -560,6 +559,17 @@ Smithing skill grows with both jobs.
   things dropped. Only their latest spot is kept (`MarkSettlerDeaths`).
 - Code: `ColonyManager.Markers.cs` (marker kinds, LookAround), `ColonyManager.Exploring.cs`,
   `AiTaskSettlerExplorer.cs`, `AiTaskSettlerGatherer.cs`. Not tested in game.
+
+### Vintage Colonies' own map icons (0.79.0)
+- 120 new waypoint icons (`assets/createacolony/textures/icons/worldmap/vc-*.svg`), one for every marker on
+  More Map Icons' sheets: elements, ores and minerals, traders, animals, plants, places and arrows. Colour
+  variants (Olivine, Emerald, Brown Coal, Peat and so on) are their own icon with a letter on it. They show up
+  in the Add waypoint window for every player, with or without More Map Icons, and picking one fills in its
+  name (`game:wpSuggestion-vc-*` in the lang file).
+- Colony markers use these icons now, so they look the same for everyone.
+- More Map Icons has no licence, so none of its art is used. The pictures come from game-icons.net (CC BY 3.0)
+  and the letters from DejaVu Sans Bold: see THIRD_PARTY_NOTICES.md. `tools/icons/marker_icons.py` makes them
+  again. Not tested in game.
 
 ### The barracks (0.54.0)
 - **Barracks** (2 bows + 7 planks), with a simple placeholder model and a placeholder level 1 blueprint (an open

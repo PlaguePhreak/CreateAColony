@@ -22,9 +22,9 @@ public class ColonyMarkerView
     [ProtoMember(2)] public double Y;
     [ProtoMember(3)] public double Z;
     [ProtoMember(4)] public string Title = "";
-    /// <summary>The More Map Icons icon, used when the player's game has it.</summary>
+    /// <summary>The waypoint icon, one of Vintage Colonies' own (vc-...).</summary>
     [ProtoMember(5)] public string Icon = "";
-    /// <summary>The game's own icon for players without More Map Icons.</summary>
+    /// <summary>The game's own icon, if the first is missing.</summary>
     [ProtoMember(6)] public string Fallback = "circle";
     [ProtoMember(7)] public int Color;
     [ProtoMember(8)] public string ColonyName = "";
@@ -33,7 +33,7 @@ public class ColonyMarkerView
 /// <summary>
 /// The "Colony markers" layer of the world map: what the colony's Explorers and Gatherers found, and where
 /// settlers fell (ColonyManager.Markers.cs). It draws them like waypoints, with the waypoint icons the player's
-/// game has: More Map Icons' when that mod is installed, the game's own otherwise. They are the colony's, so
+/// game loaded: Vintage Colonies' own vc- icons, or the game's own as a fallback. They are the colony's, so
 /// they cannot be edited from the map; a hut's window can take its markers away.
 /// </summary>
 public class ColonyMarkerMapLayer : MarkerMapLayer
@@ -119,7 +119,7 @@ public class ColonyMarkerMapLayer : MarkerMapLayer
     public override void Render(GuiElementMap mapElem, float dt)
     {
         if (!Active || markers.Count == 0) return;
-        // The icons are the ones the game's waypoint layer loaded, More Map Icons' among them when it is installed.
+        // The icons are the ones the game's waypoint layer loaded, ours among them.
         if (WaypointLayer() is not { texturesByIcon: { } textures, quadModel: { } quad }) return;
         var capi = (ICoreClientAPI)api;
         var prog = capi.Render.GetEngineShader(EnumShaderProgram.Gui);

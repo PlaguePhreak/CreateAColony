@@ -25,6 +25,7 @@ Everything listed under "What we have" and "Partly done" has been tested in game
 - Blacksmith's Hut: heats ingots in the forge and makes tool heads and finished tools on the anvil (0.50.0, placeholder model and building, not tested yet)
 - Sawmill: a sawyer saws logs into planks and makes other wooden things from the game's recipes (0.52.0, placeholder model and building, not tested yet)
 - Explorer's Hut and Gatherer's Hut: an explorer marks ore, clay, traders, animals and danger on a Colony markers map layer, and a gatherer forages berries, mushrooms and loose stones and marks plants; works with More Map Icons (0.77.0, placeholder models and buildings, not tested yet)
+- Vintage Colonies' own map icons: 120 waypoint icons covering every More Map Icons sheet entry, used by colony markers (0.79.0, not tested yet)
 
 **Colony systems**
 - Colony land that grows with every hut and Town Hall level *(tested)*

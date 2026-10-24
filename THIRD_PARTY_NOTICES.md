@@ -28,3 +28,5 @@ SOFTWARE.
 Exception: DejFidOFF (including any aliases and associates) is not allowed to use or make use of modified versions of this code in any way shape or form for any projects, mods, or other. DejFidOFF may not copy or reuse any part of this code in any way.```
 
 assets/createacolony/config/blueprints/medievaloak/ (with its alt/ types) is converted from the Medieval Oak style of MineColonies (https://github.com/ldtteam/minecolonies, by ldtteam), from the copy supplied by the mod's author. MineColonies is distributed under the GNU General Public License v3.0; check its terms before shipping these blueprints publicly.
+
+assets/createacolony/textures/icons/worldmap/vc-*.svg are made by tools/icons/marker_icons.py from icons by Lorc, Delapouite and other contributors at game-icons.net (https://game-icons.net), used under the Creative Commons Attribution 3.0 Unported licence (https://creativecommons.org/licenses/by/3.0/). They were recoloured, scaled, and some have a letter added. The letters are drawn from DejaVu Sans Bold (https://dejavu-fonts.github.io), whose glyphs are free to use and change under the Bitstream Vera / DejaVu font licence.
