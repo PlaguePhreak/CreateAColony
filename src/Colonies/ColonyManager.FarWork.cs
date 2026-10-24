@@ -10,7 +10,7 @@ using Vintagestory.API.Server;
 namespace CreateAColony.Colonies;
 
 /// <summary>
-/// Keeps foresters, farmers and guards going when they work far from every player. The game only
+/// Keeps foresters, farmers and guards going when they work far from every player, with their hut loaded. The game only
 /// runs creatures near players and unloads the land no one is near, which would freeze a forester
 /// 300 blocks out. So while such a settler is far from everyone, it stays active and the chunk columns
 /// around it stay loaded; once a player comes near or it walks home, they are let go again. One whose
@@ -42,6 +42,12 @@ public partial class ColonyManager
                 foreach (var citizen in colony.Citizens)
                 {
                     if (!citizen.Alive || citizen.IsDowned || !WorksFarOut(citizen.JobCode)) continue;
+                    // The worker plans every trip from its hut and takes what it gathered there, so a hut no player is
+                    // near stays loaded too; without it the worker finds no hut storage and stops.
+                    if (citizen.WorkplacePos is { } hutPos && FarFromPlayers(players, hutPos.ToVec3d(), GlobalConstants.DefaultSimulationRange))
+                    {
+                        KeepAround(want, hutPos.ToVec3d(), size, 0);
+                    }
                     if (sapi.World.GetEntityById(citizen.EntityId) is not EntitySettler entity || !entity.Alive)
                     {
                         // Not loaded: its land was unloaded (after the world was reloaded, say). Load the land where
@@ -100,11 +106,11 @@ public partial class ColonyManager
         return players.All(p => p.Pos.SquareDistanceTo(pos) > distance * distance);
     }
 
-    static void KeepAround(HashSet<Vec2i> want, Vec3d pos, int size)
+    static void KeepAround(HashSet<Vec2i> want, Vec3d pos, int size, int columns = FarKeepColumns)
     {
         int cx = (int)pos.X / size, cz = (int)pos.Z / size;
-        for (int dx = -FarKeepColumns; dx <= FarKeepColumns; dx++)
-        for (int dz = -FarKeepColumns; dz <= FarKeepColumns; dz++)
+        for (int dx = -columns; dx <= columns; dx++)
+        for (int dz = -columns; dz <= columns; dz++)
         {
             want.Add(new Vec2i(cx + dx, cz + dz));
         }

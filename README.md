@@ -701,6 +701,10 @@ before shipping converted blueprints.
 
 ### The Town Hall window (0.24.0)
 
+### Far workers keep their hut loaded (0.86.1)
+- A worker plans every trip from its hut, so when no player was near the hut it found no hut storage and stopped.
+  Now the hut's chunk column stays loaded while it has a worker and no player is near.
+
 ### Bug fixes (0.86.0)
 - Settlers lie along their bed like a player, using the player's lying pose, and stay put so a bedmate does not
   push them askew. Vanilla beds use the game's own sleeping spot; furniture beds use the mod's seat and facing.
