@@ -255,7 +255,15 @@ public class Building
     [ProtoMember(54, IsRequired = true)] public string FillBlock = MineFillBlocks.Soil;
     /// <summary>A Miner's Hut: the guards (citizen ids) that patrol its mine, from Guard Towers set to Patrol mine.</summary>
     [ProtoMember(55)] public List<int> MineGuards = new();
-    // 56-59 left free for other building fields.
+    /// <summary>A Miner's Hut: the Mineshaft Entrance whose mine it works (its BuildingId); 0 works its own mine.</summary>
+    [ProtoMember(56)] public int MineEntranceId;
+    /// <summary>An officer pressed Remove hut: a builder takes the building down, then the hut block goes back to RemovedBy.</summary>
+    [ProtoMember(57)] public bool Removing;
+    /// <summary>The player who pressed Remove hut, who gets the hut block back.</summary>
+    [ProtoMember(58)] public string RemovedBy = "";
+    /// <summary>The turn and asset pack the mine's pieces use: the hut's when the mine was started, kept when the mine moves to another hut. -1 / empty use the building's own.</summary>
+    [ProtoMember(59, IsRequired = true)] public int MineRotation = -1;
+    [ProtoMember(62)] public string MineStyle = "";
     // 60 and 61 held the trip's entrances and the mines to fill in before 0.62.0.
     [ProtoMember(60)] List<BlockPos> oldSiteEntrances = new();
     [ProtoMember(61)] List<BlockPos> oldMineSeals = new();
@@ -273,6 +281,17 @@ public class Building
     [ProtoMember(112)] public double ExploreStartedTotalDays;
 
     public bool HasWorkOrder => TargetLevel > Level;
+
+    /// <summary>A Miner's Hut working a Mineshaft Entrance's mine: that entrance. Not saved; see Colony.LinkMines.</summary>
+    public Building? Entrance;
+    /// <summary>A Mineshaft Entrance: the Miner's Huts that work its mine. Not saved; see Colony.LinkMines.</summary>
+    public List<Building> LinkedHuts = new();
+    /// <summary>Where this building's mine is kept: its Mineshaft Entrance's, or its own.</summary>
+    public Building Mine => Entrance ?? this;
+    public int MineTurn => MineRotation >= 0 ? MineRotation : Rotation;
+    public string MinePack => MineStyle.Length > 0 ? MineStyle : Style;
+    /// <summary>True when this building holds a mine made of pieces.</summary>
+    public bool HasMine => MineshaftPos != null;
 
     /// <summary>Moves a Miner's Hut's trip from where saves before 0.62.0 kept it into Trip.</summary>
     [ProtoAfterDeserialization]
@@ -577,6 +596,33 @@ public class Colony
     [ProtoMember(80)] public bool? SelfDefence;
     /// <summary>Colony militia: settlers with a weapon come to help a nearby settler who is attacked. Null until changed, so the server config decides.</summary>
     [ProtoMember(81)] public bool? SupportAllies;
+    /// <summary>Mines whose Miner's Hut or Mineshaft Entrance was removed. Their blocks stay; the next Miner's Hut or entrance near one takes it on.</summary>
+    [ProtoMember(90)] public List<Building> DerelictMines = new();
+
+    [ProtoAfterDeserialization]
+    void AfterLoad() => LinkMines();
+
+    /// <summary>Joins each Miner's Hut to its Mineshaft Entrance (Building.Entrance and LinkedHuts); links to entrances that are gone are dropped.</summary>
+    public void LinkMines()
+    {
+        foreach (var b in Buildings)
+        {
+            b.Entrance = null;
+            b.LinkedHuts.Clear();
+        }
+        foreach (var hut in Buildings)
+        {
+            if (hut.MineEntranceId == 0) continue;
+            var entrance = Buildings.Find(b => b.BuildingId == hut.MineEntranceId && b.Type == BuildingTypes.MineshaftEntrance);
+            if (entrance == null || hut.Type != BuildingTypes.Miner)
+            {
+                hut.MineEntranceId = 0;
+                continue;
+            }
+            hut.Entrance = entrance;
+            entrance.LinkedHuts.Add(hut);
+        }
+    }
 
     public string OwnerUid => Members.Find(m => m.Role == ColonyRole.Owner)?.PlayerUid ?? "";
 

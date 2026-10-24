@@ -36,7 +36,7 @@ public partial class ColonyManager
     /// <summary>The style a Miner's Hut's mineshaft pieces come from: its own, or the first with an entrance; null when none has one.</summary>
     public string? MineshaftStyle(Building hut)
     {
-        foreach (var style in BlueprintStyles.All.Prepend(BlueprintStyles.Normalize(hut.Style)))
+        foreach (var style in BlueprintStyles.All.Prepend(BlueprintStyles.Normalize(hut.Mine.MinePack)))
         {
             if (Blueprints.GetMinePiece(style, BlueprintLibrary.MineEntrance, 0) != null) return style;
         }
@@ -46,20 +46,25 @@ public partial class ColonyManager
     /// <summary>The mineshaft's pieces in digging order, the entrance first; null when there is no entrance or no room for it.</summary>
     public List<PlacedPiece>? MineshaftPieces(Colony colony, Building hut)
     {
-        if (MineshaftStyle(hut) is not { } style || Blueprints.GetMinePiece(style, BlueprintLibrary.MineEntrance, hut.Rotation) is not { } entrance) return null;
+        var mine = hut.Mine;
+        if (!mine.HasMine) AdoptDerelictFor(colony, hut);
+        if (MineshaftStyle(hut) is not { } style || Blueprints.GetMinePiece(style, BlueprintLibrary.MineEntrance, mine.MineTurn) is not { } entrance) return null;
         entrance = entrance.Deeper(MineshaftRepeats(hut));
         int half = Math.Max(Math.Max(-entrance.Min.X, entrance.Max.X), Math.Max(-entrance.Min.Z, entrance.Max.Z));
-        if (hut.MineshaftPos == null)
+        if (mine.MineshaftPos == null)
         {
-            hut.MineshaftPos = SpotBeside(colony, hut, half);
-            if (hut.MineshaftPos == null) return null;
+            // A new mine beside its hut (or its Mineshaft Entrance); it keeps this turn and pack if it moves to another hut later.
+            mine.MineshaftPos = SpotBeside(colony, mine, half);
+            if (mine.MineshaftPos == null) return null;
+            mine.MineRotation = mine.MineTurn;
+            mine.MineStyle = style;
             MarkDirty(colony);
         }
         // The entrance's ground layer goes in the ground, just under where a settler stands.
-        var anchor = hut.MineshaftPos.DownCopy();
+        var anchor = mine.MineshaftPos.DownCopy();
         var pieces = new List<PlacedPiece> { new(entrance, anchor) };
         // Level pieces hang one under the other below the entrance's shaft, each just under the floor above.
-        if (Blueprints.GetMinePiece(style, BlueprintLibrary.MineLevel, hut.Rotation) is { Period: > 0 } level && entrance.Open.Count > 0)
+        if (Blueprints.GetMinePiece(style, BlueprintLibrary.MineLevel, mine.MineTurn) is { Period: > 0 } level && entrance.Open.Count > 0)
         {
             int floor = entrance.Open.Max(o => o.Y);
             for (int k = 0; k < MineshaftHubLevels(hut); k++)
@@ -69,7 +74,7 @@ public partial class ColonyManager
         }
         // A section that runs into the entrance or a level (one dug for an older entrance) is left out.
         HashSet<BlockPos>? hubCells = pieces.Count > 1 ? new HashSet<BlockPos>(pieces.SelectMany(p => p.Piece.Steps.Select(p.At))) : null;
-        foreach (var section in hut.Sections)
+        foreach (var section in mine.Sections)
         {
             if (Blueprints.GetMinePiece(style, section.Name, section.Rotation) is not { } piece) continue;
             var placed = new PlacedPiece(piece, section.Origin);
@@ -206,9 +211,9 @@ public partial class ColonyManager
         mineshaftNeeds[hut.BuildingId] = needs;
         if (found != null && foundIn != null) mineshaftWorking[hut.BuildingId] = LevelAt(pieces, found.Value.Block.Y);
         // A repair is done once the miner has nothing left to do on that level.
-        if (hut.RepairLevel > 0 && (found == null ? !busy : foundIn != pieces[0] && LevelOf(pieces, foundIn!) != hut.RepairLevel))
+        if (hut.Mine.RepairLevel > 0 && (found == null ? !busy : foundIn != pieces[0] && LevelOf(pieces, foundIn!) != hut.Mine.RepairLevel))
         {
-            hut.RepairLevel = 0;
+            hut.Mine.RepairLevel = 0;
             MarkDirty(colony);
         }
         if (found != null) busy = true;
@@ -360,7 +365,8 @@ public partial class ColonyManager
     bool GrowMineshaft(Colony colony, Building hut, List<PlacedPiece> pieces)
     {
         int limit = MineshaftSectionLimit(hut);
-        if (hut.Sections.Count >= limit || MineshaftStyle(hut) is not { } style) return false;
+        var mine = hut.Mine;
+        if (mine.Sections.Count >= limit || MineshaftStyle(hut) is not { } style) return false;
         int levels = MineshaftLevelsOpen(hut, pieces);
         var rand = sapi.World.Rand;
         var others = colony.Buildings.Where(b => b != hut).Select(b => BuildingBox(b)).ToList();
@@ -383,7 +389,7 @@ public partial class ColonyManager
         var sides = pieces.SelectMany(piece => piece.Piece.Open.Select(o => (piece, o.Face, Out: piece.Origin.AddCopy(o.X + o.Face.Normali.X, o.Y, o.Z + o.Face.Normali.Z))))
             .Where(s => LevelAt(pieces, s.Out.Y) <= levels)
             .Where(s => !Taken(s.Out))
-            .OrderBy(s => hut.MineLevel > 0 && LevelAt(pieces, s.Out.Y) == hut.MineLevel ? 0 : 1).ThenBy(_ => rand.Next()).ToList();
+            .OrderBy(s => mine.MineLevel > 0 && LevelAt(pieces, s.Out.Y) == mine.MineLevel ? 0 : 1).ThenBy(_ => rand.Next()).ToList();
         int tooHigh = 0, overlap = 0, notOurs = 0;
         foreach (var (_, face, outside) in sides)
         {
@@ -401,7 +407,7 @@ public partial class ColonyManager
                 if (placed.Min.Y <= 3 || placed.Max.Y >= pieces[0].Origin.Y) { tooHigh++; continue; }
                 if (Overlaps(placed)) { overlap++; continue; }
                 if (!CanWorkAt(colony, origin)) { notOurs++; continue; }
-                hut.Sections.Add(new MineSection { Name = name, Rotation = turn, Origin = origin });
+                mine.Sections.Add(new MineSection { Name = name, Rotation = turn, Origin = origin });
                 AddStat(hut, "mine-sections");
                 MarkDirty(colony);
                 return true;
@@ -421,7 +427,7 @@ public partial class ColonyManager
     readonly Dictionary<int, string> mineshaftStuck = new();
 
     /// <summary>The Miner's Hut window line for a mineshaft made of pieces: how many sections, and how many blocks are left.</summary>
-    string? MineshaftInfo(Colony colony, Building hut)
+    public string? MineshaftInfo(Colony colony, Building hut)
     {
         if (MineshaftPieces(colony, hut) is not { } pieces) return null;
         var ba = sapi.World.BlockAccessor;
@@ -435,6 +441,6 @@ public partial class ColonyManager
             if (!done) left++;
         }
         var o = pieces[0].Origin;
-        return Lang.Get("createacolony:mineshaft-info", hut.Sections.Count, MineshaftLevelsOpen(hut, pieces), LevelCount(pieces), left, o.X, o.Y, o.Z);
+        return Lang.Get("createacolony:mineshaft-info", hut.Mine.Sections.Count, MineshaftLevelsOpen(hut, pieces), LevelCount(pieces), left, o.X, o.Y, o.Z);
     }
 }

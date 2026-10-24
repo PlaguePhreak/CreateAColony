@@ -75,7 +75,7 @@ public partial class ColonyNetwork : ModSystem
             var watched = viewersByColony.Where(kv => kv.Value.Count > 0).Select(kv => kv.Key).Concat(hutViewers.Values.Select(v => v.ColonyId));
             foreach (string colonyId in watched.Distinct().ToList())
             {
-                if (Manager.GetById(colonyId) is { } c && c.Buildings.Any(b => b.HasWorkOrder)) RefreshViewers(c, periodic: true);
+                if (Manager.GetById(colonyId) is { } c && c.Buildings.Any(b => b.HasWorkOrder || b.Removing)) RefreshViewers(c, periodic: true);
             }
             // Settlers change what they do all the time, so their windows always refresh.
             foreach (var (uid, view) in citizenViewers.ToList()) SendCitizenWindow(uid, view.ColonyId, view.CitizenId, openWindow: false);
@@ -174,6 +174,8 @@ public partial class ColonyNetwork : ModSystem
             ColonyAction.SetPermadeath => SetPermadeath(colony, role, packet.Text == "1"),
             ColonyAction.SetSelfDefence or ColonyAction.SetSupportAllies => SetMilitia(colony, role, packet),
             ColonyAction.HireRecruit => HireAction(player, colony, role, packet),
+            ColonyAction.RemoveHut => RemoveHut(player, colony, role, packet),
+            ColonyAction.LinkMineHut or ColonyAction.UnlinkMineHut => LinkMineAction(colony, role, packet),
             >= ColonyAction.RenameBuilding and <= ColonyAction.SetMinStock => HutAction(player, colony, role, packet),
             _ => null
         };
@@ -299,7 +301,8 @@ public partial class ColonyNetwork : ModSystem
             case ColonyAction.Build:
                 return Manager.StartWorkOrder(colony, building);
             case ColonyAction.CancelBuild:
-                Manager.CancelWorkOrder(colony, building);
+                if (building.Removing) Manager.CancelRemoval(colony, building);
+                else Manager.CancelWorkOrder(colony, building);
                 return null;
             default:
                 // Turning is only allowed before anything is built, or the old walls would be torn down.
@@ -566,7 +569,7 @@ public partial class ColonyNetwork : ModSystem
             HeraldryInstalled = sapi!.ModLoader.IsModEnabled("heraldrybanners"),
             BuildingCount = colony.Buildings.Count,
             Events = colony.Events.Select(e => new EventView { TotalDays = e.TotalDays, Key = e.Key, Args = e.Args.ToList() }).ToList(),
-            WorkOrders = colony.Buildings.Where(b => b.HasWorkOrder).OrderBy(b => b.BuildingId).Select(b => BuildingViewFor(colony, b)).ToList(),
+            WorkOrders = colony.Buildings.Where(b => b.HasWorkOrder || b.Removing).OrderBy(b => b.BuildingId).Select(b => BuildingViewFor(colony, b)).ToList(),
             Jobs = Manager.JobCounts(colony).Select(j => new JobView { Job = j.Job, Workers = j.Workers, Places = j.Places }).ToList(),
             Stats = Manager.ColonyStatSummary(colony).Select(r => new StatView { Key = r.Key, Counts = r.Counts }).ToList(),
             Quests = sapi!.World.PlayerByUid(viewerUid) is IServerPlayer viewer ? QuestStates(viewer, colony) : new()
@@ -684,8 +687,15 @@ public partial class ColonyNetwork : ModSystem
             Style = BlueprintStyles.Normalize(b.Style),
             Variant = Manager.Blueprints.Variants(Manager.Blueprints.StyleFor(b), b.Type).Count > 1 ? Manager.Blueprints.VariantFor(Manager.Blueprints.StyleFor(b), b.Type, b.Variant) : "",
             Name = ColonyManager.BuildingName(b),
-            Status = b.HasWorkOrder ? Manager.BuildStatus.GetValueOrDefault(b.BuildingId, "queued") : ""
+            Status = b.HasWorkOrder || b.Removing ? Manager.BuildStatus.GetValueOrDefault(b.BuildingId, "queued") : "",
+            Removing = b.Removing
         };
+        if (b.Removing)
+        {
+            var (gone, all) = Manager.RemovalProgress(colony, b);
+            view.ProgressPercent = all == 0 ? 100 : 100 * gone / all;
+            return view;
+        }
         var blueprint = b.HasWorkOrder ? Manager.Blueprints.Get(b, b.TargetLevel) : null;
         if (blueprint != null)
         {
@@ -977,10 +987,10 @@ public partial class ColonyNetwork : ModSystem
             }
         }
         if (ColonyManager.CraftTabOf(building.Type) is { } craftTab) AddCraftRows(snapshot, colony, building, craftTab);
-        if (building.Type == BuildingTypes.Miner) AddMineTabs(snapshot, colony, building, viewerUid);
+        if (building.Type is BuildingTypes.Miner or BuildingTypes.MineshaftEntrance) AddMineTabs(snapshot, colony, building, viewerUid);
         if (!snapshot.IsBuilderHut) return snapshot;
 
-        foreach (var order in colony.Buildings.Where(b => b.HasWorkOrder).OrderBy(b => b.BuildingId))
+        foreach (var order in colony.Buildings.Where(b => b.HasWorkOrder || b.Removing).OrderBy(b => b.BuildingId))
         {
             snapshot.Orders.Add(BuildingViewFor(colony, order));
         }

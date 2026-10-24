@@ -817,6 +817,8 @@ public static class BuildingTypes
     public const string Explorer = "explorer";
     public const string Gatherer = "gatherer";
     public const string Barracks = "barracks";
+    /// <summary>Put at a mine's entrance; several Miner's Huts can work the one mine through it.</summary>
+    public const string MineshaftEntrance = "mineshaftentrance";
     /// <summary>Not a colony building: only used to find the supply camp's own blueprint.</summary>
     public const string SupplyCamp = "supplycamp";
 }

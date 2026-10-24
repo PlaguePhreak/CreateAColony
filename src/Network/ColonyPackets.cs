@@ -105,6 +105,8 @@ public class BuildingView
     [ProtoMember(11)] public string Name = "";
     /// <summary>Which of its type's variants it is; "" when the type has only one.</summary>
     [ProtoMember(12)] public string Variant = "";
+    /// <summary>Remove hut was pressed: a builder is taking it down (ProgressPercent and Status are for that).</summary>
+    [ProtoMember(13)] public bool Removing;
 }
 
 /// <summary>One line of the Town Hall's event log; the window fills the lang key in.</summary>
@@ -431,6 +433,13 @@ public class HutSnapshot
     [ProtoMember(131)] public List<string> MarkersOff = new();
     /// <summary>How many markers its worker has put down.</summary>
     [ProtoMember(132)] public int MarkerCount;
+    /// <summary>A Mineshaft Entrance: the colony's Miner's Huts, those working its mine first.</summary>
+    [ProtoMember(150)] public bool IsMineEntrance;
+    [ProtoMember(151)] public List<MineHutView> MineHuts = new();
+    /// <summary>A Miner's Hut working a Mineshaft Entrance's mine: that entrance's name; empty for its own mine.</summary>
+    [ProtoMember(152)] public string MineEntranceName = "";
+    /// <summary>The mine's size and what is left, or that it is derelict (Mineshaft Entrance).</summary>
+    [ProtoMember(153)] public string MineInfo = "";
 }
 
 /// <summary>One line of a hut's chest list: an item, how many there are, and which containers hold it.</summary>
@@ -734,7 +743,26 @@ public enum ColonyAction
     RemoveMarkers = 121,
     /// <summary>Colony militia switches (officers); Text is "1" or "0".</summary>
     SetSelfDefence = 140,
-    SetSupportAllies = 141
+    SetSupportAllies = 141,
+    /// <summary>Remove hut: the hut's workers lose their job, a builder takes the building down and the hut block comes back.</summary>
+    RemoveHut = 150,
+    /// <summary>Has the Miner's Hut with Text (its BuildingId) work the mine of the Mineshaft Entrance with BuildingId.</summary>
+    LinkMineHut = 151,
+    UnlinkMineHut = 152
+}
+
+/// <summary>One Miner's Hut on a Mineshaft Entrance's Main tab.</summary>
+[ProtoContract]
+public class MineHutView
+{
+    [ProtoMember(1)] public int BuildingId;
+    [ProtoMember(2)] public string Name = "";
+    [ProtoMember(3)] public int Level;
+    /// <summary>Its miner's name, or empty when nobody works there.</summary>
+    [ProtoMember(4)] public string Worker = "";
+    [ProtoMember(5)] public bool Linked;
+    /// <summary>The other Mineshaft Entrance it works under, if any.</summary>
+    [ProtoMember(6)] public string Elsewhere = "";
 }
 
 /// <summary>The Builder's Wand building list: each building type with how many of its blocks the player carries.</summary>

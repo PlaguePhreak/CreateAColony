@@ -22,14 +22,14 @@ public partial class ColonyManager
     public int MineshaftRepeats(Building hut)
     {
         if (HasLevelPieces(hut)) return 0;
-        int repeats = Math.Max(0, Config.MinerEntranceRepeatsPerHutLevel) * Math.Max(1, hut.Level);
-        return hut.MaxMineLevels > 0 ? Math.Min(repeats, hut.MaxMineLevels - 1) : repeats;
+        int repeats = Math.Max(0, Config.MinerEntranceRepeatsPerHutLevel) * Math.Max(1, LevelHut(hut).Level);
+        return hut.Mine.MaxMineLevels > 0 ? Math.Min(repeats, hut.Mine.MaxMineLevels - 1) : repeats;
     }
 
     /// <summary>The most levels the hut's level allows, before the Max depth setting.</summary>
     public int MineshaftLevelsAllowed(Building hut) => HasLevelPieces(hut)
         ? 1 + LevelPiecesAllowed(hut)
-        : 1 + Math.Max(0, Config.MinerEntranceRepeatsPerHutLevel) * Math.Max(1, hut.Level);
+        : 1 + Math.Max(0, Config.MinerEntranceRepeatsPerHutLevel) * Math.Max(1, LevelHut(hut).Level);
 
     /// <summary>
     /// Level pieces under the entrance, as Aaron asked (0.87.0): a level 0 hut has level 1, each upgrade adds
@@ -37,17 +37,17 @@ public partial class ColonyManager
     /// </summary>
     int LevelPiecesAllowed(Building hut)
     {
-        int max = Blueprints.MaxLevel(hut);
-        if (max > 0 && hut.Level >= max) return DeepestLevelPieces(hut);
-        return Math.Min(DeepestLevelPieces(hut), 1 + Math.Max(1, Config.MinerMineLevelsPerHutLevel) * Math.Max(0, hut.Level));
+        int max = Blueprints.MaxLevel(LevelHut(hut));
+        if (max > 0 && LevelHut(hut).Level >= max) return DeepestLevelPieces(hut);
+        return Math.Min(DeepestLevelPieces(hut), 1 + Math.Max(1, Config.MinerMineLevelsPerHutLevel) * Math.Max(0, LevelHut(hut).Level));
     }
 
     /// <summary>How many level pieces fit under the entrance before the bottom of the world.</summary>
     int DeepestLevelPieces(Building hut)
     {
-        if (MineshaftStyle(hut) is not { } style || Blueprints.GetMinePiece(style, BlueprintLibrary.MineEntrance, hut.Rotation) is not { Open.Count: > 0 } entrance
-            || Blueprints.GetMinePiece(style, BlueprintLibrary.MineLevel, hut.Rotation) is not { Period: > 0 } level) return 0;
-        int top = (hut.MineshaftPos ?? hut.HutPos).Y - 1 + entrance.Open.Max(o => o.Y) - 1;
+        if (MineshaftStyle(hut) is not { } style || Blueprints.GetMinePiece(style, BlueprintLibrary.MineEntrance, hut.Mine.MineTurn) is not { Open.Count: > 0 } entrance
+            || Blueprints.GetMinePiece(style, BlueprintLibrary.MineLevel, hut.Mine.MineTurn) is not { Period: > 0 } level) return 0;
+        int top = (hut.Mine.MineshaftPos ?? hut.Mine.HutPos).Y - 1 + entrance.Open.Max(o => o.Y) - 1;
         // Each level's lowest layer stays above the bottom few layers of the world.
         int room = top + level.Min.Y - 4;
         return room < 0 ? 0 : room / level.Period + 1;
@@ -64,7 +64,7 @@ public partial class ColonyManager
     int MineshaftHubLevels(Building hut)
     {
         int levels = MineshaftLevelsAllowed(hut);
-        if (hut.MaxMineLevels > 0) levels = Math.Min(levels, hut.MaxMineLevels);
+        if (hut.Mine.MaxMineLevels > 0) levels = Math.Min(levels, hut.Mine.MaxMineLevels);
         return Math.Max(0, levels - 1);
     }
 
@@ -77,7 +77,7 @@ public partial class ColonyManager
 
     /// <summary>How many sections the mineshaft may have; int.MaxValue when MinerSectionsPerHutLevel is 0 (no limit, since 0.76.0).</summary>
     public int MineshaftSectionLimit(Building hut) =>
-        Config.MinerSectionsPerHutLevel <= 0 ? int.MaxValue : Config.MinerSectionsPerHutLevel * Math.Max(1, hut.Level);
+        Config.MinerSectionsPerHutLevel <= 0 ? int.MaxValue : Config.MinerSectionsPerHutLevel * Math.Max(1, LevelHut(hut).Level);
 
     /// <summary>
     /// The deepest level new sections may go on, as Aaron asked (0.76.0): MinerMineLevelsPerHutLevel per hut
@@ -85,8 +85,8 @@ public partial class ColonyManager
     /// </summary>
     int MineshaftLevelsOpen(Building hut, List<PlacedPiece> pieces)
     {
-        int open = Math.Max(1, Config.MinerMineLevelsPerHutLevel) * Math.Max(1, hut.Level);
-        if (hut.MaxMineLevels > 0) open = Math.Min(open, hut.MaxMineLevels);
+        int open = Math.Max(1, Config.MinerMineLevelsPerHutLevel) * Math.Max(1, LevelHut(hut).Level);
+        if (hut.Mine.MaxMineLevels > 0) open = Math.Min(open, hut.Mine.MaxMineLevels);
         if (pieces.Any(p => p.Piece.Name == BlueprintLibrary.MineLevel)) return LevelCount(pieces);
         return Math.Min(open, LevelCount(pieces));
     }
@@ -123,13 +123,13 @@ public partial class ColonyManager
     /// <summary>The pieces in the order the miner works them: the entrance (the way down), then a level asked to be repaired, then the rest.</summary>
     static IEnumerable<PlacedPiece> WorkOrder(List<PlacedPiece> pieces, Building hut)
     {
-        if (hut.RepairLevel <= 0) return pieces;
-        return pieces.Take(1).Concat(pieces.Skip(1).OrderBy(p => LevelOf(pieces, p) == hut.RepairLevel ? 0 : 1));
+        if (hut.Mine.RepairLevel <= 0) return pieces;
+        return pieces.Take(1).Concat(pieces.Skip(1).OrderBy(p => LevelOf(pieces, p) == hut.Mine.RepairLevel ? 0 : 1));
     }
 
     /// <summary>The block holes in the floor are filled with; 0 when filling is off or the block is missing.</summary>
     int FillBlockId(Building hut) =>
-        MineFillBlocks.BlockCode(hut.FillBlock) is { } code && sapi.World.GetBlock(new AssetLocation(code)) is { } block ? block.Id : 0;
+        MineFillBlocks.BlockCode(hut.Mine.FillBlock) is { } code && sapi.World.GetBlock(new AssetLocation(code)) is { } block ? block.Id : 0;
 
     /// <summary>
     /// A piece's steps, plus a fill block under each spot it opens where the natural floor is missing (a
@@ -182,34 +182,34 @@ public partial class ColonyManager
                 left[entrance ? LevelAt(pieces, piece.Origin.Y + step.Dy) : LevelOf(pieces, piece)]++;
             }
         }
-        int working = mineshaftWorking.GetValueOrDefault(hut.BuildingId);
+        var working = WorkingLevels(hut);
         return Enumerable.Range(1, count)
-            .Select(l => new MineLevelInfo(l, top - (l - 1) * Math.Max(0, LevelSpacing(pieces)), sections[l], left[l], l == working))
+            .Select(l => new MineLevelInfo(l, top - (l - 1) * Math.Max(0, LevelSpacing(pieces)), sections[l], left[l], working.Contains(l)))
             .ToList();
     }
 
     public void SetMineLevel(Colony colony, Building hut, int level)
     {
-        hut.MineLevel = Math.Max(0, level);
+        hut.Mine.MineLevel = Math.Max(0, level);
         MarkDirty(colony);
     }
 
     public void RepairMineLevel(Colony colony, Building hut, int level)
     {
-        hut.RepairLevel = Math.Max(0, level);
+        hut.Mine.RepairLevel = Math.Max(0, level);
         MarkDirty(colony);
     }
 
     public void SetMaxMineLevels(Colony colony, Building hut, int levels)
     {
-        hut.MaxMineLevels = levels <= 0 || levels >= MineshaftLevelsAllowed(hut) ? 0 : levels;
+        hut.Mine.MaxMineLevels = levels <= 0 || levels >= MineshaftLevelsAllowed(hut) ? 0 : levels;
         MarkDirty(colony);
     }
 
     public string? SetFillBlock(Colony colony, Building hut, string fill)
     {
         if (!MineFillBlocks.All.Contains(fill)) return "createacolony:bad-building";
-        hut.FillBlock = fill;
+        hut.Mine.FillBlock = fill;
         MarkDirty(colony);
         return null;
     }

@@ -173,11 +173,20 @@ gatherer=shape(["sides","planks","basket","berry","stem","cap"], base+[
   box("Stem",[11.5,9,11.5],[13,11.5,13],"stem"),
   box("Cap",[10.5,11.5,10.5],[14,13,14],"cap"),
 ])
+# Mineshaft Entrance: a timber frame over a dark hole, with a ladder going down.
+entrance=shape(["sides","planks","log","dark","ladder"], base+[
+  box("Hole",[4,9,4],[12,9.2,12],"dark"),
+  box("PostL",[3,9,7],[4.5,19,8.5],"log"), box("PostR",[11.5,9,7],[13,19,8.5],"log"),
+  box("Beam",[2,19,6.5],[14,20.5,9],"log"),
+  box("RailL",[5,9.2,9],[5.6,15,9.6],"ladder"), box("RailR",[10.4,9.2,9],[11,15,9.6],"ladder"),
+  box("Rung1",[5.6,10.5,9.1],[10.4,11,9.5],"ladder"), box("Rung2",[5.6,12.5,9.1],[10.4,13,9.5],"ladder"),
+  box("Rung3",[5.6,14.5,9.1],[10.4,15,9.5],"ladder"),
+])
 
 if __name__ == "__main__":
     import os
     out = sys.argv[1] if len(sys.argv) > 1 else os.path.join(os.path.dirname(__file__), "../../assets/createacolony/shapes/block")
     for name, (tex, el) in models.items():
         json.dump(shape(tex, base + el), open(f"{out}/{name}.json", "w"), indent=1)
-    for name, model in {"hut-smelter": smelter, "hut-blacksmith": smith, "hut-sawmill": saw, "hut-barracks": barracks, "hut-explorer": explorer, "hut-gatherer": gatherer, "supplycamp": camp, "fieldmarker": crow}.items():
+    for name, model in {"hut-smelter": smelter, "hut-blacksmith": smith, "hut-sawmill": saw, "hut-barracks": barracks, "hut-explorer": explorer, "hut-gatherer": gatherer, "hut-mineshaftentrance": entrance, "supplycamp": camp, "fieldmarker": crow}.items():
         json.dump(model, open(f"{out}/{name}.json", "w"), indent=1)

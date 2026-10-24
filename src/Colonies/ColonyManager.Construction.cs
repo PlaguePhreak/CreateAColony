@@ -48,7 +48,9 @@ public partial class ColonyManager
     {
         var building = GetBuilding(colony, hutPos);
         if (building == null) return;
+        LeaveMine(colony, building);
         colony.Buildings.Remove(building);
+        colony.LinkMines();
         LogEvent(colony, "event-removed", BuildingName(building));
         CancelBuildRequests(colony, building);
         foreach (var c in colony.Citizens.Where(c => c.WorkplacePos != null && c.WorkplacePos.Equals(hutPos))) c.WorkplacePos = null;
@@ -159,6 +161,7 @@ public partial class ColonyManager
     public string? StartWorkOrder(Colony colony, Building building)
     {
         if (building.HasWorkOrder) return "createacolony:build-already";
+        if (building.Removing) return "createacolony:remove-already";
         int next = building.Level + 1;
         if (Blueprints.Get(building, next) == null) return "createacolony:build-no-blueprint";
 
@@ -183,10 +186,10 @@ public partial class ColonyManager
     /// <summary>Gives the builder the work order it is on, or the oldest one nobody is working on.</summary>
     public Building? TakeWorkOrder(Colony colony, CitizenRecord builder)
     {
-        var own = colony.Buildings.Find(b => b.HasWorkOrder && b.BuilderCitizenId == builder.CitizenId);
+        var own = colony.Buildings.Find(b => (b.HasWorkOrder || b.Removing) && b.BuilderCitizenId == builder.CitizenId);
         if (own != null) return own;
 
-        foreach (var building in colony.Buildings.Where(b => b.HasWorkOrder).OrderBy(b => b.BuildingId))
+        foreach (var building in colony.Buildings.Where(b => b.HasWorkOrder || b.Removing).OrderBy(b => b.BuildingId))
         {
             var current = colony.Citizens.Find(c => c.CitizenId == building.BuilderCitizenId);
             if (current != null && current.Alive && current.JobCode == Jobs.Builder) continue;

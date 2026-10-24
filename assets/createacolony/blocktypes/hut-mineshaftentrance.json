@@ -1,0 +1,25 @@
+{
+	"code": "hut-mineshaftentrance",
+	"class": "BlockColonyHut",
+	"attributes": {
+		"buildingType": "mineshaftentrance"
+	},
+	"creativeinventory": { "general": ["*"], "vintagecolonies": ["*"] },
+	"blockmaterial": "Wood",
+	"drawtype": "json",
+	// Put at a mine's entrance; several Miner's Huts can work the one mine through it. No storage of its own.
+	"shape": { "base": "createacolony:block/hut-mineshaftentrance" },
+	"textures": {
+		"sides": { "base": "game:block/wood/table/aged/sides" },
+		"planks": { "base": "game:block/wood/planks/aged1" },
+		"log": { "base": "game:block/wood/debarked/aged" },
+		"dark": { "base": "game:block/coal/charcoal" },
+		"ladder": { "base": "game:block/wood/planks/aged1" }
+	},
+	"sideopaque": { "all": false },
+	"sidesolid": { "all": false },
+	"emitSideAo": { "all": false },
+	"lightAbsorption": 0,
+	"resistance": 2,
+	"sounds": { "place": "game:block/planks", "break": "game:block/planks", "hit": "game:block/planks" }
+}

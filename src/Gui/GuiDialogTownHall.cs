@@ -560,7 +560,7 @@ public class GuiDialogTownHall : GuiDialog
         foreach (var o in orders.Skip(page * OrdersPerPage).Take(OrdersPerPage))
         {
             number++;
-            string title = number + ". " + o.Name + " " + Lang.Get("createacolony:order-level", o.TargetLevel);
+            string title = number + ". " + (o.Removing ? GuiDialogHut.OrderTitle(o) : o.Name + " " + Lang.Get("createacolony:order-level", o.TargetLevel));
             composer
                 .AddStaticText(title, GuiKit.Body(), ElementBounds.Fixed(10, y + 6, Width - 150, 25))
                 .AddStaticText(GuiDialogHut.StatusText(o), GuiKit.Detail().WithColor(GuiStyle.ActiveButtonTextColor), ElementBounds.Fixed(10, y + 30, Width - 150, 22));

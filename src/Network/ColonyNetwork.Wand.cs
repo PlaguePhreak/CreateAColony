@@ -127,6 +127,10 @@ public partial class ColonyNetwork
             building.Style = plan.Style;
             building.Variant = plan.Variant;
             Manager.MarkDirty(colony);
+            if (Manager.AfterHutPlaced(colony, building) is { } note)
+            {
+                player.SendMessage(0, Lang.GetL(player.LanguageCode, note, ColonyManager.BuildingName(building)), EnumChatType.Notification);
+            }
         }
         if (slot != null && player.WorldData.CurrentGameMode != EnumGameMode.Creative)
         {

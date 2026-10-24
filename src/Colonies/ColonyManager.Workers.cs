@@ -108,7 +108,7 @@ public partial class ColonyManager
     {
         if (worker.WorkplacePos != null && GetBuilding(colony, worker.WorkplacePos) is { } hut && hut.Type == hutType) return hut;
 
-        var free = colony.Buildings.Where(b => b.Type == hutType).OrderBy(b => b.BuildingId)
+        var free = colony.Buildings.Where(b => b.Type == hutType && !b.Removing).OrderBy(b => b.BuildingId)
             .FirstOrDefault(b => colony.Citizens.Count(c => c.Alive && c != worker && c.JobCode == worker.JobCode
                 && c.WorkplacePos != null && c.WorkplacePos.Equals(b.HutPos)) < WorkerSlots(b));
         if (free != null || worker.WorkplacePos != null)

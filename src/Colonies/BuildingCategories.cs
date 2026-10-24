@@ -11,7 +11,7 @@ public static class BuildingCategories
         new("fundamentals", new[] { BuildingTypes.TownHall, BuildingTypes.Builder, BuildingTypes.Tavern, BuildingTypes.Residence }),
         new("agriculture", new[] { BuildingTypes.Farmer, BuildingTypes.Forester, BuildingTypes.Gatherer }),
         new("craftsmanship", new[] { BuildingTypes.Potter, BuildingTypes.Cook, BuildingTypes.Smelter, BuildingTypes.Blacksmith, BuildingTypes.Sawmill }),
-        new("mining", new[] { BuildingTypes.Prospector, BuildingTypes.Miner, BuildingTypes.Quarry }),
+        new("mining", new[] { BuildingTypes.Prospector, BuildingTypes.Miner, BuildingTypes.MineshaftEntrance, BuildingTypes.Quarry }),
         new("education", System.Array.Empty<string>()),
         new("infrastructure", new[] { BuildingTypes.Warehouse, BuildingTypes.Explorer }),
         new("military", new[] { BuildingTypes.GuardTower, BuildingTypes.Barracks }),

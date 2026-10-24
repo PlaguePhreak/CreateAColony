@@ -31,6 +31,8 @@ public class AiTaskSettlerBuilder : SettlerTaskBase
     BuildStep buildStep;
     int orderId;
     ColonyManager.ToolNeed neededTool;
+    /// <summary>Taking a building down, the last block is its hut block, which goes back to the player.</summary>
+    bool takingHutBlock;
 
     bool walking;
     float workTime;
@@ -70,6 +72,8 @@ public class AiTaskSettlerBuilder : SettlerTaskBase
         var order = manager.TakeWorkOrder(colony, citizen);
         if (order == null) return carrying && StashAt(colony, hut);
         orderId = order.BuildingId;
+        takingHutBlock = false;
+        if (order.Removing) return PlanRemoval(colony, citizen, hut, order);
 
         var blueprint = manager.Blueprints.Get(order, order.TargetLevel);
         if (blueprint == null)
@@ -84,18 +88,7 @@ public class AiTaskSettlerBuilder : SettlerTaskBase
         }
 
         // The right tool first: a builder digs with a shovel and fells with an axe, like a player.
-        if (manager.ToolNeededAt(colony, buildStep, pos) is { } toolNeed && !HasTool(citizen, toolNeed))
-        {
-            neededTool = toolNeed;
-            var toolChest = manager.HutStorage(colony, hut)
-                .FirstOrDefault(c => c.Inventory.Any(s => ColonyManager.ToolFits(s.Itemstack, toolNeed.Type, toolNeed.Tier)));
-            if (toolChest != null) return Go(Step.FetchTool, toolChest.Pos);
-
-            bool canAsk = manager.EnsureToolRequest(colony, order, hut, toolNeed);
-            manager.BuildStatus[order.BuildingId] = canAsk ? "needs-tool-" + toolNeed.Type.ToString().ToLowerInvariant() : "no-hut-chest";
-            nextSearchMs = entity.World.ElapsedMilliseconds + WaitRetryMs;
-            return false;
-        }
+        if (ToolFirst(colony, citizen, hut, order, pos) is { } toolPlan) return toolPlan;
 
         // Everything the next block costs must be in hand; a roof block takes its frame and materials together.
         var costs = manager.NextPlacement(colony, buildStep, pos).Costs;
@@ -119,6 +112,39 @@ public class AiTaskSettlerBuilder : SettlerTaskBase
         manager.BuildStatus[order.BuildingId] = hasStorage ? "waiting-materials" : "no-hut-chest";
         nextSearchMs = entity.World.ElapsedMilliseconds + WaitRetryMs;
         return false;
+    }
+
+    /// <summary>
+    /// When the block at pos needs a tool the builder lacks: goes for one in the hut's storage, or asks couriers
+    /// for one and waits. Null when the builder has what it needs.
+    /// </summary>
+    bool? ToolFirst(Colony colony, CitizenRecord citizen, Building hut, Building order, BlockPos pos)
+    {
+        if (manager!.ToolNeededAt(colony, buildStep, pos) is not { } toolNeed || HasTool(citizen, toolNeed)) return null;
+        neededTool = toolNeed;
+        var toolChest = manager.HutStorage(colony, hut)
+            .FirstOrDefault(c => c.Inventory.Any(s => ColonyManager.ToolFits(s.Itemstack, toolNeed.Type, toolNeed.Tier)));
+        if (toolChest != null) return Go(Step.FetchTool, toolChest.Pos);
+
+        bool canAsk = manager.EnsureToolRequest(colony, order, hut, toolNeed);
+        manager.BuildStatus[order.BuildingId] = canAsk ? "needs-tool-" + toolNeed.Type.ToString().ToLowerInvariant() : "no-hut-chest";
+        nextSearchMs = entity.World.ElapsedMilliseconds + WaitRetryMs;
+        return false;
+    }
+
+    /// <summary>
+    /// Remove hut: the next block of the building to take down, from the top, as a step that clears it; when
+    /// none is left, the hut block itself.
+    /// </summary>
+    bool PlanRemoval(Colony colony, CitizenRecord citizen, Building hut, Building order)
+    {
+        var spot = manager!.NextRemovalSpot(colony, order);
+        takingHutBlock = spot == null;
+        var pos = spot ?? order.HutPos;
+        buildStep = new BuildStep(pos.X - order.HutPos.X - order.XOffset, pos.Y - order.HutPos.Y - order.YOffset, pos.Z - order.HutPos.Z - order.ZOffset, 0);
+        if (!takingHutBlock && ToolFirst(colony, citizen, hut, order, pos) is { } toolPlan) return toolPlan;
+        manager.BuildStatus[order.BuildingId] = "removing";
+        return Go(Step.Work, pos);
     }
 
     bool StashAt(Colony colony, Building hut)
@@ -380,7 +406,13 @@ public class AiTaskSettlerBuilder : SettlerTaskBase
     {
         var order = colony.Buildings.Find(b => b.BuildingId == orderId);
         var hut = manager!.EnsureBuilderHut(colony, citizen);
-        if (order == null || hut == null || manager.IsStepDone(colony, buildStep, target)) return;
+        if (order == null || hut == null) return;
+        if (order.Removing)
+        {
+            TakeDown(colony, citizen, order, hut);
+            return;
+        }
+        if (manager.IsStepDone(colony, buildStep, target)) return;
 
         var ba = entity.World.BlockAccessor;
         var current = ba.GetBlock(target);
@@ -443,6 +475,28 @@ public class AiTaskSettlerBuilder : SettlerTaskBase
         if (manager.EnsureBuilderHut(colony, citizen) is { } builderHut) manager.AddStat(builderHut, "blocks-placed");
     }
 
+    /// <summary>Takes one block of a building being removed down into the hut's storage, or at the end the hut block itself.</summary>
+    void TakeDown(Colony colony, CitizenRecord citizen, Building order, Building hut)
+    {
+        if (takingHutBlock)
+        {
+            if (target.Equals(order.HutPos)) manager!.TakeHutBlock(colony, order, hut);
+            return;
+        }
+        if (entity.World.BlockAccessor.GetBlock(target).Id == 0) return;
+        var toolNeed = manager!.ToolNeededAt(colony, buildStep, target);
+        var hand = Hand;
+        if (toolNeed != null && !ColonyManager.ToolFits(hand?.Itemstack, toolNeed.Value.Type, toolNeed.Value.Tier)) return;
+        manager.BreakForBuild(colony, hut, target);
+        manager.GainWorkXp(colony, citizen, Jobs.Builder);
+        manager.AddStat(hut, "blocks-removed");
+        if (toolNeed != null && hand?.Itemstack != null)
+        {
+            hand.Itemstack.Collectible.DamageItem(entity.World, entity, hand);
+            SyncHand();
+        }
+    }
+
     /// <summary>What a player would play: the held tool's swing when clearing a block, the place motion when building.</summary>
     string WorkAnimationCode(Colony colony)
     {
@@ -471,8 +525,8 @@ public class AiTaskSettlerBuilder : SettlerTaskBase
     public override string Describe(Colony colony, CitizenRecord citizen)
     {
         var order = colony.Buildings.Find(b => b.BuildingId == orderId);
-        string building = order == null ? "" : Lang.Get("createacolony:building-" + order.Type) + " " + order.TargetLevel;
-        string key = step switch
+        string building = order == null ? "" : order.Removing ? ColonyManager.BuildingName(order) : Lang.Get("createacolony:building-" + order.Type) + " " + order.TargetLevel;
+        string key = order?.Removing == true && step == Step.Work ? "activity-builder-remove" : step switch
         {
             Step.Fetch => "activity-builder-fetch",
             Step.FetchTool => "activity-builder-tool",

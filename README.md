@@ -701,6 +701,24 @@ before shipping converted blueprints.
 
 ### The Town Hall window (0.24.0)
 
+### Remove hut and the Mineshaft Entrance (0.90.0)
+- **Remove hut** (Main tab, build options, officers): press it twice. The hut's workers lose their job at once,
+  a builder takes the building down from the top, and the hut block goes back to the player who pressed it (into
+  the builder's hut when they are away). Only the blueprint's blocks come down: natural ground, things players
+  added and chests with items in them stay. A hut with nothing built goes straight back. Stop removing (or Cancel
+  in the work orders lists) stops it. The Town Hall and Warehouse can't be removed, nor the only Builder's Hut.
+- **Derelict mines**: a removed Miner's Hut's mineshaft is never taken down. It is left derelict (kept on the
+  colony's DerelictMines list) until a Miner's Hut without a mine within 32 blocks, or a Mineshaft Entrance
+  within 16 blocks of its entrance, takes it on.
+- **Mineshaft Entrance** (Mining tab of the wand, no design, block only): holds a mine so several Miner's Huts
+  work it. Put down near a Miner's Hut's mine it takes it over and links that hut; near a derelict mine it takes
+  that on. Its Main tab lists the Miner's Huts with their miner and Link / Unlink; Levels and Settings change
+  the shared mine for every linked hut. A new Miner's Hut within 32 blocks joins it by itself. A linked hut's
+  own old mine is left derelict. The deepest level comes from the highest linked hut. Guards, Required resources,
+  the trip to prospected ore and the materials stay per hut. Removing the entrance leaves its mine derelict.
+- Building fields 56-59 and 62 (MineEntranceId, Removing, RemovedBy, MineRotation, MineStyle), Colony 90
+  (DerelictMines). Not tested in game.
+
 ### Old previews no longer pile up (0.89.0)
 - Placing a building after another showed the earlier buildings' ghosts inside the new one (the Town Hall and
   Builder's Hut inside a Guard Tower). Each new placement now gets a preview space of its own, and the game

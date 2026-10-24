@@ -60,6 +60,8 @@ public class GuiDialogHut : GuiDialog
     int currentTab;
     int page;
     bool renaming;
+    /// <summary>Remove hut was pressed once; the second press removes it.</summary>
+    bool confirmRemove;
     string pendingName = "";
     string hostileSearch = "";
     bool settingSearch;
@@ -110,8 +112,8 @@ public class GuiDialogHut : GuiDialog
         if (snapshot.IsGuardTower) tabs.AddRange(new[] { (ToolsTab, "tab-tools"), (HostilesTab, "tab-hostiles") });
         // The shared tabs.
         if (snapshot.IsGuardTower || snapshot.IsMiner) tabs.Add((SettingsTab, "tab-settings"));
-        if (snapshot.IsMiner) tabs.Add((MineGuardsTab, "tab-guards"));
-        if (snapshot.IsBuilderHut || snapshot.IsMiner) tabs.Add((2, "tab-resources"));
+        if (snapshot.IsMiner && !snapshot.IsMineEntrance) tabs.Add((MineGuardsTab, "tab-guards"));
+        if (snapshot.IsBuilderHut || snapshot.IsMiner && !snapshot.IsMineEntrance) tabs.Add((2, "tab-resources"));
         if (snapshot.HasStorage) tabs.Add((MinStockTab, "tab-minstock"));
         if (snapshot.Job.Length > 0) tabs.Add((StatsTab, "tab-stats"));
         return tabs;
@@ -206,7 +208,7 @@ public class GuiDialogHut : GuiDialog
             ? Lang.Get("createacolony:placement-style", Lang.Get("createacolony:style-" + BlueprintStyles.Normalize(b.Style)))
             : Lang.Get("createacolony:placement-style-variant", Lang.Get("createacolony:style-" + BlueprintStyles.Normalize(b.Style)), GuiKit.VariantName(b.Variant));
         double levelHeight = GuiKit.TextHeight(capi, GuiKit.Detail(), levelText, Width - 20);
-        double headerHeight = 40 + levelHeight + 22 + (b.TargetLevel > 0 ? 22 : 0) + 6;
+        double headerHeight = 40 + levelHeight + 22 + (b.TargetLevel > 0 || b.Removing ? 22 : 0) + 6;
         composer.AddInset(ElementBounds.Fixed(0, y, Width, headerHeight), 3, 0.8f);
         if (renaming)
         {
@@ -226,11 +228,17 @@ public class GuiDialogHut : GuiDialog
         }
         double line = composer.Text(levelText, GuiKit.Detail(), 10, y + 38, Width - 20, 2);
         composer.AddStaticText(packText, GuiKit.Muted(), ElementBounds.Fixed(10, line, Width - 20, 20));
-        if (b.TargetLevel > 0)
+        if (b.TargetLevel > 0 || b.Removing)
         {
             composer.AddStaticText(StatusText(b), GuiKit.Detail().WithColor(GuiStyle.ActiveButtonTextColor), ElementBounds.Fixed(10, line + 22, Width - 20, 22));
         }
         y += headerHeight + 12;
+
+        if (snapshot.IsMineEntrance) y = ComposeEntranceHuts(composer, y);
+        if (snapshot.MineEntranceName.Length > 0)
+        {
+            y = composer.Text(Lang.Get("createacolony:miner-at-entrance", snapshot.MineEntranceName), GuiKit.Detail(), 0, y, Width, 8);
+        }
 
         // Assigned workers, with Manage workers and Recall workers.
         if (snapshot.Job.Length > 0)
@@ -249,11 +257,21 @@ public class GuiDialogHut : GuiDialog
             }
         }
 
-        // Build options.
-        if (Officer && (b.TargetLevel > 0 || b.Level < b.MaxLevel))
+        // Build options, and Remove hut.
+        bool removable = b.Type is not (BuildingTypes.TownHall or BuildingTypes.Warehouse);
+        if (Officer && (b.TargetLevel > 0 || b.Removing || b.Level < b.MaxLevel || removable))
         {
             y = composer.Section(Lang.Get("createacolony:hut-build-options"), y, Width);
-            y = AddOrderButtons(composer, b, y) + 4;
+            y = AddOrderButtons(composer, b, y);
+            if (removable && !b.Removing)
+            {
+                string label = Lang.Get(confirmRemove ? "createacolony:remove-confirm" : "createacolony:remove-hut");
+                composer.AddSmallButton(label, ConfirmRemove, ElementBounds.Fixed(0, y, 220, 28));
+                if (confirmRemove) composer.AddSmallButton(Lang.Get("createacolony:cancel"), () => { confirmRemove = false; Compose(); return true; }, ElementBounds.Fixed(230, y, 100, 28));
+                y += 34;
+                y = composer.Text(Lang.Get(confirmRemove ? "createacolony:remove-hint-sure" : "createacolony:remove-hint"), GuiKit.Muted(), 0, y, Width, 4);
+            }
+            y += 4;
         }
 
         // Request system: how soon couriers come for this hut's things.
@@ -304,6 +322,57 @@ public class GuiDialogHut : GuiDialog
             y = AddAnyTypeSwitch(composer, y);
             composer.Text(Lang.Get("createacolony:build-hint"), GuiKit.Muted(), 0, y, Width);
         }
+    }
+
+    /// <summary>The first press asks again; the second sends Remove hut. A hut with nothing built goes at once, so the window closes.</summary>
+    bool ConfirmRemove()
+    {
+        if (!confirmRemove)
+        {
+            confirmRemove = true;
+            Compose();
+            return true;
+        }
+        confirmRemove = false;
+        var b = snapshot.Building;
+        Send(ColonyAction.RemoveHut, b.BuildingId);
+        if (b.Level == 0) TryClose();
+        return true;
+    }
+
+    /// <summary>A Mineshaft Entrance: its mine, then the Miner's Huts that work it (with Unlink) and the others (with Link).</summary>
+    double ComposeEntranceHuts(GuiComposer composer, double y)
+    {
+        int id = BuildingId;
+        if (snapshot.MineInfo.Length > 0) y = composer.Text(snapshot.MineInfo, GuiKit.Detail(), 0, y, Width, 8);
+        var linked = snapshot.MineHuts.Where(h => h.Linked).ToList();
+        y = composer.Section(Lang.Get("createacolony:entrance-huts", linked.Count), y, Width);
+        if (linked.Count == 0) y = composer.Text(Lang.Get("createacolony:entrance-huts-none"), GuiKit.Body().WithColor(GuiKit.WarnColor), 0, y, Width, 8);
+        foreach (var h in linked) y = EntranceHutRow(composer, h, id, y);
+        var others = snapshot.MineHuts.Where(h => !h.Linked).ToList();
+        if (others.Count > 0)
+        {
+            y = composer.Section(Lang.Get("createacolony:entrance-others"), y + 6, Width);
+            foreach (var h in others.Take(ListRowsPerPage)) y = EntranceHutRow(composer, h, id, y);
+            y = composer.Text(Lang.Get("createacolony:entrance-link-hint"), GuiKit.Muted(), 0, y + 4, Width, 8);
+        }
+        return y + 6;
+    }
+
+    double EntranceHutRow(GuiComposer composer, MineHutView h, int entranceId, double y)
+    {
+        string worker = h.Worker.Length > 0 ? Lang.Get("createacolony:entrance-hut-worker", h.Worker) : Lang.Get("createacolony:entrance-hut-noworker");
+        if (h.Elsewhere.Length > 0) worker += " " + Lang.Get("createacolony:entrance-hut-elsewhere", h.Elsewhere);
+        composer
+            .AddStaticText(Lang.Get("createacolony:hut-name-level", h.Name, h.Level), GuiKit.Body(), ElementBounds.Fixed(10, y + 2, Width - 150, 22))
+            .AddStaticText(worker, GuiKit.Detail().WithColor(h.Worker.Length > 0 ? GuiKit.MutedColor : GuiKit.WarnColor), ElementBounds.Fixed(10, y + 24, Width - 150, 20));
+        if (Officer)
+        {
+            string hut = h.BuildingId.ToString();
+            composer.AddSmallButton(Lang.Get(h.Linked ? "createacolony:entrance-unlink" : "createacolony:entrance-link"),
+                () => SendText(h.Linked ? ColonyAction.UnlinkMineHut : ColonyAction.LinkMineHut, entranceId, hut), ElementBounds.Fixed(Width - 130, y + 8, 120, 28));
+        }
+        return y + 48;
     }
 
     bool SaveName()
@@ -1319,6 +1388,11 @@ public class GuiDialogHut : GuiDialog
     {
         if (ViewerRole < ColonyRole.Officer) return y;
         int id = b.BuildingId;
+        if (b.Removing)
+        {
+            composer.AddSmallButton(Lang.Get("createacolony:remove-stop"), () => Send(ColonyAction.CancelBuild, id), ElementBounds.Fixed(0, y, 200, 28));
+            return y + 34;
+        }
         if (b.TargetLevel > 0)
         {
             composer.AddSmallButton(Lang.Get("createacolony:build-cancel"), () => Send(ColonyAction.CancelBuild, id), ElementBounds.Fixed(0, y, 160, 28));
@@ -1351,7 +1425,7 @@ public class GuiDialogHut : GuiDialog
         double y = 34;
         foreach (var o in orders.Skip(page * OrdersPerPage).Take(OrdersPerPage))
         {
-            string title = Lang.Get("createacolony:building-" + o.Type) + " " + Lang.Get("createacolony:order-level", o.TargetLevel);
+            string title = OrderTitle(o);
             composer
                 .AddStaticText(title, GuiKit.Body(), ElementBounds.Fixed(10, y + 6, Width - 150, 25))
                 .AddStaticText(StatusText(o), GuiKit.Detail().WithColor(GuiStyle.ActiveButtonTextColor), ElementBounds.Fixed(10, y + 30, Width - 150, 22));
@@ -1490,8 +1564,14 @@ public class GuiDialogHut : GuiDialog
         ? Lang.Get("createacolony:building-no-blueprints", b.Level)
         : Lang.Get("createacolony:building-level", b.Level, b.MaxLevel);
 
-    internal static string StatusText(BuildingView b) =>
-        Lang.Get("createacolony:build-status", b.TargetLevel, b.ProgressPercent, Lang.Get("createacolony:buildstatus-" + b.Status));
+    internal static string StatusText(BuildingView b) => b.Removing
+        ? Lang.Get("createacolony:remove-status", b.ProgressPercent, Lang.Get("createacolony:buildstatus-" + b.Status))
+        : Lang.Get("createacolony:build-status", b.TargetLevel, b.ProgressPercent, Lang.Get("createacolony:buildstatus-" + b.Status));
+
+    /// <summary>A work order's title in the lists: the building and the level it goes to, or that it comes down.</summary>
+    internal static string OrderTitle(BuildingView o) => o.Removing
+        ? Lang.Get("createacolony:order-remove", o.Name)
+        : Lang.Get("createacolony:building-" + o.Type) + " " + Lang.Get("createacolony:order-level", o.TargetLevel);
 
     /// <summary>The server opens the storage window; this one closes so they do not overlap.</summary>
     bool OpenStorage()

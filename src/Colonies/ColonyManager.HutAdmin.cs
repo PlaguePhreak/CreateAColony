@@ -38,6 +38,7 @@ public partial class ColonyManager
     {
         string? job = JobOf(hut.Type);
         if (job == null) return "createacolony:bad-building";
+        if (hut.Removing) return "createacolony:remove-no-workers";
         if (!citizen.Alive || citizen.Visitor) return "createacolony:bad-citizen";
         if (citizen.IsChild) return "createacolony:child-no-job";
         if (IncapableOfJob(citizen, job) != null) return "createacolony:job-incapable";
