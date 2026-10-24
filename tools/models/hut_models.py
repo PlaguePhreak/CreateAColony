@@ -173,6 +173,16 @@ gatherer=shape(["sides","planks","basket","berry","stem","cap"], base+[
   box("Stem",[11.5,9,11.5],[13,11.5,13],"stem"),
   box("Cap",[10.5,11.5,10.5],[14,13,14],"cap"),
 ])
+# Hunter: a rack with two spears, a hide stretched on a frame and a cut of meat.
+hunter=shape(["sides","planks","log","metal","hide","meat"], base+[
+  box("RackL",[2,9,3],[3,17,4],"log"), box("RackR",[2,9,12],[3,17,13],"log"),
+  box("RackBar",[2,16,3],[3,17,13],"log"),
+  box("Spear1",[3,9,5.5],[3.8,20,6.3],"planks"), box("Tip1",[2.9,20,5.4],[3.9,21.5,6.4],"metal"),
+  box("Spear2",[3,9,9.5],[3.8,20,10.3],"planks"), box("Tip2",[2.9,20,9.4],[3.9,21.5,10.4],"metal"),
+  box("FrameL",[7,9,13],[8,18,14],"log"), box("FrameR",[14,9,13],[15,18,14],"log"),
+  box("Hide",[8,10,13.3],[14,17,13.7],"hide"),
+  box("Meat",[8,9,5],[13,11,9],"meat"),
+])
 # Mineshaft Entrance: a timber frame over a dark hole, with a ladder going down.
 entrance=shape(["sides","planks","log","dark","ladder"], base+[
   box("Hole",[4,9,4],[12,9.2,12],"dark"),
@@ -188,5 +198,5 @@ if __name__ == "__main__":
     out = sys.argv[1] if len(sys.argv) > 1 else os.path.join(os.path.dirname(__file__), "../../assets/createacolony/shapes/block")
     for name, (tex, el) in models.items():
         json.dump(shape(tex, base + el), open(f"{out}/{name}.json", "w"), indent=1)
-    for name, model in {"hut-smelter": smelter, "hut-blacksmith": smith, "hut-sawmill": saw, "hut-barracks": barracks, "hut-explorer": explorer, "hut-gatherer": gatherer, "hut-mineshaftentrance": entrance, "supplycamp": camp, "fieldmarker": crow}.items():
+    for name, model in {"hut-smelter": smelter, "hut-blacksmith": smith, "hut-sawmill": saw, "hut-barracks": barracks, "hut-explorer": explorer, "hut-gatherer": gatherer, "hut-hunter": hunter, "hut-mineshaftentrance": entrance, "supplycamp": camp, "fieldmarker": crow}.items():
         json.dump(model, open(f"{out}/{name}.json", "w"), indent=1)

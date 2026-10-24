@@ -34,6 +34,8 @@ public partial class ColonyManager
         // The Explorer and Gatherer need no tool; Knife is only a placeholder (see NeedsTool on their tasks).
         [BuildingTypes.Explorer] = new WorkerHutKind(Jobs.Explorer, EnumTool.Knife, _ => false, _ => false),
         [BuildingTypes.Gatherer] = new WorkerHutKind(Jobs.Gatherer, EnumTool.Knife, _ => false, _ => false),
+        // The hunter hunts with a spear (any weapon does) and keeps a knife for skinning.
+        [BuildingTypes.Hunter] = new WorkerHutKind(Jobs.Hunter, EnumTool.Spear, _ => false, IsKnife),
     };
 
     /// <summary>Huts a settler works from, whose chests are never warehouse storage.</summary>
@@ -258,6 +260,7 @@ public partial class ColonyManager
         if (hut.Type == BuildingTypes.Quarry) lines.Add(QuarryInfo(hut));
         if (hut.Type == BuildingTypes.Explorer) lines.Add(ExplorerInfo(colony, hut));
         if (hut.Type == BuildingTypes.Gatherer) lines.Add(GathererInfo(colony, hut));
+        if (hut.Type == BuildingTypes.Hunter) lines.Add(HunterInfo(hut));
         lines.Add("");
         lines.Add(Lang.Get("createacolony:hint-" + hut.Type, GatherRadius(hut)));
         return string.Join("<br>", lines);

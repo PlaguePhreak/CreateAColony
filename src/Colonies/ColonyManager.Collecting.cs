@@ -21,7 +21,7 @@ public partial class ColonyManager
 
     /// <summary>Huts whose window has the Allowed to collect tab.</summary>
     public static bool HasCollectTab(string type) => type is BuildingTypes.Forester or BuildingTypes.Gatherer or BuildingTypes.Farmer
-        or BuildingTypes.Miner or BuildingTypes.Prospector or BuildingTypes.Quarry;
+        or BuildingTypes.Miner or BuildingTypes.Prospector or BuildingTypes.Quarry or BuildingTypes.Hunter;
 
     /// <summary>False when the hut is set not to collect this; a thing with no key is always allowed.</summary>
     public static bool MayCollect(Building hut, string? key) => key == null || !hut.CollectOff.Contains(key);
@@ -35,6 +35,7 @@ public partial class ColonyManager
             BuildingTypes.Forester => WoodKinds(),
             BuildingTypes.Gatherer => FruitKinds().Concat(MushroomKinds()).Concat(LooseKinds()).ToList(),
             BuildingTypes.Farmer => FruitKinds(),
+            BuildingTypes.Hunter => AnimalKinds(),
             BuildingTypes.Miner or BuildingTypes.Prospector or BuildingTypes.Quarry => DigKinds(),
             _ => new List<CollectKind>()
         };

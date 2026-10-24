@@ -947,6 +947,26 @@ Settlers have families, as MineColonies citizens do (`src/Colonies/ColonyManager
   real limits allow) and `/colony family grow <name>` are admin test commands. Names can be first names.
 - `Families: false` in the config stops new couples and children.
 
+### The Hunter, skinning and cooking at home (0.99.0)
+
+`src/Colonies/ColonyManager.Hunting.cs`, `src/Colonies/ColonyManager.HomeCooking.cs`,
+`src/Settlers/AiTaskSettlerHunter.cs`, `src/Settlers/AiTaskSettlerChores.cs`. Not tested in game yet.
+
+- **Hunter's Hut** (Builder's Wand, Agriculture tab; recipe: planks around two spears). Give a settler the
+  Hunter job. It needs a spear (any weapon works) and a knife in the hut storage or the warehouse. It hunts
+  animals up to `HunterRadius` blocks from the hut, skins its kills with the knife, and brings the meat,
+  hides and the rest to the hut. Couriers take them to the warehouse. It leaves monsters (the guards'
+  targets), animals bred in pens, babies and animals inside buildings alone. An animal it can't catch within
+  `HunterChaseSeconds` is left alone for 5 minutes. The **Allowed to collect** tab says which animals it hunts.
+- **Skinning.** Settlers without a job skin dead animals on the colony's land, and kills the hunter left behind,
+  with a knife from their home chest or the warehouse. The meat, hide and the rest go into a chest at home.
+- **Cooking at home.** If there is a fire pit in the home or up to `JoblessFirepitReach` blocks from it, they
+  cook the raw meat (and other raw food from the home chest) on it with firewood from home or the warehouse,
+  then put the cooked food in the home chest. Hungry settlers eat it from there. The Cook's Hut's fire pit is
+  left to the cook.
+- Config: `JoblessSkinAnimals`, `JoblessSkinRadius`, `JoblessCookAtHome`, `JoblessFirepitReach`,
+  `HunterRadius`, `HunterSecondsPerHit`, `HunterChaseSeconds`, `HunterSparesLivestock`.
+
 ### Settlers without a job: home upkeep and helping out (0.53.0)
 
 Settlers with no job no longer just stand about (`src/Colonies/ColonyManager.Zones.cs`,

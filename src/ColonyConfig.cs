@@ -152,6 +152,16 @@ public class ColonyConfig
     /// <summary>Ground this many blocks above sea level or more is marked as a mountain.</summary>
     public int ExplorerMountainHeight = 60;
 
+    // Hunter
+    /// <summary>How far from the Hunter's Hut, in blocks, the hunter hunts (change it on the Work area tab).</summary>
+    public int HunterRadius = 48;
+    /// <summary>Seconds between a hunter's strikes.</summary>
+    public float HunterSecondsPerHit = 1.2f;
+    /// <summary>Seconds a hunter chases one animal before it lets it go for a while.</summary>
+    public float HunterChaseSeconds = 45f;
+    /// <summary>Animals the hunter leaves alone: born in a pen (bred by players), or a baby.</summary>
+    public bool HunterSparesLivestock = true;
+
     // Gatherer
     /// <summary>How far from the Gatherer's Hut, in blocks, the gatherer forages (change it on the Work area tab).</summary>
     public int GathererRadius = 48;
@@ -277,6 +287,7 @@ public class ColonyConfig
         ["barracks"] = 40,
         ["explorer"] = 30,
         ["gatherer"] = 30,
+        ["hunter"] = 30,
     };
     /// <summary>
     /// How many blocks each side of a hut's square grows for every hut level above 1, so a hut near the edge of the
@@ -722,6 +733,14 @@ public class ColonyConfig
     public bool JoblessHelpHauling = true;
     /// <summary>Seeds a settler takes along for its home plot at a time.</summary>
     public int JoblessSeedTake = 8;
+    /// <summary>Settlers without a job skin dead animals on the colony's land with a knife and take the meat, hide and the rest home.</summary>
+    public bool JoblessSkinAnimals = true;
+    /// <summary>How far from itself, in blocks, a settler looks for a dead animal to skin.</summary>
+    public int JoblessSkinRadius = 64;
+    /// <summary>Settlers without a job cook raw food from home (meat, fish) on a fire pit in or by their home.</summary>
+    public bool JoblessCookAtHome = true;
+    /// <summary>How far outside its home, in blocks, a household's fire pit may stand.</summary>
+    public int JoblessFirepitReach = 4;
 
     // Happiness (see ColonyManager.Happiness.cs)
     /// <summary>Settlers have a mood from 0 to 100 made of thoughts (meals, home, family, passions); it changes how well they work and learn.</summary>

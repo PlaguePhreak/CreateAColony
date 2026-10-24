@@ -1,0 +1,33 @@
+{
+	"code": "hut-hunter",
+	"class": "BlockColonyHut",
+	"entityClass": "ColonyHut",
+	"attributes": {
+		"buildingType": "hunter",
+		// The hut's own storage; chests next to it add more.
+		"defaultType": "hut",
+		"inventoryClassName": "colonyhut",
+		"quantitySlots": { "hut": 25 },
+		"quantityColumns": { "hut": 5 },
+		"dialogTitleLangCode": { "hut": "createacolony:hut-storage" }
+	},
+	"creativeinventory": { "general": ["*"], "vintagecolonies": ["*"] },
+	"blockmaterial": "Wood",
+	"drawtype": "json",
+	// The seed of the Hunter's Hut. Simple placeholder model: a spear rack, a stretched hide and a cut of meat.
+	"shape": { "base": "createacolony:block/hut-hunter" },
+	"textures": {
+		"sides": { "base": "game:block/wood/table/aged/sides" },
+		"planks": { "base": "game:block/wood/planks/aged1" },
+		"log": { "base": "game:block/wood/debarked/aged" },
+		"metal": { "base": "game:block/metal/ingot/iron" },
+		"hide": { "base": "game:block/wood/bark/oak" },
+		"meat": { "base": "game:block/cloth/linen/red" }
+	},
+	"sideopaque": { "all": false },
+	"sidesolid": { "all": false },
+	"emitSideAo": { "all": false },
+	"lightAbsorption": 0,
+	"resistance": 2,
+	"sounds": { "place": "game:block/planks", "break": "game:block/planks", "hit": "game:block/planks" }
+}

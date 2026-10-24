@@ -884,7 +884,7 @@ public partial class ColonyNetwork : ModSystem
         if (building.Type is BuildingTypes.Forester or BuildingTypes.Farmer or BuildingTypes.Potter or BuildingTypes.Cook
             or BuildingTypes.Prospector or BuildingTypes.Miner or BuildingTypes.Quarry
             or BuildingTypes.Smelter or BuildingTypes.Blacksmith or BuildingTypes.Sawmill
-            or BuildingTypes.Explorer or BuildingTypes.Gatherer) snapshot.Info = Manager.WorkerHutInfo(colony, building);
+            or BuildingTypes.Explorer or BuildingTypes.Gatherer or BuildingTypes.Hunter) snapshot.Info = Manager.WorkerHutInfo(colony, building);
         if (building.Type == BuildingTypes.Tavern)
         {
             snapshot.IsTavern = true;

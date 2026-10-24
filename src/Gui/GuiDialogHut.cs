@@ -894,6 +894,7 @@ public class GuiDialogHut : GuiDialog
     static string CollectName(string key, ItemStack stack)
     {
         if (key.StartsWith("ore-") && Lang.HasTranslation(key)) return Lang.Get(key);
+        if (key.StartsWith("animal-")) return CreatureName(key.Substring("animal-".Length));
         if (Lang.HasTranslation("createacolony:collect-" + key)) return Lang.Get("createacolony:collect-" + key);
         return stack.GetName();
     }

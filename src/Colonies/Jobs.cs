@@ -18,9 +18,10 @@ public static class Jobs
     public const string Sawyer = "sawyer";
     public const string Explorer = "explorer";
     public const string Gatherer = "gatherer";
+    public const string Hunter = "hunter";
 
     /// <summary>All assignable jobs; an empty code means unemployed.</summary>
-    public static readonly string[] All = { "", Builder, Courier, Forester, Farmer, Guard, Potter, Cook, Prospector, Miner, Quarrier, Smelter, Blacksmith, Sawyer, Explorer, Gatherer };
+    public static readonly string[] All = { "", Builder, Courier, Forester, Farmer, Guard, Potter, Cook, Prospector, Miner, Quarrier, Smelter, Blacksmith, Sawyer, Explorer, Gatherer, Hunter };
 
     /// <summary>The job whose skill a settler's work trains and uses: a prospector on Mine ore works as a miner.</summary>
     public static string? WorkJob(CitizenRecord c) => c.JobCode == Prospector && c.WorkRole == ProspectorRoles.Mine ? Miner : c.JobCode;
@@ -28,5 +29,5 @@ public static class Jobs
     public static bool IsValid(string code) => System.Array.IndexOf(All, code) >= 0;
 
     /// <summary>Jobs that keep their own tools, weapons and supplies in their inventory, so couriers leave it alone.</summary>
-    public static bool CarriesOwnLoad(string? code) => code is Builder or Forester or Farmer or Guard or Potter or Cook or Prospector or Miner or Quarrier or Smelter or Blacksmith or Sawyer or Explorer or Gatherer;
+    public static bool CarriesOwnLoad(string? code) => code is Builder or Forester or Farmer or Guard or Potter or Cook or Prospector or Miner or Quarrier or Smelter or Blacksmith or Sawyer or Explorer or Gatherer or Hunter;
 }
