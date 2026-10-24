@@ -262,6 +262,8 @@ public partial class ColonyManager
         }
         stack ??= new ItemStack(block);
         stack.StackSize = 1;
+        // Planks laid sideways pick as themselves (planks-oak-ns), but players only carry upright ones: ask for what it drops.
+        if (stack.Block is { } picked && DroppedBlock(picked) is { } carried) stack = new ItemStack(carried);
 
         string code = stack.Collectible.Code.ToString();
         if (colony.AnyWoodOrStone) code = OpenType(stack.Collectible);

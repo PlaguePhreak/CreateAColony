@@ -141,6 +141,13 @@ public partial class ColonyManager
         return costs;
     }
 
+    /// <summary>The block a block drops when broken, if it drops exactly one other block (planks of any facing drop upright ones); else null.</summary>
+    static Block? DroppedBlock(Block block)
+    {
+        if (block.Drops is not { Length: 1 } drops || drops[0].ResolvedItemstack?.Block is not { } dropped) return null;
+        return dropped.Id != block.Id && drops[0].Quantity.avg <= 1 ? dropped : null;
+    }
+
     /// <summary>The items a VS Roofing roof block is made of, as it would drop them when broken.</summary>
     IEnumerable<(string Code, ItemStack Sample, int Count)> RoofParts(SavedBlockEntity saved)
     {
@@ -154,6 +161,9 @@ public partial class ColonyManager
             CollectibleObject? collectible = type == EnumItemClass.Block ? sapi.World.GetBlock(code) : sapi.World.GetItem(code);
             // A hammer held while building is a tool, not something the roof uses up.
             if (collectible == null || collectible.IsMissing || collectible.Tool != null) return;
+            // A block counts as what it drops: planks laid sideways (planks-oak-ns) are the planks players carry
+            // (planks-oak-ud). Roofs filled with planks asked for ones no player has (Aaron, 0.104.0).
+            if (collectible is Block block && DroppedBlock(block) is { } carried) collectible = carried;
             parts.Add((collectible.Code.ToString(), new ItemStack(collectible), count));
         }
         void AddStack(ItemStack? stack)

@@ -702,6 +702,11 @@ before shipping converted blueprints.
 
 ### The Town Hall window (0.24.0)
 
+### Builders ask for planks players carry (0.104.0)
+- Planks laid sideways (and roof fill made of them) are their own blocks (planks-oak-ns), but players only ever
+  carry upright planks. Builders asked for the sideways ones, so no planks a player had would do (Aaron's
+  Residence). A block is now asked for as what it drops when broken, so any planks of the right wood count.
+
 ### Builders clear the ground over sunken parts (0.102.0)
 - Empty space below a building's hut block is now dug out when part of the building is under it: a sunken room,
   stairs down or a path. Before, it was only dug when the blueprint also had blocks above it, so a low part with
