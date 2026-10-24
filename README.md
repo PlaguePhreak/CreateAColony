@@ -701,6 +701,11 @@ before shipping converted blueprints.
 
 ### The Town Hall window (0.24.0)
 
+### Old previews no longer pile up (0.89.0)
+- Placing a building after another showed the earlier buildings' ghosts inside the new one (the Town Hall and
+  Builder's Hut inside a Guard Tower). Each new placement now gets a preview space of its own, and the game
+  only draws the latest one, so old ghosts are never drawn again.
+
 ### Corner section (0.88.0)
 - Aaron's corner (an L turn) ships as blueprints/medievaloak/mineshaft/corner.json and is picked at random with the
   others. The block of Mine waypoints at its far end marks the doorway where the next section joins; checked
