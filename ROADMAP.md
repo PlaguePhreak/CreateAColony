@@ -24,6 +24,10 @@ Everything listed under "What we have" and "Partly done" has been tested in game
 - Smelter's Hut: melts nuggets in a crucible over the fire pit and pours ingots into molds (0.50.0, placeholder model and building, not tested yet)
 - Blacksmith's Hut: heats ingots in the forge and makes tool heads and finished tools on the anvil (0.50.0, placeholder model and building, not tested yet)
 - Sawmill: a sawyer saws logs into planks and makes other wooden things from the game's recipes (0.52.0, placeholder model and building, not tested yet)
+- Primitive Craftsman: a craftsman knaps flint and stones into tool heads and puts them on sticks, making stone tools for the colony (0.103.0, placeholder model and building, not tested yet)
+- Explorer's Hut and Gatherer's Hut: an explorer marks ore, clay, traders, animals and danger on a Colony markers map layer, and a gatherer forages berries, mushrooms and loose stones and marks plants; works with More Map Icons (0.77.0, placeholder models and buildings, not tested yet)
+- Vintage Colonies' own map icons: 120 waypoint icons covering every More Map Icons sheet entry, used by colony markers (0.79.0, not tested yet)
+- A marker icon for every ore, fruit, vegetable, grain, animal, trader and story location, other mods' too (0.80.0, not tested yet)
 
 **Colony systems**
 - Colony land that grows with every hut and Town Hall level *(tested)*
@@ -61,10 +65,11 @@ Everything listed under "What we have" and "Partly done" has been tested in game
 2. **Happiness** came in 0.61.0. Still to add: safety (raids), health, and how crowded the colony is
 3. **A request list**: players can see and fill what workers need (the Sawmill came first, in 0.52.0)
 4. **Animal herders and a Tanner**: chickens, pigs, sheep and goats in pens for meat, eggs and hides, and a Tanner who makes leather in barrels
-5. **Ranged guards and a rally banner** (the Barracks came in 0.54.0), then **Raids**: now and then, enemies turn up and attack the player's colony. The player is warned in chat and on the Town Hall window. There are several raid factions, from bandits (who use the settler models) to the game's own monsters such as drifters and shivers.
-6. **Hospital and Graveyard**: a healer with poultices and bandages, and an undertaker who buries the dead
-7. **School, Library and University** with a **research tree** that unlocks faster work and new huts
-8. **Blacksmith** (started in 0.50.0): still to do are repairs, armor, and making the tools workers ask for
+5. **Butcher's Hut**: a butcher takes the animals the Hunter (0.99.0) and herders bring home and cuts them up for meat, hides, fat and bones, then stores the meat with the food from 0.100.0. Works with the **Butchering** mod by CaptainOats when it is installed: the butcher hangs carcasses on its hooks, uses its tables, catches blood in buckets and smokes meat on its racks for more food per animal. Without the mod, the butcher uses a knife like the game does. The mod lists no licence, so we will never copy or bundle its files. It stays an optional extra that players download themselves.
+6. **Ranged guards and a rally banner** (the Barracks came in 0.54.0), then **Raids**: now and then, enemies turn up and attack the player's colony. The player is warned in chat and on the Town Hall window. There are several raid factions, from bandits (who use the settler models) to the game's own monsters such as drifters and shivers.
+7. **Hospital and Graveyard**: a healer with poultices and bandages, and an undertaker who buries the dead
+8. **School, Library and University** with a **research tree** that unlocks faster work and new huts
+9. **Blacksmith** (started in 0.50.0): still to do are repairs, armor, and making the tools workers ask for
 
 **Later**
 - More huts from MineColonies: Stonemason, Baker, Fisher, Beekeeper, Plantation (reeds and cattails), Composter, Crusher and Sifter (quern and panning), Florist, Dyer, Fletcher and Mechanic (windmills and gears)
