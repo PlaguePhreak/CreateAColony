@@ -626,7 +626,8 @@ public class ColonyConfig
     {
         ["forester"] = new[] { "firewood", "stick", "debarkedlog" },
         ["farmer"] = new[] { "flaxtwine", "rope", "linen", "hay" },
-        ["gatherer"] = new[] { "torch", "basket", "flaxtwine" },
+        // Poultices from the horsetail and reed tops it picks (ColonyManager.Healing.cs).
+        ["gatherer"] = new[] { "torch", "basket", "flaxtwine", "poultice" },
         ["miner"] = new[] { "cobblestone", "stonebricks", "torch" },
         ["quarry"] = new[] { "cobblestone", "stonebricks", "stonepath" },
         // Every piece of clothing but jewellery, the sewing kit, and armor of leather or linen (never metal).
@@ -660,6 +661,7 @@ public class ColonyConfig
     public System.Collections.Generic.Dictionary<string, string[]> HutRecipeTools = new()
     {
         ["forester"] = new[] { "axe" },
+        ["gatherer"] = new[] { "knife" },
         ["farmer"] = new[] { "hoe" },
         ["miner"] = new[] { "pickaxe" },
         ["quarry"] = new[] { "pickaxe" },
@@ -705,6 +707,8 @@ public class ColonyConfig
     public bool GathererPicksHerbs = true;
     public string[] GathererHerbs = { "flower-horsetail-*" };
     public int GathererHerbKeep = 16;
+    /// <summary>How many of each poultice a new Gatherer's Hut keeps on its Crafting recipes tab.</summary>
+    public int GathererStartPoultices = 4;
 
     // Clothes, the Tailor and the Jeweller (ColonyManager.Clothing.cs)
     /// <summary>How much of its condition (0 to 1) a worn piece of clothing loses each in-game day. 0.01 wears it out in 100 days.</summary>

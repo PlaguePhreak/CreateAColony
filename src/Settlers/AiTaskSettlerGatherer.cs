@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Linq;
 using CreateAColony.Colonies;
 using Vintagestory.API.Common;
 using Vintagestory.API.Config;
@@ -31,6 +32,12 @@ public class AiTaskSettlerGatherer : AiTaskSettlerWorker
     protected override float WorkSeconds => looking ? manager!.Config.ExplorerSecondsPerLook : manager!.Config.GathererSecondsPerPick;
     protected override bool NeedsTool => false;
     protected override bool WorkNeedsTool => false;
+
+    /// <summary>It carries a knife if its hut has one, for recipes that take it (config HutRecipeTools).</summary>
+    protected override bool AlsoKeeps(ItemStack stack) => IsRecipeTool(stack);
+
+    protected override bool PlanFirst(Colony colony, CitizenRecord citizen, Building hut) =>
+        FetchRecipeTools(colony, citizen, hut, manager!.HutStorage(colony, hut).Cast<BlockEntityContainer>().ToList());
 
     protected override bool PlanWork(Colony colony, CitizenRecord citizen, Building hut, List<BlockEntityContainer> storage)
     {

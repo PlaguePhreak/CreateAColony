@@ -251,6 +251,16 @@ public partial class ColonyManager
         }
     }
 
+    /// <summary>A new Gatherer's Hut keeps config GathererStartPoultices of each poultice, made from the horsetail and reed tops it picks.</summary>
+    void KeepPoulticesAtStart(Building hut)
+    {
+        if (Config.GathererStartPoultices <= 0) return;
+        foreach (var kind in HutRecipeKinds(BuildingTypes.Gatherer).Where(k => FirstPart(k.Sample.Collectible.Code) == "poultice"))
+        {
+            hut.RecipeKeep[kind.Key] = Config.GathererStartPoultices;
+        }
+    }
+
     /// <summary>The next settler in bed for the Healer to treat: not treated yet, nearest the hut first. Null for none.</summary>
     public CitizenRecord? NextPatient(Colony colony, Building hut, CitizenRecord healer)
     {
@@ -304,19 +314,25 @@ public partial class ColonyManager
         return healingInputs = parts;
     }
 
-    /// <summary>A plant the Gatherer picks for healing: one a bandage or poultice recipe takes, or one in config GathererHerbs.</summary>
+    /// <summary>A plant the Gatherer picks for healing: one a bandage or poultice recipe takes (itself or what it drops), or one in config GathererHerbs.</summary>
     bool IsHerb(Block block)
     {
         if (!Config.GathererPicksHerbs || block.Code == null) return false;
         if (herbBlocks.TryGetValue(block.Id, out bool known)) return known;
         bool herb = false;
-        if (block is not (BlockCrop or BlockReeds) && block.BlockMaterial == EnumBlockMaterial.Plant)
+        if (block is not (BlockCrop or BlockReeds) && (block.BlockMaterial is EnumBlockMaterial.Plant or EnumBlockMaterial.Leaves || block is BlockPlant))
         {
             herb = Config.GathererHerbs.Any(h => WildcardUtil.Match(new AssetLocation(h), block.Code));
             if (!herb && sapi.World.GridRecipes.Count > 0)
             {
-                var sample = new ItemStack(block);
-                herb = HealingInputs().Any(i => i.SatisfiesAsIngredient(sample, false));
+                // The plant itself, or what it drops when picked, goes into a bandage or poultice.
+                var samples = new List<ItemStack> { new ItemStack(block) };
+                foreach (var drop in block.Drops ?? Array.Empty<BlockDropItemStack>())
+                {
+                    if (drop.ResolvedItemstack == null) drop.Resolve(sapi.World, "herb", block.Code);
+                    if (drop.ResolvedItemstack != null) samples.Add(drop.ResolvedItemstack);
+                }
+                herb = samples.Any(sample => HealingInputs().Any(i => i.SatisfiesAsIngredient(sample, false)));
             }
             else if (sapi.World.GridRecipes.Count == 0) return herb; // too early to know; ask again later
         }
