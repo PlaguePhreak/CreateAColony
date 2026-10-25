@@ -15,7 +15,7 @@ public partial class ColonyManager
 {
     public const string GatherRequests = "requests";
     /// <summary>The kinds of thing on the collecting order, in the order a new hut has them.</summary>
-    public static readonly string[] GatherCategories = { GatherRequests, "ore", "food", "herbs", "clay", "peat", "reeds", "stones" };
+    public static readonly string[] GatherCategories = { GatherRequests, "ore", "food", "herbs", "cuttings", "clay", "peat", "reeds", "stones" };
     /// <summary>Keys of collecting order rows on the Priorities tab start with this, so MovePriority can tell them from crafting rows.</summary>
     public const string GatherKeyPrefix = "gather:";
 
@@ -42,6 +42,7 @@ public partial class ColonyManager
         {
             "fruit" or "mushroom" or "crop" or "root" => "food",
             "herb" => "herbs",
+            "cutting" => "cuttings",
             "reed" => "reeds",
             "dig" => path.StartsWith("peat-") ? "peat" : "clay",
             _ => path.StartsWith("looseores-") ? "ore" : "stones"

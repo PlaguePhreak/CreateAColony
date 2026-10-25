@@ -43,6 +43,9 @@ public class AiTaskSettlerGatherer : AiTaskSettlerWorker
     protected override bool AlsoKeeps(ItemStack stack) => IsRecipeTool(stack)
         || (roasting && (manager!.IsCookableRoot(stack) || ColonyManager.IsFirewood(stack)));
 
+    /// <summary>A knife in its hand or pack: for cutting grass and taking bush cuttings.</summary>
+    bool HasKnife(CitizenRecord citizen) => ColonyManager.IsKnife(Hand?.Itemstack) || manager!.PackItems(citizen).Any(ColonyManager.IsKnife);
+
     /// <summary>True while the colony's food is low and there are roots to roast.</summary>
     bool roasting;
     /// <summary>What it does at the fire pit it walks to: put roots on, or take roasted ones off.</summary>
@@ -105,10 +108,21 @@ public class AiTaskSettlerGatherer : AiTaskSettlerWorker
             return true;
         }
         int rank = int.MaxValue;
-        var spot = lookOnly ? null : manager!.NextForage(colony, hut, entity.Pos.XYZ, IsUnreachable, out rank);
+        bool knife = HasKnife(citizen);
+        var spot = lookOnly ? null : manager!.NextForage(colony, hut, entity.Pos.XYZ, IsUnreachable, knife, out rank);
         // Dry grass the colony is waiting for is one of its requests: it goes where requests are on the collecting order.
         bool grassFirst = spot == null || ColonyManager.GatherOrder(hut).IndexOf(ColonyManager.GatherRequests) <= rank;
-        if (!lookOnly && grassFirst && manager!.GrassShort(colony) > 0 && manager.NextGrass(colony, hut, entity.Pos.XYZ, IsUnreachable) is { } grass)
+        if (!lookOnly && grassFirst && manager!.GrassShort(colony) > 0 && !knife)
+        {
+            // Cutting grass takes a knife: ask for one, and pick other things meanwhile.
+            manager.EnsureToolRequest(colony, hut, hut, new ColonyManager.ToolNeed(EnumTool.Knife, 0));
+            if (spot == null)
+            {
+                SetStatus("needs-tool-knife");
+                return false;
+            }
+        }
+        else if (!lookOnly && grassFirst && manager!.GrassShort(colony) > 0 && manager.NextGrass(colony, hut, entity.Pos.XYZ, IsUnreachable) is { } grass)
         {
             looking = false;
             cutting = true;

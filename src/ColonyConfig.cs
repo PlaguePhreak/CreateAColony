@@ -225,6 +225,10 @@ public class ColonyConfig
     public bool GathererCutsReeds = true;
     /// <summary>When the colony runs low on food the gatherer digs up reeds for their roots and roasts them on a fire pit by its hut.</summary>
     public bool GathererDigsRoots = true;
+    /// <summary>A gatherer with a knife takes cuttings from berry bushes (one per bush a year, as a player can).</summary>
+    public bool GathererTakesCuttings = true;
+    /// <summary>How many cuttings of each bush the colony keeps (hut and warehouse) before the gatherer stops taking them.</summary>
+    public int GathererCuttingsKeep = 4;
     /// <summary>Food counts as low below this many full bellies (SaturationMax) per settler in the colony's chests.</summary>
     public double GathererRootsFoodDays = 2;
     /// <summary>The gatherer leaves a reed alone unless this many others grow within 4 blocks of it.</summary>

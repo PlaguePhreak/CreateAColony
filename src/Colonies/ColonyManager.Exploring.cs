@@ -131,7 +131,7 @@ public partial class ColonyManager
     {
         var ba = sapi.World.BlockAccessor;
         var be = ba.GetBlockEntity(pos);
-        if (IsFruitBearer(be)) return IsRipeFruit(be) ? "fruit" : null;
+        if (IsFruitBearer(be)) return IsRipeFruit(be) ? "fruit" : CanTakeCutting(be) && CanWorkAt(colony, pos) && !NearBuilding(colony, pos) ? "cutting" : null;
         var block = ba.GetBlock(pos);
         string path = block.Code?.Path ?? "";
         if (path.StartsWith("mushroom-")) return IsPoisonousMushroom(block) ? null : "mushroom";
@@ -274,7 +274,7 @@ public partial class ColonyManager
     /// The thing the gatherer takes next: the first kind on the hut's collecting order (GatherOrder) there is
     /// any of, and of those the nearest. Null when there is nothing; rank is its place on the order.
     /// </summary>
-    public BlockPos? NextForage(Colony colony, Building hut, Vec3d from, System.Func<BlockPos, bool> skip, out int rank)
+    public BlockPos? NextForage(Colony colony, Building hut, Vec3d from, System.Func<BlockPos, bool> skip, bool hasKnife, out int rank)
     {
         var ba = sapi.World.BlockAccessor;
         var scanner = Scanner(hut, "forage", ScanForage);
@@ -297,6 +297,8 @@ public partial class ColonyManager
                 scanner.Found[pos] = kind != null;
                 if (kind == null || !MayCollect(hut, ForageKey(pos))) continue;
                 if (kind == "herb" && HerbStocked(colony, hut, ba.GetBlock(pos))) continue;
+                // Cuttings take a knife, and only as many as the colony keeps.
+                if (kind == "cutting" && (!hasKnife || CuttingBlock(ba.GetBlockEntity(pos)) is not { } cutting || CuttingsStocked(colony, hut, cutting))) continue;
                 spotRank = order.IndexOf(GatherCategory(colony, ba.GetBlock(pos), kind));
             }
             else if (!ready) continue;
@@ -356,6 +358,10 @@ public partial class ColonyManager
         if (kind == "fruit")
         {
             if (!PickFruit(colony, hut, worker, pos)) return false;
+        }
+        else if (kind == "cutting")
+        {
+            if (!TakeCutting(colony, hut, worker, pos)) return false;
         }
         else
         {

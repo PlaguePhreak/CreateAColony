@@ -227,6 +227,11 @@ These work well with Vintage Colonies. Install them separately.
 - **Smithing Plus** (jayu): smith with metal bits, repair tool heads on the anvil and other smithing tweaks. Our smiths still use the game's anvil and recipes beside it; not tested together in game yet.
 - **Coinage** (Xel): design your own coins. One can be the colony's money (Bailiff tab, Taxes & wages).
 
+## Gatherers take bush cuttings and need a knife for grass (0.151.0)
+- Gatherers now need a knife to cut dry grass. Without one, the hut asks for a knife and the gatherer picks other things meanwhile. Put a knife in the hut storage or the warehouse.
+- A gatherer with a knife takes cuttings from berry bushes, the way you do (sneak and right-click with a knife). That's one cutting per bush a year, and it doesn't hurt the bush. The colony keeps 4 of each kind (`GathererCuttingsKeep`) in the hut storage for you to plant. Switch it off with `GathererTakesCuttings`.
+- **Bush cuttings** is a new row on the gatherer's Priorities list, after Herbs.
+
 ## Gatherers roast cattail roots when food is low (0.150.0)
 - When the colony runs low on food, the gatherer digs up cattails, papyrus and tule for their roots. It never digs out a whole patch: it leaves at least 2 nearby (`GathererRootsLeave`). Food counts as low below 2 days of food per settler (`GathererRootsFoodDays`).
 - It roasts the roots on a fire pit next to the Gatherer's Hut, with firewood from the hut or the warehouse, then puts them in the hut storage. **Place a fire pit by the hut** for this.
