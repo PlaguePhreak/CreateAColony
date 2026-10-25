@@ -80,6 +80,8 @@ def check(bp, type):
                 problems.append(f"door at {(x, y, z)} has no top half above it")
         if c.startswith("vsroofing:") and (x, y, z) not in entities:
             problems.append(f"roof block at {(x, y, z)} has no saved roof data")
+        if (c.startswith("game:chiseledblock") or c.startswith("game:microblock")) and (x, y, z) not in entities:
+            problems.append(f"chiseled block at {(x, y, z)} has no saved shape")
     if len(huts) == 1:
         hx, hy, hz = huts[0]
         if (hx, hy - 1, hz) not in at:

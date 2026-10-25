@@ -1007,6 +1007,15 @@ before shipping converted blueprints.
 
 ### The Town Hall window (0.24.0)
 
+### Builders place chiseled blocks (0.159.0)
+- A build can now have chiseled blocks in it. The builder places each one with its full shape, as you chiseled it,
+  and it shows in the ghost preview and turns with the building.
+- Each chiseled block costs one full block of every material in it, as a player chisels it from one block. Planks
+  laid sideways count as normal planks, and raw rock counts as the stones it drops.
+- The materials are always the ones in the build, even with "any wood or stone" on, so it looks as you made it.
+- Chisel inside your build, then export it as usual. A chiseled block saved without its shape is left out, and the
+  Dev's Builds import script warns about it.
+
 ### Settlers can clear chiseled ruin blocks (0.158.0)
 - Settlers now remove chiseled blocks (like the game's ruins) properly. Before, the game's break failed without a
   player, so the block stayed and a few stones dropped on each try. A builder clearing ruins broke the same block

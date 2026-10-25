@@ -356,7 +356,8 @@ public class BlueprintLibrary
                 }
                 if (dugOut.Contains((dx - ax, dy - ay, dz - az))) continue;
                 // The top half of a door (or another part of a big block) comes with the door itself; until then the spot is cleared.
-                if (block is BlockMultiblock || IsFurniturePart(block, saved.GetValueOrDefault((dx, dy, dz))))
+                if (block is BlockMultiblock || IsFurniturePart(block, saved.GetValueOrDefault((dx, dy, dz)))
+                    || IsShapelessChisel(block, saved.GetValueOrDefault((dx, dy, dz))))
                 {
                     clear.Add(new BuildStep(dx - ax, dy - ay, dz - az, 0));
                     continue;
@@ -557,7 +558,8 @@ public class BlueprintLibrary
                 continue;
             }
             if (block != null && (IsMetaBlock(block) || IsNaturalGround(block))) continue;
-            if (block == null || block.Id == 0 || block is BlockMultiblock || IsFurniturePart(block, saved.GetValueOrDefault((dx, dy, dz))))
+            if (block == null || block.Id == 0 || block is BlockMultiblock || IsFurniturePart(block, saved.GetValueOrDefault((dx, dy, dz)))
+                || IsShapelessChisel(block, saved.GetValueOrDefault((dx, dy, dz))))
             {
                 digs.Add(new BuildStep(dx - ax, dy - ay, dz - az, 0));
                 continue;
@@ -830,11 +832,12 @@ public class BlueprintLibrary
     }
 
     /// <summary>
-    /// Doors always keep theirs (which way they face), support beams theirs (where each beam runs); blocks placed from their item keep theirs to know which
-    /// item (its wood and colours, a pole's banner); other blocks when the config lists them.
+    /// Doors always keep theirs (which way they face), support beams theirs (where each beam runs), chiseled blocks theirs (shape and
+    /// materials); blocks placed from their item keep theirs to know which item (its wood and colours, a pole's banner); other blocks
+    /// when the config lists them.
     /// </summary>
     bool KeepsDetails(Block block) =>
-        block.EntityClass != null && (IsDoor(block) || block is BlockSupportBeam || PlacedAsItem(block) || config.BlueprintBlockDetails.Any(p => WildcardUtil.Match(new AssetLocation(p), block.Code)));
+        block.EntityClass != null && (IsDoor(block) || block is BlockSupportBeam || block is BlockMicroBlock || PlacedAsItem(block) || config.BlueprintBlockDetails.Any(p => WildcardUtil.Match(new AssetLocation(p), block.Code)));
 
     /// <summary>
     /// True for blocks a builder places from their item, as a player does, so they set themselves up: the
@@ -860,6 +863,12 @@ public class BlueprintLibrary
         var tree = saved.Tree();
         return tree.GetInt("partX") != 0 || tree.GetInt("partY") != 0 || tree.GetInt("partZ") != 0;
     }
+
+    /// <summary>
+    /// A chiseled block the blueprint saved without its shape. It cannot be built (it would be an empty block and
+    /// cost a chiseled block nobody can carry), so the spot is cleared instead.
+    /// </summary>
+    static bool IsShapelessChisel(Block block, SavedBlockEntity? saved) => block is BlockMicroBlock && saved == null;
 
     public static string HutBlockCode(string type) => type switch
     {

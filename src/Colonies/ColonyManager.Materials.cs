@@ -174,8 +174,10 @@ public partial class ColonyManager
         // No lantern in the colony: a torch goes up instead (ColonyManager.Torches.cs).
         if (TorchForLantern(colony, target, pos) is { } torch) return (torch, Costs(TorchCost(torch)));
         if (Config.BuildersNeedMaterials && PlacedItemCosts(step, target, pos, colony.AnyWoodOrStone) is { } placed) return (target, placed);
-        // A roof's planks and logs, like every other block's, may be any wood when the colony allows it.
-        if (Config.BuildersNeedMaterials && SavedCost(step, target) is { } saved) return (target, colony.AnyWoodOrStone ? OpenTypes(saved) : saved);
+        // A roof's planks and logs, like every other block's, may be any wood when the colony allows it. A chiseled
+        // block keeps its own materials: its shape is copied as saved, so other wood or stone would not show.
+        if (Config.BuildersNeedMaterials && SavedCost(step, target) is { } saved)
+            return (target, colony.AnyWoodOrStone && target is not BlockMicroBlock ? OpenTypes(saved) : saved);
         return (target, Costs(PickCost(colony, target, pos)));
     }
 

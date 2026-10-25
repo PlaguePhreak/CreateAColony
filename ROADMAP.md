@@ -87,6 +87,7 @@ Everything listed under "What we have" and "Partly done" has been tested in game
 - **Economy**: settlers spend their coins (a market, the Tavern, buying furniture and clothes), coins of other metals, fines and market fees for the Bailiff. The Royal Mint, taxes and wages came in 0.136.0.
 - More huts from MineColonies: Stonemason, Baker, Fisher, Beekeeper, Plantation (reeds and cattails), Composter, Crusher and Sifter (quern and panning), Florist, Dyer, Fletcher and Mechanic (windmills and gears)
 - A Combat Academy and an archery range to train guards
+- **Stonemason carving**: a Stonemason adds chiseled detail to buildings by copying carvings you made yourself (builders place chiseled blocks from builds since 0.159.0)
 - Charcoal burner for the Smelter and Blacksmith
 - Settler chat bubbles where settlers ask for things or complain
 - Walls, wells, roads and other decorations to order from the Builder's Wand
