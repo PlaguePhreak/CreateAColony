@@ -304,8 +304,11 @@ public partial class ColonyManager
     /// </summary>
     public BlockPos? ForageWalk(Colony colony, Building hut, System.Func<BlockPos, bool> skip)
     {
+        if (hut.GatherMode == GatherModes.Gather) return null;
         long now = sapi.World.ElapsedMilliseconds;
-        if (lastForageWalk.TryGetValue(hut.BuildingId, out long last) && now - last < 120_000) return null;
+        // Set to only look around, it goes off again soon after.
+        long wait = hut.GatherMode == GatherModes.Look ? 20_000 : 120_000;
+        if (lastForageWalk.TryGetValue(hut.BuildingId, out long last) && now - last < wait) return null;
         lastForageWalk[hut.BuildingId] = now;
         var ba = sapi.World.BlockAccessor;
         var rand = sapi.World.Rand;
@@ -319,6 +322,15 @@ public partial class ColonyManager
             if (ba.GetBlock(pos.DownCopy(), BlockLayersAccess.Fluid).Id != 0 || skip(pos) || !CanWorkAt(colony, pos)) continue;
             return pos;
         }
+        return null;
+    }
+
+    /// <summary>Sets what a Gatherer's Hut's gatherer does (GatherModes).</summary>
+    public string? SetGatherMode(Colony colony, Building hut, string mode)
+    {
+        if (hut.Type != BuildingTypes.Gatherer || !GatherModes.All.Contains(mode)) return "createacolony:bad-building";
+        hut.GatherMode = mode;
+        MarkDirty(colony);
         return null;
     }
 

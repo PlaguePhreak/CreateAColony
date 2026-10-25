@@ -466,6 +466,8 @@ public class HutSnapshot
     [ProtoMember(132)] public int MarkerCount;
     /// <summary>How many spots of its marker groups a player took markers off, so it leaves them alone.</summary>
     [ProtoMember(133)] public int RemovedMarkerCount;
+    /// <summary>A Gatherer's Hut: what its gatherer does (GatherModes); empty for other huts.</summary>
+    [ProtoMember(134)] public string GatherMode = "";
     /// <summary>A Mineshaft Entrance: the colony's Miner's Huts, those working its mine first.</summary>
     [ProtoMember(150)] public bool IsMineEntrance;
     [ProtoMember(151)] public List<MineHutView> MineHuts = new();
@@ -803,6 +805,7 @@ public enum ColonyAction
     RemoveMarker = 122,
     /// <summary>Lets the worker of the hut with BuildingId mark the spots players took markers off again.</summary>
     MarkRemovedAgain = 123,
+    SetGatherMode = 124,
     /// <summary>Colony militia switches (officers); Text is "1" or "0".</summary>
     SetSelfDefence = 140,
     SetSupportAllies = 141,

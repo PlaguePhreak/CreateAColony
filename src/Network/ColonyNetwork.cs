@@ -178,6 +178,7 @@ public partial class ColonyNetwork : ModSystem
             ColonyAction.MoveInResidence or ColonyAction.MoveOutResidence => ResidenceAction(colony, role, packet),
             ColonyAction.SetMarkerGroup or ColonyAction.RemoveMarkers or ColonyAction.MarkRemovedAgain => MarkerAction(colony, role, packet),
             ColonyAction.RemoveMarker => RemoveMapMarker(colony, role, packet),
+            ColonyAction.SetGatherMode => SetGatherMode(colony, role, packet),
             ColonyAction.WelcomeVisitor or ColonyAction.TurnAwayVisitor => VisitorAction(colony, role, packet),
             ColonyAction.RecallCitizen => RecallCitizen(colony, role, packet.CitizenId),
             ColonyAction.SetColonyBanner or ColonyAction.ReplaceBanners or ColonyAction.SetBannerOnNew => BannerAction(player, colony, role, packet),
@@ -454,6 +455,15 @@ public partial class ColonyNetwork : ModSystem
         building.MarkersOff.Remove(group);
         if (packet.Text[(sep + 1)..] == "0") building.MarkersOff.Add(group);
         return null;
+    }
+
+    /// <summary>The Gatherer's Hut's choice of picking, looking around, or both.</summary>
+    string? SetGatherMode(Colony colony, ColonyRole role, ColonyActionPacket packet)
+    {
+        if (role < ColonyRole.Officer) return "createacolony:denied-officer";
+        var building = colony.Buildings.Find(b => b.BuildingId == packet.BuildingId);
+        if (building == null) return "createacolony:bad-building";
+        return Manager.SetGatherMode(colony, building, packet.Text);
     }
 
     /// <summary>Right-click on a marker of the Colony markers map layer: takes that one marker off the map.</summary>
@@ -1042,6 +1052,7 @@ public partial class ColonyNetwork : ModSystem
             snapshot.MarkersOff = building.MarkersOff.ToList();
             snapshot.MarkerCount = Manager.MarkerCount(colony, building);
             snapshot.RemovedMarkerCount = Manager.RemovedMarkerCount(colony, building);
+            if (building.Type == BuildingTypes.Gatherer) snapshot.GatherMode = building.GatherMode;
         }
         if (building.Type == BuildingTypes.Residence) AddResidence(snapshot, colony, building);
 

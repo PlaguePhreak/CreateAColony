@@ -30,7 +30,7 @@ public partial class ColonyManager
     public static readonly Dictionary<string, string[]> MarkerGroups = new()
     {
         [BuildingTypes.Explorer] = new[] { "ore", "clay", "soil", "traders", "animals", "danger", "landmarks" },
-        [BuildingTypes.Gatherer] = new[] { "berries", "fruit", "mushrooms", "crops", "reeds", "resin", "bees" },
+        [BuildingTypes.Gatherer] = new[] { "berries", "fruit", "mushrooms", "crops", "herbs", "reeds", "clay", "soil", "shells", "flint", "resin", "bees" },
     };
 
     const string White = "#FFFFFF";
@@ -119,6 +119,9 @@ public partial class ColonyManager
         new MarkerKind("reeds-cattail", "reeds", "vc-cattail", "circle", "#8D6E63"),
         new MarkerKind("resin-tree", "resin", "vc-resin", "circle", "#FFB300"),
         new MarkerKind("bees-hive", "bees", "vc-bees", "bee", "#FFD54F"),
+        new MarkerKind("herbs-plant", "herbs", "vc-plant", "circle", "#66BB6A"),
+        new MarkerKind("shells-seashell", "shells", "vc-coral", "circle", "#F8BBD0"),
+        new MarkerKind("flint-loose", "flint", "vc-stones", "rocks", "#90A4AE"),
         // Things with an icon of their own (Map.MarkerSubjects).
         new MarkerKind("ore-any", "ore", "vc-ingots", "pick", White),
         new MarkerKind("berries-any", "berries", "vc-berries", "circle", "#AB47BC"),
@@ -311,7 +314,9 @@ public partial class ColonyManager
                 var block = ba.GetBlock(pos);
                 if (block.Id == 0) continue;
                 if (BlockMarker(block, pos) is not var (kind, subject) || !wanted.Contains(MarkerGroup(kind))) continue;
-                if (AddMarker(colony, hut, kind, pos.ToVec3d().Add(0.5, 0.5, 0.5), subject: subject)) placed++;
+                // Herbs and reeds go by the plant's own name ("Horsetail", "Papyrus").
+                string? title = subject == null && kind is "herbs-plant" or "reeds-cattail" ? block.GetPlacedBlockName(sapi.World, pos) : null;
+                if (AddMarker(colony, hut, kind, pos.ToVec3d().Add(0.5, 0.5, 0.5), title, subject: subject)) placed++;
             }
             // Resin and wild beehives sit up in the trees: look up the trunk for them.
             if (!wanted.Contains("resin") && !wanted.Contains("bees")) continue;
@@ -458,9 +463,13 @@ public partial class ColonyManager
         if (path.StartsWith("statictranslocator")) return "landmark-translocator";
         if (path.StartsWith("wildbeehive")) return "bees-hive";
         if (path.StartsWith("log-resin-")) return "resin-tree";
-        if (path.StartsWith("tallplant-coopersreed") || path.StartsWith("tallplant-papyrus") || path.StartsWith("tallplant-tule")) return "reeds-cattail";
+        if (block is BlockReeds || path.StartsWith("tallplant-coopersreed") || path.StartsWith("tallplant-papyrus") || path.StartsWith("tallplant-tule")) return "reeds-cattail";
+        if (block is BlockSeashell) return "shells-seashell";
+        if (path.StartsWith("looseflints-")) return "flint-loose";
         if (path.StartsWith("mushroom-")) return IsPoisonousMushroom(block) ? "mushrooms-poisonous" : "mushrooms-edible";
         if (block is BlockCrop && !(sapi.World.BlockAccessor.GetBlockEntity(pos.DownCopy()) is BlockEntityFarmland)) return CropMarker(path);
+        // Horsetail and other plants for healing (ColonyManager.Healing.cs), found whether or not it may pick them.
+        if (IsHerbPlant(block)) return "herbs-plant";
         if (path.Contains("berrybush") || path.StartsWith("fruitingbush") || block.Attributes?["fruitingBush"].Exists == true || sapi.World.BlockAccessor.GetBlockEntity(pos)?.GetBehavior<BEBehaviorFruitingBush>() != null)
         {
             return path.Contains("blueberry") ? "berries-blueberry" : path.Contains("cranberry") ? "berries-cranberry" : "berries-other";

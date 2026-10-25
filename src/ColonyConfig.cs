@@ -228,7 +228,8 @@ public class ColonyConfig
     public System.Collections.Generic.Dictionary<string, int> MarkerSpacing = new()
     {
         ["ore"] = 32, ["clay"] = 24, ["soil"] = 32, ["traders"] = 48, ["animals"] = 96, ["danger"] = 96, ["landmarks"] = 64,
-        ["berries"] = 16, ["fruit"] = 16, ["mushrooms"] = 16, ["crops"] = 16, ["reeds"] = 24, ["resin"] = 16, ["bees"] = 16, ["graves"] = 0
+        ["berries"] = 16, ["fruit"] = 16, ["mushrooms"] = 16, ["crops"] = 16, ["reeds"] = 24, ["resin"] = 16, ["bees"] = 16,
+        ["herbs"] = 16, ["shells"] = 24, ["flint"] = 24, ["graves"] = 0
     };
     /// <summary>The most markers Explorers and Gatherers put down for one colony; graves do not count.</summary>
     public int MaxColonyMarkers = 600;

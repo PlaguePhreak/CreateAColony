@@ -315,9 +315,12 @@ public partial class ColonyManager
     }
 
     /// <summary>A plant the Gatherer picks for healing: one a bandage or poultice recipe takes (itself or what it drops), or one in config GathererHerbs.</summary>
-    bool IsHerb(Block block)
+    bool IsHerb(Block block) => Config.GathererPicksHerbs && IsHerbPlant(block);
+
+    /// <summary>A plant a bandage or poultice recipe takes (itself or what it drops), or one in config GathererHerbs, whether or not gatherers pick herbs.</summary>
+    bool IsHerbPlant(Block block)
     {
-        if (!Config.GathererPicksHerbs || block.Code == null) return false;
+        if (block.Code == null) return false;
         if (herbBlocks.TryGetValue(block.Id, out bool known)) return known;
         bool herb = false;
         if (block is not (BlockCrop or BlockReeds) && (block.BlockMaterial is EnumBlockMaterial.Plant or EnumBlockMaterial.Leaves || block is BlockPlant))

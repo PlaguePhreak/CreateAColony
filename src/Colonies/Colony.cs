@@ -298,6 +298,8 @@ public class Building
     [ProtoMember(111)] public List<long> Explored = new();
     /// <summary>When the explorer last started over, in total days, so it goes round again now and then.</summary>
     [ProtoMember(112)] public double ExploreStartedTotalDays;
+    /// <summary>A Gatherer's Hut: whether its gatherer picks things, only looks around and marks the map, or both (GatherModes).</summary>
+    [ProtoMember(113, IsRequired = true)] public string GatherMode = GatherModes.Both;
     /// <summary>A gathering hut: what its worker is set not to collect (ColonyManager.CollectKinds keys). Empty is everything.</summary>
     [ProtoMember(160)] public List<string> CollectOff = new();
     /// <summary>A hut's Crafting recipes tab: how many of each thing its worker keeps crafted, by item code (ColonyManager.HutRecipes.cs). Empty is nothing.</summary>
@@ -397,6 +399,15 @@ public static class GuardTasks
 }
 
 /// <summary>What a miner fills holes in its mineshaft floor with (Building.FillBlock), and the block placed for each.</summary>
+/// <summary>What a Gatherer's Hut's gatherer does: picks and looks around, only looks around (marking the map), or only picks.</summary>
+public static class GatherModes
+{
+    public const string Both = "both";
+    public const string Look = "look";
+    public const string Gather = "gather";
+    public static readonly string[] All = { Both, Look, Gather };
+}
+
 public static class MineFillBlocks
 {
     public const string None = "none";

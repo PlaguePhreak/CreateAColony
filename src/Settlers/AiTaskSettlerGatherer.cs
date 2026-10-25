@@ -41,8 +41,9 @@ public class AiTaskSettlerGatherer : AiTaskSettlerWorker
 
     protected override bool PlanWork(Colony colony, CitizenRecord citizen, Building hut, List<BlockEntityContainer> storage)
     {
+        bool lookOnly = hut.GatherMode == GatherModes.Look;
         // Dry grass the colony is waiting for comes first.
-        if (manager!.GrassShort(colony) > 0 && manager.NextGrass(colony, hut, entity.Pos.XYZ, IsUnreachable) is { } grass)
+        if (!lookOnly && manager!.GrassShort(colony) > 0 && manager.NextGrass(colony, hut, entity.Pos.XYZ, IsUnreachable) is { } grass)
         {
             looking = false;
             cutting = true;
@@ -51,7 +52,7 @@ public class AiTaskSettlerGatherer : AiTaskSettlerWorker
             return GoWork(grass);
         }
         cutting = false;
-        var spot = manager.NextForage(colony, hut, entity.Pos.XYZ, IsUnreachable);
+        var spot = lookOnly ? null : manager!.NextForage(colony, hut, entity.Pos.XYZ, IsUnreachable);
         if (spot != null)
         {
             looking = false;
@@ -59,7 +60,7 @@ public class AiTaskSettlerGatherer : AiTaskSettlerWorker
             SetStatus("gathering");
             return GoWork(spot);
         }
-        spot = manager.ForageWalk(colony, hut, IsUnreachable);
+        spot = manager!.ForageWalk(colony, hut, IsUnreachable);
         if (spot != null)
         {
             looking = true;

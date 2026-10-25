@@ -800,7 +800,15 @@ public class GuiDialogHut : GuiDialog
     void ComposeMarkers(GuiComposer composer)
     {
         int id = BuildingId;
-        double y = composer.Text(Lang.Get("createacolony:markers-hint", snapshot.MarkerCount), GuiKit.Muted(), 0, 30, Width, 8);
+        double y = 30;
+        if (snapshot.GatherMode.Length > 0)
+        {
+            y = composer.Section(Lang.Get("createacolony:gathermode"), y, Width);
+            y = AddStringChoice(composer, y, snapshot.GatherMode, ColonyAction.SetGatherMode, GatherModes.All.Select(m => (m, "createacolony:gathermode-" + m)).ToArray());
+            y = composer.Text(Lang.Get("createacolony:gathermode-hint-" + snapshot.GatherMode), GuiKit.Muted(), 0, y, Width, 12);
+            y = composer.Section(Lang.Get("createacolony:markers-title"), y, Width);
+        }
+        y = composer.Text(Lang.Get("createacolony:markers-hint", snapshot.MarkerCount), GuiKit.Muted(), 0, y, Width, 8);
         if (Officer)
         {
             composer.AddSmallButton(Lang.Get("createacolony:markers-remove"), () => SendText(ColonyAction.RemoveMarkers, id, ""), ElementBounds.Fixed(0, y, 220, 28));

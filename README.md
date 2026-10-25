@@ -233,6 +233,11 @@ These work well with Vintage Colonies. Install them separately.
 - Rotten food in a bowl, crock or pot gets washed out in water, as you do by dropping it in water. Settlers wash the bowls they carry, and the cook washes the crocks and pots in its hut. Water must be within `WashWaterRadius` (32) blocks. The rot is kept for compost.
 
 
+## Gatherers mark what they find, and look-only mode (0.130.0)
+- While picking or looking around, the gatherer now also marks herbs like horsetail, cattails and other reeds, clay, peat, seashells and flint on the Colony markers map. It marks them even when it isn't allowed to pick them.
+- Each has a switch on the Gatherer's Hut's **Markers** tab, all on to start.
+- New on the same tab: **What the gatherer does**. **Gather and look** is how it worked before. **Only look around** picks nothing and walks around marking the map more often. **Only gather** never walks off just to look, but still marks what it sees while picking.
+
 ## The Bailiff moves stuck workers (0.129.0)
 - When a worker can't do their job for 2 in-game hours (`BailiffStuckHours`), the bailiff sends them to help at another hut with a free place for a day (`BailiffLendDays`), then sends them back. Stuck means things like no pickaxe, nothing left to pick, no trees left, or everything in stock.
 - They go to the hut whose job they are best at. If no hut has room, they help carry things like a settler without a job.
