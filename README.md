@@ -5,6 +5,10 @@ MineColonies to Vintage Story: found a colony with a Town Hall, recruit settlers
 settlers build, staff and level up: builders, farmers, foresters, miners, cooks, couriers, guards, crafters
 and more. See [ROADMAP.md](ROADMAP.md) for what is done and what is planned.
 
+## Gatherers mark what they see on the way (0.138.0)
+- Gatherers now look around the whole time they walk, not only where they stop. Every few blocks they mark the berries, fruit trees, mushrooms, wild crops, herbs, reeds, clay, peat, seashells and flint they can see, for picking later.
+- Set to **Only look around**, they see twice as far.
+
 ## Build
 1. Install the .NET 10 SDK and set `VINTAGE_STORY` to your game folder.
 2. Run `dotnet build CreateAColony.csproj -c Release`.

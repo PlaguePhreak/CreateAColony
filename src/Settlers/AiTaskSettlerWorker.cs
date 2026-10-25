@@ -32,7 +32,7 @@ public abstract class AiTaskSettlerWorker : SettlerTaskBase
     /// <summary>How close the worker must stand to work on the target.</summary>
     protected float workRange = 2.5f;
     protected long nextSearchMs;
-    int hutId;
+    protected int hutId;
     bool walking;
     float workTime;
     string? workAnim;

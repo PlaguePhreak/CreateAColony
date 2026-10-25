@@ -22,6 +22,9 @@ public class AiTaskSettlerGatherer : AiTaskSettlerWorker
     bool looking;
     /// <summary>True while going to cut tall grass because the colony needs dry grass.</summary>
     bool cutting;
+    /// <summary>Where it last looked around on the move, and when (ms), so it marks what it passes.</summary>
+    Vec3d? lastLookPos;
+    long lastLookMs;
 
     public AiTaskSettlerGatherer(EntityAgent entity, JsonObject taskConfig, JsonObject aiConfig) : base(entity, taskConfig, aiConfig) { }
 
@@ -79,9 +82,34 @@ public class AiTaskSettlerGatherer : AiTaskSettlerWorker
             if (!manager!.CutGrass(colony, hut, citizen, target)) MarkUnreachable(target);
         }
         else if (!looking && !manager!.Gather(colony, hut, citizen, target)) MarkUnreachable(target);
-        manager!.LookAround(colony, hut, target, System.Math.Max(2, manager.Config.GathererLookRadius));
+        manager!.LookAround(colony, hut, target, LookRadius(hut));
         manager.NoteForageAround(colony, hut, target, System.Math.Max(4, manager.Config.GathererLookRadius));
     }
+
+    /// <summary>
+    /// On the move it keeps looking around: every few seconds, once it has gone a few blocks, it marks what it
+    /// sees on the map, so a walk out to look (or to pick something) marks everything along the way.
+    /// </summary>
+    public override bool ContinueExecute(float dt)
+    {
+        long now = entity.World.ElapsedMilliseconds;
+        if (now - lastLookMs >= LookEveryMs && (lastLookPos == null || lastLookPos.SquareDistanceTo(entity.Pos.XYZ) >= LookEveryBlocks * LookEveryBlocks))
+        {
+            lastLookMs = now;
+            lastLookPos = entity.Pos.XYZ;
+            if (Colony is { } colony && colony.Buildings.Find(b => b.BuildingId == hutId) is { } hut)
+            {
+                manager!.LookAround(colony, hut, entity.Pos.AsBlockPos, LookRadius(hut));
+            }
+        }
+        return base.ContinueExecute(dt);
+    }
+
+    const long LookEveryMs = 3000;
+    const int LookEveryBlocks = 5;
+
+    /// <summary>Set to only look around, it looks farther.</summary>
+    int LookRadius(Building hut) => System.Math.Max(2, manager!.Config.GathererLookRadius) * (hut.GatherMode == GatherModes.Look ? 2 : 1);
 
     protected override string DescribeWork() => Lang.Get(cutting ? "createacolony:activity-gatherer-grass"
         : looking ? "createacolony:activity-gatherer-look" : "createacolony:activity-gatherer-pick");
