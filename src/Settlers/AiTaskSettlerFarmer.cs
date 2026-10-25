@@ -15,6 +15,9 @@ namespace CreateAColony.Settlers;
 /// berry bushes and fruit trees around the hut, most urgent first: harvest ripe crops (and sow again),
 /// pick ripe berries and fruit, pull weeds, water dry crops, sow bare farmland, till the rest. Seeds come
 /// from the harvest, the hut, or the warehouse via couriers; a watering can and fertilizer from the hut.
+/// Only seeds that will live until ripe in the weather ahead are sown, and none in winter (ColonyManager.Seasons.cs).
+/// Before anything else it goes after animals eating its crops (ColonyManager.CropPests.cs): it leaves wild ones to
+/// the colony's hunter when there is one, otherwise it kills them itself, and it chases livestock off.
 /// </summary>
 public class AiTaskSettlerFarmer : AiTaskSettlerWorker
 {
@@ -27,6 +30,9 @@ public class AiTaskSettlerFarmer : AiTaskSettlerWorker
 
     FieldWork work;
     FieldRecord? field;
+    long pestId;
+    long chaseStartMs;
+    readonly Dictionary<long, long> letGo = new();
 
     public AiTaskSettlerFarmer(EntityAgent entity, JsonObject taskConfig, JsonObject aiConfig) : base(entity, taskConfig, aiConfig)
     {
@@ -37,12 +43,16 @@ public class AiTaskSettlerFarmer : AiTaskSettlerWorker
     protected override string HutType => BuildingTypes.Farmer;
     protected override EnumTool Tool => EnumTool.Hoe;
     protected override ItemMatch Stock => ColonyManager.IsCropSeed;
-    protected override float WorkSeconds => manager!.Config.FarmerSecondsPerBlock;
-    protected override bool WorkNeedsTool => work == FieldWork.Till;
+    protected override float WorkSeconds => work == FieldWork.Chase
+        ? manager!.Config.HunterSecondsPerHit / (Colony is { } c && Citizen is { } me ? manager.SwingFactor(c, me) : 1f)
+        : manager!.Config.FarmerSecondsPerBlock;
+    /// <summary>The hoe for tilling, and to hit a crop eater with.</summary>
+    protected override bool WorkNeedsTool => work is FieldWork.Till or FieldWork.Chase;
     protected override bool AlsoKeeps(ItemStack stack) => ColonyManager.IsWateringCan(stack) || ColonyManager.IsFertilizer(stack);
 
     protected override string WorkAnimation(ItemSlot? hand) => work switch
     {
+        FieldWork.Chase => hand?.Itemstack?.Collectible.GetHeldTpHitAnimation(hand, entity) ?? "breakhand",
         FieldWork.Till => hand?.Itemstack?.Collectible.GetHeldTpUseAnimation(hand, entity) ?? "interactstatic",
         FieldWork.Sow or FieldWork.Water or FieldWork.Refill => SettlerAnimations.PlayerAnimations.Contains("placeblock") ? "placeblock" : "interactstatic",
         _ => "breakhand"
@@ -51,6 +61,8 @@ public class AiTaskSettlerFarmer : AiTaskSettlerWorker
     /// <summary>Fruit up in a tree is picked from the ground below it.</summary>
     protected override Vec3d WalkGoal()
     {
+        // A crop eater moves: walk to where it is now.
+        if (work == FieldWork.Chase) return entity.World.GetEntityById(pestId)?.Pos.XYZ ?? base.WalkGoal();
         if (work != FieldWork.Pick) return base.WalkGoal();
         var ba = entity.World.BlockAccessor;
         var pos = target.Copy();
@@ -58,9 +70,53 @@ public class AiTaskSettlerFarmer : AiTaskSettlerWorker
         return pos.ToVec3d().Add(0.5, 0, 0.5);
     }
 
+    protected override bool CloseEnough() => work == FieldWork.Chase && entity.World.GetEntityById(pestId) is { } e
+        ? entity.Pos.DistanceTo(e.Pos.XYZ) <= workRange + 0.5
+        : base.CloseEnough();
+
+    bool LetGo(long id)
+    {
+        if (!letGo.TryGetValue(id, out long until)) return false;
+        if (entity.World.ElapsedMilliseconds < until) return true;
+        letGo.Remove(id);
+        return false;
+    }
+
+    /// <summary>Goes after an animal eating the crops, if there is one this farmer should deal with.</summary>
+    bool PlanChase(Colony colony, CitizenRecord citizen, Building hut)
+    {
+        var m = manager!;
+        long now = entity.World.ElapsedMilliseconds;
+        var pest = pestId != 0 ? entity.World.GetEntityById(pestId) : null;
+        if (pest == null || !m.FarmerShouldChase(colony, citizen, hut, pest) || LetGo(pestId))
+        {
+            pest = m.CropPestForFarmer(colony, citizen, hut, entity.Pos.XYZ, LetGo);
+            if (pest == null)
+            {
+                pestId = 0;
+                return false;
+            }
+            pestId = pest.EntityId;
+            chaseStartMs = now;
+        }
+        if (now - chaseStartMs > m.Config.HunterChaseSeconds * 1000)
+        {
+            // It keeps running: let it be for a while.
+            letGo[pestId] = now + 120_000;
+            pestId = 0;
+            return false;
+        }
+        work = FieldWork.Chase;
+        field = null;
+        workRange = 2.2f;
+        SetStatus("chasing-pest");
+        return GoWork(pest.Pos.AsBlockPos);
+    }
+
     protected override bool PlanWork(Colony colony, CitizenRecord citizen, Building hut, List<BlockEntityContainer> storage)
     {
         var m = manager!;
+        if (PlanChase(colony, citizen, hut)) return true;
 
         // Pick up a watering can and fertilizer from the hut once; the farmer keeps them.
         if (!m.PackItems(citizen).Any(ColonyManager.IsWateringCan) && Supplies(storage, ColonyManager.IsWateringCan) is { } canChest)
@@ -77,6 +133,8 @@ public class AiTaskSettlerFarmer : AiTaskSettlerWorker
         var here = entity.Pos.XYZ;
         (FieldWork Work, FieldRecord? Field, BlockPos Pos)? best = null;
         FieldRecord? shortOfSeeds = null;
+        BlockPos? shortAt = null;
+        string? noSowing = null;
         bool thirsty = false;
 
         void Consider(FieldWork w, FieldRecord? f, BlockPos pos)
@@ -87,14 +145,23 @@ public class AiTaskSettlerFarmer : AiTaskSettlerWorker
 
         foreach (var f in fields)
         {
-            bool hasSeed = m.PackCount(citizen, m.SeedMatcher(f)) > 0;
+            // Only seeds that would live until ripe here count; in winter, or when it is too cold or hot for every crop, none.
+            var spot = m.FieldGround(f).FirstOrDefault() ?? f.Pos;
+            string? why = m.NoSowingReason(spot, m.SeedMatcher(f));
+            bool hasSeed = why == null && m.PackCount(citizen, m.SowableNow(spot, m.SeedMatcher(f))) > 0;
             foreach (var ground in m.FieldGround(f))
             {
                 var w = m.WorkAt(colony, ground);
                 if (w == FieldWork.None || IsUnreachable(ground)) continue;
+                if (w == FieldWork.Sow && why != null)
+                {
+                    noSowing ??= why;
+                    continue;
+                }
                 if (w == FieldWork.Sow && !hasSeed)
                 {
                     shortOfSeeds ??= f;
+                    shortAt ??= ground;
                     continue;
                 }
                 if (w == FieldWork.Water)
@@ -121,9 +188,9 @@ public class AiTaskSettlerFarmer : AiTaskSettlerWorker
         // Out of seeds for bare farmland: pick some up at the hut, or ask couriers to bring them.
         if (shortOfSeeds != null)
         {
-            var match = m.SeedMatcher(shortOfSeeds);
+            var match = m.SowableNow(shortAt!, m.SeedMatcher(shortOfSeeds));
             if (Supplies(storage, match) is { } chest) return FetchSupplies(chest, match, m.SeedReserve(Job));
-            m.EnsureSeedRequest(colony, hut, shortOfSeeds);
+            m.EnsureSeedRequest(colony, hut, shortOfSeeds, shortAt);
         }
 
         // The watering can is empty and crops are dry: fill it at the nearest water first.
@@ -139,7 +206,7 @@ public class AiTaskSettlerFarmer : AiTaskSettlerWorker
 
         if (best == null)
         {
-            SetStatus(fields.Count == 0 ? "no-fields" : shortOfSeeds != null ? "needs-seeds" : "growing");
+            SetStatus(fields.Count == 0 ? "no-fields" : shortOfSeeds != null ? "needs-seeds" : noSowing != null ? "no-sowing-" + noSowing : "growing");
             return false;
         }
         work = best.Value.Work;
@@ -157,6 +224,14 @@ public class AiTaskSettlerFarmer : AiTaskSettlerWorker
         var m = manager!;
         switch (work)
         {
+            case FieldWork.Chase:
+                if (entity.World.GetEntityById(pestId) is not { } pest || !pest.Alive) return;
+                // Too far: it ran off while the farmer swung. Plan walks after it again.
+                if (entity.Pos.DistanceTo(pest.Pos.XYZ) > workRange + 1) return;
+                entity.Pos.Yaw = (float)System.Math.Atan2(pest.Pos.X - entity.Pos.X, pest.Pos.Z - entity.Pos.Z);
+                m.FarmerStrike(colony, citizen, hut, entity, pest);
+                SyncHand(); // a hoe that just broke must vanish from the model too
+                return;
             case FieldWork.Pick:
                 m.PickFruit(colony, hut, citizen, target);
                 return;

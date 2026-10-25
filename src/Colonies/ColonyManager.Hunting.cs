@@ -49,12 +49,8 @@ public partial class ColonyManager
         if (!e.Alive || e is not EntityAgent || e is EntityPlayer || e is Settlers.EntitySettler) return false;
         if (e.GetBehavior<EntityBehaviorHarvestable>() == null || IsThreat(e)) return false;
         if (!MayCollect(hut, AnimalKey(e))) return false;
-        if (Config.HunterSparesLivestock)
-        {
-            // Bred by players (generation 1 and up), tamed, or still a baby.
-            if (e.WatchedAttributes.GetInt("generation") > 0 || e.WatchedAttributes.HasAttribute("domesticationstatus")) return false;
-            if (e.Code.Path.Contains("-baby") || e.Code.Path.EndsWith("-calf") || e.Code.Path.Contains("-piglet") || e.Code.Path.Contains("-lamb") || e.Code.Path.Contains("-chick")) return false;
-        }
+        // Bred by players (generation 1 and up), tamed, or still a baby.
+        if (Config.HunterSparesLivestock && IsLivestock(e)) return false;
         // Animals inside the colony's buildings are someone's livestock.
         return ZoneAt(colony, e.Pos.AsBlockPos) == null;
     }

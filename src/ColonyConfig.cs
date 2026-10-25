@@ -150,6 +150,20 @@ public class ColonyConfig
     public float FarmerWaterBelow = 0.5f;
     /// <summary>A farmer with fertilizer spreads it before sowing when the crop's nutrient is below this (soil shows 0 to 100).</summary>
     public float FarmerFertilizeBelow = 40f;
+    /// <summary>Farmers only sow a crop that will live until it is ripe, working out the cold and heat it would meet from the region's climate and the seasons ahead.</summary>
+    public bool FarmerChecksSeasons = true;
+    /// <summary>Nothing is sown in winter.</summary>
+    public bool FarmerSkipsWinter = true;
+    /// <summary>How much of the cold or heat damage that kills a crop (48 hours of it in the game) a sown crop may take: 0.5 is half.</summary>
+    public float FarmerCropDamageAllowed = 0.5f;
+    /// <summary>Degrees of safety: a crop counts as cold this much above its cold limit, and as hot this much below its heat limit.</summary>
+    public float FarmerSeasonMarginDegrees = 1f;
+    /// <summary>Farmers go after animals that eat the crops on their fields: they kill wild ones and chase livestock off.</summary>
+    public bool FarmerGuardsCrops = true;
+    /// <summary>When the colony has a hunter, the farmer calls it and only goes after the animal itself if it is still at the crops this many seconds later.</summary>
+    public float FarmerWaitsForHunterSeconds = 45f;
+    /// <summary>How far from its fields, in blocks, a farmer goes after a crop eater before it counts as chased off.</summary>
+    public int FarmerChaseDistance = 16;
 
     // Prospector
     /// <summary>How far from the Prospector's Hut, in blocks, a prospector takes readings (change it on the Work area tab).</summary>

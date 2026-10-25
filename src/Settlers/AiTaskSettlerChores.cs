@@ -129,7 +129,9 @@ public class AiTaskSettlerChores : SettlerTaskBase
         var plots = m.HomePlots(colony, home);
         if (plots.Count == 0) return false;
 
-        bool hasSeed = m.PackCount(citizen, m.IsSowable) > 0;
+        // Only seeds that would live until ripe here, and none in winter (ColonyManager.Seasons.cs).
+        ItemMatch sowable = m.SowableNow(plots[0], m.IsSowable);
+        bool hasSeed = m.PackCount(citizen, sowable) > 0;
         bool hasHoe = IsHoe(Hand?.Itemstack) || m.PackCount(citizen, s => IsHoe(s)) > 0;
         var (hasCan, water) = m.WaterCarried(citizen);
         var here = entity.Pos.XYZ;
@@ -164,7 +166,7 @@ public class AiTaskSettlerChores : SettlerTaskBase
         // Fetch what the plot needs before the work that does not need it is done, so it is one trip.
         if (best == null || best.Value.Work > FieldWork.Sow)
         {
-            if (wantSeed && m.HomeSupply(colony, home, m.IsSowable) is { } seeds) return Fetch(seeds.Pos, m.IsSowable, m.Config.JoblessSeedTake);
+            if (wantSeed && m.HomeSupply(colony, home, sowable) is { } seeds) return Fetch(seeds.Pos, sowable, m.Config.JoblessSeedTake);
             if (wantCan && m.HomeSupply(colony, home, ColonyManager.IsWateringCan) is { } can) return Fetch(can.Pos, ColonyManager.IsWateringCan, 1);
             if (wantHoe && m.HomeSupply(colony, home, s => IsHoe(s)) is { } hoe) return Fetch(hoe.Pos, s => IsHoe(s), 1);
         }

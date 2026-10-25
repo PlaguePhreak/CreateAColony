@@ -15,7 +15,8 @@ namespace CreateAColony.Settlers;
 /// A hunter works from a Hunter's Hut (ColonyManager.Hunting.cs). It chases animals around the hut and strikes
 /// them with its spear or other weapon until they fall, then skins them with its knife and takes the meat, hide
 /// and the rest to the hut. An animal it cannot catch in time it lets go for a while. Without a knife it leaves
-/// its kills for settlers without a job to skin.
+/// its kills for settlers without a job to skin. Animals eating the colony's crops come first, wherever they are
+/// and whatever the Allowed to collect tab says (ColonyManager.CropPests.cs): the farmer calls the hunter for them.
 /// </summary>
 public class AiTaskSettlerHunter : AiTaskSettlerWorker
 {
@@ -59,8 +60,16 @@ public class AiTaskSettlerHunter : AiTaskSettlerWorker
         {
             return FetchSupplies(knifeChest.Pos, s => ColonyManager.IsKnife(s), 1);
         }
-        // Its own kills first, before they rot.
-        if (knife && !m.PackFull(citizen) && m.HunterCarcass(colony, hut, entity.Pos.XYZ, LetGo) is { } carcass)
+        // An animal eating the crops first: the farmer called for it.
+        bool onPest = preyId != 0 && entity.World.GetEntityById(preyId) is { } current && m.IsCropPest(colony, current) && !LetGo(preyId);
+        if (!onPest && m.CropPestForHunter(colony, entity.Pos.XYZ, LetGo) is { } pest)
+        {
+            preyId = pest.EntityId;
+            chaseStartMs = now;
+            onPest = true;
+        }
+        // Its own kills next, before they rot.
+        if (!onPest && knife && !m.PackFull(citizen) && m.HunterCarcass(colony, hut, entity.Pos.XYZ, LetGo) is { } carcass)
         {
             skinning = true;
             preyId = carcass.EntityId;
@@ -69,11 +78,11 @@ public class AiTaskSettlerHunter : AiTaskSettlerWorker
             SetStatus("hunter-skinning");
             return GoWork(carcass.Pos.AsBlockPos);
         }
-        if (m.PackFull(citizen)) return false;
+        if (!onPest && m.PackFull(citizen)) return false;
 
         skinning = false;
         var prey = entity.World.GetEntityById(preyId);
-        if (prey == null || !m.IsPrey(colony, hut, prey) || LetGo(preyId))
+        if (prey == null || !(m.IsPrey(colony, hut, prey) || m.IsCropPest(colony, prey)) || LetGo(preyId))
         {
             prey = m.FindPrey(colony, hut, entity.Pos.XYZ, LetGo);
             if (prey == null)
@@ -94,7 +103,7 @@ public class AiTaskSettlerHunter : AiTaskSettlerWorker
             return false;
         }
         workRange = 2.2f;
-        SetStatus("hunting");
+        SetStatus(onPest ? "hunter-pest" : "hunting");
         return GoWork(prey.Pos.AsBlockPos);
     }
 

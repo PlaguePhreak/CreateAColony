@@ -227,6 +227,18 @@ These work well with Vintage Colonies. Install them separately.
 - **Smithing Plus** (jayu): smith with metal bits, repair tool heads on the anvil and other smithing tweaks. Our smiths still use the game's anvil and recipes beside it; not tested together in game yet.
 - **Coinage** (Xel): design your own coins. One can be the colony's money (Bailiff tab, Taxes & wages).
 
+## Farmers guard their crops and plant by season (0.147.0)
+- **Animals that eat the crops get chased off.** When an animal goes for the crops on the colony's farmland, the Town Hall log says so.
+- **The hunter comes first.** If the colony has a hunter, the farmer calls it, and the hunter goes after that animal before anything else, from anywhere. If the animal is still there 45 seconds later (`FarmerWaitsForHunterSeconds`), the farmer goes too.
+- **No hunter?** The farmer goes after the animal with its hoe and kills it. The body is the colony's, so the hunter or settlers without a job skin it.
+- **Livestock is never killed.** Animals you bred or tamed, and babies, are only pushed away from the crops.
+- An animal that runs well away from the fields counts as chased off.
+- **Dead crops are replaced.** The farmer clears a dead crop and sows a new seed there, one that fits the season.
+- **Only crops that will live get planted.** Before sowing, the farmer looks at the weather ahead for that spot: the season, how warm the region gets, day and night. If a crop would freeze or overheat before it is ripe, it picks another seed. If no seed it has would live, it waits. A greenhouse counts as 5 degrees warmer, like in the game.
+- **No planting in winter.** The farmer still harvests, weeds, waters and tills. Settlers without a job follow the same rules on their home plots.
+- Config: `FarmerGuardsCrops`, `FarmerWaitsForHunterSeconds` (45), `FarmerChaseDistance` (16), `FarmerChecksSeasons`, `FarmerSkipsWinter`, `FarmerCropDamageAllowed` (0.5: a crop may take half the cold or heat that kills it), `FarmerSeasonMarginDegrees` (1).
+- Not tested in game.
+
 ## Foresters clear bushes, and sticks from firewood (0.146.0)
 - **Foresters clear wild bushes.** Besides felling trees, the forester breaks the wild bushes and clumps of leaves standing on the ground around its hut, nearest first. The leaves give sticks (and sometimes tree seeds), the same as when you break them.
 - It leaves alone berry bushes, fruit trees, leaves you placed, and anything in or beside a colony building.

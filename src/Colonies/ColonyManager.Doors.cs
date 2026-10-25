@@ -57,6 +57,7 @@ public partial class ColonyManager
         harmony?.UnpatchAll("createacolony.doors");
         harmony = null;
         StopFires();
+        StopCropWatch();
         base.Dispose();
     }
 

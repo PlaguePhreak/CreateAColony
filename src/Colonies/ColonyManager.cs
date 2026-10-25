@@ -70,6 +70,7 @@ public partial class ColonyManager : ModSystem
         api.Event.RegisterGameTickListener(_ => SaveDirty(), DirtySaveMs, DirtySaveMs);
         StartDoors();
         StartFires();
+        StartCropWatch();
         // The list of things with their own marker icon, made once on the main thread before settlers look around.
         api.Event.ServerRunPhase(EnumServerRunPhase.RunGame, () => Map.MarkerSubjects.All(api));
     }
