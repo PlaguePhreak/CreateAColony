@@ -139,6 +139,43 @@ public partial class ColonyManager
         return true;
     }
 
+    /// <summary>When each settler may next use a healing item it carries, so one bandage finishes before the next. Not saved.</summary>
+    readonly Dictionary<long, long> nextSelfHeal = new();
+
+    /// <summary>
+    /// A hurt settler (below config UseHealingBelow) uses a bandage or poultice it carries, wherever it is (Aaron,
+    /// 2026-10-25): its first aid first, then any in its inventory. It picks the smallest one that covers what it
+    /// is missing, else the strongest, and waits for one to finish healing before it uses the next.
+    /// </summary>
+    public void HealSelfIfHurt(Colony colony, CitizenRecord c, EntityAgent settler)
+    {
+        if (!Config.UseHealingWhenHurt || c.IsDowned || settler.GetBehavior<EntityBehaviorHealth>() is not { MaxHealth: > 0 } hp) return;
+        if (hp.Health >= hp.MaxHealth * Config.UseHealingBelow) return;
+        long now = sapi.World.ElapsedMilliseconds;
+        if (nextSelfHeal.TryGetValue(settler.EntityId, out long next) && next > now) return;
+
+        float missing = hp.MaxHealth - hp.Health;
+        var aid = FirstAidOf(c);
+        var carried = CarriedItems(c).Where(IsHealingItem).ToList();
+        var all = (aid == null ? carried : carried.Prepend(aid)).ToList();
+        if (all.Count == 0) return;
+        var pick = all.Where(s => HealPower(s) >= missing).OrderBy(HealPower).FirstOrDefault() ?? all.OrderByDescending(HealPower).First();
+
+        ItemStack? used;
+        if (aid != null && ReferenceEquals(pick, aid))
+        {
+            used = aid;
+            SetFirstAid(colony, c, null);
+        }
+        else used = TakeFromPack(colony, c, s => s.Collectible.Code.Equals(pick.Collectible.Code), 1);
+        if (used == null) return;
+
+        ApplyHealing(settler, used);
+        float seconds = used.Collectible.GetBehavior<CollectibleBehaviorHealingItem>()?.EffectDurationSec ?? 0;
+        nextSelfHeal[settler.EntityId] = now + (long)(Math.Max(5f, seconds + 2f) * 1000);
+        LogEvent(colony, "event-first-aid", c.Name, used.GetName());
+    }
+
     // ---- Making a poultice ---------------------------------------------------------------------
 
     /// <summary>The game's recipes any settler may make first aid with (config HomemadeRemedies): the horsetail poultice.</summary>

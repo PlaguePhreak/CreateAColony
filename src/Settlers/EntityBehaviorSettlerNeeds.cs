@@ -42,6 +42,8 @@ public class EntityBehaviorSettlerNeeds : EntityBehavior
         if (citizen == null) return;
 
         var config = manager.Config;
+        // Hurt: use a bandage or poultice it carries (ColonyManager.Healing.cs).
+        if (settler.ColonyId != null && manager.GetById(settler.ColonyId) is { } colony) manager.HealSelfIfHurt(colony, citizen, settler);
         double nowHours = entity.World.Calendar.TotalHours;
         double lastHours = entity.WatchedAttributes.GetDouble(LastUpdateAttr, nowHours);
         entity.WatchedAttributes.SetDouble(LastUpdateAttr, nowHours);

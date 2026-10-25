@@ -749,6 +749,9 @@ public class ColonyConfig
     public float RestHealPerHour = 2f;
     /// <summary>Settlers carry one bandage or poultice, taken from the warehouse, a Healer's Hut or a chest at home, and use it when badly hurt.</summary>
     public bool SettlersCarryFirstAid = true;
+    /// <summary>A settler below this share of its health uses a bandage or poultice it carries, wherever it is.</summary>
+    public bool UseHealingWhenHurt = true;
+    public float UseHealingBelow = 0.75f;
     /// <summary>Settlers with no first aid to take make their own from these (first part of the code, as in poultice-reed-horsetail).</summary>
     public bool SettlersMakeRemedies = true;
     public string[] HomemadeRemedies = { "poultice" };
