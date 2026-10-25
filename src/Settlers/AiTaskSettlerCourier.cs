@@ -1,4 +1,5 @@
 using System.Linq;
+using System.Collections.Generic;
 using CreateAColony.Colonies;
 using Vintagestory.API.Common;
 using Vintagestory.API.Datastructures;
@@ -249,18 +250,27 @@ public class AiTaskSettlerCourier : SettlerTaskBase
 
         var match = request != null && !fromHut ? ColonyManager.Matcher(request.ItemCode) : pickupFilter;
         int wanted = request?.Remaining ?? (shelfTarget != null || coolTarget != null || torchTarget != null ? shelfWant : int.MaxValue);
-        int taken = 0;
-        while (taken < wanted)
+        // For a request from the warehouse, every warehouse chest counts, not only the one walked to (Aaron, 0.160.0).
+        bool fullLoads = manager!.Config.CouriersCarryFullLoads && request != null && !fromHut;
+        var warehouse = fullLoads ? manager.WarehouseContainers(colony).ToList() : null;
+        var sources = warehouse != null ? new[] { container }.Concat(warehouse.Where(c => c != container)).ToList() : new List<BlockEntityContainer> { container };
+        if (fullLoads && sources.SelectMany(c => c.Inventory).FirstOrDefault(s => !s.Empty && match(s.Itemstack))?.Itemstack is { } sample)
         {
-            // One stack at a time; whatever does not fit goes straight back.
-            var part = manager!.TakeItems(new[] { container }, match, wanted - taken);
-            if (part == null) break;
-            int moved = manager.AddToPack(colony, citizen, part, toolBar: false); // a load to deliver, not its own tools
-            taken += moved;
-            if (part.StackSize > 0)
+            wanted = manager.CourierLoad(colony, request!, sample);
+        }
+        int taken = TakeInto(colony, citizen, sources, match, wanted);
+        // Other requests for the same chest come along on the same trip, as far as the pack holds them.
+        if (fullLoads && taken > 0)
+        {
+            double now = entity.World.Calendar.TotalHours;
+            foreach (var other in colony.Requests.Where(r => r != request && r.Remaining > 0 && r.DestPos.Equals(request!.DestPos)
+                && (r.LeasedByCitizenId == 0 || r.LeasedByCitizenId == citizen.CitizenId || r.LeaseUntilTotalHours <= now)).OrderBy(r => r.RequestId).ToList())
             {
-                manager.PutItems(container, part);
-                break;
+                if (manager.PackFull(citizen)) break;
+                var otherMatch = ColonyManager.Matcher(other.ItemCode);
+                var otherSample = warehouse!.SelectMany(c => c.Inventory).FirstOrDefault(s => !s.Empty && otherMatch(s.Itemstack))?.Itemstack;
+                if (otherSample == null) continue;
+                if (TakeInto(colony, citizen, warehouse!, otherMatch, manager.CourierLoad(colony, other, otherSample)) > 0) manager.LeaseAlong(colony, other, citizen);
             }
         }
 
@@ -274,6 +284,30 @@ public class AiTaskSettlerCourier : SettlerTaskBase
         if (destination == null) return false; // warehouse removed mid-trip; the load waits until one exists
         target = destination.Copy();
         return true;
+    }
+
+    /// <summary>Moves up to wanted matching things from the containers into the pack, one stack at a time; what does not fit goes back.</summary>
+    int TakeInto(Colony colony, CitizenRecord citizen, List<BlockEntityContainer> sources, System.Func<ItemStack, bool> match, int wanted)
+    {
+        int taken = 0;
+        while (taken < wanted)
+        {
+            var part = manager!.TakeItems(sources, match, wanted - taken);
+            if (part == null) break;
+            int moved = manager.AddToPack(colony, citizen, part, toolBar: false); // a load to deliver, not its own tools
+            taken += moved;
+            if (part.StackSize > 0)
+            {
+                // Back where the stack came from: the first chest that takes it.
+                foreach (var c in sources)
+                {
+                    if (part.StackSize <= 0) break;
+                    manager.PutItems(c, part);
+                }
+                break;
+            }
+        }
+        return taken;
     }
 
     void Deliver(Colony colony, CitizenRecord citizen)
@@ -293,12 +327,18 @@ public class AiTaskSettlerCourier : SettlerTaskBase
                 nextSearchMs = 0;
                 return;
             }
-            var match = ColonyManager.Matcher(request.ItemCode);
-            int before = manager.PackCount(citizen, match);
-            manager.UnloadPack(colony, citizen, new[] { dest }, match);
-            int moved = before - manager.PackCount(citizen, match);
-            manager.RecordDelivery(colony, request, moved);
-            blocked = manager.PackCount(citizen, match) > 0;
+            blocked = false;
+            // This request and any others for the same chest the courier brought along.
+            var along = colony.Requests.Where(r => r != request && r.LeasedByCitizenId == citizen.CitizenId && r.DestPos.Equals(request.DestPos)).ToList();
+            foreach (var r in along.Prepend(request))
+            {
+                var match = ColonyManager.Matcher(r.ItemCode);
+                int before = manager.PackCount(citizen, match);
+                manager.UnloadPack(colony, citizen, new[] { dest }, match);
+                int moved = before - manager.PackCount(citizen, match);
+                manager.RecordDelivery(colony, r, moved);
+                blocked |= manager.PackCount(citizen, match) > 0;
+            }
         }
         else if (shelfTarget != null)
         {

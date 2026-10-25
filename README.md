@@ -1007,6 +1007,14 @@ before shipping converted blueprints.
 
 ### The Town Hall window (0.24.0)
 
+### Couriers carry full loads (0.160.0)
+- When a courier brings something a hut asked for, it takes it from every warehouse chest, not just one.
+- Other things the same hut asked for come along on the same trip, as much as the courier can carry.
+- For a worker's own hut, the courier brings up to a full stack, so a crafter asking for 1 at a time gets enough
+  for many. Builders' work orders, Minimum stock, tools, food that spoils, and things the hut would send back get
+  what they asked for. Config: `CouriersCarryFullLoads`.
+- Not tested in game.
+
 ### Builders place chiseled blocks (0.159.0)
 - A build can now have chiseled blocks in it. The builder places each one with its full shape, as you chiseled it,
   and it shows in the ghost preview and turns with the building.

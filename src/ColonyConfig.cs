@@ -659,6 +659,11 @@ public class ColonyConfig
     /// </summary>
     public int RequestSparePercent = 25;
     public int RequestSpareMax = 8;
+    /// <summary>
+    /// Couriers carry full loads for requests: things from every warehouse chest, other requests for the same hut on the
+    /// same trip, and for a worker's own hut up to a full stack of what it asked for (not for builders' work orders).
+    /// </summary>
+    public bool CouriersCarryFullLoads = true;
     /// <summary>Pit kilns use the best fuel the colony has: coal, then charcoal, then peat, then firewood.</summary>
     public bool KilnPrefersBestFuel = true;
     /// <summary>What huts gather by themselves, by hut type, so the Required resources tab can say which hut brings it in.</summary>

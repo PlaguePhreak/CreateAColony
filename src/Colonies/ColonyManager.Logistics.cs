@@ -213,6 +213,33 @@ public partial class ColonyManager
         return null;
     }
 
+    /// <summary>Gives a courier another request it brings along on the same trip (same chest to deliver to).</summary>
+    public void LeaseAlong(Colony colony, DeliveryRequest request, CitizenRecord courier)
+    {
+        request.LeasedByCitizenId = courier.CitizenId;
+        request.LeaseUntilTotalHours = sapi.World.Calendar.TotalHours + RequestLeaseHours;
+        MarkDirty(colony);
+    }
+
+    /// <summary>
+    /// How many a courier takes for a request (Aaron, 0.160.0): for a worker's own hut it fills up to a full stack
+    /// when the warehouse has that many, so a crafter asking for 1 at a time gets a load it can work through. Builders'
+    /// work orders, Minimum stock, tools, food that spoils and players' requests get what they asked for.
+    /// </summary>
+    public int CourierLoad(Colony colony, DeliveryRequest request, ItemStack sample)
+    {
+        int wanted = request.Remaining;
+        if (!Config.CouriersCarryFullLoads || ParseToolCode(request.ItemCode) != null || !request.RequestedBy.StartsWith("building:")
+            || !int.TryParse(request.RequestedBy.Substring(9), out int id)) return wanted;
+        var hut = colony.Buildings.Find(b => b.BuildingId == id);
+        if (hut == null || hut.Type == BuildingTypes.Builder || !IsWorkerHut(hut.Type) || !HutStorage(colony, hut).Any(c => c.Pos.Equals(request.DestPos))) return wanted;
+        // Food that spoils is only brought as asked, so it stays in the cooler warehouse.
+        if (CanSpoil(sample)) return wanted;
+        // Nor anything the hut would send back to the warehouse as not needed.
+        if (WorkerHutJunk(colony, hut)(sample)) return wanted;
+        return Math.Max(wanted, sample.Collectible.MaxStackSize);
+    }
+
     public void ReleaseRequest(Colony colony, DeliveryRequest request)
     {
         request.LeasedByCitizenId = 0;
