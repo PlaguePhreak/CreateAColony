@@ -196,46 +196,4 @@ public partial class ColonyManager
     /// <summary>True when it is dark where the settler stands: night outdoors, or a dark cave or house.</summary>
     public bool IsDark(EntityAgent settler) =>
         sapi.World.BlockAccessor.GetLightLevel(settler.Pos.AsBlockPos.Up(), EnumLightLevelType.MaxTimeOfDayLight) < TorchBelowLight;
-
-    /// <summary>
-    /// The torch a settler would hold right now: in the dark, the first lit torch it carries (offhand
-    /// first); otherwise null and the offhand item shows as usual.
-    /// </summary>
-    public ItemStack? TorchToHold(CitizenRecord citizen, EntityAgent settler)
-    {
-        if (!IsDark(settler)) return null;
-        var offhand = ToolBarItems(citizen)[OffhandSlot];
-        if (IsTorch(offhand)) return offhand;
-        return PackItems(citizen).FirstOrDefault(IsTorch);
-    }
-
-    /// <summary>A container in the settler's hut storage or the warehouse with a lit torch in it, for a settler who has none.</summary>
-    public BlockEntityContainer? TorchChest(Colony colony, CitizenRecord citizen)
-    {
-        if (!Config.CarryTorches || CarriedItems(citizen).Any(IsTorch)) return null;
-        var hut = citizen.WorkplacePos == null ? null : GetBuilding(colony, citizen.WorkplacePos);
-        var places = (hut == null ? Enumerable.Empty<BlockEntityContainer>() : HutStorage(colony, hut).Cast<BlockEntityContainer>())
-            .Concat(WarehouseContainers(colony));
-        return places.FirstOrDefault(c => c.Inventory.Any(s => IsTorch(s.Itemstack)));
-    }
-
-    /// <summary>Takes one lit torch out of the container into the settler's offhand (or inventory if the offhand is taken).</summary>
-    public bool TakeTorch(Colony colony, CitizenRecord citizen, BlockEntityContainer container)
-    {
-        var slot = container.Inventory.FirstOrDefault(s => IsTorch(s.Itemstack));
-        if (slot == null) return false;
-        var torch = slot.TakeOut(1);
-        slot.MarkDirty();
-        container.MarkDirty(true);
-        var bar = ToolBarItems(citizen);
-        if (bar[OffhandSlot] == null)
-        {
-            bar[OffhandSlot] = torch;
-            SaveToolBar(colony, citizen, bar);
-            return true;
-        }
-        if (AddToPack(colony, citizen, torch) > 0) return true;
-        PutItems(container, torch);
-        return false;
-    }
 }

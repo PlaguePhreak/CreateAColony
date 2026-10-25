@@ -61,6 +61,8 @@
 					{ "code": "settlershelter", "animation": "walk", "priority": 3.0, "movespeed": 0.025 },
 					{ "code": "settlersleep", "animation": "walk", "priority": 2.0, "movespeed": 0.018 },
 					{ "code": "settlereat", "animation": "walk", "priority": 1.5, "movespeed": 0.02 },
+					// A light to carry in the dark: a free lantern, else a torch, from the hut or the warehouse, see AiTaskSettlerLight.
+					{ "code": "settlerlight", "animation": "walk", "priority": 1.4, "movespeed": 0.02 },
 					// Now and then: put up a painting, rack or shelf at home (any settler near home), see AiTaskSettlerDecorate.
 					{ "code": "settlerdecorate", "animation": "walk", "priority": 1.3, "movespeed": 0.02 },
 					// On a service day: go to the Church for the service (AiTaskSettlerWorship).

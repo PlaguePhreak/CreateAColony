@@ -1091,8 +1091,13 @@ public class ColonyConfig
     public float CoolStoreMaxRateShare = 0.75f;
     /// <summary>Each adult settler carries a bowl in its food slots, to take a serving of a meal from a crock or pot along. Settlers without one take one, and the Potter's Hut makes more.</summary>
     public bool CarryBowl = true;
-    /// <summary>In the dark settlers hold a lit torch they carry, and fetch one from their hut or the warehouse when they have none.</summary>
+    /// <summary>
+    /// Every grown settler carries a light in its offhand and holds it up in the dark, lighting the ground around it.
+    /// It fetches one from its hut or the warehouse: a lantern when one is free (no build needs it), else a torch.
+    /// </summary>
     public bool CarryTorches = true;
+    /// <summary>A settler only walks to a chest this many blocks away or closer for its light.</summary>
+    public int LightFetchRange = 64;
     /// <summary>Workers within this many blocks of their hut drop off what they do not need on their way past.</summary>
     public int DepositNearHut = 8;
 

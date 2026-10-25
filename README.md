@@ -227,6 +227,15 @@ These work well with Vintage Colonies. Install them separately.
 - **Smithing Plus** (jayu): smith with metal bits, repair tool heads on the anvil and other smithing tweaks. Our smiths still use the game's anvil and recipes beside it; not tested together in game yet.
 - **Coinage** (Xel): design your own coins. One can be the colony's money (Bailiff tab, Taxes & wages).
 
+## Lights for every worker (0.144.0)
+- **Every grown settler carries a light.** When it gets dark, a settler without one walks to its hut storage or the warehouse and takes one into its offhand. It holds it up like a player and it **lights up the ground around it** as it walks, the same as a torch in your hand.
+- **Lanterns first.** A settler takes a lantern if there is a free one, and swaps its torch for one when a lantern turns up later.
+- **Builds come first.** A lantern is only free when no build still needs it. While your work orders need more lanterns than the warehouse and the Builder's Huts hold, settlers leave lanterns alone and use torches, and anyone already carrying a lantern brings it back and takes a torch.
+- Builders always carry torches, so their lantern is never mixed up with the build's.
+- A shield takes the offhand; that settler goes without a light.
+- Config: `CarryTorches` (on/off) and `LightFetchRange` (64 blocks: how far a settler walks for its light).
+- Not tested in game.
+
 ## Requests tab, Courier's Station and better fuel (0.142.0)
 - **Requests tab on every hut.** It lists what the hut and its worker asked the couriers for (the potter's firewood, dry grass and sticks, a builder's planks, a tool). Each row shows how many were brought, how many are in the warehouse, and what is happening: a courier bringing it, waiting for a courier, the Gatherer cutting grass for it, another hut making it, or nobody has it.
 - **Huts ask for a few spare.** A hut asks for about a quarter more than it needs, at least 1 and at most 8 (a potter needing 4 firewood asks for 5). Once what it needs is there, it does not wait for the spare. Not for tools, Minimum stock or your own requests. Config: `RequestSparePercent` (25, 0 turns it off) and `RequestSpareMax` (8).

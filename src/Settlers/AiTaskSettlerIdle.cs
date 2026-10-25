@@ -47,7 +47,7 @@ public class AiTaskSettlerIdle : SettlerTaskBase
     long nextStrollMs;
     long startedMs;
     Vec3d? spot;
-    enum Errand { Stroll, PickUp, Torch, Deposit, Sit, Dress, FirstAid, MakeRemedy, Bowl, Wash }
+    enum Errand { Stroll, PickUp, Deposit, Sit, Dress, FirstAid, MakeRemedy, Bowl, Wash }
     Errand errand;
     BlockPos? chestPos;
     BlockPos? seat;
@@ -115,14 +115,6 @@ public class AiTaskSettlerIdle : SettlerTaskBase
             return true;
         }
 
-        if (manager.TorchChest(colony, citizen) is { } torchChest)
-        {
-            errand = Errand.Torch;
-            chestPos = torchChest.Pos.Copy();
-            spot = chestPos.ToVec3d().Add(0.5, 0, 0.5);
-            return true;
-        }
-
         // A bowl to take a serving of a crock or pot meal along, and rotten food washed out of one (ColonyManager.Crocks.cs).
         if (manager.BowlChest(colony, citizen) is { } bowlChest)
         {
@@ -167,9 +159,6 @@ public class AiTaskSettlerIdle : SettlerTaskBase
         {
             case Errand.PickUp:
                 manager!.PickUpNearby(colony, citizen, entity, 2f);
-                break;
-            case Errand.Torch:
-                if (entity.World.BlockAccessor.GetBlockEntity(chestPos!) is Vintagestory.GameContent.BlockEntityContainer torchChest) manager!.TakeTorch(colony, citizen, torchChest);
                 break;
             case Errand.Bowl:
                 if (entity.World.BlockAccessor.GetBlockEntity(chestPos!) is Vintagestory.GameContent.BlockEntityContainer bowlChest) manager!.TakeBowl(colony, citizen, bowlChest);
@@ -279,7 +268,6 @@ public class AiTaskSettlerIdle : SettlerTaskBase
     public override string Describe(Colony colony, CitizenRecord citizen) => errand switch
     {
         Errand.PickUp => Lang.Get("createacolony:activity-picking-up"),
-        Errand.Torch => Lang.Get("createacolony:activity-fetching-torch"),
         Errand.Deposit => Lang.Get("createacolony:activity-dropping-off"),
         Errand.Dress => Lang.Get("createacolony:activity-changing-clothes"),
         Errand.Bowl => Lang.Get("createacolony:activity-fetching-bowl"),

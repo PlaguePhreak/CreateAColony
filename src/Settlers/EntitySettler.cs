@@ -1,6 +1,7 @@
 using Vintagestory.API.Client;
 using Vintagestory.API.Common;
 using Vintagestory.API.Common.Entities;
+using Vintagestory.API.MathTools;
 using Vintagestory.GameContent;
 
 namespace CreateAColony.Settlers;
@@ -23,6 +24,23 @@ public class EntitySettler : EntityHumanoid
     public override ItemSlot? RightHandItemSlot => hands?.Inventory[0];
     /// <summary>The offhand item from the tool bar, or a torch in the dark.</summary>
     public override ItemSlot? LeftHandItemSlot => hands?.Inventory[1];
+
+    /// <summary>
+    /// A torch or lantern in either hand lights up the ground around the settler, as it does for a player
+    /// (EntityPlayer.LightHsv). Burning, it glows as any entity on fire does.
+    /// </summary>
+    public override byte[]? LightHsv
+    {
+        get => ColorUtil.MergeLightHSV(HeldLight(RightHandItemSlot), HeldLight(LeftHandItemSlot)) ?? base.LightHsv;
+        set => base.LightHsv = value;
+    }
+
+    byte[]? HeldLight(ItemSlot? slot)
+    {
+        if (slot?.Itemstack is not { } stack || World == null) return null;
+        var hsv = stack.Collectible.GetLightHsv(World.BlockAccessor, null, stack);
+        return hsv != null && hsv[2] > 0 ? hsv : null;
+    }
 
     public override void Initialize(EntityProperties properties, ICoreAPI api, long InChunkIndex3d)
     {

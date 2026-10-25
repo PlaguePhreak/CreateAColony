@@ -85,7 +85,8 @@ public partial class ColonyManager
         {
             for (int i = FirstToolSlot; i < FirstToolSlot + ToolSlots; i++) if (bar[i] == null) return i;
         }
-        if (IsShield(stack) && bar[OffhandSlot] == null) return OffhandSlot;
+        // A shield takes the offhand from a carried light (ColonyManager.HandLights.cs), which goes in the inventory.
+        if (IsShield(stack) && (bar[OffhandSlot] == null || IsHandLight(bar[OffhandSlot]))) return OffhandSlot;
         return null;
     }
 
@@ -104,8 +105,10 @@ public partial class ColonyManager
         var one = stack.Clone();
         one.StackSize = 1;
         stack.StackSize--;
+        var light = bar[slot];
         bar[slot] = one;
         SaveToolBar(colony, citizen, bar);
+        if (light != null) AddToPack(colony, citizen, light, false);
         return true;
     }
 
