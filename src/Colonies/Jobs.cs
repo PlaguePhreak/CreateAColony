@@ -25,9 +25,11 @@ public static class Jobs
     public const string Explorer = "explorer";
     public const string Gatherer = "gatherer";
     public const string Hunter = "hunter";
+    /// <summary>One per colony, at the Town Hall: answers wanderers, hands out jobs, oversees the fields and collects rent (ColonyManager.Bailiff.cs).</summary>
+    public const string Bailiff = "bailiff";
 
     /// <summary>All assignable jobs; an empty code means unemployed.</summary>
-    public static readonly string[] All = { "", Builder, Courier, Forester, Farmer, Guard, Potter, Cook, Prospector, Miner, Quarrier, Smelter, Blacksmith, Armourer, Weaponsmith, Sawyer, Craftsman, Tailor, Jeweller, Healer, Explorer, Gatherer, Hunter };
+    public static readonly string[] All = { "", Builder, Courier, Forester, Farmer, Guard, Potter, Cook, Prospector, Miner, Quarrier, Smelter, Blacksmith, Armourer, Weaponsmith, Sawyer, Craftsman, Tailor, Jeweller, Healer, Explorer, Gatherer, Hunter, Bailiff };
 
     /// <summary>The job whose skill a settler's work trains and uses: a prospector on Mine ore works as a miner.</summary>
     public static string? WorkJob(CitizenRecord c) => c.JobCode == Prospector && c.WorkRole == ProspectorRoles.Mine ? Miner : c.JobCode;

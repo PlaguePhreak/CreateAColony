@@ -217,6 +217,7 @@ public partial class ColonyManager
         speed *= TraitMult(c, "workSpeed"); // Hard Worker, Lazy, the job traits, Shaken
         speed *= SkillPerk(colony, c, "workSpeed"); // Prospecting's faster readings
         speed *= MoodWorkFactor(c); // Joyful works faster, Miserable slower
+        speed *= BailiffWorkFactor(colony, c); // a bailiff on duty keeps everyone at it
         return ClampEffect(1f / speed);
     }
 

@@ -40,6 +40,8 @@ public class GuiDialogTownHall : GuiDialog
     const double OreRowHeight = 44;
     const int QuestsTab = 9;
     const int MilitiaTab = 10;
+    const int BailiffTab = 11;
+    const int ReportRowsPerPage = 12;
     const double MapHeight = 380;
     const int MapMargin = 16;
     // Opened with the ? button on the Actions tab, with a Back button.
@@ -48,7 +50,7 @@ public class GuiDialogTownHall : GuiDialog
     static readonly (int Id, string Lang)[] Tabs =
     {
         (ActionsTab, "tab-actions"), (QuestsTab, "tab-quests"), (MapTab, "tab-townmap"), (BannersTab, "tab-banners"), (InfoTab, "tab-information"), (CitizensTab, "tab-citizens"),
-        (MilitiaTab, "tab-militia"), (StatsTab, "tab-statistics"), (PermissionsTab, "tab-permissions"), (ProspectingTab, "tab-prospecting"), (SettingsTab, "tab-settings")
+        (BailiffTab, "tab-bailiff"), (MilitiaTab, "tab-militia"), (StatsTab, "tab-statistics"), (PermissionsTab, "tab-permissions"), (ProspectingTab, "tab-prospecting"), (SettingsTab, "tab-settings")
     };
 
     readonly ColonyNetwork network;
@@ -63,6 +65,8 @@ public class GuiDialogTownHall : GuiDialog
     int statPeriod = 1;
     // Which page of the Citizens tab: 0 the living (and wanderers), 1 the dead.
     int citizensPage;
+    // Which page of the Bailiff tab: 0 the bailiff and their rules, 1 the ledger, 2 the estate report.
+    int bailiffPage;
     // Where the Town map is looking and how far zoomed in, kept while the window is open.
     readonly ColonyMapView mapView = new();
     GuiElementColonyMap? mapElement;
@@ -91,7 +95,7 @@ public class GuiDialogTownHall : GuiDialog
             return;
         }
         // Timed progress refreshes would close an open dropdown or take the focus from the name box.
-        if (fresh.Periodic && (renaming || currentTab is CitizensTab or PermissionsTab)) return;
+        if (fresh.Periodic && (renaming || currentTab is CitizensTab or PermissionsTab or BailiffTab)) return;
         Compose();
     }
 
@@ -124,6 +128,7 @@ public class GuiDialogTownHall : GuiDialog
             case InfoTab: ComposeInformation(composer); break;
             case CitizensTab: ComposeCitizens(composer); break;
             case MilitiaTab: ComposeMilitia(composer); break;
+            case BailiffTab: ComposeBailiff(composer); break;
             case StatsTab: ComposeStatistics(composer); break;
             case PermissionsTab: ComposePermissions(composer); break;
             case SettingsTab: ComposeSettings(composer); break;
@@ -137,6 +142,8 @@ public class GuiDialogTownHall : GuiDialog
         SingleComposer.GetSwitch("selfdefence")?.SetValue(snapshot.SelfDefence);
         SingleComposer.GetSwitch("supportallies")?.SetValue(snapshot.SupportAllies);
         SingleComposer.GetSwitch("banneronnew")?.SetValue(snapshot.BannerOnNew);
+        SingleComposer.GetSwitch("bailiffjobs")?.SetValue(snapshot.BailiffGivesJobs);
+        SingleComposer.GetSwitch("bailiffrent")?.SetValue(snapshot.BailiffCollectsRent);
     }
 
     /// <summary>A row of page buttons along the top of a tab, the chosen one marked. Returns the y below them.</summary>
@@ -955,6 +962,139 @@ public class GuiDialogTownHall : GuiDialog
         }
         y += 34;
         return composer.Text(Lang.Get("createacolony:" + hint), GuiKit.Muted(), 0, y, Width, 10);
+    }
+
+    // ---- Bailiff tab ----------------------------------------------------------------------
+
+    /// <summary>
+    /// The Bailiff tab: who the bailiff is and their rules (what to do with wanderers, giving out jobs, rent),
+    /// their ledger of the last days, and the estate report of every hut.
+    /// </summary>
+    void ComposeBailiff(GuiComposer composer)
+    {
+        double y = PageButtons(composer, new[] { "bailiff-page-rules", "bailiff-page-ledger", "bailiff-page-report" }, bailiffPage, p => bailiffPage = p, 30, 150);
+        switch (bailiffPage)
+        {
+            case 1: ComposeLedger(composer, y); break;
+            case 2: ComposeEstateReport(composer, y); break;
+            default: ComposeBailiffRules(composer, y); break;
+        }
+    }
+
+    void ComposeBailiffRules(GuiComposer composer, double y)
+    {
+        if (snapshot.BailiffName.Length == 0)
+        {
+            y = composer.Text(Lang.Get("createacolony:bailiff-none"), GuiKit.Body().WithColor(GuiKit.WarnColor), 0, y, Width, 6);
+        }
+        else
+        {
+            string state = Lang.Get("createacolony:bailiff-state-" + snapshot.BailiffState);
+            var font = snapshot.BailiffState == BailiffState.OnDuty ? GuiKit.Body().WithColor(GuiKit.GoodColor) : GuiKit.Body().WithColor(GuiKit.WarnColor);
+            y = composer.Text(Lang.Get("createacolony:bailiff-who", snapshot.BailiffName, state), font, 0, y, Width, 6);
+        }
+        y = composer.Text(Lang.Get("createacolony:bailiff-about"), GuiKit.Muted(), 0, y, Width, 10);
+
+        y = composer.Section(Lang.Get("createacolony:bailiff-wanderers"), y, Width);
+        string[] rules = Enumerable.Range(0, BailiffWanderers.Last + 1).Select(i => i.ToString()).ToArray();
+        string[] ruleNames = rules.Select(r => Lang.Get("createacolony:bailiff-wanderers-" + r)).ToArray();
+        int rule = Math.Clamp(snapshot.WandererRule, 0, BailiffWanderers.Last);
+        if (Officer)
+        {
+            composer.AddDropDown(rules, ruleNames, rule, (code, on) => SendBailiffRule("wanderers|" + code), ElementBounds.Fixed(0, y, 300, 28), "bailiffwanderers");
+            y += 36;
+        }
+        else
+        {
+            y = composer.Text(ruleNames[rule], GuiKit.Body(), 0, y, Width, 6);
+        }
+        y = composer.Text(Lang.Get("createacolony:bailiff-wanderers-hint"), GuiKit.Muted(), 0, y, Width, 10);
+
+        y = composer.Section(Lang.Get("createacolony:bailiff-duties"), y, Width);
+        y = BailiffSwitch(composer, "bailiffjobs", "jobs", snapshot.BailiffGivesJobs, "bailiff-jobs", "bailiff-jobs-hint", y);
+        y = BailiffSwitch(composer, "bailiffrent", "rent", snapshot.BailiffCollectsRent, "bailiff-rent", "bailiff-rent-hint", y, snapshot.RentPerSettler);
+        composer.Text(Lang.Get("createacolony:bailiff-fields-hint"), GuiKit.Muted(), 0, y, Width, 6);
+    }
+
+    /// <summary>One of the bailiff's switches with its name and a line on what it does; officers can flip it. Returns the y below it.</summary>
+    double BailiffSwitch(GuiComposer composer, string key, string rule, bool on, string label, string hint, double y, params object[] hintArgs)
+    {
+        string text = Lang.Get("createacolony:" + label) + ": " + Lang.Get(on ? "createacolony:on" : "createacolony:off");
+        if (Officer)
+        {
+            composer
+                .AddSwitch(v => SendBailiffRule(rule + "|" + (v ? "1" : "0")), ElementBounds.Fixed(0, y, 30, 30), key)
+                .AddStaticText(text, GuiKit.Body(), ElementBounds.Fixed(40, y + 5, Width - 40, 25));
+        }
+        else
+        {
+            composer.AddStaticText(text, GuiKit.Body(), ElementBounds.Fixed(0, y + 5, Width, 25));
+        }
+        y += 34;
+        return composer.Text(Lang.Get("createacolony:" + hint, hintArgs), GuiKit.Muted(), 0, y, Width, 8);
+    }
+
+    void SendBailiffRule(string text) =>
+        network.SendAction(new ColonyActionPacket { ColonyId = ColonyId, Action = ColonyAction.SetBailiffRule, Text = text });
+
+    /// <summary>The ledger: the last days, newest first, with rent, wanderers and jobs given out, and the totals.</summary>
+    void ComposeLedger(GuiComposer composer, double y)
+    {
+        var days = snapshot.Ledger.OrderByDescending(d => d.Day).Take(10).ToList();
+        if (days.Count == 0)
+        {
+            y = composer.Text(Lang.Get("createacolony:ledger-empty"), GuiKit.Body(), 0, y, Width, 10);
+        }
+        else
+        {
+            composer
+                .AddStaticText(Lang.Get("createacolony:ledger-col-day"), GuiKit.Muted(), ElementBounds.Fixed(10, y, 120, 20))
+                .AddStaticText(Lang.Get("createacolony:ledger-col-rent"), GuiKit.Muted(), ElementBounds.Fixed(135, y, 120, 20))
+                .AddStaticText(Lang.Get("createacolony:ledger-col-wanderers"), GuiKit.Muted(), ElementBounds.Fixed(260, y, 180, 20))
+                .AddStaticText(Lang.Get("createacolony:ledger-col-jobs"), GuiKit.Muted(), ElementBounds.Fixed(445, y, 115, 20));
+            composer.AddInset(ElementBounds.Fixed(0, y + 22, Width, days.Count * 26 + 6), 3, 0.8f);
+            y += 25;
+            foreach (var d in days)
+            {
+                composer
+                    .AddStaticText(DayName(d.Day), GuiKit.Detail(), ElementBounds.Fixed(10, y + 4, 120, 20))
+                    .AddStaticText(Lang.Get("createacolony:ledger-rent", d.Rent, d.Payers), GuiKit.Detail(), ElementBounds.Fixed(135, y + 4, 120, 20))
+                    .AddStaticText(Lang.Get("createacolony:ledger-wanderers", d.Welcomed, d.TurnedAway), GuiKit.Detail(), ElementBounds.Fixed(260, y + 4, 180, 20))
+                    .AddStaticText(d.JobsGiven.ToString(), GuiKit.Detail(), ElementBounds.Fixed(445, y + 4, 115, 20));
+                y += 26;
+            }
+            y += 14;
+            int total = snapshot.Ledger.Sum(d => d.Rent);
+            y = composer.Text(Lang.Get("createacolony:ledger-total", total, snapshot.Ledger.Count), GuiKit.Body(), 0, y, Width, 6);
+        }
+        if (snapshot.RentOwed > 0) y = composer.Text(Lang.Get("createacolony:ledger-owed", snapshot.RentOwed), GuiKit.Detail().WithColor(GuiKit.WarnColor), 0, y, Width, 6);
+        composer.Text(Lang.Get("createacolony:ledger-hint"), GuiKit.Muted(), 0, y, Width, 6);
+    }
+
+    /// <summary>The estate report: every hut, who works there and what they are doing or waiting on.</summary>
+    void ComposeEstateReport(GuiComposer composer, double y)
+    {
+        var lines = snapshot.EstateReport;
+        int pages = Math.Max(1, (lines.Count + ReportRowsPerPage - 1) / ReportRowsPerPage);
+        page = Math.Clamp(page, 0, pages - 1);
+        foreach (var line in lines.Skip(page * ReportRowsPerPage).Take(ReportRowsPerPage))
+        {
+            y = composer.Text(line, GuiKit.Detail(), 0, y, Width, 4);
+        }
+        composer.Pager(page, pages, y + 10, Width, p => { page = p; Compose(); });
+        y += pages > 1 ? 50 : 10;
+        composer.Text(Lang.Get("createacolony:estate-hint"), GuiKit.Muted(), 0, y, Width, 6);
+    }
+
+    /// <summary>An in-game day as the calendar shows it: "1 May".</summary>
+    string DayName(int totalDays)
+    {
+        var calendar = capi.World.Calendar;
+        int daysPerMonth = Math.Max(1, calendar.DaysPerMonth);
+        int daysPerYear = Math.Max(1, calendar.DaysPerYear);
+        int dayOfYear = totalDays % daysPerYear;
+        int month = Math.Clamp(dayOfYear / daysPerMonth, 0, 11);
+        return Lang.Get("createacolony:ledger-day", dayOfYear % daysPerMonth + 1, Lang.Get("month-" + (EnumMonth)(month + 1)));
     }
 
     // ---- Settings tab ---------------------------------------------------------------------

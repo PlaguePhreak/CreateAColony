@@ -764,6 +764,17 @@ public class ColonyConfig
     /// <summary>Wanderers only come while the colony has a bed nobody sleeps in.</summary>
     public bool WanderersNeedFreeBed = true;
 
+    // Bailiff (ColonyManager.Bailiff.cs)
+    /// <summary>How long a wanderer waits at the Town Hall before the bailiff answers, in in-game hours.</summary>
+    public double BailiffAnswerHours = 1;
+    /// <summary>Settlers with a job and a bed pay this much rent a day (in RecruitCurrency) while the bailiff collects it.</summary>
+    public int BailiffRentPerSettler = 1;
+    /// <summary>Multiply farmers' work speed by this while a bailiff is on duty, and everyone else's by BailiffWorkBoost.</summary>
+    public float BailiffFarmBoost = 1.15f;
+    public float BailiffWorkBoost = 1.05f;
+    /// <summary>Mood points every other settler has while a bailiff watches over them (they are not liked).</summary>
+    public int BailiffMood = -3;
+
     // Families
     /// <summary>Settlers pair up, share a home and have children who grow up into new settlers.</summary>
     public bool Families = true;

@@ -233,6 +233,18 @@ These work well with Vintage Colonies. Install them separately.
 - Rotten food in a bowl, crock or pot gets washed out in water, as you do by dropping it in water. Settlers wash the bowls they carry, and the cook washes the crocks and pots in its hut. Water must be within `WashWaterRadius` (32) blocks. The rot is kept for compost.
 
 
+## The Bailiff (0.127.0)
+- A new job, the **Bailiff**. On the Town Hall's Citizens tab, give one settler the Bailiff job (only one per colony). They work from the Town Hall and walk around checking on the huts and fields.
+- The Town Hall has a new **Bailiff** tab with three pages: the bailiff and their rules, the **Ledger**, and the **Estate report**.
+- **Wanderers**: pick what the bailiff does when a wanderer reaches the Town Hall: Ask me (you decide, as before), Welcome everyone, Welcome them if a bed is free (the default), or Turn everyone away. The bailiff answers after about an hour (`BailiffAnswerHours`).
+- **Jobs**: the bailiff gives settlers without a job work at huts with a free place, picking whoever is best at that job (skill level and passions). Switch it off on the Bailiff tab.
+- **Fields and work**: while the bailiff is on duty, farmers work 15% faster (`BailiffFarmBoost`) and everyone else 5% faster (`BailiffWorkBoost`).
+- **Rent**: each morning every settler with a job and a bed pays 1 rusty gear (`BailiffRentPerSettler`). It goes into the Tavern's storage so you can hire with it, else the Town Hall's chests, else the warehouse. Switch it off on the Bailiff tab.
+- **Ledger**: rent, wanderers welcomed or sent away, and jobs given, for each of the last 30 days.
+- **Estate report**: every hut, who works there and what they are doing or waiting on (for example "nothing ready to pick"), the fields and who has no job.
+- Nobody likes being watched: every other settler has a "The bailiff is watching" thought, -3 mood (`BailiffMood`).
+- The bailiff stops while knocked out or too unhappy to work.
+
 ## Remove a colony marker (0.126.0)
 - On the world map, right-click a Colony marker and press **Remove**. Officers and the owner can do this.
 - Settlers won't mark that spot again with the same thing. Other markers nearby stay.

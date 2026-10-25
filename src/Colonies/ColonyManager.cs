@@ -238,6 +238,7 @@ public partial class ColonyManager : ModSystem
             EnsureCoreBuildings(colony);
             RefreshClaim(colony);
             TickWanderers(colony, now);
+            TickBailiff(colony, now);
             TickTraders(colony);
             TickWaitingForRoom(colony);
             TickFamilies(colony, now);

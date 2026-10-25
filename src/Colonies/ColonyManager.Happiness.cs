@@ -120,6 +120,7 @@ public partial class ColonyManager
         if (c.PartnerId != 0 && colony.Citizens.Find(p => p.CitizenId == c.PartnerId) is { Alive: true }) Standing("partner", 6);
         Standing("townhall", TownHallLevel(colony));
         if (c.JobCode == null) Standing("nojob", -4);
+        Standing("bailiff", BailiffMoodFor(colony, c));
         // In rags, cold, wearing jewellery (ColonyManager.Clothing.cs).
         ClothesThoughts(c, Standing);
         // Sanguine and Melancholic.

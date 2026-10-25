@@ -58,7 +58,8 @@ public partial class ColonyManager
         {
             int workers = settlers.Count(c => (c.JobCode ?? "") == job);
             var huts = colony.Buildings.Where(b => JobOf(b.Type) == job).ToList();
-            int places = job.Length == 0 || job == Jobs.Courier || job == Jobs.Guard && huts.Count == 0 ? -1 : huts.Sum(WorkerSlots);
+            int places = job == Jobs.Bailiff ? 1
+                : job.Length == 0 || job == Jobs.Courier || job == Jobs.Guard && huts.Count == 0 ? -1 : huts.Sum(WorkerSlots);
             rows.Add((job, workers, places));
         }
         return rows;

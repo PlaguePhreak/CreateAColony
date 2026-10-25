@@ -428,6 +428,31 @@ public class StatEntry
     [ProtoMember(3)] public int Count;
 }
 
+/// <summary>What the bailiff does when a wanderer asks to join.</summary>
+public static class BailiffWanderers
+{
+    /// <summary>Leaves it to the players, as without a bailiff.</summary>
+    public const int Ask = 0;
+    public const int Welcome = 1;
+    /// <summary>Welcomes them while a bed is free, else turns them away.</summary>
+    public const int IfBed = 2;
+    public const int TurnAway = 3;
+    public const int Last = TurnAway;
+}
+
+/// <summary>One day of the bailiff's ledger: rent collected and what they did.</summary>
+[ProtoContract]
+public class LedgerDay
+{
+    [ProtoMember(1)] public int Day;
+    [ProtoMember(2)] public int Rent;
+    [ProtoMember(3)] public int Welcomed;
+    [ProtoMember(4)] public int TurnedAway;
+    [ProtoMember(5)] public int JobsGiven;
+    /// <summary>How many settlers paid rent that day.</summary>
+    [ProtoMember(6)] public int Payers;
+}
+
 /// <summary>One line of the Town Hall's event log: a lang key and its arguments, filled in by the reader's own language.</summary>
 [ProtoContract]
 public class ColonyEvent
@@ -668,6 +693,17 @@ public class Colony
     [ProtoMember(90)] public List<Building> DerelictMines = new();
     /// <summary>Where the gatherer picked up ore bits: likely a deposit below, for the prospectors to check.</summary>
     [ProtoMember(91)] public List<OreHint> OreHints = new();
+    /// <summary>The Bailiff tab (ColonyManager.Bailiff.cs): what the bailiff does with wanderers (BailiffWanderers), whether
+    /// they give jobless settlers work, and whether they collect rent. 110-119 are the bailiff's.</summary>
+    [ProtoMember(110, IsRequired = true)] public int WandererRule = BailiffWanderers.IfBed;
+    [ProtoMember(111, IsRequired = true)] public bool BailiffGivesJobs = true;
+    [ProtoMember(112, IsRequired = true)] public bool BailiffCollectsRent = true;
+    /// <summary>The bailiff's ledger, one line per in-game day, oldest first; the newest ColonyManager.LedgerDays kept.</summary>
+    [ProtoMember(113)] public List<LedgerDay> Ledger = new();
+    /// <summary>The last in-game day rent was collected; -1 until the first.</summary>
+    [ProtoMember(114, IsRequired = true)] public int LastRentDay = -1;
+    /// <summary>Rent collected while there was nowhere to put it, handed over when a chest is free.</summary>
+    [ProtoMember(115)] public int RentOwed;
     /// <summary>Houses of traders who joined the colony, for a builder to take down (ColonyManager.Traders.cs).</summary>
     [ProtoMember(240)] public List<TeardownOrder> Teardowns = new();
     [ProtoMember(241, IsRequired = true)] public int NextTeardownId = 1;

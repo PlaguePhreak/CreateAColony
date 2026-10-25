@@ -88,6 +88,7 @@
 					{ "code": "settlergatherer", "animation": "walk", "priority": 1.2, "movespeed": 0.02 },
 					{ "code": "settlerhunter", "animation": "walk", "priority": 1.2, "movespeed": 0.025 },
 					{ "code": "settlerguard", "animation": "walk", "priority": 1.2, "movespeed": 0.024 },
+					{ "code": "settlerbailiff", "animation": "walk", "priority": 1.2, "movespeed": 0.02 },
 					{ "code": "settlervisitor", "animation": "walk", "priority": 1.1, "movespeed": 0.02 },
 					// Not the game's "wander": it walks straight into walls and teleports settlers back to where they spawned.
 					{ "code": "settleridle", "priority": 1.0, "movespeed": 0.012, "animation": "walk", "strollRadius": 6 },

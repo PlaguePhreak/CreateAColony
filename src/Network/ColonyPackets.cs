@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using ProtoBuf;
 using Vintagestory.API.MathTools;
+using CreateAColony.Colonies;
 
 namespace CreateAColony.Network;
 
@@ -599,6 +600,22 @@ public class ColonySnapshot
     /// <summary>Colony militia switches.</summary>
     [ProtoMember(60)] public bool SelfDefence;
     [ProtoMember(61)] public bool SupportAllies;
+    /// <summary>The Bailiff tab (110-119): the bailiff's name ("" for none) and whether they are on duty (BailiffState), the rules, the ledger and the estate report.</summary>
+    [ProtoMember(110)] public string BailiffName = "";
+    [ProtoMember(111)] public int BailiffState;
+    [ProtoMember(112)] public int WandererRule;
+    [ProtoMember(113)] public bool BailiffGivesJobs;
+    [ProtoMember(114)] public bool BailiffCollectsRent;
+    [ProtoMember(115)] public int RentPerSettler;
+    [ProtoMember(116)] public int RentOwed;
+    [ProtoMember(117)] public List<LedgerDay> Ledger = new();
+    [ProtoMember(118)] public List<string> EstateReport = new();
+}
+
+/// <summary>ColonySnapshot.BailiffState: none, on duty, knocked out, or too unhappy to work.</summary>
+public static class BailiffState
+{
+    public const int None = 0, OnDuty = 1, Downed = 2, Sulking = 3;
 }
 
 /// <summary>Client asks for the quest book: from the hotkey, the Colony Ledger, the inventory button or the Town Hall's Quests tab.</summary>
@@ -801,6 +818,8 @@ public enum ColonyAction
     SetCollect = 160,
     /// <summary>How many of a thing a hut's worker keeps crafted (Crafting recipes tab): Text = "code|amount".</summary>
     SetRecipeKeep = 170,
+    /// <summary>The Bailiff tab's rules (officers): Text "wanderers|n" (BailiffWanderers), "jobs|1" or "rent|0".</summary>
+    SetBailiffRule = 180,
     /// <summary>Repair button on a hut's Main tab: a builder puts the building back as its blueprint has it.</summary>
     Repair = 250
 }

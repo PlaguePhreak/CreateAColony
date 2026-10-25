@@ -183,6 +183,7 @@ public partial class ColonyNetwork : ModSystem
             ColonyAction.SetColonyBanner or ColonyAction.ReplaceBanners or ColonyAction.SetBannerOnNew => BannerAction(player, colony, role, packet),
             ColonyAction.SetPermadeath => SetPermadeath(colony, role, packet.Text == "1"),
             ColonyAction.SetSelfDefence or ColonyAction.SetSupportAllies => SetMilitia(colony, role, packet),
+            ColonyAction.SetBailiffRule => SetBailiffRule(colony, role, packet.Text),
             ColonyAction.HireRecruit => HireAction(player, colony, role, packet),
             ColonyAction.RemoveHut => RemoveHut(player, colony, role, packet),
             ColonyAction.LinkMineHut or ColonyAction.UnlinkMineHut => LinkMineAction(colony, role, packet),
@@ -268,6 +269,27 @@ public partial class ColonyNetwork : ModSystem
         return null;
     }
 
+    /// <summary>The Bailiff tab's rules; officers set them.</summary>
+    static string? SetBailiffRule(Colony colony, ColonyRole role, string text)
+    {
+        if (role < ColonyRole.Officer) return "createacolony:denied-officer";
+        var parts = text.Split('|');
+        if (parts.Length != 2) return null;
+        switch (parts[0])
+        {
+            case "wanderers":
+                if (int.TryParse(parts[1], out int rule) && rule >= 0 && rule <= BailiffWanderers.Last) colony.WandererRule = rule;
+                break;
+            case "jobs":
+                colony.BailiffGivesJobs = parts[1] == "1";
+                break;
+            case "rent":
+                colony.BailiffCollectsRent = parts[1] == "1";
+                break;
+        }
+        return null;
+    }
+
     /// <summary>Any member may hire at the Tavern; they pay for it.</summary>
     string? HireAction(IServerPlayer player, Colony colony, ColonyRole role, ColonyActionPacket packet)
     {
@@ -296,6 +318,7 @@ public partial class ColonyNetwork : ModSystem
         if (citizen.WaitingForRoom && job.Length > 0) return "createacolony:waiting-no-job";
         if (citizen.IsChild && job.Length > 0) return "createacolony:child-no-job";
         if (job.Length > 0 && Manager.IncapableOfJob(citizen, job) != null) return "createacolony:job-incapable";
+        if (job == Jobs.Bailiff && Manager.BailiffOf(colony) is { } other && other != citizen) return "createacolony:bailiff-taken";
         if (citizen.JobCode != (job.Length == 0 ? null : job)) citizen.WorkplacePos = null;
         citizen.JobCode = job.Length == 0 ? null : job;
         return null;
@@ -716,6 +739,17 @@ public partial class ColonyNetwork : ModSystem
             Quests = sapi!.World.PlayerByUid(viewerUid) is IServerPlayer viewer ? QuestStates(viewer, colony) : new()
         };
 
+        var bailiff = Manager.BailiffOf(colony);
+        snapshot.BailiffName = bailiff?.Name ?? "";
+        snapshot.BailiffState = bailiff == null ? BailiffState.None : bailiff.IsDowned ? BailiffState.Downed
+            : Manager.IsBrokenDown(bailiff) ? BailiffState.Sulking : BailiffState.OnDuty;
+        snapshot.WandererRule = colony.WandererRule;
+        snapshot.BailiffGivesJobs = colony.BailiffGivesJobs;
+        snapshot.BailiffCollectsRent = colony.BailiffCollectsRent;
+        snapshot.RentPerSettler = config.BailiffRentPerSettler;
+        snapshot.RentOwed = colony.RentOwed;
+        snapshot.Ledger = colony.Ledger.ToList();
+        snapshot.EstateReport = Manager.EstateReport(colony);
         snapshot.OreReadings = colony.OreSites.Count(s => !s.Unread);
         snapshot.ProspectorHuts = colony.Buildings.Count(b => b.Type == BuildingTypes.Prospector);
         foreach (var ore in Manager.OreSummary(colony))
