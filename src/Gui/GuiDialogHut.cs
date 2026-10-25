@@ -805,6 +805,12 @@ public class GuiDialogHut : GuiDialog
         {
             composer.AddSmallButton(Lang.Get("createacolony:markers-remove"), () => SendText(ColonyAction.RemoveMarkers, id, ""), ElementBounds.Fixed(0, y, 220, 28));
             y += 38;
+            if (snapshot.RemovedMarkerCount > 0)
+            {
+                y = composer.Text(Lang.Get("createacolony:markers-removed-hint", snapshot.RemovedMarkerCount), GuiKit.Muted(), 0, y, Width, 4);
+                composer.AddSmallButton(Lang.Get("createacolony:markers-removed-again"), () => SendText(ColonyAction.MarkRemovedAgain, id, ""), ElementBounds.Fixed(0, y, 220, 28));
+                y += 38;
+            }
         }
         y = composer.Section(Lang.Get("createacolony:markers-groups"), y, Width);
         for (int i = 0; i < snapshot.MarkerGroups.Count; i++)

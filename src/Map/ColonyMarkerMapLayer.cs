@@ -3,6 +3,8 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using CreateAColony.Colonies;
+using CreateAColony.Gui;
+using CreateAColony.Network;
 using ProtoBuf;
 using Vintagestory.API.Client;
 using Vintagestory.API.Common;
@@ -28,13 +30,20 @@ public class ColonyMarkerView
     [ProtoMember(6)] public string Fallback = "circle";
     [ProtoMember(7)] public int Color;
     [ProtoMember(8)] public string ColonyName = "";
+    [ProtoMember(9)] public int MarkerId;
+    [ProtoMember(10)] public string ColonyId = "";
+    /// <summary>The player is an officer of the colony, so they may take the marker off the map.</summary>
+    [ProtoMember(11)] public bool CanRemove;
+    /// <summary>A hut's worker put it down, so removing it also stops them marking that spot again.</summary>
+    [ProtoMember(12)] public bool FromHut;
 }
 
 /// <summary>
 /// The "Colony markers" layer of the world map: what the colony's Explorers and Gatherers found, and where
 /// settlers fell (ColonyManager.Markers.cs). It draws them like waypoints, with the waypoint icons the player's
 /// game loaded: Vintage Colonies' own vc- icons, or the game's own as a fallback. They are the colony's, so
-/// they cannot be edited from the map; a hut's window can take its markers away.
+/// they cannot be edited from the map, but an officer can right-click one to take it off (GuiDialogRemoveMarker);
+/// a hut's window can take all its markers away.
 /// </summary>
 public class ColonyMarkerMapLayer : MarkerMapLayer
 {
@@ -103,6 +112,7 @@ public class ColonyMarkerMapLayer : MarkerMapLayer
         var views = new List<ColonyMarkerView>();
         foreach (var colony in manager.All.Where(c => c.RoleOf(player.PlayerUID) >= ColonyRole.Member))
         {
+            bool canRemove = colony.RoleOf(player.PlayerUID) >= ColonyRole.Officer;
             foreach (var marker in colony.Markers)
             {
                 if (ColonyManager.KindOf(marker.Kind) is not { } kind) continue;
@@ -115,7 +125,11 @@ public class ColonyMarkerMapLayer : MarkerMapLayer
                     Fallback = kind.Fallback.ToLowerInvariant(),
                     // Solid black by default, so they stand out on the map (Aaron, 0.91.0); "" keeps each kind's colour.
                     Color = ColorUtil.Hex2Int(string.IsNullOrWhiteSpace(manager.Config.MapMarkerColor) ? kind.Color : manager.Config.MapMarkerColor),
-                    ColonyName = colony.Name
+                    ColonyName = colony.Name,
+                    MarkerId = marker.MarkerId,
+                    ColonyId = colony.ColonyId,
+                    CanRemove = canRemove,
+                    FromHut = marker.BuildingId != 0
                 });
             }
         }
@@ -194,23 +208,47 @@ public class ColonyMarkerMapLayer : MarkerMapLayer
         }
     }
 
+    GuiDialogRemoveMarker? removeDialog;
+
+    /// <summary>Right-click on a marker: an officer gets a small window to take it off the map.</summary>
+    public override void OnMouseUpClient(MouseEvent args, GuiElementMap mapElem)
+    {
+        if (!Active || args.Button != EnumMouseButton.Right) return;
+        int i = MarkerAt(args, mapElem);
+        if (i < 0 || !markers[i].CanRemove) return;
+        args.Handled = true;
+        removeDialog?.TryClose();
+        removeDialog?.Dispose();
+        var capi = (ICoreClientAPI)api;
+        removeDialog = new GuiDialogRemoveMarker(capi, capi.ModLoader.GetModSystem<ColonyNetwork>(), markers[i]);
+        removeDialog.TryOpen();
+    }
+
+    /// <summary>The marker under the mouse, or -1.</summary>
+    int MarkerAt(MouseEvent args, GuiElementMap mapElem)
+    {
+        double size = RuntimeEnv.GUIScale * 8;
+        var pos = new Vec2f();
+        for (int i = 0; i < markers.Count; i++)
+        {
+            var marker = markers[i];
+            mapElem.TranslateWorldPosToViewPos(new Vec3d(marker.X, marker.Y, marker.Z), ref pos);
+            double dx = args.X - (pos.X + mapElem.Bounds.renderX), dy = args.Y - (pos.Y + mapElem.Bounds.renderY);
+            if (Math.Abs(dx) < size && Math.Abs(dy) < size) return i;
+        }
+        return -1;
+    }
+
     public override void OnMouseMoveClient(MouseEvent args, GuiElementMap mapElem, StringBuilder hoverText)
     {
         hovered = -1;
         if (!Active) return;
-        double size = RuntimeEnv.GUIScale * 8;
-        for (int i = 0; i < markers.Count; i++)
-        {
-            var marker = markers[i];
-            var pos = new Vec2f();
-            mapElem.TranslateWorldPosToViewPos(new Vec3d(marker.X, marker.Y, marker.Z), ref pos);
-            double dx = args.X - (pos.X + mapElem.Bounds.renderX), dy = args.Y - (pos.Y + mapElem.Bounds.renderY);
-            if (Math.Abs(dx) >= size || Math.Abs(dy) >= size) continue;
-            hovered = i;
-            hoverText.AppendLine(marker.Title);
-            hoverText.AppendLine(Lang.Get("createacolony:marker-hover", marker.ColonyName));
-            break;
-        }
+        int i = MarkerAt(args, mapElem);
+        if (i < 0) return;
+        hovered = i;
+        hoverText.AppendLine(markers[i].Title);
+        hoverText.AppendLine(Lang.Get("createacolony:marker-hover", markers[i].ColonyName));
+        if (markers[i].CanRemove) hoverText.AppendLine(Lang.Get("createacolony:marker-hover-remove"));
     }
 }
 

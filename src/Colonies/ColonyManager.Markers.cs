@@ -181,6 +181,8 @@ public partial class ColonyManager
         double spacing = Config.MarkerSpacing.GetValueOrDefault(def.Group, 32);
         string icon = subject?.Icon ?? "";
         if (colony.Markers.Any(m => m.Kind == kind && m.Icon == icon && (m.X - pos.X) * (m.X - pos.X) + (m.Z - pos.Z) * (m.Z - pos.Z) < spacing * spacing)) return false;
+        // A player took a marker like this off the map near here: leave it alone.
+        if (hut != null && colony.RemovedMarkers.Any(r => r.Kind == kind && r.Icon == icon && (r.X - pos.X) * (r.X - pos.X) + (r.Z - pos.Z) * (r.Z - pos.Z) < spacing * spacing)) return false;
         if (hut != null && colony.Markers.Count(m => m.BuildingId != 0) >= Config.MaxColonyMarkers) return false;
 
         colony.Markers.Add(new ColonyMarker
@@ -227,6 +229,39 @@ public partial class ColonyManager
         MarkDirty(colony);
         ShareMarkers(colony);
         return removed;
+    }
+
+    /// <summary>The most spots a colony remembers markers were taken off; the oldest are forgotten first.</summary>
+    const int MaxRemovedMarkers = 2000;
+
+    /// <summary>
+    /// A player took one marker off the map. A hut's marker is remembered, so its worker does not mark the same
+    /// thing there again; a grave is just gone. False when there is no such marker.
+    /// </summary>
+    public bool RemoveMarker(Colony colony, int markerId)
+    {
+        var marker = colony.Markers.Find(m => m.MarkerId == markerId);
+        if (marker == null) return false;
+        colony.Markers.Remove(marker);
+        if (marker.BuildingId != 0)
+        {
+            colony.RemovedMarkers.Add(new RemovedMarker { Kind = marker.Kind, Icon = marker.Icon, X = marker.X, Z = marker.Z });
+            if (colony.RemovedMarkers.Count > MaxRemovedMarkers) colony.RemovedMarkers.RemoveRange(0, colony.RemovedMarkers.Count - MaxRemovedMarkers);
+        }
+        MarkDirty(colony);
+        ShareMarkers(colony);
+        return true;
+    }
+
+    /// <summary>How many removed spots of a hut's marker groups its worker leaves alone.</summary>
+    public int RemovedMarkerCount(Colony colony, Building hut) =>
+        MarkerGroups.TryGetValue(hut.Type, out var groups) ? colony.RemovedMarkers.Count(r => groups.Contains(MarkerGroup(r.Kind))) : 0;
+
+    /// <summary>Lets a hut's worker mark the spots of its marker groups that players took markers off again.</summary>
+    public void MarkRemovedAgain(Colony colony, Building hut)
+    {
+        if (!MarkerGroups.TryGetValue(hut.Type, out var groups)) return;
+        if (colony.RemovedMarkers.RemoveAll(r => groups.Contains(MarkerGroup(r.Kind))) > 0) MarkDirty(colony);
     }
 
     /// <summary>Sends the colony's markers again to every online member's "Colony markers" map layer.</summary>

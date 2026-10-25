@@ -176,7 +176,8 @@ public partial class ColonyNetwork : ModSystem
             >= ColonyAction.SetMineLevel and <= ColonyAction.UnassignMineGuard => MineTabAction(colony, role, packet),
             ColonyAction.GiveResource or ColonyAction.GiveAllResources => GiveResource(player, colony, role, packet),
             ColonyAction.MoveInResidence or ColonyAction.MoveOutResidence => ResidenceAction(colony, role, packet),
-            ColonyAction.SetMarkerGroup or ColonyAction.RemoveMarkers => MarkerAction(colony, role, packet),
+            ColonyAction.SetMarkerGroup or ColonyAction.RemoveMarkers or ColonyAction.MarkRemovedAgain => MarkerAction(colony, role, packet),
+            ColonyAction.RemoveMarker => RemoveMapMarker(colony, role, packet),
             ColonyAction.WelcomeVisitor or ColonyAction.TurnAwayVisitor => VisitorAction(colony, role, packet),
             ColonyAction.RecallCitizen => RecallCitizen(colony, role, packet.CitizenId),
             ColonyAction.SetColonyBanner or ColonyAction.ReplaceBanners or ColonyAction.SetBannerOnNew => BannerAction(player, colony, role, packet),
@@ -414,12 +415,25 @@ public partial class ColonyNetwork : ModSystem
             Manager.RemoveHutMarkers(colony, building);
             return null;
         }
+        if (packet.Action == ColonyAction.MarkRemovedAgain)
+        {
+            Manager.MarkRemovedAgain(colony, building);
+            return null;
+        }
         int sep = packet.Text.IndexOf('|');
         if (sep < 0) return "createacolony:bad-building";
         string group = packet.Text[..sep];
         if (!groups.Contains(group)) return "createacolony:bad-building";
         building.MarkersOff.Remove(group);
         if (packet.Text[(sep + 1)..] == "0") building.MarkersOff.Add(group);
+        return null;
+    }
+
+    /// <summary>Right-click on a marker of the Colony markers map layer: takes that one marker off the map.</summary>
+    string? RemoveMapMarker(Colony colony, ColonyRole role, ColonyActionPacket packet)
+    {
+        if (role < ColonyRole.Officer) return "createacolony:denied-officer";
+        if (!int.TryParse(packet.Text, out int markerId) || !Manager.RemoveMarker(colony, markerId)) return "createacolony:marker-gone";
         return null;
     }
 
@@ -988,6 +1002,7 @@ public partial class ColonyNetwork : ModSystem
             snapshot.MarkerGroups = markerGroups.ToList();
             snapshot.MarkersOff = building.MarkersOff.ToList();
             snapshot.MarkerCount = Manager.MarkerCount(colony, building);
+            snapshot.RemovedMarkerCount = Manager.RemovedMarkerCount(colony, building);
         }
         if (building.Type == BuildingTypes.Residence) AddResidence(snapshot, colony, building);
 

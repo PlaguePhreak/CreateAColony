@@ -232,6 +232,12 @@ These work well with Vintage Colonies. Install them separately.
 - Every adult settler carries a bowl in its food slots (`CarryBowl`). After a meal at a crock or pot it fills the bowl with a serving and eats it later, then keeps the empty bowl. Settlers without one take one from home, their hut, the warehouse or a Cook's Hut. The Potter's Hut makes bowls when there are not enough.
 - Rotten food in a bowl, crock or pot gets washed out in water, as you do by dropping it in water. Settlers wash the bowls they carry, and the cook washes the crocks and pots in its hut. Water must be within `WashWaterRadius` (32) blocks. The rot is kept for compost.
 
+
+## Remove a colony marker (0.125.0)
+- On the world map, right-click a Colony marker and press **Remove**. Officers and the owner can do this.
+- Settlers won't mark that spot again with the same thing. Other markers nearby stay.
+- Changed your mind? An Explorer's or Gatherer's Hut Markers tab has **Mark removed spots again**.
+- Grave markers can be removed the same way.
 ## Settlers put out fires (0.123.0)
 - Fire spreads through grass and wood. If something catches fire on your colony's land, the Town Hall log says "Fire near ...!" and up to 3 settlers within 64 blocks come running. They even get out of bed.
 - Each one needs a watering can. A settler without one takes it from a chest at home, the warehouse or a hut (the Farmer's Hut keeps them). An empty can gets filled at the nearest water first.

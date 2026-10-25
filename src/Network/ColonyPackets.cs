@@ -463,6 +463,8 @@ public class HutSnapshot
     [ProtoMember(131)] public List<string> MarkersOff = new();
     /// <summary>How many markers its worker has put down.</summary>
     [ProtoMember(132)] public int MarkerCount;
+    /// <summary>How many spots of its marker groups a player took markers off, so it leaves them alone.</summary>
+    [ProtoMember(133)] public int RemovedMarkerCount;
     /// <summary>A Mineshaft Entrance: the colony's Miner's Huts, those working its mine first.</summary>
     [ProtoMember(150)] public bool IsMineEntrance;
     [ProtoMember(151)] public List<MineHutView> MineHuts = new();
@@ -779,6 +781,10 @@ public enum ColonyAction
     SetMarkerGroup = 120,
     /// <summary>Takes away every map marker the worker of the hut with BuildingId put down.</summary>
     RemoveMarkers = 121,
+    /// <summary>Takes the map marker with MarkerId Text off the map (right-click on the world map); settlers leave that spot alone after.</summary>
+    RemoveMarker = 122,
+    /// <summary>Lets the worker of the hut with BuildingId mark the spots players took markers off again.</summary>
+    MarkRemovedAgain = 123,
     /// <summary>Colony militia switches (officers); Text is "1" or "0".</summary>
     SetSelfDefence = 140,
     SetSupportAllies = 141,

@@ -593,6 +593,16 @@ public class ColonyMarker
     [ProtoMember(11)] public string Icon = "";
 }
 
+/// <summary>Where a player took a colony marker off the map, and what it marked.</summary>
+[ProtoContract]
+public class RemovedMarker
+{
+    [ProtoMember(1)] public string Kind = "";
+    [ProtoMember(2)] public string Icon = "";
+    [ProtoMember(3)] public double X;
+    [ProtoMember(4)] public double Z;
+}
+
 [ProtoContract]
 public class Colony
 {
@@ -648,6 +658,8 @@ public class Colony
     /// <summary>Map markers the colony's settlers put down (ColonyManager.Markers.cs).</summary>
     [ProtoMember(70)] public List<ColonyMarker> Markers = new();
     [ProtoMember(71, IsRequired = true)] public int NextMarkerId = 1;
+    /// <summary>Spots a player took a marker off the map at, so settlers do not mark them again.</summary>
+    [ProtoMember(72)] public List<RemovedMarker> RemovedMarkers = new();
     /// <summary>Colony militia: settlers with a weapon fight a creature that hurts them. Null until changed, so the server config decides.</summary>
     [ProtoMember(80)] public bool? SelfDefence;
     /// <summary>Colony militia: settlers with a weapon come to help a nearby settler who is attacked. Null until changed, so the server config decides.</summary>
