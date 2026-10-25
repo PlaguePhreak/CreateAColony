@@ -227,6 +227,15 @@ These work well with Vintage Colonies. Install them separately.
 - **Smithing Plus** (jayu): smith with metal bits, repair tool heads on the anvil and other smithing tweaks. Our smiths still use the game's anvil and recipes beside it; not tested together in game yet.
 - **Coinage** (Xel): design your own coins. One can be the colony's money (Bailiff tab, Taxes & wages).
 
+## Farmers lay better soil (0.156.0)
+- **Poor field soil gets swapped for better soil.** Put better soil in the Farmer's Hut storage (very low, low, medium, compost, high, as in the game). The farmer digs out the poor soil on bare spots of its fields and lays the better soil as fresh farmland. The worst spots go first.
+- Only spots with nothing growing are swapped. After a harvest, a farmer carrying better soil lays it before sowing again. It works in winter too.
+- The old soil goes back to the hut, so it can be used elsewhere.
+- If better soil is only in the warehouse, the farmer asks couriers to bring some.
+- Also in this version: the **farmer holds the watering can** while watering and filling it, with the player's watering animation (first made as 0.152.0; 0.153.0 to 0.155.0 did not have it).
+- Config: `FarmerUpgradesSoil` (on/off).
+- Not tested in game.
+
 ## Taxes and wages start at Town Hall level 3 (0.153.0)
 - No taxes are collected and no wages are paid until the Town Hall is level 3 (`EconomyTownHallLevel`). Until then settlers have no "Paying taxes" or "Wasn't paid" moods, and the Church gets no tithes. The Taxes & wages page says so.
 

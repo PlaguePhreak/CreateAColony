@@ -2441,6 +2441,7 @@
 	"workstatus-no-sowing-weather": "too cold or hot now for any crop to live until ripe",
 	"workstatus-hunter-pest": "going after an animal eating the crops",
 	"activity-farmer-chase": "Chasing an animal off the crops",
+	"activity-farmer-upgrade": "Laying better soil",
 	"event-crop-pest": "A {0} is eating the crops near {1}. The farmer is going after it.",
 	"event-crop-pest-hunter": "A {0} is eating the crops near {1}. The farmer called the hunter.",
 	"event-pest-killed": "{0} killed a {1} that was eating the crops",

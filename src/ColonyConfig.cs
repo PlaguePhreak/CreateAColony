@@ -160,6 +160,8 @@ public class ColonyConfig
     public float FarmerSeasonMarginDegrees = 1f;
     /// <summary>Farmers go after animals that eat the crops on their fields: they kill wild ones and chase livestock off.</summary>
     public bool FarmerGuardsCrops = true;
+    /// <summary>Farmers swap poor soil on bare field spots for better soil from the Farmer's Hut storage (or asked for from the warehouse).</summary>
+    public bool FarmerUpgradesSoil = true;
     /// <summary>When the colony has a hunter, the farmer calls it and only goes after the animal itself if it is still at the crops this many seconds later.</summary>
     public float FarmerWaitsForHunterSeconds = 45f;
     /// <summary>How far from its fields, in blocks, a farmer goes after a crop eater before it counts as chased off.</summary>

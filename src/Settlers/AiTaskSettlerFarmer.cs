@@ -30,6 +30,8 @@ public class AiTaskSettlerFarmer : AiTaskSettlerWorker
 
     FieldWork work;
     FieldRecord? field;
+    /// <summary>Soil better than this grade is kept for laying on the fields; -1 when no bare spot needs it.</summary>
+    int keepSoilAbove = -1;
     long pestId;
     long chaseStartMs;
     readonly Dictionary<long, long> letGo = new();
@@ -55,7 +57,8 @@ public class AiTaskSettlerFarmer : AiTaskSettlerWorker
         FieldWork.Refill => stack != null && ColonyManager.IsWateringCan(stack),
         _ => base.WantsInHand(stack)
     };
-    protected override bool AlsoKeeps(ItemStack stack) => ColonyManager.IsWateringCan(stack) || ColonyManager.IsFertilizer(stack);
+    protected override bool AlsoKeeps(ItemStack stack) => ColonyManager.IsWateringCan(stack) || ColonyManager.IsFertilizer(stack)
+        || (keepSoilAbove >= 0 && manager!.SoilRank(stack) > keepSoilAbove);
 
     protected override string WorkAnimation(ItemSlot? hand) => work switch
     {
@@ -63,7 +66,7 @@ public class AiTaskSettlerFarmer : AiTaskSettlerWorker
         FieldWork.Till => hand?.Itemstack?.Collectible.GetHeldTpUseAnimation(hand, entity) ?? "interactstatic",
         // The game's own watering animation for the can in hand.
         FieldWork.Water or FieldWork.Refill when hand?.Itemstack is { } can && ColonyManager.IsWateringCan(can) => can.Collectible.GetHeldTpUseAnimation(hand, entity) ?? "interactstatic",
-        FieldWork.Sow or FieldWork.Water or FieldWork.Refill => SettlerAnimations.PlayerAnimations.Contains("placeblock") ? "placeblock" : "interactstatic",
+        FieldWork.Sow or FieldWork.Water or FieldWork.Refill or FieldWork.Upgrade => SettlerAnimations.PlayerAnimations.Contains("placeblock") ? "placeblock" : "interactstatic",
         _ => "breakhand"
     };
 
@@ -145,6 +148,11 @@ public class AiTaskSettlerFarmer : AiTaskSettlerWorker
         BlockPos? shortAt = null;
         string? noSowing = null;
         bool thirsty = false;
+        // Better soil carried, and the best in the hut storage, for swapping out poor soil.
+        bool upgrades = m.Config.FarmerUpgradesSoil;
+        int carriedSoil = upgrades ? m.BestSoilRank(m.PackItems(citizen)) : -1;
+        int storedSoil = upgrades ? m.BestSoilRank(storage.SelectMany(c => c.Inventory).Where(s => !s.Empty).Select(s => s.Itemstack)) : -1;
+        int worstSoil = int.MaxValue, toFetch = 0, poorSpots = 0;
 
         void Consider(FieldWork w, FieldRecord? f, BlockPos pos)
         {
@@ -162,6 +170,18 @@ public class AiTaskSettlerFarmer : AiTaskSettlerWorker
             {
                 var w = m.WorkAt(colony, ground);
                 if (w == FieldWork.None || IsUnreachable(ground)) continue;
+                // Bare ground of a poor grade: lay better soil first, if there is any (even in winter).
+                if (upgrades && w is FieldWork.Sow or FieldWork.Till && m.GroundSoilRank(ground) is var rank and >= 0)
+                {
+                    worstSoil = System.Math.Min(worstSoil, rank);
+                    if (rank < carriedSoil)
+                    {
+                        Consider(FieldWork.Upgrade, f, ground);
+                        continue;
+                    }
+                    if (rank < storedSoil) toFetch++;
+                    if (rank < ColonyManager.TopSoilRank) poorSpots++;
+                }
                 if (w == FieldWork.Sow && why != null)
                 {
                     noSowing ??= why;
@@ -193,6 +213,15 @@ public class AiTaskSettlerFarmer : AiTaskSettlerWorker
             if (fruit.DistanceTo(hut.HutPos) <= NearFruit) Consider(FieldWork.Pick, null, fruit);
             else farFruit.Add(fruit);
         }
+
+        keepSoilAbove = worstSoil == int.MaxValue ? -1 : worstSoil;
+        // Better soil in the hut for poor spots: pick it up before sowing. Only in the warehouse: ask couriers.
+        if (toFetch > 0 && (best == null || best.Value.Work > FieldWork.Upgrade) && !m.PackFull(citizen))
+        {
+            ItemMatch better = s => m.SoilRank(s) == storedSoil;
+            if (Supplies(storage, better) is { } soilChest) return FetchSupplies(soilChest, better, System.Math.Min(toFetch, 16));
+        }
+        if (upgrades && poorSpots > 0 && storedSoil <= worstSoil && carriedSoil <= worstSoil) m.EnsureSoilRequest(colony, hut, worstSoil, poorSpots);
 
         // Out of seeds for bare farmland: pick some up at the hut, or ask couriers to bring them.
         if (shortOfSeeds != null)
@@ -244,6 +273,10 @@ public class AiTaskSettlerFarmer : AiTaskSettlerWorker
             case FieldWork.Pick:
                 m.PickFruit(colony, hut, citizen, target);
                 return;
+            case FieldWork.Upgrade:
+                if (field == null || !colony.Fields.Contains(field) || m.WorkAt(colony, target) is not (FieldWork.Sow or FieldWork.Till)) return;
+                m.UpgradeSoil(colony, hut, citizen, target);
+                return;
             case FieldWork.Refill:
                 m.RefillCansAndHand(colony, citizen, Hand, target);
                 return;
@@ -255,6 +288,8 @@ public class AiTaskSettlerFarmer : AiTaskSettlerWorker
         {
             case FieldWork.Harvest:
                 string? crop = m.Harvest(colony, hut, citizen, target);
+                // Carrying better soil: lay it before sowing again.
+                if (m.Config.FarmerUpgradesSoil) m.UpgradeSoil(colony, hut, citizen, target);
                 m.Sow(colony, citizen, entity, target, field, crop);
                 break;
             case FieldWork.Weed:

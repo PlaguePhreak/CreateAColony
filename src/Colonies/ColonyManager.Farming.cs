@@ -10,8 +10,8 @@ using ItemMatch = System.Func<Vintagestory.API.Common.ItemStack, bool>;
 namespace CreateAColony.Colonies;
 
 /// <summary>What a farmer has to do, most urgent first.</summary>
-/// <summary>Chase: go after an animal eating the crops (ColonyManager.CropPests.cs).</summary>
-public enum FieldWork { None, Harvest, Pick, Weed, Water, Sow, Till, Refill, Chase }
+/// <summary>Upgrade: lay better soil on bare ground (ColonyManager.SoilUpgrade.cs). Chase: go after an animal eating the crops (ColonyManager.CropPests.cs).</summary>
+public enum FieldWork { None, Harvest, Pick, Weed, Water, Upgrade, Sow, Till, Refill, Chase }
 
 /// <summary>
 /// The farmer's trade. A Field marker marks out a square of ground around it; on that ground the farmer
