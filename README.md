@@ -223,6 +223,7 @@ These work well with Vintage Colonies. Install them separately.
 - **Food Shelves**: settlers eat from and stock its shelves.
 - **Stone Bake Oven**: the Cook bakes in it.
 - **C&N Jewelry Adornments** (KenigVovan): more jewellery for settlers to wear. Fuller support comes in a later release.
+- **Smithing Plus** (jayu): smith with metal bits, repair tool heads on the anvil and other smithing tweaks. Our smiths still use the game's anvil and recipes beside it; not tested together in game yet.
 
 ## New Dev's Builds huts (0.134.0)
 Aaron's new buildings in the Dev's Builds pack: Smelter level 1, Blacksmith level 1, Sawmill levels 1 and 2,
