@@ -32,7 +32,7 @@ public partial class ColonyManager
     {
         long now = sapi.World.ElapsedMilliseconds;
         if (zoneCache.TryGetValue(colony, out var known) && known.Until > now) return known.Zones;
-        var zones = colony.Buildings.Select(b => { var (min, max) = BuildingBox(b); return (b, min, max); }).ToList();
+        var zones = colony.Buildings.Where(b => !b.IsStation).Select(b => { var (min, max) = BuildingBox(b); return (b, min, max); }).ToList();
         zoneCache[colony] = (now + ZoneCacheMs, zones);
         return zones;
     }

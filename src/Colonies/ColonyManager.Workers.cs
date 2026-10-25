@@ -57,6 +57,7 @@ public partial class ColonyManager
         BuildingTypes.Jeweller => Jobs.Jeweller,
         BuildingTypes.Healer => Jobs.Healer,
         BuildingTypes.Mint => Jobs.Minter,
+        BuildingTypes.Church => Jobs.Priest,
         BuildingTypes.GuardTower => Jobs.Guard,
         BuildingTypes.Barracks => Jobs.Guard,
         _ => GatherHuts.TryGetValue(type, out var kind) ? kind.Job : null
@@ -64,7 +65,7 @@ public partial class ColonyManager
 
     /// <summary>How many settlers can work from this building at once.</summary>
     public static int WorkerSlots(Building hut) => IsGuardPost(hut.Type) ? GuardSlots(hut)
-        : hut.Type == BuildingTypes.Prospector ? ProspectorSlots : JobOf(hut.Type) == null ? 0 : 1;
+        : hut.Type == BuildingTypes.Prospector ? ProspectorSlots : hut.Type == BuildingTypes.Church ? ChurchSlots(hut) : JobOf(hut.Type) == null ? 0 : 1;
 
     /// <summary>A Prospector's Hut takes two prospectors, each finding ore or mining it (CitizenRecord.WorkRole).</summary>
     public const int ProspectorSlots = 2;
@@ -75,6 +76,7 @@ public partial class ColonyManager
     /// </summary>
     public string? SetWorkRole(Colony colony, Building hut, CitizenRecord worker, int role)
     {
+        if (hut.Type == BuildingTypes.Church) return SetChurchRole(colony, hut, worker, role);
         if (hut.Type != BuildingTypes.Prospector || role is not (ProspectorRoles.Find or ProspectorRoles.Mine)) return "createacolony:bad-building";
         if (!WorkersAt(colony, hut).Contains(worker)) return "createacolony:bad-citizen";
         if (worker.WorkRole == role) return null;
@@ -149,6 +151,7 @@ public partial class ColonyManager
         if (hut.Type == BuildingTypes.Jeweller) return JewellerHutJunk(colony, hut);
         if (hut.Type == BuildingTypes.Healer) return HealerHutJunk(colony, hut);
         if (hut.Type == BuildingTypes.Mint) return MintHutJunk(colony, hut);
+        if (hut.Type == BuildingTypes.Church) return ChurchJunk(colony, hut);
         if (IsGuardPost(hut.Type)) return GuardTowerJunk(hut);
         var kind = GatherHuts[hut.Type];
         var worker = WorkerAt(colony, hut, kind.Job);
@@ -233,15 +236,15 @@ public partial class ColonyManager
         if (IsGuardPost(hut.Type)) return GuardTowerInfo(colony, hut);
         var lines = new List<string>();
         var worker = WorkerAt(colony, hut, job);
-        if (hut.Type == BuildingTypes.Prospector)
+        if (hut.Type is BuildingTypes.Prospector or BuildingTypes.Church)
         {
-            // Two prospectors, each with its own work and status.
+            // Two prospectors, each with its own work and status; a Church's priests and bishop.
             var workers = WorkersAt(colony, hut);
             if (workers.Count == 0) lines.Add(Lang.Get("createacolony:hut-no-worker", Lang.Get("createacolony:job-" + job)));
             foreach (var w in workers)
             {
                 string status = WorkerStatus.TryGetValue(w.CitizenId, out var ws) ? ws : "starting";
-                lines.Add(Lang.Get("createacolony:prospector-worker", w.Name, Lang.Get("createacolony:prospector-role-" + w.WorkRole),
+                lines.Add(Lang.Get("createacolony:prospector-worker", w.Name, Lang.Get("createacolony:" + (hut.Type == BuildingTypes.Church ? "church-role-" : "prospector-role-") + w.WorkRole),
                     Lang.Get("createacolony:workstatus-" + status)));
                 if (w.WorkRole == ProspectorRoles.Mine && TripInfo(colony, hut, w.Trip) is { } trip) lines.Add(trip);
             }
@@ -276,6 +279,8 @@ public partial class ColonyManager
         if (hut.Type == BuildingTypes.Tailor) lines.Add(TailorInfo(colony, hut));
         if (hut.Type == BuildingTypes.Healer) lines.Add(HealerInfo(colony, hut));
         if (hut.Type == BuildingTypes.Mint) lines.Add(MintInfo(colony));
+        if (hut.Type == BuildingTypes.Church) lines.AddRange(ChurchInfo(colony, hut));
+        if (hut.IsStation) lines.Add(StationInfo(colony, hut));
         if (HasHutRecipes(hut.Type) && hut.RecipeKeep.Count > 0) lines.Add(HutRecipesInfo(hut));
         if (hut.Type == BuildingTypes.Prospector) lines.Add(ProspectorInfo(colony, hut));
         if (hut.Type == BuildingTypes.Miner) lines.Add(MineInfo(colony, hut));
@@ -284,7 +289,7 @@ public partial class ColonyManager
         if (hut.Type == BuildingTypes.Gatherer) lines.Add(GathererInfo(colony, hut));
         if (hut.Type == BuildingTypes.Hunter) lines.Add(HunterInfo(hut));
         lines.Add("");
-        lines.Add(Lang.Get("createacolony:hint-" + hut.Type, GatherRadius(hut)));
+        lines.Add(Lang.Get("createacolony:hint-" + hut.Type + (hut.IsStation ? "-station" : ""), GatherRadius(hut)));
         return string.Join("<br>", lines);
     }
 }

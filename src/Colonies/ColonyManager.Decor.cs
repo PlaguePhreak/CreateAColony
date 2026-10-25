@@ -71,6 +71,20 @@ public partial class ColonyManager
         };
     }
 
+    /// <summary>
+    /// Church paintings go up only in a Church, and a Church gets only those (the clergy put them up there,
+    /// ColonyManager.Church.cs). The clergy leave blank books in the Church's storage for writing the records in.
+    /// </summary>
+    public static bool SuitsPlace(Building place, ItemStack s)
+    {
+        bool church = place.Type == BuildingTypes.Church;
+        if (s.Block is BlockPainting painting) return painting.Religious == church;
+        return !church || !IsBlankBook(s);
+    }
+
+    public static bool IsDecorMountFor(Building place, DecorKind kind, ItemStack? s) => IsDecorMount(kind, s) && SuitsPlace(place, s!);
+    public static bool IsDecorContentFor(Building place, DecorKind kind, ItemStack? s) => IsDecorContent(kind, s) && SuitsPlace(place, s!);
+
     /// <summary>What goes on a decoration's rack, shelf, mount or pole. Nothing goes on a painting.</summary>
     public static bool IsDecorContent(DecorKind kind, ItemStack? s)
     {
@@ -353,8 +367,10 @@ public partial class ColonyManager
             var kind = DecorKinds[(start + n) % DecorKinds.Length];
             if (kind == DecorKind.Painting)
             {
-                if (FirstWith(chests, s => IsDecorMount(kind, s), unreachable) is not { } from) continue;
-                var block = from.Inventory.First(s => !s.Empty && IsDecorMount(kind, s.Itemstack)).Itemstack.Block;
+                // The clergy fetch church paintings from the warehouse too; settlers hang what is in their own home.
+                var paintings = home.Type == BuildingTypes.Church ? spare : chests;
+                if (FirstWith(paintings, s => IsDecorMountFor(home, kind, s), unreachable) is not { } from) continue;
+                var block = from.Inventory.First(s => !s.Empty && IsDecorMountFor(home, kind, s.Itemstack)).Itemstack.Block;
                 seen ??= LookAtHome(home);
                 if (FindDecorSpot(seen, kind, block, near) is not { } spot) continue;
                 return new DecorPlan { Kind = kind, Spot = spot.Pos, Wall = spot.Wall, MountFrom = from.Pos.Copy() };
@@ -366,8 +382,8 @@ public partial class ColonyManager
             {
                 sources = chests.Concat(HutStorage(colony, hut)).Concat(WarehouseContainers(colony)).ToList();
             }
-            if (FirstWith(sources, s => IsDecorContent(kind, s), unreachable) is not { } content) continue;
-            int have = CountItems(new[] { content }, s => IsDecorContent(kind, s));
+            if (FirstWith(sources, s => IsDecorContentFor(home, kind, s), unreachable) is not { } content) continue;
+            int have = CountItems(new[] { content }, s => IsDecorContentFor(home, kind, s));
 
             seen ??= LookAtHome(home);
             var ba = sapi.World.BlockAccessor;
@@ -379,8 +395,8 @@ public partial class ColonyManager
                 return new DecorPlan { Kind = kind, Spot = open, Fill = true, ContentFrom = content.Pos.Copy(), Want = Math.Min(free, have) };
             }
             if (mounts.Count >= Config.DecorPerKind) continue;
-            if (FirstWith(spare, s => IsDecorMount(kind, s), unreachable) is not { } mountFrom) continue;
-            var mount = mountFrom.Inventory.First(s => !s.Empty && IsDecorMount(kind, s.Itemstack)).Itemstack.Block;
+            if (FirstWith(spare, s => IsDecorMountFor(home, kind, s), unreachable) is not { } mountFrom) continue;
+            var mount = mountFrom.Inventory.First(s => !s.Empty && IsDecorMountFor(home, kind, s.Itemstack)).Itemstack.Block;
             if (FindDecorSpot(seen, kind, mount, near) is not { } at) continue;
             return new DecorPlan
             {
@@ -407,7 +423,7 @@ public partial class ColonyManager
         bool done = false;
         if (!plan.Fill)
         {
-            var sample = PackItems(citizen).FirstOrDefault(s => IsDecorMount(plan.Kind, s));
+            var sample = PackItems(citizen).FirstOrDefault(s => IsDecorMountFor(home, plan.Kind, s));
             if (sample?.Block is not { } mount || TurnedFor(mount, plan.Wall) is not { } turned) return false;
             var seen = LookAtHome(home);
             bool fits = FreeIndoors(seen, plan.Spot) && (OnWall(plan.Kind)
@@ -428,8 +444,8 @@ public partial class ColonyManager
             {
                 if (!slot.Empty || slot.MaxSlotStackSize <= 0) continue;
                 // Only from the inventory, never a weapon off the settler's own tool bar.
-                if (!PackItems(citizen).Any(s => IsDecorContent(plan.Kind, s))) break;
-                var thing = TakeFromPack(colony, citizen, s => IsDecorContent(plan.Kind, s), 1);
+                if (!PackItems(citizen).Any(s => IsDecorContentFor(home, plan.Kind, s))) break;
+                var thing = TakeFromPack(colony, citizen, s => IsDecorContentFor(home, plan.Kind, s), 1);
                 if (thing == null) break;
                 var source = new DummySlot(thing);
                 if (source.TryPutInto(sapi.World, slot, 1) <= 0)

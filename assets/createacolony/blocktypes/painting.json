@@ -32,7 +32,12 @@
 				"birchgrove",
 				"hillcastle",
 				"winterhunt",
-				"realmmap"
+				"realmmap",
+				"beachcross",
+				"walkingonwater",
+				"crucifixion",
+				"triumph",
+				"heavenceiling"
 			]
 		},
 		{
@@ -199,6 +204,59 @@
 				"white",
 				"orange"
 			]
+		},
+		"*-beachcross-*": {
+			"paintingSize": "small",
+			"dyes": [
+				"orange",
+				"brown",
+				"black"
+			],
+			"religious": true
+		},
+		"*-walkingonwater-*": {
+			"paintingSize": "wide",
+			"dyes": [
+				"blue",
+				"white",
+				"gray",
+				"yellow"
+			],
+			"religious": true
+		},
+		"*-crucifixion-*": {
+			"paintingSize": "tall",
+			"dyes": [
+				"black",
+				"brown",
+				"red",
+				"yellow"
+			],
+			"religious": true
+		},
+		"*-triumph-*": {
+			"paintingSize": "large",
+			"dyes": [
+				"yellow",
+				"white",
+				"red",
+				"blue",
+				"green",
+				"orange"
+			],
+			"religious": true
+		},
+		"*-heavenceiling-*": {
+			"paintingSize": "large",
+			"dyes": [
+				"blue",
+				"yellow",
+				"white",
+				"brown",
+				"red",
+				"purple"
+			],
+			"religious": true
 		}
 	},
 	"creativeinventory": {
@@ -499,6 +557,86 @@
 			"rotateY": 180
 		},
 		"*-realmmap-west": {
+			"base": "block/painting/large",
+			"rotateY": 90
+		},
+		"*-beachcross-north": {
+			"base": "block/painting/small",
+			"rotateY": 0
+		},
+		"*-beachcross-east": {
+			"base": "block/painting/small",
+			"rotateY": 270
+		},
+		"*-beachcross-south": {
+			"base": "block/painting/small",
+			"rotateY": 180
+		},
+		"*-beachcross-west": {
+			"base": "block/painting/small",
+			"rotateY": 90
+		},
+		"*-walkingonwater-north": {
+			"base": "block/painting/wide",
+			"rotateY": 0
+		},
+		"*-walkingonwater-east": {
+			"base": "block/painting/wide",
+			"rotateY": 270
+		},
+		"*-walkingonwater-south": {
+			"base": "block/painting/wide",
+			"rotateY": 180
+		},
+		"*-walkingonwater-west": {
+			"base": "block/painting/wide",
+			"rotateY": 90
+		},
+		"*-crucifixion-north": {
+			"base": "block/painting/tall",
+			"rotateY": 0
+		},
+		"*-crucifixion-east": {
+			"base": "block/painting/tall",
+			"rotateY": 270
+		},
+		"*-crucifixion-south": {
+			"base": "block/painting/tall",
+			"rotateY": 180
+		},
+		"*-crucifixion-west": {
+			"base": "block/painting/tall",
+			"rotateY": 90
+		},
+		"*-triumph-north": {
+			"base": "block/painting/large",
+			"rotateY": 0
+		},
+		"*-triumph-east": {
+			"base": "block/painting/large",
+			"rotateY": 270
+		},
+		"*-triumph-south": {
+			"base": "block/painting/large",
+			"rotateY": 180
+		},
+		"*-triumph-west": {
+			"base": "block/painting/large",
+			"rotateY": 90
+		},
+		"*-heavenceiling-north": {
+			"base": "block/painting/large",
+			"rotateY": 0
+		},
+		"*-heavenceiling-east": {
+			"base": "block/painting/large",
+			"rotateY": 270
+		},
+		"*-heavenceiling-south": {
+			"base": "block/painting/large",
+			"rotateY": 180
+		},
+		"*-heavenceiling-west": {
 			"base": "block/painting/large",
 			"rotateY": 90
 		}
@@ -1172,6 +1310,186 @@
 			"y2": 1.97,
 			"z2": 0.09,
 			"rotateY": 90
+		},
+		"*-beachcross-north": {
+			"x1": 0.03,
+			"y1": 0.03,
+			"z1": 0,
+			"x2": 0.97,
+			"y2": 0.97,
+			"z2": 0.09,
+			"rotateY": 0
+		},
+		"*-beachcross-east": {
+			"x1": 0.03,
+			"y1": 0.03,
+			"z1": 0,
+			"x2": 0.97,
+			"y2": 0.97,
+			"z2": 0.09,
+			"rotateY": 270
+		},
+		"*-beachcross-south": {
+			"x1": 0.03,
+			"y1": 0.03,
+			"z1": 0,
+			"x2": 0.97,
+			"y2": 0.97,
+			"z2": 0.09,
+			"rotateY": 180
+		},
+		"*-beachcross-west": {
+			"x1": 0.03,
+			"y1": 0.03,
+			"z1": 0,
+			"x2": 0.97,
+			"y2": 0.97,
+			"z2": 0.09,
+			"rotateY": 90
+		},
+		"*-walkingonwater-north": {
+			"x1": 0.03,
+			"y1": 0.03,
+			"z1": 0,
+			"x2": 1.97,
+			"y2": 0.97,
+			"z2": 0.09,
+			"rotateY": 0
+		},
+		"*-walkingonwater-east": {
+			"x1": 0.03,
+			"y1": 0.03,
+			"z1": 0,
+			"x2": 1.97,
+			"y2": 0.97,
+			"z2": 0.09,
+			"rotateY": 270
+		},
+		"*-walkingonwater-south": {
+			"x1": 0.03,
+			"y1": 0.03,
+			"z1": 0,
+			"x2": 1.97,
+			"y2": 0.97,
+			"z2": 0.09,
+			"rotateY": 180
+		},
+		"*-walkingonwater-west": {
+			"x1": 0.03,
+			"y1": 0.03,
+			"z1": 0,
+			"x2": 1.97,
+			"y2": 0.97,
+			"z2": 0.09,
+			"rotateY": 90
+		},
+		"*-crucifixion-north": {
+			"x1": 0.03,
+			"y1": 0.03,
+			"z1": 0,
+			"x2": 0.97,
+			"y2": 1.97,
+			"z2": 0.09,
+			"rotateY": 0
+		},
+		"*-crucifixion-east": {
+			"x1": 0.03,
+			"y1": 0.03,
+			"z1": 0,
+			"x2": 0.97,
+			"y2": 1.97,
+			"z2": 0.09,
+			"rotateY": 270
+		},
+		"*-crucifixion-south": {
+			"x1": 0.03,
+			"y1": 0.03,
+			"z1": 0,
+			"x2": 0.97,
+			"y2": 1.97,
+			"z2": 0.09,
+			"rotateY": 180
+		},
+		"*-crucifixion-west": {
+			"x1": 0.03,
+			"y1": 0.03,
+			"z1": 0,
+			"x2": 0.97,
+			"y2": 1.97,
+			"z2": 0.09,
+			"rotateY": 90
+		},
+		"*-triumph-north": {
+			"x1": 0.03,
+			"y1": 0.03,
+			"z1": 0,
+			"x2": 1.97,
+			"y2": 1.97,
+			"z2": 0.09,
+			"rotateY": 0
+		},
+		"*-triumph-east": {
+			"x1": 0.03,
+			"y1": 0.03,
+			"z1": 0,
+			"x2": 1.97,
+			"y2": 1.97,
+			"z2": 0.09,
+			"rotateY": 270
+		},
+		"*-triumph-south": {
+			"x1": 0.03,
+			"y1": 0.03,
+			"z1": 0,
+			"x2": 1.97,
+			"y2": 1.97,
+			"z2": 0.09,
+			"rotateY": 180
+		},
+		"*-triumph-west": {
+			"x1": 0.03,
+			"y1": 0.03,
+			"z1": 0,
+			"x2": 1.97,
+			"y2": 1.97,
+			"z2": 0.09,
+			"rotateY": 90
+		},
+		"*-heavenceiling-north": {
+			"x1": 0.03,
+			"y1": 0.03,
+			"z1": 0,
+			"x2": 1.97,
+			"y2": 1.97,
+			"z2": 0.09,
+			"rotateY": 0
+		},
+		"*-heavenceiling-east": {
+			"x1": 0.03,
+			"y1": 0.03,
+			"z1": 0,
+			"x2": 1.97,
+			"y2": 1.97,
+			"z2": 0.09,
+			"rotateY": 270
+		},
+		"*-heavenceiling-south": {
+			"x1": 0.03,
+			"y1": 0.03,
+			"z1": 0,
+			"x2": 1.97,
+			"y2": 1.97,
+			"z2": 0.09,
+			"rotateY": 180
+		},
+		"*-heavenceiling-west": {
+			"x1": 0.03,
+			"y1": 0.03,
+			"z1": 0,
+			"x2": 1.97,
+			"y2": 1.97,
+			"z2": 0.09,
+			"rotateY": 90
 		}
 	},
 	"guiTransformByType": {
@@ -1397,6 +1715,71 @@
 			"scale": 0.78
 		},
 		"*-realmmap-*": {
+			"rotation": {
+				"x": -8,
+				"y": 200,
+				"z": 0
+			},
+			"origin": {
+				"x": 1.0,
+				"y": 1.0,
+				"z": 0.05
+			},
+			"scale": 0.78
+		},
+		"*-beachcross-*": {
+			"rotation": {
+				"x": -8,
+				"y": 200,
+				"z": 0
+			},
+			"origin": {
+				"x": 0.5,
+				"y": 0.5,
+				"z": 0.05
+			},
+			"scale": 1.25
+		},
+		"*-walkingonwater-*": {
+			"rotation": {
+				"x": -8,
+				"y": 200,
+				"z": 0
+			},
+			"origin": {
+				"x": 1.0,
+				"y": 0.5,
+				"z": 0.05
+			},
+			"scale": 0.78
+		},
+		"*-crucifixion-*": {
+			"rotation": {
+				"x": -8,
+				"y": 200,
+				"z": 0
+			},
+			"origin": {
+				"x": 0.5,
+				"y": 1.0,
+				"z": 0.05
+			},
+			"scale": 0.78
+		},
+		"*-triumph-*": {
+			"rotation": {
+				"x": -8,
+				"y": 200,
+				"z": 0
+			},
+			"origin": {
+				"x": 1.0,
+				"y": 1.0,
+				"z": 0.05
+			},
+			"scale": 0.78
+		},
+		"*-heavenceiling-*": {
 			"rotation": {
 				"x": -8,
 				"y": 200,
@@ -1718,6 +2101,96 @@
 			"scale": 0.5
 		},
 		"*-realmmap-*": {
+			"translation": {
+				"x": -0.6,
+				"y": -0.3,
+				"z": -0.5
+			},
+			"rotation": {
+				"x": 0,
+				"y": 90,
+				"z": 0
+			},
+			"origin": {
+				"x": 1.0,
+				"y": 1.0,
+				"z": 0.05
+			},
+			"scale": 0.5
+		},
+		"*-beachcross-*": {
+			"translation": {
+				"x": -0.6,
+				"y": -0.3,
+				"z": -0.5
+			},
+			"rotation": {
+				"x": 0,
+				"y": 90,
+				"z": 0
+			},
+			"origin": {
+				"x": 0.5,
+				"y": 0.5,
+				"z": 0.05
+			},
+			"scale": 0.8
+		},
+		"*-walkingonwater-*": {
+			"translation": {
+				"x": -0.6,
+				"y": -0.3,
+				"z": -0.5
+			},
+			"rotation": {
+				"x": 0,
+				"y": 90,
+				"z": 0
+			},
+			"origin": {
+				"x": 1.0,
+				"y": 0.5,
+				"z": 0.05
+			},
+			"scale": 0.5
+		},
+		"*-crucifixion-*": {
+			"translation": {
+				"x": -0.6,
+				"y": -0.3,
+				"z": -0.5
+			},
+			"rotation": {
+				"x": 0,
+				"y": 90,
+				"z": 0
+			},
+			"origin": {
+				"x": 0.5,
+				"y": 1.0,
+				"z": 0.05
+			},
+			"scale": 0.5
+		},
+		"*-triumph-*": {
+			"translation": {
+				"x": -0.6,
+				"y": -0.3,
+				"z": -0.5
+			},
+			"rotation": {
+				"x": 0,
+				"y": 90,
+				"z": 0
+			},
+			"origin": {
+				"x": 1.0,
+				"y": 1.0,
+				"z": 0.05
+			},
+			"scale": 0.5
+		},
+		"*-heavenceiling-*": {
 			"translation": {
 				"x": -0.6,
 				"y": -0.3,

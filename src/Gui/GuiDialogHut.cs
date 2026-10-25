@@ -47,6 +47,8 @@ public class GuiDialogHut : GuiDialog
     const int RecipesTab = 24;
     /// <summary>Priorities: what a crafting hut keeps, in the order its worker makes it, with buttons to change that.</summary>
     const int PrioritiesTab = 25;
+    /// <summary>A Church's Church tab: Faith, services, the tithe and what the church spends it on.</summary>
+    const int ChurchTab = 26;
     const int OreRowsPerPage = 6;
     const double OreRowHeight = 44;
     /// <summary>Households shown per page of a Residence's Residents tab.</summary>
@@ -113,6 +115,7 @@ public class GuiDialogHut : GuiDialog
         if (snapshot.CraftTab.Length > 0) tabs.Add((CraftTab, "tab-" + snapshot.CraftTab));
         if (snapshot.IsTavern) tabs.Add((RecruitsTab, "tab-recruits"));
         if (snapshot.IsResidence) tabs.Add((ResidentsTab, "tab-residents"));
+        if (snapshot.IsChurch) tabs.Add((ChurchTab, "tab-church"));
         if (snapshot.IsOreHut) tabs.Add((OreTab, "tab-ore"));
         if (snapshot.IsQuarry) tabs.Add((QuarryTab, "tab-quarry"));
         if (snapshot.MarkerGroups.Count > 0) tabs.Add((MarkersTab, "tab-markers"));
@@ -165,6 +168,7 @@ public class GuiDialogHut : GuiDialog
             case PrioritiesTab: ComposePriorities(composer); break;
             case RecruitsTab: ComposeRecruits(composer); break;
             case ResidentsTab: ComposeResidents(composer); break;
+            case ChurchTab: ComposeChurch(composer); break;
             case OreTab: ComposeOre(composer); break;
             case QuarryTab: ComposeQuarry(composer); break;
             case MarkersTab: ComposeMarkers(composer); break;
@@ -222,7 +226,9 @@ public class GuiDialogHut : GuiDialog
 
         // Header: name and level with the pencil, then the level line, the asset pack and any build in progress,
         // each on its own line so a long one wraps instead of running into the next.
-        string levelText = LevelText(b);
+        string levelText = snapshot.IsStation
+            ? Lang.Get(snapshot.HostName.Length > 0 ? "createacolony:station-level" : "createacolony:station-level-nohost", b.Level, snapshot.HostName)
+            : LevelText(b);
         string packText = b.Variant == ""
             ? Lang.Get("createacolony:placement-style", Lang.Get("createacolony:style-" + BlueprintStyles.Normalize(b.Style)))
             : Lang.Get("createacolony:placement-style-variant", Lang.Get("createacolony:style-" + BlueprintStyles.Normalize(b.Style)), GuiKit.VariantName(b.Variant));
@@ -427,19 +433,22 @@ public class GuiDialogHut : GuiDialog
 
         y = composer.Section(Lang.Get("createacolony:manage-here", snapshot.Workers.Count, snapshot.WorkerSlots), y, Width);
         if (snapshot.Workers.Count == 0) y = composer.Text(Lang.Get("createacolony:hut-workers-none", job), GuiKit.Detail(), 0, y, Width, 8);
-        bool roles = snapshot.Building.Type == BuildingTypes.Prospector;
+        bool church = snapshot.Building.Type == BuildingTypes.Church;
+        bool roles = snapshot.Building.Type == BuildingTypes.Prospector || church;
+        string rolePrefix = church ? "createacolony:church-role-" : "createacolony:prospector-role-";
         foreach (var w in snapshot.Workers)
         {
             int id = w.CitizenId;
             if (roles)
             {
-                // A prospector finds ore or mines it: the button shows what it does now and switches it.
-                int other = w.WorkRole == ProspectorRoles.Mine ? ProspectorRoles.Find : ProspectorRoles.Mine;
+                // A prospector finds ore or mines it; a priest can be made the bishop. The button shows the role now and switches it.
+                int other = church ? (w.WorkRole == ChurchRoles.Bishop ? ChurchRoles.Priest : ChurchRoles.Bishop)
+                    : w.WorkRole == ProspectorRoles.Mine ? ProspectorRoles.Find : ProspectorRoles.Mine;
                 composer
                     .AddStaticText(w.Name, GuiKit.Body(), ElementBounds.Fixed(10, y + 5, 160, 25))
                     .AddStaticText(SkillText(w), GuiKit.Muted(), ElementBounds.Fixed(175, y + 8, 120, 22))
-                    .AddSmallButton(Lang.Get("createacolony:prospector-role-" + w.WorkRole), () => SendCitizenText(ColonyAction.SetWorkRole, id, other.ToString()), ElementBounds.Fixed(Width - 260, y, 120, 28))
-                    .AddHoverText(Lang.Get("createacolony:prospector-role-hint"), CairoFont.WhiteDetailText(), 300, ElementBounds.Fixed(Width - 260, y, 120, 28))
+                    .AddSmallButton(Lang.Get(rolePrefix + w.WorkRole), () => SendCitizenText(ColonyAction.SetWorkRole, id, other.ToString()), ElementBounds.Fixed(Width - 260, y, 120, 28))
+                    .AddHoverText(Lang.Get(rolePrefix + "hint"), CairoFont.WhiteDetailText(), 300, ElementBounds.Fixed(Width - 260, y, 120, 28))
                     .AddSmallButton(Lang.Get("createacolony:manage-remove"), () => SendCitizen(ColonyAction.UnassignWorker, id), ElementBounds.Fixed(Width - 130, y, 120, 28));
                 y += ListRowHeight;
                 continue;
@@ -1406,6 +1415,65 @@ public class GuiDialogHut : GuiDialog
             y += 14;
         }
         composer.Pager(page, pages, y + 4, Width, p => { page = p; Compose(); });
+    }
+
+    /// <summary>
+    /// A Church's Church tab: the colony's Faith, the next service, the tithe (officers pick 0, 5 or 10 percent),
+    /// the church's coins and the people it looks after, then what it took in and spent over the last 30 days.
+    /// </summary>
+    void ComposeChurch(GuiComposer composer)
+    {
+        double y = 30;
+        int id = BuildingId;
+        y = composer.Section(Lang.Get("createacolony:church-faith-section"), y, Width);
+        y = composer.Row(Lang.Get("createacolony:church-faith-average"), snapshot.AverageFaith < 0 ? "-" : snapshot.AverageFaith.ToString(), 0, y, Width);
+        string[] words = { "devout", "faithful", "doubting", "faithless" };
+        for (int i = 0; i < words.Length && i < snapshot.FaithCounts.Count; i++)
+        {
+            y = composer.Row(Lang.Get("createacolony:faith-" + words[i]), snapshot.FaithCounts[i].ToString(), 10, y, Width - 10);
+        }
+        string service = snapshot.ServiceNow ? Lang.Get("createacolony:church-tab-service-now")
+            : snapshot.ServiceInDays == 0 ? Lang.Get("createacolony:church-tab-service-today")
+            : Lang.Get("createacolony:church-tab-service-in", snapshot.ServiceInDays);
+        y = composer.Text(service, GuiKit.Body(), 0, y + 4, Width, 10);
+
+        y = composer.Section(Lang.Get("createacolony:church-tithe-section"), y, Width);
+        composer.AddStaticText(Lang.Get("createacolony:church-tithe", snapshot.TithePercent), GuiKit.Body(), ElementBounds.Fixed(0, y + 5, 200, 25));
+        if (Officer)
+        {
+            double x = 200;
+            foreach (int percent in new[] { 0, 5, 10 })
+            {
+                string label = (percent == snapshot.TithePercent ? "> " : "") + percent + "%";
+                composer.AddSmallButton(label, () => SendText(ColonyAction.SetTithe, id, percent.ToString()), ElementBounds.Fixed(x, y, 60, 28));
+                x += 66;
+            }
+        }
+        y += 34;
+        y = composer.Text(Lang.Get("createacolony:church-tithe-hint"), GuiKit.Muted(), 0, y, Width, 6);
+        y = composer.Row(Lang.Get("createacolony:church-tab-coins"), snapshot.ChurchCoins.ToString(), 0, y, Width);
+
+        y = composer.Section(Lang.Get("createacolony:church-care-section"), y + 6, Width);
+        y = composer.Row(Lang.Get("createacolony:church-orphans"), snapshot.Orphans.ToString(), 0, y, Width);
+        y = composer.Row(Lang.Get("createacolony:church-sheltered"), snapshot.Sheltered.ToString(), 0, y, Width);
+        y = composer.Row(Lang.Get("createacolony:church-funerals-waiting"), snapshot.AwaitingFuneral.ToString(), 0, y, Width);
+        y = composer.Row(Lang.Get("createacolony:church-chronicle"), Lang.Get("createacolony:church-chronicle-progress", Math.Min(snapshot.ChronicleEvents, snapshot.ChronicleNeeds), snapshot.ChronicleNeeds), 0, y, Width);
+        y = composer.Row(Lang.Get("createacolony:church-stations"), snapshot.Stations.Count == 0 ? Lang.Get("createacolony:church-stations-none") : string.Join(", ", snapshot.Stations), 0, y, Width);
+
+        y = composer.Section(Lang.Get("createacolony:church-ledger-section"), y + 6, Width);
+        var days = snapshot.ChurchLedger;
+        if (days.Count == 0)
+        {
+            composer.Text(Lang.Get("createacolony:church-ledger-empty"), GuiKit.Muted(), 0, y, Width);
+            return;
+        }
+        y = composer.Row(Lang.Get("createacolony:church-ledger-tithes"), days.Sum(d => d.Tithes).ToString(), 0, y, Width);
+        y = composer.Row(Lang.Get("createacolony:church-ledger-food"), Lang.Get("createacolony:church-ledger-coins-for", days.Sum(d => d.FoodCoins), days.Sum(d => d.Meals)), 0, y, Width);
+        y = composer.Row(Lang.Get("createacolony:church-ledger-bandages"), Lang.Get("createacolony:church-ledger-coins-for", days.Sum(d => d.BandageCoins), days.Sum(d => d.Bandages)), 0, y, Width);
+        y = composer.Row(Lang.Get("createacolony:church-ledger-care"), days.Sum(d => d.CareCoins).ToString(), 0, y, Width);
+        y = composer.Row(Lang.Get("createacolony:church-ledger-attended"), days.Sum(d => d.Attended).ToString(), 0, y, Width);
+        y = composer.Row(Lang.Get("createacolony:church-ledger-funerals"), days.Sum(d => d.Funerals).ToString(), 0, y, Width);
+        composer.Row(Lang.Get("createacolony:church-ledger-books"), days.Sum(d => d.Books).ToString(), 0, y, Width);
     }
 
     /// <summary>

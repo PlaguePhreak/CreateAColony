@@ -210,6 +210,9 @@ public class CitizenSnapshot
     [ProtoMember(120)] public int Purse;
     [ProtoMember(121)] public int Wage;
     [ProtoMember(122)] public bool Unpaid;
+    /// <summary>Their Faith (0 to 100, -1 unknown) and the word for it (ColonyManager.Church.cs).</summary>
+    [ProtoMember(300, IsRequired = true)] public int Faith = -1;
+    [ProtoMember(301)] public string FaithWord = "";
 }
 
 /// <summary>A click on a slot of the settler window: which settler, which area and slot, and how.</summary>
@@ -483,6 +486,31 @@ public class HutSnapshot
     [ProtoMember(160)] public List<string> CollectKeys = new();
     [ProtoMember(161)] public List<byte[]> CollectStacks = new();
     [ProtoMember(162)] public List<string> CollectOff = new();
+    // 300-319: the Church and work stations (ColonyManager.Church.cs, ColonyManager.Stations.cs).
+    [ProtoMember(300)] public bool IsChurch;
+    /// <summary>The share of wages given to the church (0, 5 or 10), and the coins in the Church's storage.</summary>
+    [ProtoMember(301)] public int TithePercent;
+    [ProtoMember(302)] public int ChurchCoins;
+    /// <summary>The colony's average Faith (-1 with nobody), and how many settlers are devout, faithful, doubting and faithless.</summary>
+    [ProtoMember(303, IsRequired = true)] public int AverageFaith = -1;
+    [ProtoMember(304)] public List<int> FaithCounts = new();
+    /// <summary>Days until the next service (0 today), and whether one is under way now.</summary>
+    [ProtoMember(305)] public int ServiceInDays;
+    [ProtoMember(306)] public bool ServiceNow;
+    [ProtoMember(307)] public List<ChurchDay> ChurchLedger = new();
+    /// <summary>The names of the work stations in this building.</summary>
+    [ProtoMember(308)] public List<string> Stations = new();
+    /// <summary>This is a work station; HostName is the building it stands in ("" when that is gone).</summary>
+    [ProtoMember(309)] public bool IsStation;
+    [ProtoMember(310)] public string HostName = "";
+    /// <summary>Orphans the church looks after and settlers sleeping in its beds.</summary>
+    [ProtoMember(311)] public int Orphans;
+    [ProtoMember(312)] public int Sheltered;
+    /// <summary>Settlers who died lately and still wait for their funeral.</summary>
+    [ProtoMember(313)] public int AwaitingFuneral;
+    /// <summary>Events written down since the last chronicle, and how many make a new one.</summary>
+    [ProtoMember(314)] public int ChronicleEvents;
+    [ProtoMember(315)] public int ChronicleNeeds;
 }
 
 /// <summary>One line of a hut's chest list: an item, how many there are, and which containers hold it.</summary>
@@ -836,7 +864,9 @@ public enum ColonyAction
     /// <summary>The Bailiff tab's rules (officers): Text "wanderers|n" (BailiffWanderers), "jobs|1", "lend|1" or "rent|0".</summary>
     SetBailiffRule = 180,
     /// <summary>Repair button on a hut's Main tab: a builder puts the building back as its blueprint has it.</summary>
-    Repair = 250
+    Repair = 250,
+    /// <summary>A Church's Church tab (officers): Text is the tithe in percent (0, 5 or 10).</summary>
+    SetTithe = 300
 }
 
 /// <summary>One Miner's Hut on a Mineshaft Entrance's Main tab.</summary>

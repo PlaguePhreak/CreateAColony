@@ -30,6 +30,10 @@ public class BlockColonyHut : Block, IWandPlaceable
         return false;
     }
 
+    /// <summary>The game's own placing, without the hut's "use the Builder's Wand" (for work stations, BlockWorkStation).</summary>
+    protected bool PlacePlainBlock(IWorldAccessor world, IPlayer byPlayer, BlockSelection blockSel, ItemStack byItemStack) =>
+        base.DoPlaceBlock(world, byPlayer, blockSel, byItemStack);
+
     public string? PlaceByWand(IServerPlayer player, BlockPos pos, int rotation)
     {
         var world = player.Entity.World;

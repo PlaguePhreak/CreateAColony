@@ -185,6 +185,7 @@ public partial class ColonyNetwork : ModSystem
             ColonyAction.SetPermadeath => SetPermadeath(colony, role, packet.Text == "1"),
             ColonyAction.SetSelfDefence or ColonyAction.SetSupportAllies => SetMilitia(colony, role, packet),
             ColonyAction.SetBailiffRule => SetBailiffRule(colony, role, packet.Text),
+            ColonyAction.SetTithe => SetTithe(colony, role, packet.Text),
             ColonyAction.HireRecruit => HireAction(player, colony, role, packet),
             ColonyAction.RemoveHut => RemoveHut(player, colony, role, packet),
             ColonyAction.LinkMineHut or ColonyAction.UnlinkMineHut => LinkMineAction(colony, role, packet),
@@ -271,6 +272,15 @@ public partial class ColonyNetwork : ModSystem
     }
 
     /// <summary>The Bailiff tab's rules; officers set them.</summary>
+    /// <summary>The share of wages settlers give the church (Church tab).</summary>
+    string? SetTithe(Colony colony, ColonyRole role, string text)
+    {
+        if (role < ColonyRole.Officer) return "createacolony:denied-officer";
+        if (!int.TryParse(text, out int percent)) return null;
+        Manager.SetTithe(colony, percent);
+        return null;
+    }
+
     static string? SetBailiffRule(Colony colony, ColonyRole role, string text)
     {
         if (role < ColonyRole.Officer) return "createacolony:denied-officer";
@@ -794,7 +804,7 @@ public partial class ColonyNetwork : ModSystem
             {
                 CitizenId = c.CitizenId,
                 Name = c.Name,
-                Job = c.JobCode ?? "",
+                Job = ColonyManager.JobLabel(c),
                 State = state,
                 FoodPercent = c.Saturation < 0 ? 100 : (int)(100 * c.Saturation / config.SaturationMax),
                 HasBed = c.HomeBedPos != null,
@@ -970,7 +980,7 @@ public partial class ColonyNetwork : ModSystem
             ColonyId = colony.ColonyId,
             CitizenId = citizen.CitizenId,
             Name = citizen.Name,
-            Job = citizen.JobCode ?? "",
+            Job = ColonyManager.JobLabel(citizen),
             State = !citizen.Alive ? "dead" : citizen.IsDowned ? "downed" : citizen.Visitor ? "visitor" : citizen.WaitingForRoom ? "waiting"
                 : citizen.Saturation >= 0 && citizen.Saturation < config.SaturationMax * config.EatBelowFraction ? "hungry" : "ok",
             FoodPercent = citizen.Saturation < 0 ? 100 : (int)(100 * citizen.Saturation / config.SaturationMax),
@@ -1017,7 +1027,9 @@ public partial class ColonyNetwork : ModSystem
             HungerRate = Manager.TraitMult(citizen, "hunger") * Manager.HungerPerkFor(colony.ColonyId, citizen),
             Purse = citizen.Purse,
             Wage = citizen.IsChild || citizen.Visitor ? 0 : Manager.WageOf(citizen.JobCode),
-            Unpaid = citizen.Unpaid
+            Unpaid = citizen.Unpaid,
+            Faith = citizen.Faith < 0 ? -1 : (int)System.Math.Round(citizen.Faith),
+            FaithWord = citizen.Faith < 0 ? "" : Manager.FaithWord(citizen.Faith)
         };
         if (Manager.Config.Happiness && citizen.Alive && !citizen.IsChild && !citizen.Visitor)
         {
@@ -1088,7 +1100,7 @@ public partial class ColonyNetwork : ModSystem
         }
         if (building.Type is BuildingTypes.Forester or BuildingTypes.Farmer or BuildingTypes.Potter or BuildingTypes.Cook
             or BuildingTypes.Prospector or BuildingTypes.Miner or BuildingTypes.Quarry
-            or BuildingTypes.Smelter or BuildingTypes.Blacksmith or BuildingTypes.Armourer or BuildingTypes.Weaponsmith or BuildingTypes.Sawmill or BuildingTypes.Craftsman or BuildingTypes.Tailor or BuildingTypes.Jeweller or BuildingTypes.Healer or BuildingTypes.Mint
+            or BuildingTypes.Smelter or BuildingTypes.Blacksmith or BuildingTypes.Armourer or BuildingTypes.Weaponsmith or BuildingTypes.Sawmill or BuildingTypes.Craftsman or BuildingTypes.Tailor or BuildingTypes.Jeweller or BuildingTypes.Healer or BuildingTypes.Mint or BuildingTypes.Church
             or BuildingTypes.Explorer or BuildingTypes.Gatherer or BuildingTypes.Hunter) snapshot.Info = Manager.WorkerHutInfo(colony, building);
         if (building.Type == BuildingTypes.Tavern)
         {
@@ -1176,6 +1188,12 @@ public partial class ColonyNetwork : ModSystem
                 one.StackSize = 1;
                 snapshot.KitchenOnHand.Add(new HutItemView { Stack = one.ToBytes(), Count = count });
             }
+        }
+        if (building.Type == BuildingTypes.Church) AddChurch(snapshot, colony, building);
+        if (building.IsStation)
+        {
+            snapshot.IsStation = true;
+            snapshot.HostName = Manager.HostOf(colony, building) is { } host ? ColonyManager.BuildingName(host) : "";
         }
         if (ColonyManager.CraftTabOf(building.Type) is { } craftTab) AddCraftRows(snapshot, colony, building, craftTab);
         if (Manager.HasHutRecipes(building.Type)) AddRecipeRows(snapshot, colony, building);

@@ -446,6 +446,167 @@ def realm_map(c):
     return c.finish(28)
 
 
+# ---- Church paintings (0.137.0): original scenes in the manner of old church art, which the clergy hang in the Church.
+
+SKIN = (206, 164, 124)
+GOLD = (226, 186, 84)
+HAIR = (78, 52, 34)
+
+
+def robed(c, x, base, h, robe, halo=None, veil=None, mantle=None):
+    """A standing figure in a long robe, seen from the front: robe, an optional mantle over one shoulder, head, halo."""
+    w = h * 0.3
+    top = base - h * 0.8
+    hy = base - h * 0.88
+    if halo:
+        c.circle(x, hy, h * 0.15, halo)
+    c.poly([(x - w * 0.45, top), (x + w * 0.45, top), (x + w, base), (x - w, base)], robe)
+    if mantle:
+        c.poly([(x - w * 0.5, top), (x + w * 0.1, top), (x + w * 0.4, base - h * 0.35), (x - w * 0.9, base - h * 0.1)], mantle)
+    if veil:
+        c.poly([(x - h * 0.13, hy - h * 0.1), (x + h * 0.13, hy - h * 0.1), (x + w * 0.5, top + h * 0.12), (x - w * 0.5, top + h * 0.12)], veil)
+    c.circle(x, hy - h * 0.015, h * 0.1, HAIR)
+    c.circle(x, hy + h * 0.01, h * 0.075, SKIN)
+
+
+def wings(c, x, y, span, fill, shade):
+    """A pair of angel's wings behind a figure's shoulders."""
+    for d in (-1, 1):
+        c.poly([(x, y), (x + d * span, y - span * 0.7), (x + d * span * 1.1, y + span * 0.1), (x + d * span * 0.4, y + span * 0.8)], fill)
+        c.line([(x + d * span * 0.3, y + span * 0.2), (x + d * span * 0.95, y - span * 0.4)], shade, 0.35)
+
+
+def angel(c, x, base, h, robe):
+    wings(c, x, base - h * 0.75, h * 0.45, (240, 236, 226), (196, 190, 180))
+    robed(c, x, base, h, robe, halo=GOLD)
+
+
+def cloud_bank(c, pts, light=(236, 232, 226), dark=(196, 188, 190)):
+    for (x, y, r) in pts:
+        c.circle(x, y + r * 0.25, r, dark)
+    for (x, y, r) in pts:
+        c.circle(x - r * 0.15, y, r * 0.85, light)
+
+
+def crucifixion(c):
+    c.vgrad((26, 22, 38), (128, 72, 46), 0, 46)
+    for r, col in [(14, (70, 46, 42)), (9, (104, 66, 46))]:
+        c.circle(16, 15, r, col)                                   # light behind the cross
+    c.ridge(48, 1.5, 0.4, (52, 42, 36))
+    c.vgrad((46, 36, 30), (24, 18, 16), 52, 64)
+    c.rect(15, 7, 17, 49, (46, 30, 22))                              # the cross
+    c.rect(6, 14, 26, 16.4, (46, 30, 22))
+    c.rect(13.5, 8.5, 18.5, 10.5, (226, 214, 180))                  # the title board
+    c.circle(16, 15.4, 2.7, GOLD)                                    # halo
+    c.line([(16, 17.4), (7.2, 15.4)], SKIN, 0.9)                     # arms
+    c.line([(16, 17.4), (24.8, 15.4)], SKIN, 0.9)
+    c.circle(16, 15.3, 1.7, HAIR)
+    c.circle(16, 15.8, 1.3, SKIN)
+    c.poly([(14.6, 17.2), (17.4, 17.2), (17, 25.5), (15, 25.5)], SKIN)
+    c.poly([(14.4, 25), (17.6, 25), (18, 28.5), (14, 28.5)], (232, 228, 214))  # loincloth
+    c.poly([(15.1, 28.5), (16.9, 28.5), (16.5, 37), (15.5, 37)], SKIN)
+    robed(c, 8, 58, 14, (52, 72, 138), halo=GOLD, veil=(40, 56, 112))      # mourners at the foot
+    robed(c, 24, 58, 14, (156, 44, 40), halo=GOLD, mantle=(84, 110, 60))
+    robed(c, 13, 59, 9, (120, 90, 120), veil=(90, 66, 92))
+    return c.finish(32)
+
+
+def walking_on_water(c):
+    c.vgrad((38, 46, 66), (108, 116, 126), 0, 18)
+    c.poly([(46, 0), (54, 0), (62, 18), (44, 18)], (126, 128, 120))   # light through the clouds
+    c.poly([(48, 0), (52, 0), (57, 18), (49, 18)], (168, 162, 128))
+    cloud_bank(c, [(6, 2, 5), (16, 3, 6), (26, 1, 5), (56, 2, 6), (63, 4, 5)], (70, 74, 88), (48, 52, 64))
+    c.vgrad((34, 56, 74), (16, 28, 42), 17, 32)
+    for i, x in enumerate(range(0, 64, 4)):
+        y = 19 + (i * 7) % 11
+        c.line([(x, y + 1), (x + 2, y), (x + 4, y + 1)], (92, 124, 140), 0.4)
+    c.poly([(3, 22), (23, 22), (20, 26.5), (6, 26.5)], (92, 60, 38))  # the boat
+    c.line([(13, 22), (14, 6)], (70, 48, 30), 0.6)
+    c.poly([(14.4, 7), (22, 19), (14.4, 19)], (206, 196, 164))
+    for x, col in [(6, (120, 60, 40)), (9, (60, 80, 120)), (17, (110, 100, 60)), (20, (90, 50, 70))]:
+        c.rect(x - 0.9, 19.5, x + 0.9, 22, col)
+        c.circle(x, 18.8, 0.9, SKIN)
+    robed(c, 41, 25, 14, (234, 230, 220), halo=GOLD, mantle=(160, 40, 44))   # walking on the water
+    c.line([(40, 15.5), (34.5, 18)], SKIN, 0.7)
+    robed(c, 31, 28, 9, (110, 84, 60))                                # Peter, sinking
+    c.line([(31.6, 21.5), (33.6, 18.6)], SKIN, 0.6)
+    c.vgrad((24, 42, 58), (16, 28, 42), 26, 32)
+    c.line([(26, 26), (30, 25), (34, 26), (38, 25.4), (44, 26)], (120, 150, 164), 0.5)
+    return c.finish(36)
+
+
+def beach_cross(c):
+    c.vgrad((56, 46, 96), (242, 152, 82), 0, 18)
+    c.circle(22, 17, 4.5, (255, 214, 130))
+    c.vgrad((206, 122, 82), (62, 60, 92), 18, 24)
+    for y in (19, 20.5, 22):
+        c.rect(19.5, y, 24.5, y + 0.5, (255, 200, 130))                # the sun on the water
+    c.vgrad((204, 172, 122), (156, 126, 88), 24, 32)
+    c.line([(0, 24.4), (8, 24), (18, 24.6), (32, 24.2)], (236, 228, 214), 0.5)   # the edge of a wave
+    c.poly([(10.5, 28), (11.5, 28), (30, 31), (26, 32)], (132, 104, 74))  # shadow
+    c.rect(9.5, 6, 11.5, 28.5, (48, 32, 24))                          # the cross
+    c.rect(5.5, 10, 15.5, 11.8, (48, 32, 24))
+    return c.finish(28)
+
+
+def triumph(c):
+    c.vgrad((252, 226, 150), (178, 118, 70), 0, 56)
+    for k in range(16):
+        a = k / 16 * 6.283
+        c.line([(32, 22), (32 + math.cos(a) * 44, 22 + math.sin(a) * 44)], (255, 236, 176), 0.8)   # rays
+    c.circle(32, 22, 10, (250, 214, 130))
+    cloud_bank(c, [(8, 48, 6), (18, 46, 7), (30, 47, 8), (42, 46, 7), (54, 48, 6), (62, 50, 5), (2, 50, 5)])
+    cloud_bank(c, [(24, 38, 4), (32, 37, 5), (40, 38, 4)])
+    robed(c, 32, 40, 20, (170, 40, 40), halo=GOLD, mantle=(48, 70, 140))     # Christ in glory
+    c.line([(38, 16), (38, 44)], GOLD, 0.6)                                  # the cross-staff and banner
+    c.line([(36.5, 18), (39.5, 18)], GOLD, 0.6)
+    c.poly([(38.3, 20), (46, 21), (44.5, 24), (46, 27), (38.3, 26)], (240, 236, 226))
+    c.rect(41, 21.4, 42, 25.6, (190, 40, 40))
+    c.rect(39.5, 23, 44, 24, (190, 40, 40))
+    angel(c, 13, 30, 12, (70, 110, 170))
+    angel(c, 51, 30, 12, (120, 150, 90))
+    angel(c, 8, 44, 10, (200, 120, 130))
+    angel(c, 56, 44, 10, (226, 210, 160))
+    for x0, d in ((16, 1), (48, -1)):
+        c.line([(x0, 20.5), (x0 + d * 6, 17)], GOLD, 0.5)                    # trumpets
+    c.vgrad((60, 70, 50), (30, 34, 26), 56, 64)
+    for x in range(6, 60, 7):
+        c.rect(x, 58, x + 1.4, 62, (24, 26, 22))                              # people looking up
+        c.circle(x + 0.7, 57.4, 0.9, (24, 26, 22))
+    return c.finish(44)
+
+
+def heaven_ceiling(c):
+    c.vgrad((120, 88, 56), (96, 68, 44))                                     # carved frame
+    c.rect(2, 2, 62, 62, (150, 112, 62))
+    c.rect(3, 3, 61, 61, (88, 62, 40))
+    for (x, y) in [(5, 5), (59, 5), (5, 59), (59, 59)]:
+        c.circle(x, y, 3, GOLD)
+        c.circle(x, y, 1.6, (150, 112, 62))
+    for k in range(9):
+        t = k / 8
+        c.ellipse(6 + t * 18, 6 + t * 18, 58 - t * 18, 58 - t * 18, lerp((70, 110, 176), (255, 242, 196), t))
+    ring = []
+    for k in range(14):
+        a = k / 14 * 6.283
+        ring.append((32 + math.cos(a) * 21, 32 + math.sin(a) * 21, 4.2))
+    cloud_bank(c, ring)
+    for k in range(7):                                                       # cherubs on the clouds
+        a = k / 7 * 6.283 + 0.4
+        x, y = 32 + math.cos(a) * 19, 32 + math.sin(a) * 19
+        wings(c, x, y, 2, (246, 242, 232), (200, 194, 184))
+        c.circle(x, y, 1.6, SKIN)
+    for x, col in [(24, (160, 44, 44)), (32, (52, 74, 144)), (40, (226, 210, 160))]:   # saints on the lower clouds
+        robed(c, x, 55, 9, col, halo=GOLD)
+    for k in range(12):
+        a = k / 12 * 6.283
+        c.line([(32, 30), (32 + math.cos(a) * 10, 30 + math.sin(a) * 10)], GOLD, 0.6)
+    c.circle(32, 30, 6, (236, 196, 96))
+    c.poly([(32, 27), (34.5, 29.5), (39, 28), (35, 31.5), (32, 34), (29, 31.5), (25, 28), (29.5, 29.5)], (252, 252, 248))  # the dove
+    c.circle(32, 28, 1.1, (252, 252, 248))
+    return c.finish(44)
+
+
 def blank(c):
     """Plain linen, ready for dyes."""
     c.vgrad((226, 218, 196), (212, 202, 178))
@@ -472,7 +633,16 @@ PAINTINGS = [
     ("hillcastle", "Castle on the Hill", 2, 2, hill_castle),
     ("winterhunt", "Winter Hunt", 2, 2, winter_hunt),
     ("realmmap", "Map of the Realm", 2, 2, realm_map),
+    # Church paintings: only the clergy hang these, in the Church (RELIGIOUS below).
+    ("beachcross", "Cross at Sunset", 1, 1, beach_cross),
+    ("walkingonwater", "Walking on the Water", 2, 1, walking_on_water),
+    ("crucifixion", "The Crucifixion", 1, 2, crucifixion),
+    ("triumph", "Christ in Glory", 2, 2, triumph),
+    ("heavenceiling", "The Heavens Opened", 2, 2, heaven_ceiling),
 ]
+
+# Paintings with the "religious" attribute: the clergy hang them in the Church and settlers leave them be.
+RELIGIOUS = {"beachcross", "walkingonwater", "crucifixion", "triumph", "heavenceiling"}
 
 
 # The buckets of dye around a blank canvas that make each picture, in the order they go into the grid
@@ -495,6 +665,11 @@ DYES = {
     "hillcastle": ["blue", "white", "gray", "green", "red", "brown"],
     "winterhunt": ["white", "gray", "black", "brown", "red", "blue", "green"],
     "realmmap": ["yellow", "brown", "blue", "red", "green", "black", "white", "orange"],
+    "beachcross": ["orange", "brown", "black"],
+    "walkingonwater": ["blue", "white", "gray", "yellow"],
+    "crucifixion": ["black", "brown", "red", "yellow"],
+    "triumph": ["yellow", "white", "red", "blue", "green", "orange"],
+    "heavenceiling": ["blue", "yellow", "white", "brown", "red", "purple"],
 }
 
 
@@ -596,7 +771,8 @@ def shape(w, h):
 def blocktype(paintings):
     by_type = lambda make: {f"*-{c}-{side}": make(w, h, angle) for c, _, w, h, _ in paintings for side, angle in SIDES}
     by_art = lambda make: {f"*-{c}-*": make(w, h) for c, _, w, h, _ in paintings}
-    attrs = {f"*-{c}-*": dict({"paintingSize": SIZES[(w, h)]}, **({"dyes": DYES[c]} if c in DYES else {}))
+    attrs = {f"*-{c}-*": dict({"paintingSize": SIZES[(w, h)]}, **({"dyes": DYES[c]} if c in DYES else {}),
+                              **({"religious": True} if c in RELIGIOUS else {}))
              for c, _, w, h, _ in paintings}
     sel = lambda w, h, angle: {"x1": 0.03, "y1": 0.03, "z1": 0, "x2": w - 0.03, "y2": h - 0.03, "z2": 0.09, "rotateY": angle}
     gui = lambda w, h: {"rotation": {"x": -8, "y": 200, "z": 0}, "origin": {"x": w / 2, "y": h / 2, "z": 0.05},

@@ -1,0 +1,32 @@
+{
+	"code": "workstation-healer",
+	"class": "BlockWorkStation",
+	"entityClass": "ColonyHut",
+	"attributes": {
+		"buildingType": "healer",
+		// A work station: it goes inside a Church's zone and uses the Church's storage, plus these few slots.
+		"defaultType": "hut",
+		"inventoryClassName": "colonyhut",
+		"quantitySlots": { "hut": 9 },
+		"quantityColumns": { "hut": 3 },
+		"dialogTitleLangCode": { "hut": "createacolony:hut-storage" }
+	},
+	"creativeinventory": { "general": ["*"], "vintagecolonies": ["*"] },
+	"blockmaterial": "Wood",
+	"drawtype": "json",
+	// The Healer's Station. Simple placeholder model: a small table with a red cross cloth, a bandage roll and a jar.
+	"shape": { "base": "createacolony:block/workstation-healer" },
+	"textures": {
+		"planks": { "base": "game:block/wood/planks/aged1" },
+		"cross": { "base": "game:block/cloth/linen/red" },
+		"roll": { "base": "game:block/wood/debarked/aged" },
+		"jar": { "base": "game:block/metal/ingot/iron" },
+		"cloth": { "base": "game:block/wood/table/aged/top" }
+	},
+	"sideopaque": { "all": false },
+	"sidesolid": { "all": false },
+	"emitSideAo": { "all": false },
+	"lightAbsorption": 0,
+	"resistance": 2,
+	"sounds": { "place": "game:block/planks", "break": "game:block/planks", "hit": "game:block/planks" }
+}

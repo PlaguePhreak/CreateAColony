@@ -109,6 +109,12 @@ public partial class ColonyManager
             ba.SpawnBlockEntity(entityClass, hut);
             if (ba.GetBlockEntity(hut) is BlockEntityContainer added) yield return added;
         }
+        // A work station uses its host's storage (ColonyManager.Stations.cs).
+        if (building.IsStation)
+        {
+            if (HostOf(colony, building) is { } host) foreach (var c in HutStorage(colony, host)) yield return c;
+            yield break;
+        }
         foreach (var pos in StorageSpots(colony, building))
         {
             if (ba.GetBlockEntity(pos) is BlockEntityContainer c && IsStorageVessel(c)) yield return c;
@@ -167,6 +173,7 @@ public partial class ColonyManager
         if (building.HasWorkOrder) return "createacolony:build-already";
         if (building.Removing) return "createacolony:remove-already";
         if (building.Type == BuildingTypes.MineshaftEntrance) return StartEntrance(colony, building);
+        if (building.IsStation) return "createacolony:station-no-levels";
         int next = building.Level + 1;
         if (Blueprints.Get(building, next) == null) return "createacolony:build-no-blueprint";
 

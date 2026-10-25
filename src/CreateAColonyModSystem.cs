@@ -53,6 +53,7 @@ public class CreateAColonyModSystem : ModSystem
         api.RegisterBlockClass("BlockWarehouse", typeof(BlockWarehouse));
         api.RegisterBlockClass("BlockDropOff", typeof(BlockDropOff));
         api.RegisterBlockClass("BlockColonyHut", typeof(BlockColonyHut));
+        api.RegisterBlockClass("BlockWorkStation", typeof(BlockWorkStation));
         api.RegisterBlockEntityClass("ColonyHut", typeof(BlockEntityColonyHut));
         api.RegisterBlockClass("BlockFieldMarker", typeof(BlockFieldMarker));
         api.RegisterBlockClass("BlockPainting", typeof(BlockPainting));
@@ -81,6 +82,8 @@ public class CreateAColonyModSystem : ModSystem
         AiTaskRegistry.Register<AiTaskSettlerJeweller>("settlerjeweller");
         AiTaskRegistry.Register<AiTaskSettlerMinter>("settlerminter");
         AiTaskRegistry.Register<AiTaskSettlerHealer>("settlerhealer");
+        AiTaskRegistry.Register<AiTaskSettlerPriest>("settlerpriest");
+        AiTaskRegistry.Register<AiTaskSettlerWorship>("settlerworship");
         AiTaskRegistry.Register<AiTaskSettlerRecover>("settlerrecover");
         AiTaskRegistry.Register<AiTaskSettlerFirefight>("settlerfirefight");
         AiTaskRegistry.Register<AiTaskSettlerExplorer>("settlerexplorer");

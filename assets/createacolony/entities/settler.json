@@ -63,6 +63,8 @@
 					{ "code": "settlereat", "animation": "walk", "priority": 1.5, "movespeed": 0.02 },
 					// Now and then: put up a painting, rack or shelf at home (any settler near home), see AiTaskSettlerDecorate.
 					{ "code": "settlerdecorate", "animation": "walk", "priority": 1.3, "movespeed": 0.02 },
+					// On a service day: go to the Church for the service (AiTaskSettlerWorship).
+					{ "code": "settlerworship", "animation": "walk", "priority": 1.28, "movespeed": 0.02 },
 					// Settlers without a job: look after their home first, then help with hauling (settlercourier).
 					{ "code": "settlerchores", "animation": "walk", "priority": 1.25, "movespeed": 0.02 },
 					{ "code": "settlercourier", "animation": "walk", "priority": 1.2, "movespeed": 0.022 },
@@ -85,6 +87,7 @@
 					{ "code": "settlerjeweller", "animation": "walk", "priority": 1.2, "movespeed": 0.02 },
 					{ "code": "settlerminter", "animation": "walk", "priority": 1.2, "movespeed": 0.02 },
 					{ "code": "settlerhealer", "animation": "walk", "priority": 1.2, "movespeed": 0.022 },
+					{ "code": "settlerpriest", "animation": "walk", "priority": 1.2, "movespeed": 0.018 },
 					{ "code": "settlerexplorer", "animation": "walk", "priority": 1.2, "movespeed": 0.022 },
 					{ "code": "settlergatherer", "animation": "walk", "priority": 1.2, "movespeed": 0.02 },
 					{ "code": "settlerhunter", "animation": "walk", "priority": 1.2, "movespeed": 0.025 },

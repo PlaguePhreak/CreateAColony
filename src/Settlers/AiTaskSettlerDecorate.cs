@@ -50,9 +50,12 @@ public class AiTaskSettlerDecorate : SettlerTaskBase
     {
         if (Colony is not { } colony || Citizen is not { } citizen || !manager!.Config.SettlersDecorate) return false;
         if (!citizen.Alive || citizen.Visitor || citizen.IsChild || citizen.IsDowned || manager.IsBrokenDown(citizen)) return false;
+        // The clergy lead the service through its hours.
+        if (citizen.JobCode == Jobs.Priest && manager.IsServiceTime(out _)) return false;
         // Halfway through a delivery it is helping with: that comes first.
         if (colony.Requests.Exists(r => r.LeasedByCitizenId == citizen.CitizenId)) return false;
-        if (manager.HomeOf(colony, citizen) is not { } home || home.HasWorkOrder || home.Removing) return false;
+        // The clergy decorate their Church instead of their home: they hang its paintings.
+        if (manager.DecorPlaceOf(colony, citizen) is not { } home || home.HasWorkOrder || home.Removing) return false;
         var h = home.HutPos;
         if (entity.Pos.XYZ.SquareDistanceTo(h.X, h.Y, h.Z) > manager.Config.DecorRange * manager.Config.DecorRange) return false;
         if (manager.PackFull(citizen)) return false;
@@ -140,11 +143,11 @@ public class AiTaskSettlerDecorate : SettlerTaskBase
         switch (step)
         {
             case Step.FetchMount:
-                if (!Take(colony, citizen, s => ColonyManager.IsDecorMount(p.Kind, s), 1)) return Leave();
+                if (!Take(colony, citizen, s => ColonyManager.IsDecorMountFor(home, p.Kind, s), 1)) return Leave();
                 break;
             case Step.FetchContent:
                 // Without what goes on it, a new rack still goes up empty; filling one that is up needs it.
-                if (!Take(colony, citizen, s => ColonyManager.IsDecorContent(p.Kind, s), p.Want) && p.Fill) return Leave();
+                if (!Take(colony, citizen, s => ColonyManager.IsDecorContentFor(home, p.Kind, s), p.Want) && p.Fill) return Leave();
                 break;
             case Step.Hang:
                 if (workAnim == null)

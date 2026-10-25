@@ -226,6 +226,18 @@ These work well with Vintage Colonies. Install them separately.
 - **C&N Jewelry Adornments** (KenigVovan): more jewellery for the Jeweller to make and settlers to wear for Happiness.
 - **Smithing Plus** (jayu): smith with metal bits, repair tool heads on the anvil and other smithing tweaks. Our smiths still use the game's anvil and recipes beside it; not tested together in game yet.
 
+## Church, religion and work stations (0.137.0)
+- A new hut, the **Church** (Education), and a new job, the **Priest**. At Church level 3 one priest can be made the **Bishop** (Manage workers, click their role). Level 4 takes a second priest. The Church has no buildings yet, so build your own around the block.
+- Every settler has **Faith**, shown on their Stats tab: devout, faithful, doubting or faithless.
+- **Services** every 7 days at 9:00 for 2 hours (`ChurchServiceEveryDays`, `ChurchServiceHour`, `ChurchServiceHours`). Settlers with some Faith walk to the Church and stand facing the block while the priest leads. Going gives a "Went to church" thought, raises Faith, and gives +15% skill XP for a day (`ServiceLearnBoost`). There is a 0.1% to 0.5% chance (more with more Faith) of a free level in a random skill. Devout settlers who miss one are unhappy.
+- **Tithe**: 0, 5 or 10% of each wage goes to the church on payday (Church tab). Doubting settlers give half, faithless a quarter. At 10% settlers with little Faith grumble.
+- **Charity**: if the colony has no food, the church spends coins on bread and apples for the hungry. It buys bandages for the Healer's Station, pays weekly for orphans and for settlers sleeping in beds inside the Church (beds there are given out last), and they feel looked after.
+- **Funerals**: the priest holds one at the grave of anyone who died in the last 10 days. Family and friends grieve less.
+- **Records**: put blank books and an ink and quill in the Church's storage. After 8 new events the priest writes them into a book, signed, and puts it in the Church's storage.
+- **Church paintings**: 5 new original paintings (Cross at Sunset, Walking on the Water, The Crucifixion, Christ in Glory, The Heavens Opened), made from a blank canvas and dyes like the others. Put them in the Church or the warehouse and the priest hangs them on the Church walls. Settlers do not take them home.
+- **Work stations**: a new kind of block with no building of its own. It goes inside another building's build zone and adds a job there. The first is the **Healer's Station**, which replaces the Healer's Hut and only goes inside a Church. It uses the Church's storage and the Church's level. Old Healer's Huts still work but can no longer be made.
+- The Church tab shows Faith, the next service, the tithe, coins, orphans, funerals waiting and the last 30 days of spending.
+
 ## Royal Mint, taxes and wages (0.136.0)
 - A new hut, the **Royal Mint** (Craftsmanship), and a new job, the **Minter**. The minter strikes copper coins with a hammer: 1 copper ingot makes 10 coins. Set how many to keep on its Crafting recipes tab; a new Mint keeps 100 (`MintStartKeep`). You can strike coins by hand too.
 - The **treasury** is the coins in the Mint, the Town Hall's chests and the warehouse.

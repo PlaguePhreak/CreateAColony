@@ -13,7 +13,7 @@ public partial class ColonyNetwork
         CitizenId = c.CitizenId,
         Name = c.Name,
         Relation = relation.Length == 0 ? "" : Lang.Get("createacolony:relation-" + relation),
-        Job = c.JobCode ?? "",
+        Job = ColonyManager.JobLabel(c),
         Child = c.IsChild,
         GrowsUpHours = Manager.HoursToGrowUp(c),
         Alive = c.Alive

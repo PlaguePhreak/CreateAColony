@@ -11,7 +11,8 @@
 		"quantityColumns": { "hut": 5 },
 		"dialogTitleLangCode": { "hut": "createacolony:hut-storage" }
 	},
-	"creativeinventory": { "general": ["*"], "vintagecolonies": ["*"] },
+	// Replaced by the Healer's Station in 0.137.0; kept so huts already placed still load. Not in the creative menu and no recipe.
+	"creativeinventory": {},
 	"blockmaterial": "Wood",
 	"drawtype": "json",
 	// The seed of the Healer's Hut. Simple placeholder model: a crate with a red cross, a rolled bandage and a jar.

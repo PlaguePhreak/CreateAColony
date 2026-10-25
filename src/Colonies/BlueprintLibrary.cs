@@ -211,7 +211,7 @@ public class BlueprintLibrary
         variants.Clear();
     }
 
-    public int MaxLevel(Building building) => MaxLevel(StyleFor(building), building.Type, building.Variant);
+    public int MaxLevel(Building building) => building.IsStation ? 0 : MaxLevel(StyleFor(building), building.Type, building.Variant);
 
     /// <summary>
     /// The style a building's blueprints come from: always its own asset pack. When that pack has no design for
@@ -237,7 +237,8 @@ public class BlueprintLibrary
     }
 
     /// <summary>The building's blueprint for a level, in its own style, variant and turn.</summary>
-    public Blueprint? Get(Building building, int level) => Get(StyleFor(building), building.Type, level, building.Rotation, building.Variant);
+    /// <summary>A work station never has one: it is only its block.</summary>
+    public Blueprint? Get(Building building, int level) => building.IsStation ? null : Get(StyleFor(building), building.Type, level, building.Rotation, building.Variant);
 
     string? FindJson(string style, string type, string variant, int level)
     {
@@ -892,7 +893,10 @@ public static class BuildingTypes
     public const string Craftsman = "craftsman";
     public const string Tailor = "tailor";
     public const string Jeweller = "jeweller";
+    /// <summary>Since 0.137.0 a work station inside a Church (ColonyManager.Stations.cs); older saves may still have a Healer's Hut.</summary>
     public const string Healer = "healer";
+    /// <summary>The Church: its priests and bishop hold services and funerals, take tithes and run the colony's charity (ColonyManager.Church.cs).</summary>
+    public const string Church = "church";
     /// <summary>The Royal Mint: a minter strikes the colony's coins (ColonyManager.Economy.cs).</summary>
     public const string Mint = "mint";
     public const string Explorer = "explorer";

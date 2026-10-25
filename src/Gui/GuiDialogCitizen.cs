@@ -228,6 +228,8 @@ public class GuiDialogCitizen : GuiDialog
             composer.AddHoverText(Lang.Get("createacolony:mood-hover") + "\n" + thoughts, CairoFont.WhiteDetailText(), 300, ElementBounds.Fixed(x, moodTop, width, y - moodTop));
             if (snapshot.BreakdownHours > 0) y = composer.Text(Lang.Get("createacolony:mood-breakdown-now", snapshot.BreakdownHours), GuiKit.Detail().WithColor(GuiKit.WarnColor), x, y, width);
         }
+        if (snapshot.Faith >= 0 && snapshot.FaithWord.Length > 0)
+            y = Row(Lang.Get("createacolony:citizen-faith"), Lang.Get("createacolony:faith-value", snapshot.Faith, Lang.Get("createacolony:faith-" + snapshot.FaithWord)), x, y);
         if (!float.IsNaN(snapshot.Temperature)) y = Row(Lang.Get("createacolony:citizen-temperature"), Lang.Get("createacolony:citizen-temperature-value", (int)Math.Round(snapshot.Temperature)), x, y);
         if (snapshot.Wetness > 0.1f)
         {

@@ -164,7 +164,7 @@ public partial class ColonyManager
     {
         if (!Config.HutsMakeForOthers) return null;
         var match = Matcher(request.ItemCode);
-        foreach (var hut in colony.Buildings.Where(b => IsWorkerHut(b.Type) && HasOwnStorage(b.Type) && RequestTag(b) != request.RequestedBy))
+        foreach (var hut in colony.Buildings.Where(b => IsWorkerHut(b.Type) && HasOwnStorage(b.Type) && !b.IsStation && RequestTag(b) != request.RequestedBy))
         {
             var storage = HutStorage(colony, hut).ToList();
             if (storage.Any(c => c.Pos.Equals(request.DestPos))) continue;

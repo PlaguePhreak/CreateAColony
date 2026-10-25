@@ -144,6 +144,14 @@ public class CitizenRecord
     /// <summary>The bandage or poultice the settler carries for when it gets hurt, kept apart from its inventory so it is never hauled off.</summary>
     [ProtoMember(280)] public byte[]? FirstAid;
 
+    // 300-319: the church and religion (ColonyManager.Church.cs).
+    /// <summary>How strongly the settler believes, 0 to 100; -1 until rolled.</summary>
+    [ProtoMember(300, IsRequired = true)] public float Faith = -1f;
+    /// <summary>The in-game day of the last church service they went to; -1 for never.</summary>
+    [ProtoMember(301, IsRequired = true)] public int LastServiceDay = -1;
+    /// <summary>After a service they learn faster until this time (total days).</summary>
+    [ProtoMember(302)] public double LearnBoostUntilTotalDays;
+
     public bool IsDowned => DownedUntilTotalDays > 0;
     public bool IsChild => GrowsUpTotalDays > 0;
 }
@@ -308,6 +316,12 @@ public class Building
     [ProtoMember(160)] public List<string> CollectOff = new();
     /// <summary>A hut's Crafting recipes tab: how many of each thing its worker keeps crafted, by item code (ColonyManager.HutRecipes.cs). Empty is nothing.</summary>
     [ProtoMember(170)] public Dictionary<string, int> RecipeKeep = new();
+    /// <summary>
+    /// A work station (ColonyManager.Stations.cs): the building whose zone it stands in, by BuildingId. 0 for an
+    /// ordinary hut. A station has no blueprint or zone of its own; its worker uses the host's storage.
+    /// </summary>
+    [ProtoMember(300)] public int HostId;
+    public bool IsStation => HostId != 0;
 
     public bool HasWorkOrder => TargetLevel > Level || ((Upkeep || Repairing) && Level > 0 && TargetLevel == Level);
     /// <summary>The work order is upkeep of the finished building: digging out ground that got in and filling gaps under it (ColonyManager.Foundations.cs).</summary>
@@ -387,6 +401,14 @@ public static class ProspectorRoles
     public const int Find = 0;
     /// <summary>Goes to the best readings with a pickaxe and digs the ore out, as a Miner's Hut's miner does.</summary>
     public const int Mine = 1;
+}
+
+/// <summary>What each of a Church's clergy is (CitizenRecord.WorkRole, job Priest).</summary>
+public static class ChurchRoles
+{
+    public const int Priest = 0;
+    /// <summary>One per colony, at a Church of level ChurchBishopLevel or more: stronger services.</summary>
+    public const int Bishop = 1;
 }
 
 /// <summary>What a Guard Tower's guards do.</summary>
@@ -478,6 +500,27 @@ public class LedgerDay
     /// <summary>Coins paid out in wages that day, and how many settlers went without their full wage.</summary>
     [ProtoMember(8)] public int Wages;
     [ProtoMember(9)] public int Unpaid;
+}
+
+/// <summary>One day of the church's ledger: tithes in, and what the church spent on charity (in coins).</summary>
+[ProtoContract]
+public class ChurchDay
+{
+    [ProtoMember(1)] public int Day;
+    [ProtoMember(2)] public int Tithes;
+    /// <summary>Coins spent on food for the hungry, and how many meals that bought.</summary>
+    [ProtoMember(3)] public int FoodCoins;
+    [ProtoMember(4)] public int Meals;
+    /// <summary>Coins spent on bandages for the Healer's Station, and how many.</summary>
+    [ProtoMember(5)] public int BandageCoins;
+    [ProtoMember(6)] public int Bandages;
+    /// <summary>Coins spent caring for orphans and on the poorhouse beds.</summary>
+    [ProtoMember(7)] public int CareCoins;
+    /// <summary>Settlers at that day's service, and funerals held.</summary>
+    [ProtoMember(8)] public int Attended;
+    [ProtoMember(9)] public int Funerals;
+    /// <summary>Chronicle books written.</summary>
+    [ProtoMember(10)] public int Books;
 }
 
 /// <summary>One line of the Town Hall's event log: a lang key and its arguments, filled in by the reader's own language.</summary>
@@ -738,6 +781,17 @@ public class Colony
     [ProtoMember(117, IsRequired = true)] public bool BailiffPaysWages = true;
     [ProtoMember(118, IsRequired = true)] public int TaxPercent = 10;
     [ProtoMember(119, IsRequired = true)] public int LastPayMonth = -1;
+    // 300-319: the church (ColonyManager.Church.cs).
+    /// <summary>The share of every wage settlers give the church, in percent (0, 5 or 10).</summary>
+    [ProtoMember(300, IsRequired = true)] public int TithePercent = 10;
+    /// <summary>The church's ledger, one line per in-game day, oldest first; the newest ColonyManager.ChurchLedgerDays kept.</summary>
+    [ProtoMember(301)] public List<ChurchDay> ChurchLedger = new();
+    /// <summary>The last service day whose service was settled (mood, faith, learning); -1 until the first.</summary>
+    [ProtoMember(302, IsRequired = true)] public int LastServiceDay = -1;
+    /// <summary>When the priest last wrote the colony's events into a chronicle (total days); events after it go in the next book.</summary>
+    [ProtoMember(303)] public double LastChronicleTotalDays;
+    /// <summary>When the church last paid for the poorhouse and the orphans (in-game day); -1 until the first.</summary>
+    [ProtoMember(304, IsRequired = true)] public int LastAlmsDay = -1;
     /// <summary>Houses of traders who joined the colony, for a builder to take down (ColonyManager.Traders.cs).</summary>
     [ProtoMember(240)] public List<TeardownOrder> Teardowns = new();
     [ProtoMember(241, IsRequired = true)] public int NextTeardownId = 1;

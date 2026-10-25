@@ -741,7 +741,7 @@ public class GuiDialogTownHall : GuiDialog
             else if (Officer && c.State != "dead")
             {
                 int citizenId = c.CitizenId;
-                int selected = Math.Max(0, Array.IndexOf(jobCodes, c.Job));
+                int selected = Math.Max(0, Array.IndexOf(jobCodes, c.Job == "bishop" ? Jobs.Priest : c.Job));
                 composer.AddDropDown(jobCodes, jobNames, selected, (code, on) => OnSetJob(citizenId, code),
                     ElementBounds.Fixed(340, y + 2, 145, 28), "job-" + citizenId);
                 if (c.State != "downed")

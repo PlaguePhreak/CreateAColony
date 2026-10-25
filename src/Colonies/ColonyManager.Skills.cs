@@ -113,7 +113,7 @@ public partial class ColonyManager
     public void AddSkillXp(Colony colony, CitizenRecord c, string code, int amount)
     {
         if (!Config.Skills || amount <= 0 || !c.Alive || c.IsChild || Skill(code) == null || IsIncapable(c, code)) return;
-        double scaled = amount * Math.Max(0, Config.SkillXpMultiplier) * PassionXpFactor(c, code) * TraitMult(c, "learning") * MoodLearnFactor(c);
+        double scaled = amount * Math.Max(0, Config.SkillXpMultiplier) * PassionXpFactor(c, code) * TraitMult(c, "learning") * MoodLearnFactor(c) * ChurchLearnFactor(c);
         // The daily soft cap: past SkillDailyCap a skill only gets SkillOverCapFactor of the XP.
         int today = (int)sapi.World.Calendar.TotalDays;
         if (c.SkillXpDay != today)

@@ -145,7 +145,7 @@ public partial class ColonyNetwork
             var skill = Manager.Config.Skills ? Manager.SkillForJob(snapshot.Job) : null;
             CitizenView View(CitizenRecord c) => new()
             {
-                CitizenId = c.CitizenId, Name = c.Name, Job = c.JobCode ?? "",
+                CitizenId = c.CitizenId, Name = c.Name, Job = ColonyManager.JobLabel(c),
                 Skill = skill?.Code ?? "", SkillLevel = skill == null ? 0 : Manager.SkillLevel(c, skill.Code),
                 JobTrait = Manager.JobTraitFor(c, snapshot.Job).Length > 0,
                 Passion = skill == null ? 0 : Manager.Passion(c, skill.Code),

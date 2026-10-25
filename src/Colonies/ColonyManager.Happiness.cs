@@ -32,7 +32,12 @@ public partial class ColonyManager
         ["familydeath"] = (-20, 144),
         ["catharsis"] = (20, 24),
         ["decorated"] = (5, 48),
-        ["payday"] = (3, 24)
+        ["payday"] = (3, 24),
+        // The church (ColonyManager.Church.cs): a service (more when the bishop leads it), a missed one, a funeral.
+        ["service"] = (8, 24),
+        ["missedservice"] = (-4, 48),
+        ["funeral"] = (4, 24),
+        ["alms"] = (5, 24)
     };
 
     /// <summary>Mood bands from the top: the lowest happiness each starts at, and the word for it.</summary>
@@ -124,6 +129,7 @@ public partial class ColonyManager
         Standing("bailiff", BailiffMoodFor(colony, c));
         // Taxes and unpaid wages (ColonyManager.Economy.cs).
         MoneyThoughts(colony, c, Standing);
+        ChurchThoughts(colony, c, Standing);
         // In rags, cold, wearing jewellery (ColonyManager.Clothing.cs).
         ClothesThoughts(c, Standing);
         // Sanguine and Melancholic.

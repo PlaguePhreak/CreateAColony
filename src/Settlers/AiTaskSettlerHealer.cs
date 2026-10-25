@@ -11,7 +11,7 @@ using ItemMatch = System.Func<Vintagestory.API.Common.ItemStack, bool>;
 namespace CreateAColony.Settlers;
 
 /// <summary>
-/// A healer works from a Healer's Hut. It makes the game's bandages (and poultices) set on the hut's Crafting
+/// A healer works from a Healer's Station in a Church (since 0.137.0; older saves may still have a Healer's Hut), using the Church's storage. It makes the game's bandages (and poultices) set on the hut's Crafting
 /// recipes tab, and keeps them at the hut. Settlers take one each as first aid. When a settler lies in bed to
 /// recover, the healer takes a bandage from the hut, walks to the bed and treats them, which heals more than
 /// treating oneself (config HealerHealBonus). Treating comes before crafting.
@@ -44,6 +44,12 @@ public class AiTaskSettlerHealer : AiTaskSettlerWorker
     {
         var m = manager!;
         patientId = 0;
+        // A station whose Church was taken away has nowhere to work from.
+        if (hut.IsStation && m.HostOf(colony, hut) == null)
+        {
+            SetStatus("station-no-host");
+            return false;
+        }
         if (m.NextPatient(colony, hut, citizen) is { } patient && m.Recovering.TryGetValue(patient.CitizenId, out var rest) && !IsUnreachable(rest.Bed))
         {
             if (m.PackCount(citizen, m.IsHealingItem) > 0)

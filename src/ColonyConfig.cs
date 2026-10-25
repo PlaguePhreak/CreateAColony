@@ -799,6 +799,7 @@ public class ColonyConfig
         ["weaponsmith"] = 8,
         ["jeweller"] = 8,
         ["minter"] = 6,
+        ["priest"] = 5,
         ["bailiff"] = 10
     };
     public int WageDefault = 5;
@@ -808,6 +809,54 @@ public class ColonyConfig
     public float TaxMoodPerPercent = 0.2f;
     /// <summary>Mood points a settler has until payday when their last wage was not paid in full.</summary>
     public int UnpaidMood = -4;
+
+    // The church and religion (ColonyManager.Church.cs)
+    /// <summary>A church service is held every this many in-game days, starting at ChurchServiceHour for ChurchServiceHours.</summary>
+    public int ChurchServiceEveryDays = 7;
+    public float ChurchServiceHour = 9f;
+    public float ChurchServiceHours = 2f;
+    /// <summary>Settlers with less Faith than this stay away from services, and are not sad to miss them.</summary>
+    public float FaithAttendsAt = 15f;
+    /// <summary>Settlers with at least this much Faith are devout: they are unhappy when they miss a service.</summary>
+    public float FaithDevoutAt = 70f;
+    /// <summary>Faith a service gives; the clergy's Theology adds up to half again, a bishop leading it half again more.</summary>
+    public float ServiceFaithGain = 3f;
+    public float BishopServiceFactor = 1.5f;
+    /// <summary>Faith a devout settler loses for each service missed.</summary>
+    public float MissedServiceFaithLoss = 1f;
+    /// <summary>For this many days after a service, a settler learns skills this much faster.</summary>
+    public double ServiceLearnDays = 1;
+    public float ServiceLearnBoost = 0.15f;
+    /// <summary>The chance of a level in a random skill from a service: the first with no Faith, the second with full Faith.</summary>
+    public double ServiceLevelChanceMin = 0.001;
+    public double ServiceLevelChanceMax = 0.005;
+    /// <summary>The priest holds a funeral for settlers who died within this many days; grief then fades this much faster.</summary>
+    public double FuneralWithinDays = 10;
+    public float FuneralGriefFactor = 0.5f;
+    /// <summary>Seconds the priest takes over a funeral, and over writing a chronicle.</summary>
+    public float FuneralSeconds = 20f;
+    public float ChronicleSeconds = 30f;
+    /// <summary>The priest writes the colony's events into a book once at least this many have happened since the last one.</summary>
+    public int ChronicleMinEvents = 8;
+    /// <summary>The share of a wage a settler gives the church for its Faith: devout and faithful, doubting, faithless.</summary>
+    public float TitheShareFaithful = 1f;
+    public float TitheShareDoubting = 0.5f;
+    public float TitheShareFaithless = 0.25f;
+    /// <summary>Mood points a settler with little Faith loses while the tithe is this high or higher.</summary>
+    public int TitheGrumbleAtPercent = 10;
+    public int TitheGrumbleMood = -2;
+    /// <summary>Charity: what a meal (two of CharityFoods) and a bandage cost the church, in coins.</summary>
+    public int CharityMealCost = 1;
+    public int CharityBandageCost = 2;
+    /// <summary>How many bandages the church buys at once when its Healer's Station has none.</summary>
+    public int CharityBandages = 2;
+    /// <summary>The food the church hands out when the colony has none, the first one the game has.</summary>
+    public string[] CharityFoods = { "game:bread-spelt-perfect", "game:bread-rye-perfect", "game:bread-flax-perfect", "game:fruit-redapple", "game:vegetable-carrot" };
+    /// <summary>Coins a week the church spends on each orphan and on each settler sleeping in its beds (the poorhouse).</summary>
+    public int CharityCarePerWeek = 1;
+    /// <summary>Mood points for an orphan the church looks after, and for a settler sheltered in the church's beds.</summary>
+    public int OrphanCareMood = 6;
+    public int PoorhouseMood = 2;
 
     // Families
     /// <summary>Settlers pair up, share a home and have children who grow up into new settlers.</summary>

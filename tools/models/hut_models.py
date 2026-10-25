@@ -243,11 +243,28 @@ entrance=shape(["sides","planks","log","dark","ladder"], base+[
   box("Rung1",[5.6,10.5,9.1],[10.4,11,9.5],"ladder"), box("Rung2",[5.6,12.5,9.1],[10.4,13,9.5],"ladder"),
   box("Rung3",[5.6,14.5,9.1],[10.4,15,9.5],"ladder"),
 ])
+# Church: a gold cross standing on the lid, a book on a little lectern and two candles.
+church=shape(["sides","planks","gold","book","page","wax"], base+[
+  box("CrossPost",[7.25,9,3],[8.75,19,4.5],"gold"), box("CrossArm",[4.5,15,3],[11.5,16.5,4.5],"gold"),
+  box("Lectern",[6.5,9,9],[9.5,12,12],"planks"), box("Book",[5,12,8.5],[11,12.8,12.5],"book"),
+  box("Pages",[5.3,12.8,8.8],[10.7,13,12.2],"page"),
+  box("CandleL",[2,9,9],[3,12,10],"wax"), box("CandleR",[13,9,9],[14,12,10],"wax"),
+])
+# Healer's Station: no crate, as it is not a hut; a small table with a red cross cloth, a rolled bandage and a jar of salve.
+station_healer=shape(["planks","cross","roll","jar","cloth"], [
+  box("Top",[1,10,1],[15,11.5,15],"planks"),
+  box("Leg1",[2,0,2],[4,10,4],"planks"), box("Leg2",[12,0,2],[14,10,4],"planks"),
+  box("Leg3",[2,0,12],[4,10,14],"planks"), box("Leg4",[12,0,12],[14,10,14],"planks"),
+  box("Cloth",[2,11.5,2],[9,11.7,9],"cloth"),
+  box("CrossA",[3,11.7,4.75],[8,11.9,6.25],"cross"), box("CrossB",[4.75,11.7,3],[6.25,11.9,8],"cross"),
+  box("Roll",[9.5,11.5,3],[13.5,14.5,6],"roll"),
+  box("Jar",[9.5,11.5,9.5],[12.5,14.5,12.5],"jar"), box("JarLid",[9.2,14.5,9.2],[12.8,15.1,12.8],"planks"),
+])
 
 if __name__ == "__main__":
     import os
     out = sys.argv[1] if len(sys.argv) > 1 else os.path.join(os.path.dirname(__file__), "../../assets/createacolony/shapes/block")
     for name, (tex, el) in models.items():
         json.dump(shape(tex, base + el), open(f"{out}/{name}.json", "w"), indent=1)
-    for name, model in {"hut-smelter": smelter, "hut-blacksmith": smith, "hut-sawmill": saw, "hut-barracks": barracks, "hut-explorer": explorer, "hut-gatherer": gatherer, "hut-hunter": hunter, "hut-craftsman": craftsman, "hut-tailor": tailor, "hut-jeweller": jeweller, "hut-healer": healer, "hut-armourer": armourer, "hut-weaponsmith": weaponsmith, "hut-mint": mint, "hut-mineshaftentrance": entrance, "supplycamp": camp, "fieldmarker": crow}.items():
+    for name, model in {"hut-smelter": smelter, "hut-blacksmith": smith, "hut-sawmill": saw, "hut-barracks": barracks, "hut-explorer": explorer, "hut-gatherer": gatherer, "hut-hunter": hunter, "hut-craftsman": craftsman, "hut-tailor": tailor, "hut-jeweller": jeweller, "hut-healer": healer, "hut-armourer": armourer, "hut-weaponsmith": weaponsmith, "hut-mint": mint, "hut-church": church, "workstation-healer": station_healer, "hut-mineshaftentrance": entrance, "supplycamp": camp, "fieldmarker": crow}.items():
         json.dump(model, open(f"{out}/{name}.json", "w"), indent=1)

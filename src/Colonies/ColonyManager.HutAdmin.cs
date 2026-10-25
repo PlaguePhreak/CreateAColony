@@ -48,6 +48,8 @@ public partial class ColonyManager
         if (workers.Count >= WorkerSlots(hut)) return "createacolony:hut-full";
         citizen.JobCode = job;
         citizen.WorkplacePos = hut.HutPos.Copy();
+        // A new member of the clergy starts as a priest; the bishop is chosen on the Manage workers page.
+        if (job == Jobs.Priest) citizen.WorkRole = ChurchRoles.Priest;
         EndLoan(citizen);
         MarkDirty(colony);
         return null;
@@ -98,7 +100,7 @@ public partial class ColonyManager
     /// priority (10 first); huts set to Never are skipped unless a pickup was asked for.
     /// </summary>
     IEnumerable<Building> HutsForPickup(Colony colony) => colony.Buildings
-        .Where(b => HasOwnStorage(b.Type) && (b.PickupNow || (IsWorkerHut(b.Type) && b.PickupPriority > 0)))
+        .Where(b => HasOwnStorage(b.Type) && !b.IsStation && (b.PickupNow || (IsWorkerHut(b.Type) && b.PickupPriority > 0)))
         .OrderByDescending(b => b.PickupNow).ThenByDescending(b => b.PickupPriority).ThenBy(b => b.BuildingId);
 
     // ---- Minimum stock --------------------------------------------------------------------

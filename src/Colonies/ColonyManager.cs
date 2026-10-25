@@ -166,7 +166,9 @@ public partial class ColonyManager : ModSystem
         var boxes = ResidenceBoxes(colony);
         BlockEntity? free = FindBlockEntities<BlockEntity>(colony)
             .Where(b => BedPlaces(b) > taken.GetValueOrDefault(b.Pos))
-            .OrderBy(b => family == null && ResidenceAt(colony, b.Pos, boxes) == null)
+            // Beds in a Church are the poorhouse: for those with nowhere else.
+            .OrderBy(b => IsChurchBed(colony, b.Pos))
+            .ThenBy(b => family == null && ResidenceAt(colony, b.Pos, boxes) == null)
             // Someone on their own takes an empty bed before half of a stranger's double bed.
             .ThenBy(b => family == null && taken.GetValueOrDefault(b.Pos) > 0)
             .ThenBy(b => b.Pos.DistanceSqTo(anchor.X, anchor.Y, anchor.Z))
@@ -283,6 +285,7 @@ public partial class ColonyManager : ModSystem
             TickTraits(colony, now);
             TickSkills(colony, now);
             TickHappiness(colony);
+            TickChurch(colony);
             EnsureMinStock(colony);
             TickUpkeep(colony);
 
