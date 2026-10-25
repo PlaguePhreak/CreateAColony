@@ -13,7 +13,7 @@ namespace CreateAColony.Gui;
 /// </summary>
 public class GuiDialogWandChooser : GuiDialog
 {
-    const double Width = 380;
+    const double Width = 420;
     const double ButtonWidth = 180;
     const double RowHeight = 36;
     const double TabWidth = 180;
@@ -23,8 +23,13 @@ public class GuiDialogWandChooser : GuiDialog
 
     /// <summary>The tab shown last, so the list opens where the player left it.</summary>
     static int currentTab;
+    /// <summary>The sub-tab shown last on each tab that has them (such as Craftsmanship).</summary>
+    static readonly System.Collections.Generic.Dictionary<string, int> currentSub = new();
     /// <summary>The Change pack tab, after the building tabs.</summary>
     static int PackTab => BuildingCategories.All.Length;
+
+    /// <summary>The sub-tab to mark once the window is composed, or -1 for none.</summary>
+    int shownSub = -1;
 
     readonly ColonyNetwork network;
     readonly WandChooserSnapshot snapshot;
@@ -60,12 +65,14 @@ public class GuiDialogWandChooser : GuiDialog
             .AddVerticalTabs(tabs, ElementBounds.Fixed(-TabWidth, 35, TabWidth, TabsHeight), (id, tab) => PickTab(id), "tabs")
             .BeginChildElements(bgBounds);
 
+        shownSub = -1;
         double y = currentTab == PackTab ? ComposePacks(composer) : ComposeBuildings(composer);
 
         // Keep the window as tall as the tabs beside it, and no taller.
         if (y < MinContentHeight) composer.AddStaticText("", CairoFont.WhiteDetailText(), ElementBounds.Fixed(0, y, Width, MinContentHeight - y));
 
         SingleComposer = composer.EndChildElements().Compose();
+        if (shownSub >= 0) SingleComposer.GetHorizontalTabs("subtabs").SetValue(shownSub, false);
     }
 
     void PickTab(int id)
@@ -81,6 +88,20 @@ public class GuiDialogWandChooser : GuiDialog
         string style = snapshot.Pack;
         var category = BuildingCategories.All[currentTab];
         double y = 30;
+        if (category.Subs != null)
+        {
+            // Sub-tabs along the top, such as Wood working and Metallurgy on Craftsmanship.
+            var group = category;
+            currentSub.TryGetValue(group.Code, out int sub);
+            if (sub < 0 || sub >= group.Subs.Length) sub = 0;
+            var subTabs = group.Subs.Select((c, i) => new GuiTab { Name = Lang.Get("createacolony:wand-tab-" + c.Code), DataInt = i }).ToArray();
+            var tabFont = CairoFont.WhiteDetailText().WithFontSize(13);
+            composer.AddHorizontalTabs(subTabs, ElementBounds.Fixed(0, y, Width, 25), id => { currentSub[group.Code] = id; Compose(); }, tabFont,
+                tabFont.Clone().WithColor(GuiStyle.ActiveButtonTextColor), "subtabs");
+            shownSub = sub;
+            category = group.Subs[sub];
+            y += 32;
+        }
         composer.AddStaticText(Lang.Get("createacolony:wand-tab-heading", Lang.Get("createacolony:style-" + style), Lang.Get("createacolony:wand-tab-" + category.Code)),
             GuiKit.Heading(), ElementBounds.Fixed(0, y, Width, 25));
         y += 30;

@@ -226,6 +226,15 @@ These work well with Vintage Colonies. Install them separately.
 - **C&N Jewelry Adornments** (KenigVovan): more jewellery for the Jeweller to make and settlers to wear for Happiness.
 - **Smithing Plus** (jayu): smith with metal bits, repair tool heads on the anvil and other smithing tweaks. Our smiths still use the game's anvil and recipes beside it; not tested together in game yet.
 
+## Craftsmanship tabs (0.139.0)
+- The Builder's Wand's **Craftsmanship** tab now has its own tabs along the top:
+  - **Wood working**: Sawmill
+  - **Food stuffs**: Cook's Hut
+  - **Metallurgy**: Smelter, Blacksmith, Armourer, Weaponsmith, Royal Mint
+  - **Primitive**: Potter's Hut, Primitive Craftsman
+  - **Luxury**: Tailor, Jeweller
+- The list remembers the last one you looked at.
+
 ## Gatherers mark what they see on the way (0.138.0)
 - Gatherers now look around the whole time they walk, not only where they stop. Every few blocks they mark the berries, fruit trees, mushrooms, wild crops, herbs, reeds, clay, peat, seashells and flint they can see, for picking later.
 - Set to **Only look around**, they see twice as far.
