@@ -233,7 +233,7 @@ These work well with Vintage Colonies. Install them separately.
 - Rotten food in a bowl, crock or pot gets washed out in water, as you do by dropping it in water. Settlers wash the bowls they carry, and the cook washes the crocks and pots in its hut. Water must be within `WashWaterRadius` (32) blocks. The rot is kept for compost.
 
 
-## Remove a colony marker (0.125.0)
+## Remove a colony marker (0.126.0)
 - On the world map, right-click a Colony marker and press **Remove**. Officers and the owner can do this.
 - Settlers won't mark that spot again with the same thing. Other markers nearby stay.
 - Changed your mind? An Explorer's or Gatherer's Hut Markers tab has **Mark removed spots again**.
