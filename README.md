@@ -224,6 +224,11 @@ These work well with Vintage Colonies. Install them separately.
 - **Stone Bake Oven**: the Cook bakes in it.
 - **C&N Jewelry Adornments** (KenigVovan): more jewellery for settlers to wear. Fuller support comes in a later release.
 
+## New Dev's Builds huts (0.134.0)
+Aaron's new buildings in the Dev's Builds pack: Smelter level 1, Blacksmith level 1, Sawmill levels 1 and 2,
+Gatherer level 1, and two Forester (Lumberjack) level 1 types, Small and Large (pick with Previous/Next type).
+Blocks from mods you don't have (Food Shelves, w4rd0s furniture) are skipped. Not tested in game.
+
 ## Kitchen: cook from what's on hand, crocks and bowls (0.124.0)
 - The Kitchen tab now shows the food the cook has on hand (cook, Cook's Hut and warehouse), and only the dishes it can make from it right now: fire pit food, pot meals and oven bakes. Pot meals are named from the ingredients the cook would use.
 - The cook no longer tries to keep 8 of every food. Until you pick dishes, it makes a few of each dish it can (`KitchenAutoKeep`, 4, and `KitchenAutoMealKeep`, 4 servings).
@@ -350,8 +355,9 @@ placed in for every level, also after you change packs. Your choice is saved wit
   Medieval Oak (Alt) pack move to Medieval Oak, with the Alternative type.
 - **Dev's Builds** (`blueprints/devsbuilds/`): Aaron's own buildings: Town Hall 1 to 4, Builder's Hut 1
   to 4, Guard Tower 1 to 5, Cook's Hut 1 and 2 (new ones in 0.60.0) and Residence 1 in two types:
-  Medium and Small (0.60.0; the older Standard house was removed in 0.60.1). Other buildings have no blueprint in this pack yet, and the list
-  says so.
+  Medium and Small (0.60.0; the older Standard house was removed in 0.60.1), and since 0.134.0 Smelter 1,
+  Blacksmith 1, Sawmill 1 and 2, Gatherer 1 and Forester (Lumberjack) 1 in two types: Small and Large. Other
+  buildings have no blueprint in this pack yet, and the list says so.
 
 Since 0.64.0 a pack never borrows another pack's design: when your pack has no design for a building, the
 wand places just its block (no preview, no build order), so you can build your own building around it. The

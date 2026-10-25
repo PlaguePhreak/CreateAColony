@@ -25,7 +25,9 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 OUT = os.path.normpath(os.path.join(HERE, "..", "..", "assets", "createacolony", "config", "blueprints", "devsbuilds"))
 
 NAMES = {"townhall": "townhall", "buildershut": "builder", "guardtower": "guardtower", "chef": "cook",
-         "cook": "cook", "cookshut": "cook", "home01": "residence", "residence": "residence", "house": "residence"}
+         "cook": "cook", "cookshut": "cook", "home01": "residence", "residence": "residence", "house": "residence",
+         "smelter": "smelter", "blacksmith": "blacksmith", "sawmill": "sawmill", "gatherer": "gatherer",
+         "gatherhut": "gatherer", "forester": "forester", "lumberjack": "forester"}
 
 # Exports saved without their hut block get one here: (type, level) -> spot inside the export.
 HUT_SPOTS = {}  # e.g. {("cook", "", 1): (3, 1, 7)}: inside, in the corner beside the doorway
