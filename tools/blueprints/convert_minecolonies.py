@@ -66,6 +66,11 @@ DARK_COLOURS = ("red", "brown", "purple", "magenta", "crimson")
 STONY_COLOURS = ("gray", "black", "cyan", "blue", "green")
 
 
+# Vanilla wood names: spruce_stairs, birch_fence and the like are wood, not stone.
+WOODS = ("oak_", "spruce_", "birch_", "jungle_", "acacia_", "dark_oak_", "mangrove_", "cherry_", "bamboo_",
+         "crimson_", "warped_", "pale_oak_")
+
+
 def family(mc):
     """What kind of material a Minecraft block (or Domum Ornamentum texture) is made of."""
     n = mc.split(":")[-1]
@@ -73,7 +78,7 @@ def family(mc):
         return COBBLE
     if n.endswith(("_log", "_wood", "_stem", "_hyphae")) or n in ("oak_wood",):
         return LOG
-    if "planks" in n or n in ("bookshelf", "crafting_table", "barrel"):
+    if "planks" in n or n in ("bookshelf", "crafting_table", "barrel") or n.startswith(WOODS):
         return WOOD
     if "paper" in n or "wheat" in n or "clay" in n or n in ("white_bricks", "cream_bricks", "beige_bricks"):
         return LIGHT
@@ -280,12 +285,13 @@ def read(path):
 DIRS = {"north": (0, -1), "south": (0, 1), "east": (1, 0), "west": (-1, 0)}
 
 
-def build(path, type=None, building=None):
+def build(path, type=None, building=None, blocks=None):
     """
     A kit.Build from a .blueprint. type: our hut type (its hut block replaces the MineColonies one at the
     blueprint's primary offset), None for a plain export with no hut block. Returns (build, notes).
+    blocks: already read blocks (from another file type, see convert_schematics.py) instead of path.
     """
-    blocks, offset = read(path)
+    blocks, offset = read(path) if blocks is None else (blocks, None)
     b = kit.Build(type or "export", 1)
     notes = []
     dropped = Counter()
