@@ -144,6 +144,7 @@ public class GuiDialogTownHall : GuiDialog
         SingleComposer.GetSwitch("banneronnew")?.SetValue(snapshot.BannerOnNew);
         SingleComposer.GetSwitch("bailiffjobs")?.SetValue(snapshot.BailiffGivesJobs);
         SingleComposer.GetSwitch("bailiffrent")?.SetValue(snapshot.BailiffCollectsRent);
+        SingleComposer.GetSwitch("bailifflend")?.SetValue(snapshot.BailiffLendsWorkers);
     }
 
     /// <summary>A row of page buttons along the top of a tab, the chosen one marked. Returns the y below them.</summary>
@@ -1012,6 +1013,7 @@ public class GuiDialogTownHall : GuiDialog
 
         y = composer.Section(Lang.Get("createacolony:bailiff-duties"), y, Width);
         y = BailiffSwitch(composer, "bailiffjobs", "jobs", snapshot.BailiffGivesJobs, "bailiff-jobs", "bailiff-jobs-hint", y);
+        y = BailiffSwitch(composer, "bailifflend", "lend", snapshot.BailiffLendsWorkers, "bailiff-lend", "bailiff-lend-hint", y);
         y = BailiffSwitch(composer, "bailiffrent", "rent", snapshot.BailiffCollectsRent, "bailiff-rent", "bailiff-rent-hint", y, snapshot.RentPerSettler);
         composer.Text(Lang.Get("createacolony:bailiff-fields-hint"), GuiKit.Muted(), 0, y, Width, 6);
     }
@@ -1060,7 +1062,7 @@ public class GuiDialogTownHall : GuiDialog
                     .AddStaticText(DayName(d.Day), GuiKit.Detail(), ElementBounds.Fixed(10, y + 4, 120, 20))
                     .AddStaticText(Lang.Get("createacolony:ledger-rent", d.Rent, d.Payers), GuiKit.Detail(), ElementBounds.Fixed(135, y + 4, 120, 20))
                     .AddStaticText(Lang.Get("createacolony:ledger-wanderers", d.Welcomed, d.TurnedAway), GuiKit.Detail(), ElementBounds.Fixed(260, y + 4, 180, 20))
-                    .AddStaticText(d.JobsGiven.ToString(), GuiKit.Detail(), ElementBounds.Fixed(445, y + 4, 115, 20));
+                    .AddStaticText(Lang.Get("createacolony:ledger-jobs", d.JobsGiven, d.Lent), GuiKit.Detail(), ElementBounds.Fixed(445, y + 4, 115, 20));
                 y += 26;
             }
             y += 14;

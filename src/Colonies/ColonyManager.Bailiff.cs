@@ -12,6 +12,8 @@ namespace CreateAColony.Colonies;
 /// - answer wanderers at the Town Hall as the Bailiff tab says: welcome them, welcome them while a bed is free,
 ///   turn them away, or leave it to the players;
 /// - give jobless settlers a job at a hut with a free place, the one they are best at;
+/// - lend a worker who can't work at their own hut (no tool, nothing left to pick, everything in stock) to
+///   another hut with a free place, or to hauling, for BailiffLendDays, then send them back;
 /// - oversee the fields: farmers work faster (BailiffFarmBoost), everyone else a little faster (BailiffWorkBoost);
 /// - collect rent each morning from settlers with a job and a bed, in rusty gears, into the Tavern's storage
 ///   (to hire with), else the Town Hall's chests, else the warehouse, and keep a ledger of it;
@@ -26,6 +28,45 @@ public partial class ColonyManager
     const long BailiffJobCheckMs = 10_000;
 
     readonly Dictionary<string, long> lastBailiffJobCheck = new();
+    readonly Dictionary<string, long> lastBailiffLoanCheck = new();
+    /// <summary>Since when (total days) each worker has been stuck, by colony and citizen id. Not saved.</summary>
+    readonly Dictionary<(string, int), double> stuckSince = new();
+
+    /// <summary>Hut statuses that mean the worker can't do its job there now: nothing left, everything in stock, or nothing to work with.</summary>
+    static readonly HashSet<string> StuckStatuses = new()
+    {
+        "no-hut-chest", "hut-chest-full", "no-trees", "no-fields", "growing", "gathered-all", "explored-all", "prospected-all",
+        "hunter-nothing", "mine-no-readings", "mine-no-site", "mine-no-site-ore", "mine-blocked", "mine-shaft-blocked", "mine-shaft-done",
+        "mine-no-shaft-spot", "mineshaft-done", "quarry-done", "quarry-no-room", "no-kiln-spot", "no-form-spot", "no-firepit",
+        "firepit-busy", "oven-nofire", "smith-no-forge", "smith-no-anvil", "smith-forge-busy", "smelter-firepit-busy",
+        "smelter-no-mold-spot", "tailor-nothing-to-mend", "jeweller-nothing-set"
+    };
+
+    /// <summary>Statuses that come and go during work and say nothing either way (walking about, fetching tools).</summary>
+    static readonly HashSet<string> PassingStatuses = new() { "starting", "unreachable", "foraging-look", "fetching-tools", "searching", "mine-travelling" };
+
+    static bool IsStuckStatus(string status) =>
+        StuckStatuses.Contains(status) || status.StartsWith("needs-") || status.Contains("-needs-") || status.EndsWith("-stocked");
+
+    /// <summary>Jobs the bailiff never moves anyone out of: guards keep watch and healers wait for the hurt.</summary>
+    static bool KeepsPost(string? job) => job is null or Jobs.Bailiff or Jobs.Guard or Jobs.Healer or Jobs.Builder or Jobs.Courier;
+
+    /// <summary>A lent worker goes back to normal: they keep whatever job they have now.</summary>
+    public static void EndLoan(CitizenRecord c)
+    {
+        c.HomeJob = null;
+        c.HomeWorkplacePos = null;
+        c.LentUntilTotalDays = 0;
+    }
+
+    /// <summary>Free places at a hut, counting workers lent away from it as still there.</summary>
+    int FreePlaces(Colony colony, Building hut)
+    {
+        string? job = JobOf(hut.Type);
+        if (job == null) return 0;
+        int away = colony.Citizens.Count(c => c.Alive && c.HomeJob == job && c.HomeWorkplacePos != null && c.HomeWorkplacePos.Equals(hut.HutPos));
+        return WorkerSlots(hut) - WorkersAt(colony, hut).Count - away;
+    }
 
     /// <summary>The colony's bailiff, or null.</summary>
     public CitizenRecord? BailiffOf(Colony colony) =>
@@ -58,6 +99,12 @@ public partial class ColonyManager
         {
             lastBailiffJobCheck[colony.ColonyId] = ms;
             GiveOutJobs(colony, bailiff);
+        }
+        if (!lastBailiffLoanCheck.TryGetValue(colony.ColonyId, out long lastLoan) || ms - lastLoan >= BailiffJobCheckMs)
+        {
+            lastBailiffLoanCheck[colony.ColonyId] = ms;
+            SendLentWorkersBack(colony, bailiff, now);
+            if (colony.BailiffLendsWorkers) LendStuckWorkers(colony, bailiff, now);
         }
         CollectRent(colony, bailiff, now);
     }
@@ -94,7 +141,7 @@ public partial class ColonyManager
 
     /// <summary>Settlers the bailiff may put to work: grown, at home in the colony and without a job.</summary>
     IEnumerable<CitizenRecord> Jobless(Colony colony) =>
-        colony.Citizens.Where(c => c.Alive && !c.Visitor && !c.IsChild && !c.WaitingForRoom && !c.IsDowned && c.JobCode == null);
+        colony.Citizens.Where(c => c.Alive && !c.Visitor && !c.IsChild && !c.WaitingForRoom && !c.IsDowned && c.JobCode == null && c.HomeJob == null);
 
     /// <summary>
     /// Gives each hut with a free place the jobless settler best at its job: the highest skill level, passions
@@ -110,10 +157,10 @@ public partial class ColonyManager
         {
             if (free.Count == 0) break;
             var ofJob = huts.Where(b => JobOf(b.Type) == job).ToList();
-            int open = ofJob.Sum(WorkerSlots) - colony.Citizens.Count(c => c.Alive && c.JobCode == job);
+            int open = ofJob.Sum(WorkerSlots) - colony.Citizens.Count(c => c.Alive && (c.JobCode == job || c.HomeJob == job));
             while (open > 0 && free.Count > 0)
             {
-                var hut = ofJob.FirstOrDefault(b => WorkersAt(colony, b).Count < WorkerSlots(b));
+                var hut = ofJob.FirstOrDefault(b => FreePlaces(colony, b) > 0);
                 if (hut == null) break;
                 var pick = free.Where(c => IncapableOfJob(c, job) == null).OrderByDescending(c => JobScore(c, job)).ThenBy(c => c.CitizenId).FirstOrDefault();
                 if (pick == null) break;
@@ -126,6 +173,70 @@ public partial class ColonyManager
                 TellMembers(colony, "createacolony:bailiff-gave-job", bailiff.Name, pick.Name, Lang.Get("createacolony:job-" + job));
                 MarkDirty(colony);
             }
+        }
+    }
+
+    /// <summary>
+    /// Watches each worker's hut status. One that has been stuck for BailiffStuckHours (no tool, nothing left to
+    /// pick, everything in stock) is lent to the hut with a free place they are best at, or to hauling when there
+    /// is none, for BailiffLendDays. Their own place stays theirs meanwhile.
+    /// </summary>
+    void LendStuckWorkers(Colony colony, CitizenRecord bailiff, double now)
+    {
+        double need = Math.Max(0, Config.BailiffStuckHours) / 24.0;
+        foreach (var c in colony.Citizens.Where(c => c.Alive && !c.Visitor && !c.IsChild && !c.IsDowned && c.HomeJob == null
+            && !KeepsPost(c.JobCode) && c.WorkplacePos != null).ToList())
+        {
+            var key = (colony.ColonyId, c.CitizenId);
+            string status = WorkerStatus.GetValueOrDefault(c.CitizenId, "");
+            if (!IsStuckStatus(status))
+            {
+                if (!PassingStatuses.Contains(status)) stuckSince.Remove(key);
+                continue;
+            }
+            if (!stuckSince.TryGetValue(key, out double since))
+            {
+                stuckSince[key] = now;
+                continue;
+            }
+            if (now - since < need) continue;
+            stuckSince.Remove(key);
+            if (GetBuilding(colony, c.WorkplacePos!) is not { } home) continue;
+            Lend(colony, bailiff, c, home, status, now);
+        }
+    }
+
+    void Lend(Colony colony, CitizenRecord bailiff, CitizenRecord c, Building home, string status, double now)
+    {
+        var target = colony.Buildings
+            .Where(b => b.Level >= 1 && !b.Removing && JobOf(b.Type) is { } job && job != c.JobCode && !KeepsPost(job)
+                && IncapableOfJob(c, job) == null && FreePlaces(colony, b) > 0)
+            .OrderByDescending(b => JobScore(c, JobOf(b.Type)!)).ThenBy(b => b.BuildingId).FirstOrDefault();
+        c.HomeJob = c.JobCode;
+        c.HomeWorkplacePos = c.WorkplacePos!.Copy();
+        c.LentUntilTotalDays = now + Math.Max(0.05, Config.BailiffLendDays);
+        // No hut has room: they help with hauling, as jobless settlers do.
+        c.JobCode = target != null ? JobOf(target.Type) : null;
+        c.WorkplacePos = target?.HutPos.Copy();
+        Today(colony).Lent++;
+        if (target != null) LogEvent(colony, "event-bailiff-lent", bailiff.Name, c.Name, BuildingName(home), BuildingName(target), "@workstatus-" + status);
+        else LogEvent(colony, "event-bailiff-lent-hauling", bailiff.Name, c.Name, BuildingName(home), "@workstatus-" + status);
+        MarkDirty(colony);
+    }
+
+    /// <summary>Lent workers whose time is up go back to their own hut, if their place there is still free; else they stay.</summary>
+    void SendLentWorkersBack(Colony colony, CitizenRecord bailiff, double now)
+    {
+        foreach (var c in colony.Citizens.Where(c => c.HomeJob != null && now >= c.LentUntilTotalDays).ToList())
+        {
+            var home = c.HomeWorkplacePos == null ? null : GetBuilding(colony, c.HomeWorkplacePos);
+            string homeJob = c.HomeJob!;
+            EndLoan(c);
+            MarkDirty(colony);
+            if (!c.Alive || home == null || home.Removing || JobOf(home.Type) != homeJob || FreePlaces(colony, home) <= 0) continue;
+            c.JobCode = homeJob;
+            c.WorkplacePos = home.HutPos.Copy();
+            LogEvent(colony, "event-bailiff-back", bailiff.Name, c.Name, BuildingName(home));
         }
     }
 
@@ -224,6 +335,15 @@ public partial class ColonyManager
                 continue;
             }
             var workers = WorkersAt(colony, hut);
+            double now = sapi.World.Calendar.TotalDays;
+            foreach (var away in colony.Citizens.Where(c => c.Alive && c.HomeJob != null && c.HomeWorkplacePos != null && c.HomeWorkplacePos.Equals(hut.HutPos)))
+            {
+                var at = away.WorkplacePos == null ? null : GetBuilding(colony, away.WorkplacePos);
+                int hours = (int)Math.Ceiling(Math.Max(0, away.LentUntilTotalDays - now) * sapi.World.Calendar.HoursPerDay);
+                lines.Add(at != null ? Lang.Get("createacolony:estate-lent", name, away.Name, BuildingName(at), hours)
+                    : Lang.Get("createacolony:estate-lent-hauling", name, away.Name, hours));
+            }
+            if (workers.Count == 0 && colony.Citizens.Any(c => c.HomeWorkplacePos != null && c.HomeWorkplacePos.Equals(hut.HutPos))) continue;
             if (workers.Count == 0)
             {
                 lines.Add(Lang.Get("createacolony:estate-no-worker", name));

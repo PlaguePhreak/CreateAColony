@@ -130,6 +130,12 @@ public class CitizenRecord
     [ProtoMember(241)] public string FormerTrade = "";
     /// <summary>The job a former trader takes once there is room and a hut for it.</summary>
     [ProtoMember(242)] public string PlannedJob = "";
+    // 110-119: the bailiff (ColonyManager.Bailiff.cs).
+    /// <summary>A worker the bailiff lent to another hut while its own could not work: its own job and hut, and when it goes back.</summary>
+    [ProtoMember(110)] public string? HomeJob;
+    [ProtoMember(111)] public BlockPos? HomeWorkplacePos;
+    [ProtoMember(112)] public double LentUntilTotalDays;
+
     // 280-289: healing (ColonyManager.Healing.cs).
     /// <summary>The bandage or poultice the settler carries for when it gets hurt, kept apart from its inventory so it is never hauled off.</summary>
     [ProtoMember(280)] public byte[]? FirstAid;
@@ -451,6 +457,8 @@ public class LedgerDay
     [ProtoMember(5)] public int JobsGiven;
     /// <summary>How many settlers paid rent that day.</summary>
     [ProtoMember(6)] public int Payers;
+    /// <summary>Workers lent to another hut that day because they could not work at their own.</summary>
+    [ProtoMember(7)] public int Lent;
 }
 
 /// <summary>One line of the Town Hall's event log: a lang key and its arguments, filled in by the reader's own language.</summary>
@@ -704,6 +712,8 @@ public class Colony
     [ProtoMember(114, IsRequired = true)] public int LastRentDay = -1;
     /// <summary>Rent collected while there was nowhere to put it, handed over when a chest is free.</summary>
     [ProtoMember(115)] public int RentOwed;
+    /// <summary>The bailiff lends workers who can't work at their own hut to another one for a while.</summary>
+    [ProtoMember(116, IsRequired = true)] public bool BailiffLendsWorkers = true;
     /// <summary>Houses of traders who joined the colony, for a builder to take down (ColonyManager.Traders.cs).</summary>
     [ProtoMember(240)] public List<TeardownOrder> Teardowns = new();
     [ProtoMember(241, IsRequired = true)] public int NextTeardownId = 1;

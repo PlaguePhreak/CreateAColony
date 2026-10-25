@@ -233,6 +233,13 @@ These work well with Vintage Colonies. Install them separately.
 - Rotten food in a bowl, crock or pot gets washed out in water, as you do by dropping it in water. Settlers wash the bowls they carry, and the cook washes the crocks and pots in its hut. Water must be within `WashWaterRadius` (32) blocks. The rot is kept for compost.
 
 
+## The Bailiff moves stuck workers (0.129.0)
+- When a worker can't do their job for 2 in-game hours (`BailiffStuckHours`), the bailiff sends them to help at another hut with a free place for a day (`BailiffLendDays`), then sends them back. Stuck means things like no pickaxe, nothing left to pick, no trees left, or everything in stock.
+- They go to the hut whose job they are best at. If no hut has room, they help carry things like a settler without a job.
+- Their own place is kept for them, so the bailiff won't give it to someone else. If you change their job yourself, the loan ends.
+- Guards, the healer, builders and couriers always stay put.
+- Switch it off on the Bailiff tab: **Move workers who are stuck**. The Ledger counts the workers lent each day, and the Estate report shows who is away and when they come back.
+
 ## Settlers get into their beds (0.128.0)
 - A settler that can't find a way to its bed, but is close to it (`BedFindWayRange`, 16 blocks), now gets into it anyway. Before, it lay down on the floor wherever it got stuck, often under an upstairs bed.
 - Settlers no longer share a double bed with someone who isn't family when a bed is free. They take an empty bed first, and move to one in the same home once it's free (say its owner died).

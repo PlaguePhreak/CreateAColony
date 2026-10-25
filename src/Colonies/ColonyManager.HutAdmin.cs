@@ -48,6 +48,7 @@ public partial class ColonyManager
         if (workers.Count >= WorkerSlots(hut)) return "createacolony:hut-full";
         citizen.JobCode = job;
         citizen.WorkplacePos = hut.HutPos.Copy();
+        EndLoan(citizen);
         MarkDirty(colony);
         return null;
     }
@@ -58,6 +59,7 @@ public partial class ColonyManager
         if (!WorkersAt(colony, hut).Contains(citizen)) return "createacolony:bad-citizen";
         citizen.JobCode = null;
         citizen.WorkplacePos = null;
+        EndLoan(citizen);
         MarkDirty(colony);
         return null;
     }

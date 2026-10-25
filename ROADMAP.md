@@ -33,7 +33,7 @@ Everything listed under "What we have" and "Partly done" has been tested in game
 - Vintage Colonies' own map icons: 120 waypoint icons covering every More Map Icons sheet entry, used by colony markers (0.79.0, not tested yet)
 - A marker icon for every ore, fruit, vegetable, grain, animal, trader and story location, other mods' too (0.80.0, not tested yet)
 - Remove a colony marker by right-clicking it on the world map; settlers leave that spot alone after (0.126.0, not tested yet)
-- The Bailiff: answers wanderers, gives jobless settlers work, makes farmers work faster, collects rent, keeps a ledger and an estate report on a new Bailiff tab (0.127.0, not tested yet)
+- The Bailiff: answers wanderers, gives jobless settlers work, makes farmers work faster, collects rent, keeps a ledger and an estate report on a new Bailiff tab, and moves stuck workers to another hut for a while (0.127.0 and 0.129.0, not tested yet)
 - Paintings: 17 original framed paintings in four sizes, a blank canvas from 8 boards and 4 linen painted with buckets of dye in the grid, hung by builders from blueprints (0.105.0-0.105.1, not tested yet)
 
 **Colony systems**

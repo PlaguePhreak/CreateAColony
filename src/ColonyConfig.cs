@@ -774,6 +774,10 @@ public class ColonyConfig
     /// <summary>Multiply farmers' work speed by this while a bailiff is on duty, and everyone else's by BailiffWorkBoost.</summary>
     public float BailiffFarmBoost = 1.15f;
     public float BailiffWorkBoost = 1.05f;
+    /// <summary>How long a worker must be stuck (no tool, nothing left to do) before the bailiff lends them to another hut, in in-game hours.</summary>
+    public double BailiffStuckHours = 2;
+    /// <summary>How long a lent worker stays at the other hut before going back to their own, in in-game days.</summary>
+    public double BailiffLendDays = 1;
     /// <summary>Mood points every other settler has while a bailiff watches over them (they are not liked).</summary>
     public int BailiffMood = -3;
 

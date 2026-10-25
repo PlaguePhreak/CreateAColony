@@ -286,6 +286,9 @@ public partial class ColonyNetwork : ModSystem
             case "rent":
                 colony.BailiffCollectsRent = parts[1] == "1";
                 break;
+            case "lend":
+                colony.BailiffLendsWorkers = parts[1] == "1";
+                break;
         }
         return null;
     }
@@ -321,6 +324,7 @@ public partial class ColonyNetwork : ModSystem
         if (job == Jobs.Bailiff && Manager.BailiffOf(colony) is { } other && other != citizen) return "createacolony:bailiff-taken";
         if (citizen.JobCode != (job.Length == 0 ? null : job)) citizen.WorkplacePos = null;
         citizen.JobCode = job.Length == 0 ? null : job;
+        ColonyManager.EndLoan(citizen);
         return null;
     }
 
@@ -746,6 +750,7 @@ public partial class ColonyNetwork : ModSystem
         snapshot.WandererRule = colony.WandererRule;
         snapshot.BailiffGivesJobs = colony.BailiffGivesJobs;
         snapshot.BailiffCollectsRent = colony.BailiffCollectsRent;
+        snapshot.BailiffLendsWorkers = colony.BailiffLendsWorkers;
         snapshot.RentPerSettler = config.BailiffRentPerSettler;
         snapshot.RentOwed = colony.RentOwed;
         snapshot.Ledger = colony.Ledger.ToList();

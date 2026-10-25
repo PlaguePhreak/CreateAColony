@@ -610,6 +610,7 @@ public class ColonySnapshot
     [ProtoMember(116)] public int RentOwed;
     [ProtoMember(117)] public List<LedgerDay> Ledger = new();
     [ProtoMember(118)] public List<string> EstateReport = new();
+    [ProtoMember(119)] public bool BailiffLendsWorkers;
 }
 
 /// <summary>ColonySnapshot.BailiffState: none, on duty, knocked out, or too unhappy to work.</summary>
@@ -818,7 +819,7 @@ public enum ColonyAction
     SetCollect = 160,
     /// <summary>How many of a thing a hut's worker keeps crafted (Crafting recipes tab): Text = "code|amount".</summary>
     SetRecipeKeep = 170,
-    /// <summary>The Bailiff tab's rules (officers): Text "wanderers|n" (BailiffWanderers), "jobs|1" or "rent|0".</summary>
+    /// <summary>The Bailiff tab's rules (officers): Text "wanderers|n" (BailiffWanderers), "jobs|1", "lend|1" or "rent|0".</summary>
     SetBailiffRule = 180,
     /// <summary>Repair button on a hut's Main tab: a builder puts the building back as its blueprint has it.</summary>
     Repair = 250
