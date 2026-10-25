@@ -9,7 +9,7 @@ namespace CreateAColony.Colonies;
 /// <summary>
 /// The "Allowed to collect" tab of the gathering huts: which trees a forester fells, what a gatherer
 /// or a farmer picks, and which ore and stone a miner, prospector or quarrier keeps. Everything is on
-/// until an officer turns it off (Building.CollectOff). Each thing has a key: "wood-oak",
+/// until an officer turns it off (Building.CollectOff), except fruit trees, which start off (Building.CollectOn). Each thing has a key: "wood-oak",
 /// "fruit-game:fruit-blueberry", "mushroom-bolete", "loosestones", "ore-nativecopper", "rock-granite", "soil".
 /// </summary>
 public partial class ColonyManager
@@ -23,8 +23,19 @@ public partial class ColonyManager
     public static bool HasCollectTab(string type) => type is BuildingTypes.Forester or BuildingTypes.Gatherer or BuildingTypes.Farmer
         or BuildingTypes.Miner or BuildingTypes.Prospector or BuildingTypes.Quarry or BuildingTypes.Hunter;
 
-    /// <summary>False when the hut is set not to collect this; a thing with no key is always allowed.</summary>
-    public static bool MayCollect(Building hut, string? key) => key == null || !hut.CollectOff.Contains(key);
+    /// <summary>
+    /// False when the hut is set not to collect this; a thing with no key is always allowed. Things that start
+    /// off (fruit trees) are only allowed once turned on.
+    /// </summary>
+    public static bool MayCollect(Building hut, string? key) =>
+        key == null || (OffByDefault(key) ? hut.CollectOn.Contains(key) : !hut.CollectOff.Contains(key));
+
+    /// <summary>Fruit trees: a forester would cut down the fruit, so they are left standing until turned on.</summary>
+    public static bool OffByDefault(string key) => key.StartsWith("fruittree");
+
+    /// <summary>The keys turned off at the hut, for the tab: those set off, and those that start off and were not turned on.</summary>
+    public List<string> CollectOffKeys(Building hut) =>
+        CollectKinds(hut.Type).Select(k => k.Key).Where(k => !MayCollect(hut, k)).ToList();
 
     /// <summary>Everything the hut's worker can collect, for the tab, worked out once per hut type.</summary>
     public List<CollectKind> CollectKinds(string type)
@@ -46,12 +57,23 @@ public partial class ColonyManager
     /// <summary>Turns one thing on or off at a hut; "*" turns everything back on, "-" turns everything off.</summary>
     public void SetCollect(Colony colony, Building hut, string key, bool on)
     {
-        if (key == "*") hut.CollectOff.Clear();
-        else if (key == "-") hut.CollectOff = CollectKinds(hut.Type).Select(k => k.Key).ToList();
-        else
+        var keys = CollectKinds(hut.Type).Select(k => k.Key).ToList();
+        if (key == "*")
+        {
+            hut.CollectOff.Clear();
+            hut.CollectOn = keys.Where(OffByDefault).ToList();
+        }
+        else if (key == "-")
+        {
+            hut.CollectOff = keys.Where(k => !OffByDefault(k)).ToList();
+            hut.CollectOn.Clear();
+        }
+        else if (keys.Contains(key))
         {
             hut.CollectOff.Remove(key);
-            if (!on && CollectKinds(hut.Type).Any(k => k.Key == key)) hut.CollectOff.Add(key);
+            hut.CollectOn.Remove(key);
+            if (OffByDefault(key) && on) hut.CollectOn.Add(key);
+            if (!OffByDefault(key) && !on) hut.CollectOff.Add(key);
         }
         MarkDirty(colony);
     }
@@ -60,6 +82,22 @@ public partial class ColonyManager
 
     /// <summary>A tree's key, from one of its logs.</summary>
     public static string? WoodKey(Block block) => VariantOf(block, "wood") is { } wood ? "wood-" + wood : null;
+
+    /// <summary>The key of the tree whose trunk stands here: "fruittree-" and its fruit tree type, or its wood.</summary>
+    public string? TreeKey(BlockPos trunk)
+    {
+        var ba = sapi.World.BlockAccessor;
+        var block = ba.GetBlock(trunk);
+        if (IsFruitTreeBlock(block))
+        {
+            string? type = (ba.GetBlockEntity(trunk) as BlockEntityFruitTreePart)?.TreeType;
+            return string.IsNullOrEmpty(type) ? "fruittree" : "fruittree-" + type;
+        }
+        return WoodKey(block);
+    }
+
+    /// <summary>A part of a fruit tree, the game's or a mod's.</summary>
+    static bool IsFruitTreeBlock(Block block) => block is BlockFruitTreePart || block.Code?.Path.Contains("fruittree") == true;
 
     /// <summary>The deposit code of an ore block, such as "nativecopper" for ore-poor-nativecopper-granite.</summary>
     public static string? OreCode(Block block)
@@ -149,8 +187,21 @@ public partial class ColonyManager
     static List<CollectKind> ByKey(IEnumerable<(string? Key, ItemStack Sample)> found) =>
         found.Where(f => f.Key != null).GroupBy(f => f.Key!).Select(g => new CollectKind(g.Key, g.First().Sample)).OrderBy(k => k.Key).ToList();
 
-    List<CollectKind> WoodKinds() =>
-        ByKey(sapi.World.Blocks.Where(b => b?.Code != null && IsTreeLog(b)).Select(b => (WoodKey(b), new ItemStack(b))));
+    /// <summary>Every wood, then every fruit tree (shown by its fruit), which starts off.</summary>
+    List<CollectKind> WoodKinds()
+    {
+        var woods = ByKey(sapi.World.Blocks.Where(b => b?.Code != null && IsTreeLog(b) && !IsFruitTreeBlock(b)).Select(b => (WoodKey(b), new ItemStack(b))));
+        var fruitTrees = new List<(string?, ItemStack)>();
+        foreach (var branch in sapi.World.Blocks.OfType<BlockFruitTreeBranch>())
+        {
+            foreach (var (type, props) in branch.TypeProps ?? new())
+            {
+                var sample = FirstFruit(props.FruitStacks) ?? new ItemStack(branch);
+                fruitTrees.Add(("fruittree-" + type, sample));
+            }
+        }
+        return woods.Concat(ByKey(fruitTrees)).ToList();
+    }
 
     List<CollectKind> FruitKinds()
     {

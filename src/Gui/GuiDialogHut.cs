@@ -937,6 +937,8 @@ public partial class GuiDialogHut : GuiDialog
         if (key.StartsWith("ore-") && Lang.HasTranslation(key)) return Lang.Get(key);
         if (key.StartsWith("animal-")) return CreatureName(key.Substring("animal-".Length));
         if (key.StartsWith("wood-")) return TreeName(key.Substring("wood-".Length), stack);
+        // A fruit tree's picture is its fruit: "Cherry tree".
+        if (key.StartsWith("fruittree")) return Lang.Get("createacolony:collect-fruittree", stack.GetName());
         if (Lang.HasTranslation("createacolony:collect-" + key)) return Lang.Get("createacolony:collect-" + key);
         return stack.GetName();
     }

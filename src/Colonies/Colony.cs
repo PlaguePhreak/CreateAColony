@@ -318,6 +318,8 @@ public class Building
     [ProtoMember(114)] public List<string> GatherOrder = new();
     /// <summary>A gathering hut: what its worker is set not to collect (ColonyManager.CollectKinds keys). Empty is everything.</summary>
     [ProtoMember(160)] public List<string> CollectOff = new();
+    /// <summary>The things that start off (fruit trees, ColonyManager.OffByDefault) which an officer turned on.</summary>
+    [ProtoMember(161)] public List<string> CollectOn = new();
     /// <summary>A hut's Crafting recipes tab: how many of each thing its worker keeps crafted, by item code (ColonyManager.HutRecipes.cs). Empty is nothing.</summary>
     [ProtoMember(170)] public Dictionary<string, int> RecipeKeep = new();
     /// <summary>

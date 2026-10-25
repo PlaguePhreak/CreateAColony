@@ -1046,7 +1046,7 @@ Built in from [Player Corpse](https://mods.vintagestory.at/playercorpse) by DArk
 - A new **Allowed to collect** tab on the Forester's, Gatherer's, Farmer's, Miner's and Prospector's Huts and
   the Quarry. It lists everything that worker can take, each with a switch. Everything is on at first.
   Officers can turn things off one by one, or use All on / All off. The search box finds a row by name.
-- **Forester**: each kind of tree, by its name (Oak, Birch...). It leaves trees that are turned off standing (names since 0.143.0).
+- **Forester**: each kind of tree, by its name (Oak, Birch...). It leaves trees that are turned off standing (names since 0.143.0). Fruit trees are on the list too, but start off, so foresters leave them standing until you turn them on (0.148.0).
 - **Gatherer**: each berry and fruit, each edible mushroom, and loose stones, flint and sticks (0.110.0 adds ore bits, seashells, each reed and each clay, and peat).
 - **Farmer**: each berry and fruit (crops are still chosen on each Field marker).
 - **Miner, Prospector (Mine ore) and Quarry**: each ore, each rock and soil, gravel, sand, clay and peat. They

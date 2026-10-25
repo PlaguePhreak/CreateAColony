@@ -169,7 +169,7 @@ public partial class ColonyNetwork
             var kinds = Manager.CollectKinds(building.Type);
             snapshot.CollectKeys = kinds.Select(k => k.Key).ToList();
             snapshot.CollectStacks = kinds.Select(k => k.Sample.ToBytes()).ToList();
-            snapshot.CollectOff = building.CollectOff.ToList();
+            snapshot.CollectOff = Manager.CollectOffKeys(building);
         }
 
         if (!ColonyManager.IsGuardPost(building.Type)) return;
