@@ -227,6 +227,12 @@ These work well with Vintage Colonies. Install them separately.
 - **Smithing Plus** (jayu): smith with metal bits, repair tool heads on the anvil and other smithing tweaks. Our smiths still use the game's anvil and recipes beside it; not tested together in game yet.
 - **Coinage** (Xel): design your own coins. One can be the colony's money (Bailiff tab, Taxes & wages).
 
+## Gatherer priorities (0.145.0)
+- The Gatherer's Hut has a **Priorities** tab. At the top, **What to collect first** lists the kinds of thing the gatherer collects. Use ^ and v to change the order.
+- The usual order is: Colony requests, Ore bits, Food, Herbs, Clay, Peat, Reeds, then Stones, flint, sticks and shells.
+- **Colony requests** are things a hut is waiting for, like dry grass, clay or flint for the builder.
+- The gatherer takes the nearest thing of the highest kind it can find. Crafting (like poultices) is listed below, as before.
+
 ## Lights for every worker (0.144.0)
 - **Every grown settler carries a light.** When it gets dark, a settler without one walks to its hut storage or the warehouse and takes one into its offhand. It holds it up like a player and it **lights up the ground around it** as it walks, the same as a torch in your hand.
 - **Lanterns first.** A settler takes a lantern if there is a free one, and swaps its torch for one when a lantern turns up later.

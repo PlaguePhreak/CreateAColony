@@ -369,6 +369,10 @@ public partial class ColonyNetwork : ModSystem
         var building = colony.Buildings.Find(b => b.BuildingId == packet.BuildingId);
         if (building == null || building.Type is BuildingTypes.Builder or BuildingTypes.TownHall) return Manager.MoveBuilderOrder(colony, packet.Text, packet.Role);
         if (!Manager.HasPriorities(building.Type)) return "createacolony:bad-building";
+        if (building.Type == BuildingTypes.Gatherer && packet.Text.StartsWith(ColonyManager.GatherKeyPrefix))
+        {
+            return Manager.MoveGatherPriority(colony, building, packet.Text[ColonyManager.GatherKeyPrefix.Length..], packet.Role);
+        }
         var shown = BuildHutSnapshot(colony, building, "", false).Priorities;
         return Manager.MoveHutPriority(colony, building, shown, packet.Text, packet.Role);
     }
@@ -378,6 +382,7 @@ public partial class ColonyNetwork : ModSystem
     {
         if (!Manager.HasPriorities(building.Type)) return;
         snapshot.HasPriorities = true;
+        if (building.Type == BuildingTypes.Gatherer) snapshot.GatherOrder = ColonyManager.GatherOrder(building);
         if (building.Type == BuildingTypes.Tailor)
         {
             int toMend = Manager.MendingCount(colony, building, Manager.WorkerAt(colony, building, Jobs.Tailor));

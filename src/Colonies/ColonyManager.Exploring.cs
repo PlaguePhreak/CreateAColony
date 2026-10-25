@@ -267,15 +267,22 @@ public partial class ColonyManager
         }
     }
 
-    /// <summary>The nearest thing the gatherer can take right now, or null.</summary>
-    public BlockPos? NextForage(Colony colony, Building hut, Vec3d from, System.Func<BlockPos, bool> skip)
+    /// <summary>
+    /// The thing the gatherer takes next: the first kind on the hut's collecting order (GatherOrder) there is
+    /// any of, and of those the nearest. Null when there is nothing; rank is its place on the order.
+    /// </summary>
+    public BlockPos? NextForage(Colony colony, Building hut, Vec3d from, System.Func<BlockPos, bool> skip, out int rank)
     {
         var ba = sapi.World.BlockAccessor;
         var scanner = Scanner(hut, "forage", ScanForage);
+        var order = GatherOrder(hut);
         BlockPos? best = null;
         double bestDist = double.MaxValue;
+        int bestRank = int.MaxValue;
         foreach (var (pos, ready) in scanner.Found.ToList())
         {
+            // Out of loaded land, what it is cannot be told: after everything else.
+            int spotRank = order.Count;
             if (ba.GetChunkAtBlockPos(pos) != null)
             {
                 string? kind = Forage(colony, pos);
@@ -287,14 +294,17 @@ public partial class ColonyManager
                 scanner.Found[pos] = kind != null;
                 if (kind == null || !MayCollect(hut, ForageKey(pos))) continue;
                 if (kind == "herb" && HerbStocked(colony, hut, ba.GetBlock(pos))) continue;
+                spotRank = order.IndexOf(GatherCategory(colony, ba.GetBlock(pos), kind));
             }
             else if (!ready) continue;
-            if (skip(pos) || !CanWorkAt(colony, pos)) continue;
+            if (spotRank > bestRank || skip(pos) || !CanWorkAt(colony, pos)) continue;
             double dist = pos.DistanceSqTo(from.X, from.Y, from.Z);
-            if (dist >= bestDist) continue;
+            if (spotRank == bestRank && dist >= bestDist) continue;
             best = pos;
             bestDist = dist;
+            bestRank = spotRank;
         }
+        rank = bestRank;
         return best;
     }
 

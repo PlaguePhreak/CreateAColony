@@ -314,6 +314,8 @@ public class Building
     [ProtoMember(112)] public double ExploreStartedTotalDays;
     /// <summary>A Gatherer's Hut: whether its gatherer picks things, only looks around and marks the map, or both (GatherModes).</summary>
     [ProtoMember(113, IsRequired = true)] public string GatherMode = GatherModes.Both;
+    /// <summary>A Gatherer's Hut: the kinds of thing its gatherer goes for first (ColonyManager.GatherCategories); empty is the usual order.</summary>
+    [ProtoMember(114)] public List<string> GatherOrder = new();
     /// <summary>A gathering hut: what its worker is set not to collect (ColonyManager.CollectKinds keys). Empty is everything.</summary>
     [ProtoMember(160)] public List<string> CollectOff = new();
     /// <summary>A hut's Crafting recipes tab: how many of each thing its worker keeps crafted, by item code (ColonyManager.HutRecipes.cs). Empty is nothing.</summary>

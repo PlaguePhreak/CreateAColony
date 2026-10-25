@@ -90,7 +90,7 @@ public partial class ColonyManager
 
     /// <summary>Huts with a Priorities tab: those that make more than one kind of thing.</summary>
     public bool HasPriorities(string type) =>
-        CraftTabOf(type) != null || HasHutRecipes(type) || type is BuildingTypes.Cook or BuildingTypes.Potter;
+        CraftTabOf(type) != null || HasHutRecipes(type) || type is BuildingTypes.Cook or BuildingTypes.Potter or BuildingTypes.Gatherer;
 
     /// <summary>
     /// Moves one thing a crafting hut keeps up, down or to the top. The list shown (keys, in the order shown) is

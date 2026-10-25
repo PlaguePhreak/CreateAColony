@@ -1780,7 +1780,13 @@ public partial class GuiDialogHut : GuiDialog
     /// </summary>
     void ComposePriorities(GuiComposer composer)
     {
-        double y = composer.Text(Lang.Get("createacolony:priorities-hint"), GuiKit.Muted(), 0, 30, Width, 10);
+        double y = 30;
+        if (snapshot.GatherOrder.Count > 0)
+        {
+            y = ComposeGatherOrder(composer, y);
+            y = composer.Section(Lang.Get("createacolony:priorities-crafting"), y, Width);
+        }
+        y = composer.Text(Lang.Get("createacolony:priorities-hint"), GuiKit.Muted(), 0, y, Width, 10);
         var rows = snapshot.Craft.Concat(snapshot.Recipes).Concat(snapshot.Kitchen).Concat(snapshot.Pottery).Concat(snapshot.WorkRows)
             .Where(r => r.Keep > 0).GroupBy(r => r.Key).ToDictionary(g => g.Key, g => g.First());
         var keys = snapshot.Priorities.Where(rows.ContainsKey).ToList();
@@ -1789,13 +1795,15 @@ public partial class GuiDialogHut : GuiDialog
             composer.Text(Lang.Get("createacolony:priorities-none"), GuiKit.Body(), 0, y, Width);
             return;
         }
-        int pages = (keys.Count + PotteryRowsPerPage - 1) / PotteryRowsPerPage;
+        // Under a Gatherer's collecting order there is room for fewer rows.
+        int perPage = snapshot.GatherOrder.Count > 0 ? 3 : PotteryRowsPerPage;
+        int pages = (keys.Count + perPage - 1) / perPage;
         page = Math.Clamp(page, 0, pages - 1);
-        int shown = Math.Min(PotteryRowsPerPage, keys.Count - page * PotteryRowsPerPage);
+        int shown = Math.Min(perPage, keys.Count - page * perPage);
         composer.AddInset(ElementBounds.Fixed(0, y, Width, shown * PotteryRowHeight + 8), 3, 0.8f);
         y += 4;
-        int number = page * PotteryRowsPerPage;
-        foreach (var key in keys.Skip(page * PotteryRowsPerPage).Take(PotteryRowsPerPage))
+        int number = page * perPage;
+        foreach (var key in keys.Skip(page * perPage).Take(perPage))
         {
             number++;
             var row = rows[key];
@@ -1813,6 +1821,37 @@ public partial class GuiDialogHut : GuiDialog
             y += PotteryRowHeight;
         }
         AddPager(composer, pages, y + 14);
+    }
+
+    const double GatherRowHeight = 32;
+
+    /// <summary>
+    /// A Gatherer's collecting order: the kinds of thing its gatherer goes for first, in two columns, with ^ and v
+    /// for officers. Returns the height below it.
+    /// </summary>
+    double ComposeGatherOrder(GuiComposer composer, double y)
+    {
+        y = composer.Section(Lang.Get("createacolony:gatherorder"), y, Width);
+        y = composer.Text(Lang.Get("createacolony:gatherorder-hint"), GuiKit.Muted(), 0, y, Width, 6);
+        var order = snapshot.GatherOrder;
+        int perColumn = (order.Count + 1) / 2;
+        double column = Width / 2;
+        composer.AddInset(ElementBounds.Fixed(0, y, Width, perColumn * GatherRowHeight + 8), 3, 0.8f);
+        for (int i = 0; i < order.Count; i++)
+        {
+            double x = (i / perColumn) * column + 8, rowY = y + 4 + (i % perColumn) * GatherRowHeight;
+            string key = ColonyManager.GatherKeyPrefix + order[i];
+            composer.AddStaticText((i + 1) + ". " + Lang.Get("createacolony:gatherorder-" + order[i]), GuiKit.Body(),
+                ElementBounds.Fixed(x, rowY + 5, column - 90, 24));
+            if (ViewerRole >= ColonyRole.Officer)
+            {
+                int hutId = snapshot.Building.BuildingId;
+                composer
+                    .AddSmallButton("^", () => Move(key, ColonyManager.MoveUp, hutId), ElementBounds.Fixed(x + column - 84, rowY + 2, 30, 26))
+                    .AddSmallButton("v", () => Move(key, ColonyManager.MoveDown, hutId), ElementBounds.Fixed(x + column - 50, rowY + 2, 30, 26));
+            }
+        }
+        return y + perColumn * GatherRowHeight + 20;
     }
 
     static readonly double[] MissingColor = { 1.0, 0.4, 0.35, 1.0 };

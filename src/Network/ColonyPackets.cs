@@ -478,6 +478,8 @@ public class HutSnapshot
     [ProtoMember(133)] public int RemovedMarkerCount;
     /// <summary>A Gatherer's Hut: what its gatherer does (GatherModes); empty for other huts.</summary>
     [ProtoMember(134)] public string GatherMode = "";
+    /// <summary>A Gatherer's Hut: its collecting order (ColonyManager.GatherCategories), for the Priorities tab; empty for other huts.</summary>
+    [ProtoMember(135)] public List<string> GatherOrder = new();
     /// <summary>A Mineshaft Entrance: the colony's Miner's Huts, those working its mine first.</summary>
     [ProtoMember(150)] public bool IsMineEntrance;
     [ProtoMember(151)] public List<MineHutView> MineHuts = new();
