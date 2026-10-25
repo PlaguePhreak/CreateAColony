@@ -221,6 +221,9 @@ public class ColonyMarkerMapLayer : MarkerMapLayer
         removeDialog?.Dispose();
         var capi = (ICoreClientAPI)api;
         removeDialog = new GuiDialogRemoveMarker(capi, capi.ModLoader.GetModSystem<ColonyNetwork>(), markers[i]);
+        // Focus goes back to the map when it closes.
+        var mapDialog = capi.ModLoader.GetModSystem<WorldMapManager>()?.worldMapDlg;
+        if (mapDialog != null) removeDialog.OnClosed += () => capi.Gui.RequestFocus(mapDialog);
         removeDialog.TryOpen();
     }
 

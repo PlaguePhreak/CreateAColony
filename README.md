@@ -279,6 +279,7 @@ These work well with Vintage Colonies. Install them separately.
 - Settlers won't mark that spot again with the same thing. Other markers nearby stay.
 - Changed your mind? An Explorer's or Gatherer's Hut Markers tab has **Mark removed spots again**.
 - Grave markers can be removed the same way.
+- Since 0.132.0 the Remove window shows on top of the open map.
 ## Settlers put out fires (0.123.0)
 - Fire spreads through grass and wood. If something catches fire on your colony's land, the Town Hall log says "Fire near ...!" and up to 3 settlers within 64 blocks come running. They even get out of bed.
 - Each one needs a watering can. A settler without one takes it from a chest at home, the warehouse or a hut (the Farmer's Hut keeps them). An empty can gets filled at the nearest water first.

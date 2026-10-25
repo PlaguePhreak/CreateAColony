@@ -18,6 +18,30 @@ public class GuiDialogRemoveMarker : GuiDialog
 
     public override string? ToggleKeyCombinationCode => null;
 
+    // Drawn above the open world map, and keeping the mouse while open, as the game's Edit waypoint window does.
+    public override double DrawOrder => 0.2;
+    public override bool PrefersUngrabbedMouse => true;
+    public override bool DisableMouseGrab => true;
+    public override bool CaptureAllInputs() => IsOpened();
+
+    public override void OnMouseDown(MouseEvent args)
+    {
+        base.OnMouseDown(args);
+        args.Handled = true;
+    }
+
+    public override void OnMouseUp(MouseEvent args)
+    {
+        base.OnMouseUp(args);
+        args.Handled = true;
+    }
+
+    public override void OnMouseMove(MouseEvent args)
+    {
+        base.OnMouseMove(args);
+        args.Handled = true;
+    }
+
     public GuiDialogRemoveMarker(ICoreClientAPI capi, ColonyNetwork network, ColonyMarkerView marker) : base(capi)
     {
         this.network = network;
