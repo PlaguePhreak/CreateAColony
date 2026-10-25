@@ -13,7 +13,7 @@ namespace CreateAColony.Colonies;
 
 /// <summary>
 /// Colonies take over traders (Aaron, TRADERS_DRAFT.md). Trader land claims are taken away everywhere. When a
-/// settler comes within TraderFindRange of a trader and can see it, the trader leaves the game and a new
+/// settler comes within TraderFindRange of a trader and can see it (or the trader is on colony land, or very close), the trader leaves the game and a new
 /// settler takes its place, skilled for its trade (config/traderjobs.json). Some of its goods go to the
 /// warehouse. A full colony keeps the newcomer waiting at the Tavern until there is room. A builder then takes
 /// the trader's house down without being asked: clutter is destroyed, everything else goes to the builder's hut.
@@ -25,6 +25,8 @@ public partial class ColonyManager
     const int TraderJoinAtTownHallFrom = 64;
     /// <summary>A trader house box is searched for this far around the trader.</summary>
     const int TraderHouseSearch = 8;
+    /// <summary>A settler this close finds a trader without seeing it.</summary>
+    const int TraderHearRange = 6;
 
     class TraderJobsFile { public Dictionary<string, List<TraderJobChoice>> Traders = new(); }
     class TraderJobChoice { public string Job = ""; public string Skill = ""; }
@@ -84,22 +86,30 @@ public partial class ColonyManager
             {
                 // Someone trading with it now: wait until they are done.
                 if (trader is EntityTradingHumanoid { interactingWithPlayer.Count: > 0 }) continue;
-                if (eye.DistanceTo(trader.Pos.XYZ) > range || !CanSee(eye, trader)) continue;
+                double dist = eye.DistanceTo(trader.Pos.XYZ);
+                if (dist > range) continue;
+                // On colony land, or close enough to hear, it is found through walls: traders mostly stand inside their houses.
+                bool found = dist <= TraderHearRange || InClaim(colony, trader.Pos.AsBlockPos) || CanSee(eye, trader);
+                if (!found) continue;
                 TraderJoins(colony, citizen, trader);
             }
         }
     }
 
-    /// <summary>True when no solid block stands between the eye and the entity's head.</summary>
+    /// <summary>True when no solid block stands between the eye and the entity's head or middle (over a counter, through a window).</summary>
     bool CanSee(Vec3d eye, Entity target)
     {
-        var to = target.Pos.XYZ.Add(0, target.LocalEyePos.Y, 0);
-        BlockSelection? blockSel = null;
-        EntitySelection? entitySel = null;
-        sapi.World.RayTraceForSelection(eye, to, ref blockSel, ref entitySel,
-            (pos, block) => block.Id != 0 && block.CollisionBoxes is { Length: > 0 } && !block.Code.Path.Contains("glass"),
-            _ => false);
-        return blockSel == null;
+        foreach (double height in new[] { target.LocalEyePos.Y, target.LocalEyePos.Y / 2 })
+        {
+            var to = target.Pos.XYZ.Add(0, height, 0);
+            BlockSelection? blockSel = null;
+            EntitySelection? entitySel = null;
+            sapi.World.RayTraceForSelection(eye, to, ref blockSel, ref entitySel,
+                (pos, block) => block.Id != 0 && block.CollisionBoxes is { Length: > 0 } && !block.Code.Path.Contains("glass"),
+                _ => false);
+            if (blockSel == null) return true;
+        }
+        return false;
     }
 
     /// <summary>
