@@ -138,9 +138,12 @@ public partial class ColonyManager
         // A wild crop (not on farmland) only once it is fully grown.
         if (IsWildCrop(block, pos)) return IsFullyGrown((BlockCrop)block) && CanWorkAt(colony, pos) && !NearBuilding(colony, pos) ? "crop" : null;
         string? wild = WildKind(block);
-        if (wild == null) return null;
+        if (wild == null && block is not BlockReeds) return null;
         // On open land or the colony's own, but not in or beside a building, so things placed on purpose stay.
         if (!CanWorkAt(colony, pos) || NearBuilding(colony, pos)) return null;
+        // Food is low: the whole reed is dug up for its root (ColonyManager.Roots.cs).
+        if (block is BlockReeds && DigsRoots(colony, pos)) return "root";
+        if (wild == null) return null;
         // Seashells under water are out of reach.
         if (block is BlockSeashell && ba.GetBlock(pos, BlockLayersAccess.Fluid).Id != 0) return null;
         // Clay and peat only where the world made the ground, with open air above: one layer is taken, never a pit.
@@ -358,7 +361,7 @@ public partial class ColonyManager
         {
             var block = sapi.World.BlockAccessor.GetBlock(pos);
             // Reeds drop their tops whatever the hand holds, as the game's own breaking does.
-            var drops = kind == "reed" ? ToolDrops(block, null) : DropsOf(block, pos);
+            var drops = kind == "reed" ? ToolDrops(block, null) : kind == "root" ? RootDrops(block, pos) : DropsOf(block, pos);
             if (Map.MarkerSubjects.OreKey(block) is { } ore) NoteOreHint(colony, hut, pos, ore);
             if (kind == "reed") CutReeds(block, pos);
             else BreakQuietly(pos);

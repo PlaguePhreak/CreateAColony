@@ -30,7 +30,7 @@ public partial class ColonyManager
     public static readonly Dictionary<string, string[]> MarkerGroups = new()
     {
         [BuildingTypes.Explorer] = new[] { "ore", "clay", "soil", "traders", "animals", "danger", "landmarks" },
-        [BuildingTypes.Gatherer] = new[] { "berries", "fruit", "mushrooms", "crops", "herbs", "reeds", "clay", "soil", "shells", "flint", "resin", "bees" },
+        [BuildingTypes.Gatherer] = new[] { "berries", "fruit", "mushrooms", "crops", "herbs", "reeds", "clay", "soil", "shells", "flint", "ore", "resin", "bees" },
     };
 
     const string White = "#FFFFFF";

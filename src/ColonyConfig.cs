@@ -223,6 +223,12 @@ public class ColonyConfig
     public bool GathererPicksUpStones = true;
     /// <summary>The gatherer cuts the tops off cattails, papyrus and tule, the way a knife does, leaving the plant.</summary>
     public bool GathererCutsReeds = true;
+    /// <summary>When the colony runs low on food the gatherer digs up reeds for their roots and roasts them on a fire pit by its hut.</summary>
+    public bool GathererDigsRoots = true;
+    /// <summary>Food counts as low below this many full bellies (SaturationMax) per settler in the colony's chests.</summary>
+    public double GathererRootsFoodDays = 2;
+    /// <summary>The gatherer leaves a reed alone unless this many others grow within 4 blocks of it.</summary>
+    public int GathererRootsLeave = 2;
     /// <summary>
     /// The gatherer digs blue, fire and red clay and peat where it shows on the surface. Only the top block the
     /// world made is taken, so it never digs a pit.

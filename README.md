@@ -227,6 +227,11 @@ These work well with Vintage Colonies. Install them separately.
 - **Smithing Plus** (jayu): smith with metal bits, repair tool heads on the anvil and other smithing tweaks. Our smiths still use the game's anvil and recipes beside it; not tested together in game yet.
 - **Coinage** (Xel): design your own coins. One can be the colony's money (Bailiff tab, Taxes & wages).
 
+## Gatherers roast cattail roots when food is low (0.150.0)
+- When the colony runs low on food, the gatherer digs up cattails, papyrus and tule for their roots. It never digs out a whole patch: it leaves at least 2 nearby (`GathererRootsLeave`). Food counts as low below 2 days of food per settler (`GathererRootsFoodDays`).
+- It roasts the roots on a fire pit next to the Gatherer's Hut, with firewood from the hut or the warehouse, then puts them in the hut storage. **Place a fire pit by the hut** for this.
+- Roots count as **Food** on the gatherer's Priorities tab. Switch it off with `GathererDigsRoots`.
+- On the gatherer's Markers tab, ore bits now have their own switch, separate from flint.
 ## Guards upgrade their gear (0.149.0)
 - **Guards look for better gear.** When nothing needs fighting, a guard checks its tower's storage and the warehouse for a better weapon, better armor or a better shield.
 - **It swaps, and puts the old one back.** The guard takes the better one and leaves what it had in the same chest, so the Weaponsmith or Armourer can mend it.

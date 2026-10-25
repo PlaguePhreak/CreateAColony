@@ -40,7 +40,7 @@ public partial class ColonyManager
         string path = block.Code?.Path ?? "";
         return kind switch
         {
-            "fruit" or "mushroom" or "crop" => "food",
+            "fruit" or "mushroom" or "crop" or "root" => "food",
             "herb" => "herbs",
             "reed" => "reeds",
             "dig" => path.StartsWith("peat-") ? "peat" : "clay",

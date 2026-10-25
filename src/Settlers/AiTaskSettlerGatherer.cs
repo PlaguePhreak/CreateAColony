@@ -36,8 +36,62 @@ public class AiTaskSettlerGatherer : AiTaskSettlerWorker
     protected override bool NeedsTool => false;
     protected override bool WorkNeedsTool => false;
 
-    /// <summary>It carries a knife if its hut has one, for recipes that take it (config HutRecipeTools).</summary>
-    protected override bool AlsoKeeps(ItemStack stack) => IsRecipeTool(stack);
+    /// <summary>
+    /// It carries a knife if its hut has one, for recipes that take it (config HutRecipeTools), and while food is
+    /// low the roots and firewood it is taking to the fire.
+    /// </summary>
+    protected override bool AlsoKeeps(ItemStack stack) => IsRecipeTool(stack)
+        || (roasting && (manager!.IsCookableRoot(stack) || ColonyManager.IsFirewood(stack)));
+
+    /// <summary>True while the colony's food is low and there are roots to roast.</summary>
+    bool roasting;
+    /// <summary>What it does at the fire pit it walks to: put roots on, or take roasted ones off.</summary>
+    enum FireWork { None, Cook, Collect }
+    FireWork fireWork;
+
+    /// <summary>
+    /// Roasting roots (ColonyManager.Roots.cs): roasted roots on the fire pit by the hut are taken off first. While
+    /// food is low, roots it carries or the hut holds go on the fire, with firewood from the hut or the warehouse.
+    /// </summary>
+    bool PlanRoast(Colony colony, CitizenRecord citizen, Building hut, List<BlockEntityContainer> storage)
+    {
+        var m = manager!;
+        fireWork = FireWork.None;
+        roasting = false;
+        if (!m.Config.GathererDigsRoots || m.HomeFirepit(colony, hut) is not { } pit || IsUnreachable(pit.Pos)) return false;
+        workRange = 2.5f;
+        if (ColonyManager.FireHasFood(pit) && pit.inputSlot.Empty)
+        {
+            fireWork = FireWork.Collect;
+            SetStatus("roots-collect");
+            return GoWork(pit.Pos);
+        }
+        if (!m.FoodLow(colony, entity) || !pit.inputSlot.Empty) return false;
+        bool carries = m.PackCount(citizen, m.IsCookableRoot) > 0;
+        var rootChest = carries ? null : storage.FirstOrDefault(c => c.Inventory.Any(s => !s.Empty && m.IsCookableRoot(s.Itemstack)));
+        if (!carries && rootChest == null) return false;
+        roasting = true;
+        if (!m.CanFuel(colony, hut, citizen, pit))
+        {
+            SetStatus("roots-no-firewood");
+            return false;
+        }
+        if (rootChest != null && !m.PackFull(citizen))
+        {
+            SetStatus("roots-fetch");
+            return FetchSupplies(rootChest.Pos, m.IsCookableRoot, m.Config.CookBatch);
+        }
+        if (!carries) return false;
+        if (!pit.IsBurning && pit.fuelSlot.Empty && m.PackCount(citizen, ColonyManager.IsFirewood) == 0
+            && m.HomeSupply(colony, hut, ColonyManager.IsFirewood) is { } wood)
+        {
+            SetStatus("roots-fetch");
+            return FetchSupplies(wood.Pos, ColonyManager.IsFirewood, m.Config.CookFirewood);
+        }
+        fireWork = FireWork.Cook;
+        SetStatus("roots-roast");
+        return GoWork(pit.Pos);
+    }
 
     protected override bool PlanFirst(Colony colony, CitizenRecord citizen, Building hut) =>
         FetchRecipeTools(colony, citizen, hut, manager!.HutStorage(colony, hut).Cast<BlockEntityContainer>().ToList());
@@ -45,6 +99,11 @@ public class AiTaskSettlerGatherer : AiTaskSettlerWorker
     protected override bool PlanWork(Colony colony, CitizenRecord citizen, Building hut, List<BlockEntityContainer> storage)
     {
         bool lookOnly = hut.GatherMode == GatherModes.Look;
+        if (!lookOnly && PlanRoast(colony, citizen, hut, storage))
+        {
+            looking = cutting = false;
+            return true;
+        }
         int rank = int.MaxValue;
         var spot = lookOnly ? null : manager!.NextForage(colony, hut, entity.Pos.XYZ, IsUnreachable, out rank);
         // Dry grass the colony is waiting for is one of its requests: it goes where requests are on the collecting order.
@@ -79,6 +138,20 @@ public class AiTaskSettlerGatherer : AiTaskSettlerWorker
 
     protected override void DoWork(Colony colony, CitizenRecord citizen, Building hut)
     {
+        var m = manager!;
+        if (fireWork != FireWork.None)
+        {
+            var work = fireWork;
+            fireWork = FireWork.None;
+            if (entity.World.BlockAccessor.GetBlockEntity(target) is not BlockEntityFirepit pit) return;
+            if (work == FireWork.Collect && ColonyManager.FireHasFood(pit)) m.EmptyFirepit(colony, citizen, pit);
+            else if (work == FireWork.Cook && pit.inputSlot.Empty
+                && m.PackItems(citizen).FirstOrDefault(m.IsCookableRoot) is { } root && m.KitchenKindOf(root) is { } kind)
+            {
+                m.LoadFirepit(colony, citizen, pit, kind);
+            }
+            return;
+        }
         if (cutting)
         {
             if (!manager!.CutGrass(colony, hut, citizen, target)) MarkUnreachable(target);
