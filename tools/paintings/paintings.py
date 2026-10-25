@@ -599,7 +599,7 @@ def blocktype(paintings):
     attrs = {f"*-{c}-*": dict({"paintingSize": SIZES[(w, h)]}, **({"dyes": DYES[c]} if c in DYES else {}))
              for c, _, w, h, _ in paintings}
     sel = lambda w, h, angle: {"x1": 0.03, "y1": 0.03, "z1": 0, "x2": w - 0.03, "y2": h - 0.03, "z2": 0.09, "rotateY": angle}
-    gui = lambda w, h: {"rotation": {"x": -8, "y": 20, "z": 0}, "origin": {"x": w / 2, "y": h / 2, "z": 0.05},
+    gui = lambda w, h: {"rotation": {"x": -8, "y": 200, "z": 0}, "origin": {"x": w / 2, "y": h / 2, "z": 0.05},
                         "scale": {1: 1.25, 2: 0.78}[max(w, h)]}
     hand = lambda w, h: {"translation": {"x": -0.6, "y": -0.3, "z": -0.5}, "rotation": {"x": 0, "y": 90, "z": 0},
                          "origin": {"x": w / 2, "y": h / 2, "z": 0.05}, "scale": {1: 0.8, 2: 0.5}[max(w, h)]}
