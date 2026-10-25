@@ -390,6 +390,11 @@ Blocks from mods you don't have (Food Shelves, w4rd0s furniture) are skipped. No
 - A settler working far away keeps its bed. Before, it could lose it when the bed's land wasn't loaded.
 - A settler that slept on the floor somewhere no longer pops onto its bed in the morning.
 
+## The potter uses several pit kilns (0.155.0)
+- The potter digs and uses more than one pit kiln: 2 at hut level 1, one more each level, up to 4 (`PotterMaxKilns`). It fires one load while it shapes the next.
+- Each kiln takes as many pieces as the game allows: 4 bowls, crocks or other small pieces (they can be mixed), 2 ingot molds, or a stack of bricks or shingles up to the game's limit.
+- The hut window shows every kiln, for example "Kilns (3): 1 firing, 1 being filled, 1 empty".
+
 ## The Bailiff (0.127.0)
 - A new job, the **Bailiff**. On the Town Hall's Citizens tab, give one settler the Bailiff job (only one per colony). They work from the Town Hall and walk around checking on the huts and fields.
 - The Town Hall has a new **Bailiff** tab with three pages: the bailiff and their rules, the **Ledger**, and the **Estate report**.
@@ -650,7 +655,7 @@ works with the game's own pottery, by hand:
 - Put clay and kiln fuel in the hut's storage or the warehouse; the potter asks couriers for what it
   is missing. Fired pottery and dug soil go to the hut storage and on to the warehouse.
 - Config: `PotterSecondsPerLayer`, `PotterSecondsPerKilnStep`, `PotterClayReserve`,
-  `PotterClayRequest`, `PotterSpotRadius`, `PotteryKeepChoices`, `PotteryDefaultKeep`.
+  `PotterClayRequest`, `PotterSpotRadius`, `PotterMaxKilns`, `PotteryKeepChoices`, `PotteryDefaultKeep`.
 
 ### New settlers: the Tavern and wanderers
 

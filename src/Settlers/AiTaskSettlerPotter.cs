@@ -12,7 +12,7 @@ namespace CreateAColony.Settlers;
 /// <summary>
 /// A potter works from a Potter's Hut with the game's own pottery: it shapes clay on a clay forming
 /// block by the hut, layer by layer, into whatever the hut keeps too few of, and fires the pieces in
-/// a pit kiln it digs nearby. Fired pottery goes to the hut storage, and couriers take it on to the
+/// pit kilns it digs nearby, several at once. Fired pottery goes to the hut storage, and couriers take it on to the
 /// warehouse. It works by hand; clay and kiln fuel come from the hut storage, which couriers fill.
 /// </summary>
 public class AiTaskSettlerPotter : AiTaskSettlerWorker
@@ -39,35 +39,28 @@ public class AiTaskSettlerPotter : AiTaskSettlerWorker
     protected override bool PlanWork(Colony colony, CitizenRecord citizen, Building hut, List<BlockEntityContainer> storage)
     {
         var m = manager!;
-        var kiln = m.Kiln(colony, hut);
+        var kilns = m.Kilns(colony, hut);
         var pack = m.PackItems(citizen);
         string? status = null;
 
-        switch (kiln)
+        // Fired pottery comes out first, then kilns get lit, then the ones being built get their fuel.
+        if (kilns.FirstOrDefault(k => k.State == ColonyManager.KilnState.Fired).Pos is { } fired) return Go(Work.Empty, fired, "kiln-emptying");
+        if (kilns.FirstOrDefault(k => k.State == ColonyManager.KilnState.Ready).Pos is { } ready) return Go(Work.Light, ready, "kiln-lighting");
+        foreach (var (pos, _) in kilns.Where(k => k.State == ColonyManager.KilnState.Building))
         {
-            case ColonyManager.KilnState.Fired:
-                return Go(Work.Empty, hut.KilnPos!, "kiln-emptying");
-            case ColonyManager.KilnState.Ready:
-                return Go(Work.Light, hut.KilnPos!, "kiln-lighting");
-            case ColonyManager.KilnState.Building:
-                if (m.NextKilnMaterial(colony, hut, citizen) is { } fuel)
-                {
-                    int have = m.PackCount(citizen, s => s.Equals(entity.World, fuel, GlobalConstants.IgnoredStackAttributes));
-                    if (have >= fuel.StackSize) return Go(Work.Fuel, hut.KilnPos!, "kiln-fueling");
-                    var chest = storage.FirstOrDefault(c => c.Inventory.Any(s => !s.Empty && s.Itemstack.Equals(entity.World, fuel, GlobalConstants.IgnoredStackAttributes)));
-                    if (chest != null && !m.PackFull(citizen))
-                    {
-                        SetStatus("kiln-fueling");
-                        return FetchSupplies(chest.Pos, s => s.Equals(entity.World, fuel, GlobalConstants.IgnoredStackAttributes), fuel.StackSize - have);
-                    }
-                    m.EnsurePotterRequest(colony, hut, fuel.Collectible.Code.ToString(), fuel.StackSize);
-                    status = "needs-kiln-fuel";
-                }
-                break;
-            case ColonyManager.KilnState.Lit:
-                status = "kiln-firing";
-                break;
+            if (m.NextKilnMaterial(colony, hut, citizen, pos) is not { } fuel) continue;
+            int have = m.PackCount(citizen, s => s.Equals(entity.World, fuel, GlobalConstants.IgnoredStackAttributes));
+            if (have >= fuel.StackSize) return Go(Work.Fuel, pos, "kiln-fueling");
+            var chest = storage.FirstOrDefault(c => c.Inventory.Any(s => !s.Empty && s.Itemstack.Equals(entity.World, fuel, GlobalConstants.IgnoredStackAttributes)));
+            if (chest != null && !m.PackFull(citizen))
+            {
+                SetStatus("kiln-fueling");
+                return FetchSupplies(chest.Pos, s => s.Equals(entity.World, fuel, GlobalConstants.IgnoredStackAttributes), fuel.StackSize - have);
+            }
+            m.EnsurePotterRequest(colony, hut, fuel.Collectible.Code.ToString(), fuel.StackSize);
+            status ??= "needs-kiln-fuel";
         }
+        if (status == null && kilns.Any(k => k.State == ColonyManager.KilnState.Lit)) status = "kiln-firing";
 
         // Shape the next piece, or carry on with the one on the clay forming block.
         var forming = m.FormingRecipe(hut);
@@ -96,17 +89,19 @@ public class AiTaskSettlerPotter : AiTaskSettlerWorker
             }
         }
 
-        // Fire a full load, or whatever is made once nothing more can be.
+        // Fire a full load, or whatever is made once nothing more can be, in an empty pit or a new one.
         var raw = pack.FirstOrDefault(m.IsRawPottery);
-        if (kiln is ColonyManager.KilnState.Empty or ColonyManager.KilnState.NoPit && raw != null
+        var emptyPit = kilns.FirstOrDefault(k => k.State == ColonyManager.KilnState.Empty).Pos;
+        bool canDig = kilns.Count < m.KilnsAllowed(hut);
+        if ((emptyPit != null || canDig) && raw != null
             && (next == null || pack.Where(m.IsRawPottery).Sum(s => s.StackSize) >= ColonyManager.KilnLoad(raw)))
         {
-            if (kiln == ColonyManager.KilnState.Empty)
+            if (emptyPit != null)
             {
                 // The kiln is made by adding its first fuel, so the potter brings that along.
                 var first = m.FirstKilnMaterials(raw);
                 bool Same(ItemStack s, ItemStack f) => s.Equals(entity.World, f, GlobalConstants.IgnoredStackAttributes);
-                if (first.Count == 0 || first.Any(f => m.PackCount(citizen, s => Same(s, f)) >= f.StackSize)) return Go(Work.Load, hut.KilnPos!, "kiln-loading");
+                if (first.Count == 0 || first.Any(f => m.PackCount(citizen, s => Same(s, f)) >= f.StackSize)) return Go(Work.Load, emptyPit, "kiln-loading");
                 foreach (var f in first)
                 {
                     var chest = storage.FirstOrDefault(c => c.Inventory.Any(s => !s.Empty && Same(s.Itemstack, f)));
@@ -115,10 +110,10 @@ public class AiTaskSettlerPotter : AiTaskSettlerWorker
                     return FetchSupplies(chest.Pos, s => Same(s, f), f.StackSize - m.PackCount(citizen, s => Same(s, f)));
                 }
                 m.EnsurePotterRequest(colony, hut, first[0].Collectible.Code.ToString(), first[0].StackSize);
-                status = "needs-kiln-fuel";
+                status ??= "needs-kiln-fuel";
             }
             else if (m.FindKilnSpot(colony, hut) is { } pit) return Go(Work.Dig, pit, "kiln-digging");
-            else status = "no-kiln-spot";
+            else if (kilns.Count == 0) status = "no-kiln-spot";
         }
 
         if (next is { } piece)
@@ -156,16 +151,16 @@ public class AiTaskSettlerPotter : AiTaskSettlerWorker
                 m.DigKiln(colony, hut, citizen, target);
                 break;
             case Work.Load:
-                m.LoadKiln(colony, hut, citizen);
+                m.LoadKiln(colony, hut, citizen, target);
                 break;
             case Work.Fuel:
-                m.AddKilnMaterial(colony, hut, citizen);
+                m.AddKilnMaterial(colony, hut, citizen, target);
                 break;
             case Work.Light:
-                m.LightKiln(colony, hut, citizen);
+                m.LightKiln(colony, hut, citizen, target);
                 break;
             case Work.Empty:
-                m.EmptyKiln(colony, hut, citizen);
+                m.EmptyKiln(colony, hut, citizen, target);
                 break;
         }
     }

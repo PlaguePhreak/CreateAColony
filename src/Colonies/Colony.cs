@@ -218,6 +218,8 @@ public class Building
     [ProtoMember(16)] public bool PotteryChosen;
     /// <summary>The pit a potter dug for its pit kiln.</summary>
     [ProtoMember(17)] public BlockPos? KilnPos;
+    /// <summary>More pit kilns the potter dug beside the first (see ColonyManager.KilnsAllowed).</summary>
+    [ProtoMember(175)] public List<BlockPos> MoreKilns = new();
     /// <summary>Where a potter shapes clay.</summary>
     [ProtoMember(18)] public BlockPos? FormPos;
     /// <summary>A Tavern: the settlers who can be hired there today.</summary>

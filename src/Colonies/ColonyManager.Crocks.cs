@@ -312,10 +312,7 @@ public partial class ColonyManager
         ItemMatch raw = kind.IsRaw;
         int count = CountItems(HutStorage(colony, hut), raw);
         if (potter != null) count += PackCount(potter, raw);
-        if (hut.KilnPos != null && sapi.World.BlockAccessor.GetBlockEntity(hut.KilnPos) is BlockEntityGroundStorage kiln)
-        {
-            count += kiln.Inventory.Take(4).Where(s => !s.Empty && raw(s.Itemstack)).Sum(s => s.StackSize);
-        }
+        count += InKilns(hut, raw);
         if (FormingRecipe(hut) is { } forming && kind.Recipes.Contains(forming)) count += forming.Output!.ResolvedItemstack!.StackSize;
         return count;
     }

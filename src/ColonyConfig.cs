@@ -476,6 +476,8 @@ public class ColonyConfig
     public int PotterClayRequest = 16;
     /// <summary>How far from the Potter's Hut, in blocks, the potter digs its kiln pit and shapes clay.</summary>
     public int PotterSpotRadius = 8;
+    /// <summary>Most pit kilns a potter uses at once. It may use one more than the hut's level, up to this.</summary>
+    public int PotterMaxKilns = 4;
     /// <summary>The "Keep in stock" amounts the Pottery tab offers.</summary>
     public int[] PotteryKeepChoices = { 0, 1, 2, 4, 8, 16, 32 };
     /// <summary>
