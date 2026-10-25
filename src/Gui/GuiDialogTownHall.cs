@@ -145,6 +145,7 @@ public class GuiDialogTownHall : GuiDialog
         SingleComposer.GetSwitch("bailiffjobs")?.SetValue(snapshot.BailiffGivesJobs);
         SingleComposer.GetSwitch("bailiffrent")?.SetValue(snapshot.BailiffCollectsRent);
         SingleComposer.GetSwitch("bailifflend")?.SetValue(snapshot.BailiffLendsWorkers);
+        SingleComposer.GetSwitch("bailiffwages")?.SetValue(snapshot.BailiffPaysWages);
     }
 
     /// <summary>A row of page buttons along the top of a tab, the chosen one marked. Returns the y below them.</summary>
@@ -973,11 +974,12 @@ public class GuiDialogTownHall : GuiDialog
     /// </summary>
     void ComposeBailiff(GuiComposer composer)
     {
-        double y = PageButtons(composer, new[] { "bailiff-page-rules", "bailiff-page-ledger", "bailiff-page-report" }, bailiffPage, p => bailiffPage = p, 30, 150);
+        double y = PageButtons(composer, new[] { "bailiff-page-rules", "bailiff-page-money", "bailiff-page-ledger", "bailiff-page-report" }, bailiffPage, p => bailiffPage = p, 30, 132);
         switch (bailiffPage)
         {
-            case 1: ComposeLedger(composer, y); break;
-            case 2: ComposeEstateReport(composer, y); break;
+            case 1: ComposeMoney(composer, y); break;
+            case 2: ComposeLedger(composer, y); break;
+            case 3: ComposeEstateReport(composer, y); break;
             default: ComposeBailiffRules(composer, y); break;
         }
     }
@@ -1014,8 +1016,34 @@ public class GuiDialogTownHall : GuiDialog
         y = composer.Section(Lang.Get("createacolony:bailiff-duties"), y, Width);
         y = BailiffSwitch(composer, "bailiffjobs", "jobs", snapshot.BailiffGivesJobs, "bailiff-jobs", "bailiff-jobs-hint", y);
         y = BailiffSwitch(composer, "bailifflend", "lend", snapshot.BailiffLendsWorkers, "bailiff-lend", "bailiff-lend-hint", y);
-        y = BailiffSwitch(composer, "bailiffrent", "rent", snapshot.BailiffCollectsRent, "bailiff-rent", "bailiff-rent-hint", y, snapshot.RentPerSettler);
         composer.Text(Lang.Get("createacolony:bailiff-fields-hint"), GuiKit.Muted(), 0, y, Width, 6);
+    }
+
+    /// <summary>Taxes and wages: the treasury, the tax rate and the two switches (ColonyManager.Economy.cs).</summary>
+    void ComposeMoney(GuiComposer composer, double y)
+    {
+        if (!snapshot.HasMint) y = composer.Text(Lang.Get("createacolony:bailiff-no-mint"), GuiKit.Body().WithColor(GuiKit.WarnColor), 0, y, Width, 8);
+        y = composer.Text(Lang.Get("createacolony:bailiff-treasury", snapshot.Treasury, snapshot.WageBill, DayName(snapshot.NextPayday)),
+            snapshot.Treasury < snapshot.WageBill ? GuiKit.Body().WithColor(GuiKit.WarnColor) : GuiKit.Body(), 0, y, Width, 10);
+
+        y = composer.Section(Lang.Get("createacolony:bailiff-tax"), y, Width);
+        string[] rates = Enumerable.Range(0, 11).Select(i => (i * 5).ToString()).ToArray();
+        string[] rateNames = rates.Select(r => r + "%").ToArray();
+        int rate = Math.Clamp(snapshot.TaxPercent / 5, 0, 10);
+        if (Officer)
+        {
+            composer.AddDropDown(rates, rateNames, rate, (code, on) => SendBailiffRule("tax|" + code), ElementBounds.Fixed(0, y, 120, 28), "bailifftax");
+            y += 36;
+        }
+        else
+        {
+            y = composer.Text(rateNames[rate], GuiKit.Body(), 0, y, Width, 6);
+        }
+        y = composer.Text(Lang.Get("createacolony:bailiff-tax-hint"), GuiKit.Muted(), 0, y, Width, 10);
+
+        y = composer.Section(Lang.Get("createacolony:bailiff-duties"), y, Width);
+        y = BailiffSwitch(composer, "bailiffrent", "rent", snapshot.BailiffCollectsRent, "bailiff-rent", "bailiff-rent-hint", y, snapshot.TaxPercent);
+        BailiffSwitch(composer, "bailiffwages", "wages", snapshot.BailiffPaysWages, "bailiff-wages", "bailiff-wages-hint", y);
     }
 
     /// <summary>One of the bailiff's switches with its name and a line on what it does; officers can flip it. Returns the y below it.</summary>
@@ -1039,7 +1067,7 @@ public class GuiDialogTownHall : GuiDialog
     void SendBailiffRule(string text) =>
         network.SendAction(new ColonyActionPacket { ColonyId = ColonyId, Action = ColonyAction.SetBailiffRule, Text = text });
 
-    /// <summary>The ledger: the last days, newest first, with rent, wanderers and jobs given out, and the totals.</summary>
+    /// <summary>The ledger: the last days, newest first, with taxes, wages, wanderers and jobs given out, and the totals.</summary>
     void ComposeLedger(GuiComposer composer, double y)
     {
         var days = snapshot.Ledger.OrderByDescending(d => d.Day).Take(10).ToList();
@@ -1050,26 +1078,28 @@ public class GuiDialogTownHall : GuiDialog
         else
         {
             composer
-                .AddStaticText(Lang.Get("createacolony:ledger-col-day"), GuiKit.Muted(), ElementBounds.Fixed(10, y, 120, 20))
-                .AddStaticText(Lang.Get("createacolony:ledger-col-rent"), GuiKit.Muted(), ElementBounds.Fixed(135, y, 120, 20))
-                .AddStaticText(Lang.Get("createacolony:ledger-col-wanderers"), GuiKit.Muted(), ElementBounds.Fixed(260, y, 180, 20))
-                .AddStaticText(Lang.Get("createacolony:ledger-col-jobs"), GuiKit.Muted(), ElementBounds.Fixed(445, y, 115, 20));
+                .AddStaticText(Lang.Get("createacolony:ledger-col-day"), GuiKit.Muted(), ElementBounds.Fixed(10, y, 70, 20))
+                .AddStaticText(Lang.Get("createacolony:ledger-col-rent"), GuiKit.Muted(), ElementBounds.Fixed(85, y, 110, 20))
+                .AddStaticText(Lang.Get("createacolony:ledger-col-wages"), GuiKit.Muted(), ElementBounds.Fixed(200, y, 110, 20))
+                .AddStaticText(Lang.Get("createacolony:ledger-col-wanderers"), GuiKit.Muted(), ElementBounds.Fixed(315, y, 130, 20))
+                .AddStaticText(Lang.Get("createacolony:ledger-col-jobs"), GuiKit.Muted(), ElementBounds.Fixed(450, y, 110, 20));
             composer.AddInset(ElementBounds.Fixed(0, y + 22, Width, days.Count * 26 + 6), 3, 0.8f);
             y += 25;
             foreach (var d in days)
             {
                 composer
-                    .AddStaticText(DayName(d.Day), GuiKit.Detail(), ElementBounds.Fixed(10, y + 4, 120, 20))
-                    .AddStaticText(Lang.Get("createacolony:ledger-rent", d.Rent, d.Payers), GuiKit.Detail(), ElementBounds.Fixed(135, y + 4, 120, 20))
-                    .AddStaticText(Lang.Get("createacolony:ledger-wanderers", d.Welcomed, d.TurnedAway), GuiKit.Detail(), ElementBounds.Fixed(260, y + 4, 180, 20))
-                    .AddStaticText(Lang.Get("createacolony:ledger-jobs", d.JobsGiven, d.Lent), GuiKit.Detail(), ElementBounds.Fixed(445, y + 4, 115, 20));
+                    .AddStaticText(DayName(d.Day), GuiKit.Detail(), ElementBounds.Fixed(10, y + 4, 70, 20))
+                    .AddStaticText(d.Payers > 0 ? Lang.Get("createacolony:ledger-rent", d.Rent, d.Payers) : "-", GuiKit.Detail(), ElementBounds.Fixed(85, y + 4, 110, 20))
+                    .AddStaticText(d.Wages > 0 || d.Unpaid > 0 ? Lang.Get("createacolony:ledger-wages", d.Wages, d.Unpaid) : "-",
+                        d.Unpaid > 0 ? GuiKit.Detail().WithColor(GuiKit.WarnColor) : GuiKit.Detail(), ElementBounds.Fixed(200, y + 4, 110, 20))
+                    .AddStaticText(Lang.Get("createacolony:ledger-wanderers", d.Welcomed, d.TurnedAway), GuiKit.Detail(), ElementBounds.Fixed(315, y + 4, 130, 20))
+                    .AddStaticText(Lang.Get("createacolony:ledger-jobs", d.JobsGiven, d.Lent), GuiKit.Detail(), ElementBounds.Fixed(450, y + 4, 110, 20));
                 y += 26;
             }
             y += 14;
-            int total = snapshot.Ledger.Sum(d => d.Rent);
-            y = composer.Text(Lang.Get("createacolony:ledger-total", total, snapshot.Ledger.Count), GuiKit.Body(), 0, y, Width, 6);
+            y = composer.Text(Lang.Get("createacolony:ledger-total", snapshot.Ledger.Sum(d => d.Rent), snapshot.Ledger.Sum(d => d.Wages), snapshot.Ledger.Count),
+                GuiKit.Body(), 0, y, Width, 6);
         }
-        if (snapshot.RentOwed > 0) y = composer.Text(Lang.Get("createacolony:ledger-owed", snapshot.RentOwed), GuiKit.Detail().WithColor(GuiKit.WarnColor), 0, y, Width, 6);
         composer.Text(Lang.Get("createacolony:ledger-hint"), GuiKit.Muted(), 0, y, Width, 6);
     }
 

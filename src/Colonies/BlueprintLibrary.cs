@@ -893,6 +893,8 @@ public static class BuildingTypes
     public const string Tailor = "tailor";
     public const string Jeweller = "jeweller";
     public const string Healer = "healer";
+    /// <summary>The Royal Mint: a minter strikes the colony's coins (ColonyManager.Economy.cs).</summary>
+    public const string Mint = "mint";
     public const string Explorer = "explorer";
     public const string Gatherer = "gatherer";
     public const string Hunter = "hunter";

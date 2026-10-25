@@ -15,8 +15,8 @@ namespace CreateAColony.Colonies;
 /// - lend a worker who can't work at their own hut (no tool, nothing left to pick, everything in stock) to
 ///   another hut with a free place, or to hauling, for BailiffLendDays, then send them back;
 /// - oversee the fields: farmers work faster (BailiffFarmBoost), everyone else a little faster (BailiffWorkBoost);
-/// - collect rent each morning from settlers with a job and a bed, in rusty gears, into the Tavern's storage
-///   (to hire with), else the Town Hall's chests, else the warehouse, and keep a ledger of it;
+/// - on the first of each month collect taxes from settlers' purses and pay their wages in the Royal Mint's coins
+///   (ColonyManager.Economy.cs), and keep a ledger of it;
 /// - are not liked: every other settler has a small mood penalty (BailiffMood) while one watches over them.
 /// The Bailiff tab also shows an estate report: every hut, who works there and what they are waiting on.
 /// </summary>
@@ -87,7 +87,7 @@ public partial class ColonyManager
     int BailiffMoodFor(Colony colony, CitizenRecord c) =>
         c.JobCode != Jobs.Bailiff && BailiffOnDuty(colony) != null ? Config.BailiffMood : 0;
 
-    /// <summary>Part of the colony tick: the bailiff answers wanderers, hands out jobs and collects the day's rent.</summary>
+    /// <summary>Part of the colony tick: the bailiff answers wanderers, hands out jobs and lends workers, and on payday collects taxes and pays wages.</summary>
     void TickBailiff(Colony colony, double now)
     {
         var bailiff = BailiffOnDuty(colony);
@@ -106,7 +106,8 @@ public partial class ColonyManager
             SendLentWorkersBack(colony, bailiff, now);
             if (colony.BailiffLendsWorkers) LendStuckWorkers(colony, bailiff, now);
         }
-        CollectRent(colony, bailiff, now);
+        // Taxes and wages on the first of each month (ColonyManager.Economy.cs).
+        Payday(colony, bailiff, now);
     }
 
     /// <summary>Wanderers who have waited BailiffAnswerHours get the bailiff's answer, as the Bailiff tab says.</summary>
@@ -245,63 +246,6 @@ public partial class ColonyManager
     {
         if (SkillForJob(job) is not { } skill) return 0;
         return SkillLevel(c, skill.Code) * 10 + c.Passions.GetValueOrDefault(skill.Code) * 15;
-    }
-
-    /// <summary>
-    /// Once a day: every settler with a job and a bed pays BailiffRentPerSettler of the recruit currency. It goes to
-    /// the Tavern's storage, so it can pay for hiring, else the Town Hall's chests, else the warehouse. What finds no
-    /// room is owed and handed over the next day.
-    /// </summary>
-    void CollectRent(Colony colony, CitizenRecord bailiff, double now)
-    {
-        int today = (int)now;
-        if (colony.LastRentDay < 0 || colony.LastRentDay > today)
-        {
-            colony.LastRentDay = today;
-            MarkDirty(colony);
-            return;
-        }
-        if (today <= colony.LastRentDay) return;
-        colony.LastRentDay = today;
-        MarkDirty(colony);
-        if (!colony.BailiffCollectsRent || Config.BailiffRentPerSettler <= 0) return;
-
-        int payers = colony.Citizens.Count(c => c.Alive && !c.Visitor && !c.IsChild && !c.IsDowned
-            && c.JobCode != null && c.JobCode != Jobs.Bailiff && c.HomeBedPos != null);
-        int rent = payers * Config.BailiffRentPerSettler;
-        var day = Today(colony);
-        day.Rent += rent;
-        day.Payers = payers;
-        int total = rent + colony.RentOwed;
-        if (total <= 0) return;
-        colony.RentOwed = total - StoreRent(colony, total);
-        if (rent > 0) LogEvent(colony, "event-bailiff-rent", bailiff.Name, rent.ToString(), payers.ToString());
-    }
-
-    /// <summary>Puts this many of the recruit currency away; returns how many found room.</summary>
-    int StoreRent(Colony colony, int count)
-    {
-        var item = sapi.World.GetItem(new AssetLocation(Config.RecruitCurrency));
-        if (item == null) return 0;
-        int stored = 0;
-        var places = colony.Buildings.Where(b => b.Type == BuildingTypes.Tavern && b.Level >= 1 && !b.Removing)
-            .Concat(colony.Buildings.Where(b => b.Type == BuildingTypes.TownHall))
-            .SelectMany(b => HutStorage(colony, b)).ToList();
-        while (stored < count)
-        {
-            var stack = new ItemStack(item, Math.Min(count - stored, Math.Max(1, item.MaxStackSize)));
-            int want = stack.StackSize;
-            foreach (var chest in places)
-            {
-                if (stack.StackSize <= 0) break;
-                PutItems(chest, stack);
-            }
-            if (stack.StackSize > 0) PutInWarehouse(colony, stack);
-            int moved = want - stack.StackSize;
-            stored += moved;
-            if (moved < want) break; // everything is full
-        }
-        return stored;
     }
 
     /// <summary>Today's line of the ledger, added if needed; old days drop off.</summary>

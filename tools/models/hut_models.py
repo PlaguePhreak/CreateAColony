@@ -227,6 +227,13 @@ weaponsmith=shape(["sides","planks","metal","grip"], base+[
   box("Grip",[11.6,11.9,7.6],[14,12.7,8.4],"grip"),
   box("Spear",[2,10,10.6],[14,10.6,11.4],"planks"), box("Tip",[0.5,9.9,10.5],[2,10.7,11.5],"metal"),
 ])
+# Royal Mint: a stack of coins, a small coin anvil and a hammer.
+mint=shape(["sides","planks","metal","coin"], base+[
+  box("AnvilBase",[4,9,4],[8,10.5,7],"metal"), box("AnvilTop",[3.5,10.5,4.2],[8.5,11.5,6.8],"metal"),
+  box("Coins1",[10,9,9],[13,9.6,12],"coin"), box("Coins2",[10.3,9.6,9.3],[12.7,10.2,11.7],"coin"),
+  box("Coins3",[10,10.2,9],[13,10.8,12],"coin"), box("Coin",[4.5,9,10.5],[6.5,9.4,12.5],"coin"),
+  box("Handle",[9,9,4],[14,9.8,4.8],"planks"), box("Head",[13,9,3.2],[14.6,10.6,5.6],"metal"),
+])
 # Mineshaft Entrance: a timber frame over a dark hole, with a ladder going down.
 entrance=shape(["sides","planks","log","dark","ladder"], base+[
   box("Hole",[4,9,4],[12,9.2,12],"dark"),
@@ -242,5 +249,5 @@ if __name__ == "__main__":
     out = sys.argv[1] if len(sys.argv) > 1 else os.path.join(os.path.dirname(__file__), "../../assets/createacolony/shapes/block")
     for name, (tex, el) in models.items():
         json.dump(shape(tex, base + el), open(f"{out}/{name}.json", "w"), indent=1)
-    for name, model in {"hut-smelter": smelter, "hut-blacksmith": smith, "hut-sawmill": saw, "hut-barracks": barracks, "hut-explorer": explorer, "hut-gatherer": gatherer, "hut-hunter": hunter, "hut-craftsman": craftsman, "hut-tailor": tailor, "hut-jeweller": jeweller, "hut-healer": healer, "hut-armourer": armourer, "hut-weaponsmith": weaponsmith, "hut-mineshaftentrance": entrance, "supplycamp": camp, "fieldmarker": crow}.items():
+    for name, model in {"hut-smelter": smelter, "hut-blacksmith": smith, "hut-sawmill": saw, "hut-barracks": barracks, "hut-explorer": explorer, "hut-gatherer": gatherer, "hut-hunter": hunter, "hut-craftsman": craftsman, "hut-tailor": tailor, "hut-jeweller": jeweller, "hut-healer": healer, "hut-armourer": armourer, "hut-weaponsmith": weaponsmith, "hut-mint": mint, "hut-mineshaftentrance": entrance, "supplycamp": camp, "fieldmarker": crow}.items():
         json.dump(model, open(f"{out}/{name}.json", "w"), indent=1)

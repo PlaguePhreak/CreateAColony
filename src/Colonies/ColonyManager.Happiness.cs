@@ -31,7 +31,8 @@ public partial class ColonyManager
         ["death"] = (-6, 72),
         ["familydeath"] = (-20, 144),
         ["catharsis"] = (20, 24),
-        ["decorated"] = (5, 48)
+        ["decorated"] = (5, 48),
+        ["payday"] = (3, 24)
     };
 
     /// <summary>Mood bands from the top: the lowest happiness each starts at, and the word for it.</summary>
@@ -121,6 +122,8 @@ public partial class ColonyManager
         Standing("townhall", TownHallLevel(colony));
         if (c.JobCode == null) Standing("nojob", -4);
         Standing("bailiff", BailiffMoodFor(colony, c));
+        // Taxes and unpaid wages (ColonyManager.Economy.cs).
+        MoneyThoughts(colony, c, Standing);
         // In rags, cold, wearing jewellery (ColonyManager.Clothing.cs).
         ClothesThoughts(c, Standing);
         // Sanguine and Melancholic.

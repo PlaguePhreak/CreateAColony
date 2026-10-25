@@ -329,6 +329,7 @@ public class ColonyConfig
         ["tailor"] = 30,
         ["jeweller"] = 30,
         ["healer"] = 30,
+        ["mint"] = 30,
         ["barracks"] = 40,
         ["explorer"] = 30,
         ["gatherer"] = 30,
@@ -641,13 +642,16 @@ public class ColonyConfig
         // Metal armor only (leather and linen armor is the Tailor's), put together from the chains, scales and plates it smiths.
         ["armourer"] = new[] { "armor" },
         // Bandages, and poultices too (any settler can make a poultice, config HomemadeRemedies).
-        ["healer"] = new[] { "bandage", "poultice" }
+        ["healer"] = new[] { "bandage", "poultice" },
+        // The colony's coins (ColonyManager.Economy.cs).
+        ["mint"] = new[] { "coin" }
     };
     /// <summary>The mods whose things a hut may make, by hut type; "game" alone where a hut is not listed.</summary>
     public System.Collections.Generic.Dictionary<string, string[]> HutRecipeDomains = new()
     {
         ["tailor"] = new[] { "game", "tailorsdelight" },
-        ["jeweller"] = new[] { "game", "canjewelry", "canjewelryadornments" }
+        ["jeweller"] = new[] { "game", "canjewelry", "canjewelryadornments" },
+        ["mint"] = new[] { "createacolony" }
     };
     /// <summary>
     /// Recipes only a player class can make that a hut's worker may make too, by hut type: the Tailor counts as
@@ -672,7 +676,8 @@ public class ColonyConfig
         ["tailor"] = new[] { "knife", "shears", "scissors", "needle", "awl" },
         ["jeweller"] = new[] { "hammer", "chisel" },
         ["armourer"] = new[] { "hammer" },
-        ["healer"] = new[] { "knife", "shears", "scissors" }
+        ["healer"] = new[] { "knife", "shears", "scissors" },
+        ["mint"] = new[] { "hammer" }
     };
     /// <summary>Seconds a worker takes to craft one recipe at its hut.</summary>
     public float HutRecipeSecondsPerCraft = 4f;
@@ -770,8 +775,6 @@ public class ColonyConfig
     // Bailiff (ColonyManager.Bailiff.cs)
     /// <summary>How long a wanderer waits at the Town Hall before the bailiff answers, in in-game hours.</summary>
     public double BailiffAnswerHours = 1;
-    /// <summary>Settlers with a job and a bed pay this much rent a day (in RecruitCurrency) while the bailiff collects it.</summary>
-    public int BailiffRentPerSettler = 1;
     /// <summary>Multiply farmers' work speed by this while a bailiff is on duty, and everyone else's by BailiffWorkBoost.</summary>
     public float BailiffFarmBoost = 1.15f;
     public float BailiffWorkBoost = 1.05f;
@@ -781,6 +784,30 @@ public class ColonyConfig
     public double BailiffLendDays = 1;
     /// <summary>Mood points every other settler has while a bailiff watches over them (they are not liked).</summary>
     public int BailiffMood = -3;
+
+    // Economy (ColonyManager.Economy.cs)
+    /// <summary>The coins a settler is paid each in-game month, by job; jobs not listed get WageDefault. Settlers with no job get nothing.</summary>
+    public System.Collections.Generic.Dictionary<string, int> Wages = new()
+    {
+        ["courier"] = 4,
+        ["gatherer"] = 4,
+        ["builder"] = 7,
+        ["guard"] = 7,
+        ["healer"] = 7,
+        ["blacksmith"] = 7,
+        ["armourer"] = 8,
+        ["weaponsmith"] = 8,
+        ["jeweller"] = 8,
+        ["minter"] = 6,
+        ["bailiff"] = 10
+    };
+    public int WageDefault = 5;
+    /// <summary>Coins a new Royal Mint keeps in stock, set on its Crafting recipes tab.</summary>
+    public int MintStartKeep = 100;
+    /// <summary>Mood points a settler loses per percent of tax while the bailiff collects taxes (10% is -2).</summary>
+    public float TaxMoodPerPercent = 0.2f;
+    /// <summary>Mood points a settler has until payday when their last wage was not paid in full.</summary>
+    public int UnpaidMood = -4;
 
     // Families
     /// <summary>Settlers pair up, share a home and have children who grow up into new settlers.</summary>

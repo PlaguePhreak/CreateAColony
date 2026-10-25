@@ -10,7 +10,7 @@ namespace CreateAColony.Settlers;
 /// <summary>
 /// The bailiff makes rounds of the estate: from the Town Hall out to a field or a hut where someone works, a
 /// look at how it goes, and back to the Town Hall, where wanderers come to ask to join. What a bailiff does
-/// for the colony (answering wanderers, giving out jobs, rent) happens in ColonyManager.Bailiff.cs, whether
+/// for the colony (answering wanderers, giving out jobs, taxes and wages) happens in ColonyManager.Bailiff.cs, whether
 /// or not they are on a round.
 /// </summary>
 public class AiTaskSettlerBailiff : SettlerTaskBase

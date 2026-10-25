@@ -238,7 +238,9 @@ public class GuiDialogCitizen : GuiDialog
         y = Row(Lang.Get("createacolony:citizen-healing"), (int)Math.Round(snapshot.HealingRate * 100) + "%", x, y);
         y = Row(Lang.Get("createacolony:citizen-hunger-rate"), (int)Math.Round(snapshot.HungerRate * 100) + "%", x, y);
         y = Row(Lang.Get("createacolony:citizen-state"), Lang.Get("createacolony:state-" + snapshot.State), x, y);
-        Row(Lang.Get("createacolony:citizen-bed"), Lang.Get(snapshot.HasBed ? "createacolony:has-bed" : "createacolony:no-bed"), x, y);
+        y = Row(Lang.Get("createacolony:citizen-bed"), Lang.Get(snapshot.HasBed ? "createacolony:has-bed" : "createacolony:no-bed"), x, y);
+        if (snapshot.Purse > 0 || snapshot.Wage > 0)
+            Row(Lang.Get("createacolony:citizen-purse"), Lang.Get(snapshot.Unpaid ? "createacolony:citizen-purse-unpaid" : "createacolony:citizen-purse-value", snapshot.Purse, snapshot.Wage), x, y);
 
         // Right column: work, then family.
         double rx = x + width + 30;

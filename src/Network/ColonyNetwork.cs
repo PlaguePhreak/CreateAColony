@@ -290,6 +290,12 @@ public partial class ColonyNetwork : ModSystem
             case "lend":
                 colony.BailiffLendsWorkers = parts[1] == "1";
                 break;
+            case "wages":
+                colony.BailiffPaysWages = parts[1] == "1";
+                break;
+            case "tax":
+                if (int.TryParse(parts[1], out int tax) && tax >= 0 && tax <= 50) colony.TaxPercent = tax;
+                break;
         }
         return null;
     }
@@ -761,8 +767,12 @@ public partial class ColonyNetwork : ModSystem
         snapshot.BailiffGivesJobs = colony.BailiffGivesJobs;
         snapshot.BailiffCollectsRent = colony.BailiffCollectsRent;
         snapshot.BailiffLendsWorkers = colony.BailiffLendsWorkers;
-        snapshot.RentPerSettler = config.BailiffRentPerSettler;
-        snapshot.RentOwed = colony.RentOwed;
+        snapshot.BailiffPaysWages = colony.BailiffPaysWages;
+        snapshot.TaxPercent = colony.TaxPercent;
+        snapshot.HasMint = Manager.HasMint(colony);
+        snapshot.Treasury = Manager.TreasuryCoins(colony);
+        snapshot.NextPayday = Manager.NextPayday();
+        snapshot.WageBill = colony.Citizens.Where(c => c.Alive && !c.Visitor && !c.IsChild).Sum(c => Manager.WageOf(c.JobCode));
         snapshot.Ledger = colony.Ledger.ToList();
         snapshot.EstateReport = Manager.EstateReport(colony);
         snapshot.OreReadings = colony.OreSites.Count(s => !s.Unread);
@@ -1004,7 +1014,10 @@ public partial class ColonyNetwork : ModSystem
             Temperature = entity != null ? sapi.World.BlockAccessor.GetClimateAt(entity.Pos.AsBlockPos, EnumGetClimateMode.NowValues)?.Temperature ?? float.NaN : float.NaN,
             Wetness = entity?.WatchedAttributes.GetFloat(Settlers.EntityBehaviorSettlerNeeds.WetnessAttr) ?? 0,
             HealingRate = Manager.TraitMult(citizen, "regen"),
-            HungerRate = Manager.TraitMult(citizen, "hunger") * Manager.HungerPerkFor(colony.ColonyId, citizen)
+            HungerRate = Manager.TraitMult(citizen, "hunger") * Manager.HungerPerkFor(colony.ColonyId, citizen),
+            Purse = citizen.Purse,
+            Wage = citizen.IsChild || citizen.Visitor ? 0 : Manager.WageOf(citizen.JobCode),
+            Unpaid = citizen.Unpaid
         };
         if (Manager.Config.Happiness && citizen.Alive && !citizen.IsChild && !citizen.Visitor)
         {
@@ -1075,7 +1088,7 @@ public partial class ColonyNetwork : ModSystem
         }
         if (building.Type is BuildingTypes.Forester or BuildingTypes.Farmer or BuildingTypes.Potter or BuildingTypes.Cook
             or BuildingTypes.Prospector or BuildingTypes.Miner or BuildingTypes.Quarry
-            or BuildingTypes.Smelter or BuildingTypes.Blacksmith or BuildingTypes.Armourer or BuildingTypes.Weaponsmith or BuildingTypes.Sawmill or BuildingTypes.Craftsman or BuildingTypes.Tailor or BuildingTypes.Jeweller or BuildingTypes.Healer
+            or BuildingTypes.Smelter or BuildingTypes.Blacksmith or BuildingTypes.Armourer or BuildingTypes.Weaponsmith or BuildingTypes.Sawmill or BuildingTypes.Craftsman or BuildingTypes.Tailor or BuildingTypes.Jeweller or BuildingTypes.Healer or BuildingTypes.Mint
             or BuildingTypes.Explorer or BuildingTypes.Gatherer or BuildingTypes.Hunter) snapshot.Info = Manager.WorkerHutInfo(colony, building);
         if (building.Type == BuildingTypes.Tavern)
         {

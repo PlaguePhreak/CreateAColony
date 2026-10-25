@@ -226,6 +226,15 @@ These work well with Vintage Colonies. Install them separately.
 - **C&N Jewelry Adornments** (KenigVovan): more jewellery for the Jeweller to make and settlers to wear for Happiness.
 - **Smithing Plus** (jayu): smith with metal bits, repair tool heads on the anvil and other smithing tweaks. Our smiths still use the game's anvil and recipes beside it; not tested together in game yet.
 
+## Royal Mint, taxes and wages (0.136.0)
+- A new hut, the **Royal Mint** (Craftsmanship), and a new job, the **Minter**. The minter strikes copper coins with a hammer: 1 copper ingot makes 10 coins. Set how many to keep on its Crafting recipes tab; a new Mint keeps 100 (`MintStartKeep`). You can strike coins by hand too.
+- The **treasury** is the coins in the Mint, the Town Hall's chests and the warehouse.
+- **Payday** is the first day of each in-game month. The bailiff first collects taxes, then pays wages. Nothing happens until you have a Royal Mint or coins in the treasury, and only while a bailiff is on duty.
+- **Taxes** replace the old daily rent in rusty gears. Pick the rate on the Bailiff tab's new **Taxes & wages** page, 0% to 50% (10% to start). The bailiff takes that share of every settler's purse into the Town Hall's chests. Every settler has a "Paying taxes" thought: -1 mood for each 5% (`TaxMoodPerPercent`).
+- **Wages**: each settler with a job gets a wage from the treasury: 5 coins by default, 4 for couriers and gatherers, 7 to 8 for builders, guards, healers and smiths, 10 for the bailiff (`Wages`, `WageDefault`). A settler who gets paid has a "Got paid" thought for a day. One who doesn't get their full wage has "Wasn't paid", -4 mood (`UnpaidMood`), until a payday pays them.
+- Settlers keep their coins in their purse, shown on the settler's Stats tab with their wage. Spending them comes later.
+- The page shows the treasury, what wages cost a month and the next payday. The **Ledger** now has columns for taxes and wages.
+
 ## New Dev's Builds huts (0.134.0)
 Aaron's new buildings in the Dev's Builds pack: Smelter level 1, Blacksmith level 1, Sawmill levels 1 and 2,
 Gatherer level 1, and two Forester (Lumberjack) level 1 types, Small and Large (pick with Previous/Next type).
@@ -275,7 +284,7 @@ Blocks from mods you don't have (Food Shelves, w4rd0s furniture) are skipped. No
 - **Wanderers**: pick what the bailiff does when a wanderer reaches the Town Hall: Ask me (you decide, as before), Welcome everyone, Welcome them if a bed is free (the default), or Turn everyone away. The bailiff answers after about an hour (`BailiffAnswerHours`).
 - **Jobs**: the bailiff gives settlers without a job work at huts with a free place, picking whoever is best at that job (skill level and passions). Switch it off on the Bailiff tab.
 - **Fields and work**: while the bailiff is on duty, farmers work 15% faster (`BailiffFarmBoost`) and everyone else 5% faster (`BailiffWorkBoost`).
-- **Rent**: each morning every settler with a job and a bed pays 1 rusty gear (`BailiffRentPerSettler`). It goes into the Tavern's storage so you can hire with it, else the Town Hall's chests, else the warehouse. Switch it off on the Bailiff tab.
+- **Rent**: replaced by monthly taxes in coins in 0.136.0 (see Royal Mint, taxes and wages).
 - **Ledger**: rent, wanderers welcomed or sent away, and jobs given, for each of the last 30 days.
 - **Estate report**: every hut, who works there and what they are doing or waiting on (for example "nothing ready to pick"), the fields and who has no job.
 - Nobody likes being watched: every other settler has a "The bailiff is watching" thought, -3 mood (`BailiffMood`).

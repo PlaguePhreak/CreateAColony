@@ -34,6 +34,7 @@ Everything listed under "What we have" and "Partly done" has been tested in game
 - A marker icon for every ore, fruit, vegetable, grain, animal, trader and story location, other mods' too (0.80.0, not tested yet)
 - Remove a colony marker by right-clicking it on the world map; settlers leave that spot alone after (0.126.0, not tested yet)
 - The Bailiff: answers wanderers, gives jobless settlers work, makes farmers work faster, collects rent, keeps a ledger and an estate report on a new Bailiff tab, and moves stuck workers to another hut for a while (0.127.0 and 0.129.0, not tested yet)
+- Royal Mint and the economy: a minter strikes copper coins; on the first of each month the bailiff collects taxes (rate set on the Bailiff tab, higher is less happy) and pays each settler a wage for their job; unpaid settlers are unhappy (0.136.0, not tested yet)
 - Paintings: 17 original framed paintings in four sizes, a blank canvas from 8 boards and 4 linen painted with buckets of dye in the grid, hung by builders from blueprints (0.105.0-0.105.1, not tested yet)
 
 **Colony systems**
@@ -79,6 +80,7 @@ Everything listed under "What we have" and "Partly done" has been tested in game
 8. **Blacksmith** (started in 0.50.0): still to do are repairs, armor, and making the tools workers ask for
 
 **Later**
+- **Economy**: settlers spend their coins (a market, the Tavern, buying furniture and clothes), coins of other metals, fines and market fees for the Bailiff. The Royal Mint, taxes and wages came in 0.136.0.
 - More huts from MineColonies: Stonemason, Baker, Fisher, Beekeeper, Plantation (reeds and cattails), Composter, Crusher and Sifter (quern and panning), Florist, Dyer, Fletcher and Mechanic (windmills and gears)
 - A Combat Academy and an archery range to train guards
 - Charcoal burner for the Smelter and Blacksmith

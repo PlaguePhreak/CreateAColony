@@ -135,6 +135,10 @@ public class CitizenRecord
     [ProtoMember(110)] public string? HomeJob;
     [ProtoMember(111)] public BlockPos? HomeWorkplacePos;
     [ProtoMember(112)] public double LentUntilTotalDays;
+    /// <summary>The settler's coins: wages in, taxes out (ColonyManager.Economy.cs).</summary>
+    [ProtoMember(113)] public int Purse;
+    /// <summary>True when their last wage could not be paid in full; cleared on the next payday they are paid.</summary>
+    [ProtoMember(114)] public bool Unpaid;
 
     // 280-289: healing (ColonyManager.Healing.cs).
     /// <summary>The bandage or poultice the settler carries for when it gets hurt, kept apart from its inventory so it is never hauled off.</summary>
@@ -462,14 +466,18 @@ public static class BailiffWanderers
 public class LedgerDay
 {
     [ProtoMember(1)] public int Day;
+    /// <summary>Taxes collected that day, in coins (rusty gears of rent before 0.136.0).</summary>
     [ProtoMember(2)] public int Rent;
     [ProtoMember(3)] public int Welcomed;
     [ProtoMember(4)] public int TurnedAway;
     [ProtoMember(5)] public int JobsGiven;
-    /// <summary>How many settlers paid rent that day.</summary>
+    /// <summary>How many settlers paid taxes (before 0.136.0, rent) that day.</summary>
     [ProtoMember(6)] public int Payers;
     /// <summary>Workers lent to another hut that day because they could not work at their own.</summary>
     [ProtoMember(7)] public int Lent;
+    /// <summary>Coins paid out in wages that day, and how many settlers went without their full wage.</summary>
+    [ProtoMember(8)] public int Wages;
+    [ProtoMember(9)] public int Unpaid;
 }
 
 /// <summary>One line of the Town Hall's event log: a lang key and its arguments, filled in by the reader's own language.</summary>
@@ -721,10 +729,15 @@ public class Colony
     [ProtoMember(113)] public List<LedgerDay> Ledger = new();
     /// <summary>The last in-game day rent was collected; -1 until the first.</summary>
     [ProtoMember(114, IsRequired = true)] public int LastRentDay = -1;
-    /// <summary>Rent collected while there was nowhere to put it, handed over when a chest is free.</summary>
+    /// <summary>Rusty gears from the old daily rent that found no room; no longer added to (taxes are coins now).</summary>
     [ProtoMember(115)] public int RentOwed;
     /// <summary>The bailiff lends workers who can't work at their own hut to another one for a while.</summary>
     [ProtoMember(116, IsRequired = true)] public bool BailiffLendsWorkers = true;
+    /// <summary>The economy (ColonyManager.Economy.cs): whether the bailiff pays wages, the tax on settlers' purses, and the last month paid.
+    /// BailiffCollectsRent is the "Collect taxes" switch.</summary>
+    [ProtoMember(117, IsRequired = true)] public bool BailiffPaysWages = true;
+    [ProtoMember(118, IsRequired = true)] public int TaxPercent = 10;
+    [ProtoMember(119, IsRequired = true)] public int LastPayMonth = -1;
     /// <summary>Houses of traders who joined the colony, for a builder to take down (ColonyManager.Traders.cs).</summary>
     [ProtoMember(240)] public List<TeardownOrder> Teardowns = new();
     [ProtoMember(241, IsRequired = true)] public int NextTeardownId = 1;

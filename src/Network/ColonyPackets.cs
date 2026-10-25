@@ -206,6 +206,10 @@ public class CitizenSnapshot
     /// <summary>How fast they heal and grow hungry, 1 = normal (traits and perks).</summary>
     [ProtoMember(65, IsRequired = true)] public float HealingRate = 1;
     [ProtoMember(66, IsRequired = true)] public float HungerRate = 1;
+    /// <summary>Coins in their purse, their monthly wage, and whether the last one went unpaid (ColonyManager.Economy.cs).</summary>
+    [ProtoMember(120)] public int Purse;
+    [ProtoMember(121)] public int Wage;
+    [ProtoMember(122)] public bool Unpaid;
 }
 
 /// <summary>A click on a slot of the settler window: which settler, which area and slot, and how.</summary>
@@ -608,11 +612,18 @@ public class ColonySnapshot
     [ProtoMember(112)] public int WandererRule;
     [ProtoMember(113)] public bool BailiffGivesJobs;
     [ProtoMember(114)] public bool BailiffCollectsRent;
-    [ProtoMember(115)] public int RentPerSettler;
-    [ProtoMember(116)] public int RentOwed;
+    [ProtoMember(115)] public int TaxPercent;
+    /// <summary>Coins in the treasury.</summary>
+    [ProtoMember(116)] public int Treasury;
     [ProtoMember(117)] public List<LedgerDay> Ledger = new();
     [ProtoMember(118)] public List<string> EstateReport = new();
     [ProtoMember(119)] public bool BailiffLendsWorkers;
+    [ProtoMember(120)] public bool BailiffPaysWages;
+    /// <summary>The in-game day of the next payday, and whether the colony has a Royal Mint yet.</summary>
+    [ProtoMember(121)] public int NextPayday;
+    [ProtoMember(122)] public bool HasMint;
+    /// <summary>What wages cost a month, for everyone with a job now.</summary>
+    [ProtoMember(123)] public int WageBill;
 }
 
 /// <summary>ColonySnapshot.BailiffState: none, on duty, knocked out, or too unhappy to work.</summary>

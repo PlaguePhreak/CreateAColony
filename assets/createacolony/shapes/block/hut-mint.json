@@ -1,0 +1,702 @@
+{
+ "textureWidth": 16,
+ "textureHeight": 16,
+ "textures": {
+  "sides": "sides",
+  "planks": "planks",
+  "metal": "metal",
+  "coin": "coin"
+ },
+ "elements": [
+  {
+   "name": "Crate",
+   "from": [
+    1,
+    0,
+    1
+   ],
+   "to": [
+    15,
+    8,
+    15
+   ],
+   "faces": {
+    "north": {
+     "texture": "#sides",
+     "uv": [
+      0,
+      0,
+      14,
+      8
+     ]
+    },
+    "east": {
+     "texture": "#sides",
+     "uv": [
+      0,
+      0,
+      14,
+      8
+     ]
+    },
+    "south": {
+     "texture": "#sides",
+     "uv": [
+      0,
+      0,
+      14,
+      8
+     ]
+    },
+    "west": {
+     "texture": "#sides",
+     "uv": [
+      0,
+      0,
+      14,
+      8
+     ]
+    },
+    "up": {
+     "texture": "#sides",
+     "uv": [
+      0,
+      0,
+      14,
+      14
+     ]
+    },
+    "down": {
+     "texture": "#sides",
+     "uv": [
+      0,
+      0,
+      14,
+      14
+     ]
+    }
+   }
+  },
+  {
+   "name": "Lid",
+   "from": [
+    0,
+    8,
+    0
+   ],
+   "to": [
+    16,
+    9,
+    16
+   ],
+   "faces": {
+    "north": {
+     "texture": "#planks",
+     "uv": [
+      0,
+      0,
+      16,
+      1
+     ]
+    },
+    "east": {
+     "texture": "#planks",
+     "uv": [
+      0,
+      0,
+      16,
+      1
+     ]
+    },
+    "south": {
+     "texture": "#planks",
+     "uv": [
+      0,
+      0,
+      16,
+      1
+     ]
+    },
+    "west": {
+     "texture": "#planks",
+     "uv": [
+      0,
+      0,
+      16,
+      1
+     ]
+    },
+    "up": {
+     "texture": "#planks",
+     "uv": [
+      0,
+      0,
+      16,
+      16
+     ]
+    },
+    "down": {
+     "texture": "#planks",
+     "uv": [
+      0,
+      0,
+      16,
+      16
+     ]
+    }
+   }
+  },
+  {
+   "name": "AnvilBase",
+   "from": [
+    4,
+    9,
+    4
+   ],
+   "to": [
+    8,
+    10.5,
+    7
+   ],
+   "faces": {
+    "north": {
+     "texture": "#metal",
+     "uv": [
+      0,
+      0,
+      4,
+      1.5
+     ]
+    },
+    "east": {
+     "texture": "#metal",
+     "uv": [
+      0,
+      0,
+      3,
+      1.5
+     ]
+    },
+    "south": {
+     "texture": "#metal",
+     "uv": [
+      0,
+      0,
+      4,
+      1.5
+     ]
+    },
+    "west": {
+     "texture": "#metal",
+     "uv": [
+      0,
+      0,
+      3,
+      1.5
+     ]
+    },
+    "up": {
+     "texture": "#metal",
+     "uv": [
+      0,
+      0,
+      4,
+      3
+     ]
+    },
+    "down": {
+     "texture": "#metal",
+     "uv": [
+      0,
+      0,
+      4,
+      3
+     ]
+    }
+   }
+  },
+  {
+   "name": "AnvilTop",
+   "from": [
+    3.5,
+    10.5,
+    4.2
+   ],
+   "to": [
+    8.5,
+    11.5,
+    6.8
+   ],
+   "faces": {
+    "north": {
+     "texture": "#metal",
+     "uv": [
+      0,
+      0,
+      5.0,
+      1.0
+     ]
+    },
+    "east": {
+     "texture": "#metal",
+     "uv": [
+      0,
+      0,
+      2.6,
+      1.0
+     ]
+    },
+    "south": {
+     "texture": "#metal",
+     "uv": [
+      0,
+      0,
+      5.0,
+      1.0
+     ]
+    },
+    "west": {
+     "texture": "#metal",
+     "uv": [
+      0,
+      0,
+      2.6,
+      1.0
+     ]
+    },
+    "up": {
+     "texture": "#metal",
+     "uv": [
+      0,
+      0,
+      5.0,
+      2.6
+     ]
+    },
+    "down": {
+     "texture": "#metal",
+     "uv": [
+      0,
+      0,
+      5.0,
+      2.6
+     ]
+    }
+   }
+  },
+  {
+   "name": "Coins1",
+   "from": [
+    10,
+    9,
+    9
+   ],
+   "to": [
+    13,
+    9.6,
+    12
+   ],
+   "faces": {
+    "north": {
+     "texture": "#coin",
+     "uv": [
+      0,
+      0,
+      3,
+      0.6
+     ]
+    },
+    "east": {
+     "texture": "#coin",
+     "uv": [
+      0,
+      0,
+      3,
+      0.6
+     ]
+    },
+    "south": {
+     "texture": "#coin",
+     "uv": [
+      0,
+      0,
+      3,
+      0.6
+     ]
+    },
+    "west": {
+     "texture": "#coin",
+     "uv": [
+      0,
+      0,
+      3,
+      0.6
+     ]
+    },
+    "up": {
+     "texture": "#coin",
+     "uv": [
+      0,
+      0,
+      3,
+      3
+     ]
+    },
+    "down": {
+     "texture": "#coin",
+     "uv": [
+      0,
+      0,
+      3,
+      3
+     ]
+    }
+   }
+  },
+  {
+   "name": "Coins2",
+   "from": [
+    10.3,
+    9.6,
+    9.3
+   ],
+   "to": [
+    12.7,
+    10.2,
+    11.7
+   ],
+   "faces": {
+    "north": {
+     "texture": "#coin",
+     "uv": [
+      0,
+      0,
+      2.4,
+      0.6
+     ]
+    },
+    "east": {
+     "texture": "#coin",
+     "uv": [
+      0,
+      0,
+      2.4,
+      0.6
+     ]
+    },
+    "south": {
+     "texture": "#coin",
+     "uv": [
+      0,
+      0,
+      2.4,
+      0.6
+     ]
+    },
+    "west": {
+     "texture": "#coin",
+     "uv": [
+      0,
+      0,
+      2.4,
+      0.6
+     ]
+    },
+    "up": {
+     "texture": "#coin",
+     "uv": [
+      0,
+      0,
+      2.4,
+      2.4
+     ]
+    },
+    "down": {
+     "texture": "#coin",
+     "uv": [
+      0,
+      0,
+      2.4,
+      2.4
+     ]
+    }
+   }
+  },
+  {
+   "name": "Coins3",
+   "from": [
+    10,
+    10.2,
+    9
+   ],
+   "to": [
+    13,
+    10.8,
+    12
+   ],
+   "faces": {
+    "north": {
+     "texture": "#coin",
+     "uv": [
+      0,
+      0,
+      3,
+      0.6
+     ]
+    },
+    "east": {
+     "texture": "#coin",
+     "uv": [
+      0,
+      0,
+      3,
+      0.6
+     ]
+    },
+    "south": {
+     "texture": "#coin",
+     "uv": [
+      0,
+      0,
+      3,
+      0.6
+     ]
+    },
+    "west": {
+     "texture": "#coin",
+     "uv": [
+      0,
+      0,
+      3,
+      0.6
+     ]
+    },
+    "up": {
+     "texture": "#coin",
+     "uv": [
+      0,
+      0,
+      3,
+      3
+     ]
+    },
+    "down": {
+     "texture": "#coin",
+     "uv": [
+      0,
+      0,
+      3,
+      3
+     ]
+    }
+   }
+  },
+  {
+   "name": "Coin",
+   "from": [
+    4.5,
+    9,
+    10.5
+   ],
+   "to": [
+    6.5,
+    9.4,
+    12.5
+   ],
+   "faces": {
+    "north": {
+     "texture": "#coin",
+     "uv": [
+      0,
+      0,
+      2.0,
+      0.4
+     ]
+    },
+    "east": {
+     "texture": "#coin",
+     "uv": [
+      0,
+      0,
+      2.0,
+      0.4
+     ]
+    },
+    "south": {
+     "texture": "#coin",
+     "uv": [
+      0,
+      0,
+      2.0,
+      0.4
+     ]
+    },
+    "west": {
+     "texture": "#coin",
+     "uv": [
+      0,
+      0,
+      2.0,
+      0.4
+     ]
+    },
+    "up": {
+     "texture": "#coin",
+     "uv": [
+      0,
+      0,
+      2.0,
+      2.0
+     ]
+    },
+    "down": {
+     "texture": "#coin",
+     "uv": [
+      0,
+      0,
+      2.0,
+      2.0
+     ]
+    }
+   }
+  },
+  {
+   "name": "Handle",
+   "from": [
+    9,
+    9,
+    4
+   ],
+   "to": [
+    14,
+    9.8,
+    4.8
+   ],
+   "faces": {
+    "north": {
+     "texture": "#planks",
+     "uv": [
+      0,
+      0,
+      5,
+      0.8
+     ]
+    },
+    "east": {
+     "texture": "#planks",
+     "uv": [
+      0,
+      0,
+      0.8,
+      0.8
+     ]
+    },
+    "south": {
+     "texture": "#planks",
+     "uv": [
+      0,
+      0,
+      5,
+      0.8
+     ]
+    },
+    "west": {
+     "texture": "#planks",
+     "uv": [
+      0,
+      0,
+      0.8,
+      0.8
+     ]
+    },
+    "up": {
+     "texture": "#planks",
+     "uv": [
+      0,
+      0,
+      5,
+      0.8
+     ]
+    },
+    "down": {
+     "texture": "#planks",
+     "uv": [
+      0,
+      0,
+      5,
+      0.8
+     ]
+    }
+   }
+  },
+  {
+   "name": "Head",
+   "from": [
+    13,
+    9,
+    3.2
+   ],
+   "to": [
+    14.6,
+    10.6,
+    5.6
+   ],
+   "faces": {
+    "north": {
+     "texture": "#metal",
+     "uv": [
+      0,
+      0,
+      1.6,
+      1.6
+     ]
+    },
+    "east": {
+     "texture": "#metal",
+     "uv": [
+      0,
+      0,
+      2.4,
+      1.6
+     ]
+    },
+    "south": {
+     "texture": "#metal",
+     "uv": [
+      0,
+      0,
+      1.6,
+      1.6
+     ]
+    },
+    "west": {
+     "texture": "#metal",
+     "uv": [
+      0,
+      0,
+      2.4,
+      1.6
+     ]
+    },
+    "up": {
+     "texture": "#metal",
+     "uv": [
+      0,
+      0,
+      1.6,
+      2.4
+     ]
+    },
+    "down": {
+     "texture": "#metal",
+     "uv": [
+      0,
+      0,
+      1.6,
+      2.4
+     ]
+    }
+   }
+  }
+ ]
+}
