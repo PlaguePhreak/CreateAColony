@@ -612,6 +612,14 @@ public class ColonyConfig
     /// Sawmill saws planks for the mine), and couriers bring it straight from that hut.
     /// </summary>
     public bool HutsMakeForOthers = true;
+    /// <summary>
+    /// Huts ask couriers for this many percent more than they need, at least 1 and at most RequestSpareMax, in case
+    /// (a potter who needs 4 firewood asks for 5). 0 turns it off. Not for tools, Minimum stock or players' requests.
+    /// </summary>
+    public int RequestSparePercent = 25;
+    public int RequestSpareMax = 8;
+    /// <summary>Pit kilns use the best fuel the colony has: coal, then charcoal, then peat, then firewood.</summary>
+    public bool KilnPrefersBestFuel = true;
     /// <summary>What huts gather by themselves, by hut type, so the Required resources tab can say which hut brings it in.</summary>
     public System.Collections.Generic.Dictionary<string, string[]> HutGathers = new()
     {

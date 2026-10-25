@@ -19,7 +19,8 @@ public partial class ColonyManager
     /// <summary>The building types each station type may stand in.</summary>
     public static readonly Dictionary<string, string[]> StationHosts = new()
     {
-        [BuildingTypes.Healer] = new[] { BuildingTypes.Church }
+        [BuildingTypes.Healer] = new[] { BuildingTypes.Church },
+        [BuildingTypes.CourierStation] = new[] { BuildingTypes.Warehouse }
     };
 
     /// <summary>The building a station stands in, or null when it is gone (or the building is not a station).</summary>
@@ -36,6 +37,12 @@ public partial class ColonyManager
     public Building? StationHostAt(Colony colony, string stationType, BlockPos pos)
     {
         if (!StationHosts.TryGetValue(stationType, out var hostTypes)) return null;
+        // A Warehouse with no building of its own: anywhere its storage counts (WarehouseRadius).
+        if (hostTypes.Contains(BuildingTypes.Warehouse) && colony.WarehousePos is { } w && GetBuilding(colony, w) is { Removing: false } warehouse
+            && System.Math.Abs(pos.X - w.X) <= WarehouseRadius && System.Math.Abs(pos.Z - w.Z) <= WarehouseRadius && System.Math.Abs(pos.Y - w.Y) <= WarehouseHeight)
+        {
+            return warehouse;
+        }
         return colony.Buildings
             .Where(b => !b.IsStation && !b.Removing && hostTypes.Contains(b.Type))
             .Select(b => (B: b, Box: BuildingBox(b)))

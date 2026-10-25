@@ -1234,6 +1234,8 @@ public partial class ColonyNetwork : ModSystem
             snapshot.IsStation = true;
             snapshot.HostName = Manager.HostOf(colony, building) is { } host ? ColonyManager.BuildingName(host) : "";
         }
+        AddRequests(snapshot, colony, building);
+        if (building.Type == BuildingTypes.CourierStation) AddCouriers(snapshot, colony);
         if (ColonyManager.CraftTabOf(building.Type) is { } craftTab) AddCraftRows(snapshot, colony, building, craftTab);
         if (Manager.HasHutRecipes(building.Type)) AddRecipeRows(snapshot, colony, building);
         AddPriorities(snapshot, colony, building);

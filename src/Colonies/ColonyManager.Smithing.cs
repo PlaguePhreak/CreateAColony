@@ -190,6 +190,16 @@ public partial class ColonyManager
     /// <summary>Fuel a forge takes: charcoal or coal.</summary>
     public static bool IsForgeFuel(ItemStack s) => s.Collectible.CombustibleProps is { BurnTemperature: > 1000, BurnDuration: > 0 } && s.Block == null;
 
+    /// <summary>Which forge fuel a smith takes first (Aaron, 0.142.0): charcoal, then coke, black coal and brown coal.</summary>
+    public static int ForgeFuelRank(ItemStack s) => s.Collectible.Code.Path switch
+    {
+        "charcoal" => 0,
+        "coke" => 1,
+        var p when p.Contains("anthracite") || p.Contains("bituminouscoal") => 2,
+        var p when p.Contains("lignite") => 3,
+        _ => 4
+    };
+
     public BlockEntityForge? SmithForge(Building hut) => NearHut<BlockEntityForge>(hut, Config.BlacksmithRadius);
 
     /// <summary>The best anvil by the hut that is free (no player's work on it).</summary>
@@ -250,7 +260,10 @@ public partial class ColonyManager
     public void FuelForge(Colony colony, CitizenRecord smith, BlockEntityForge forge)
     {
         int want = Config.BlacksmithFuel - forge.FuelSlot.StackSize;
-        if (want > 0 && TakeFromPack(colony, smith, s => IsForgeFuel(s) && (forge.FuelSlot.Empty || s.Collectible.Code.Equals(forge.FuelSlot.Itemstack.Collectible.Code)), want) is { } fuel)
+        // The best fuel the smith carries that the forge can take (it holds one kind at a time).
+        var pick = PackItems(smith).Where(s => IsForgeFuel(s) && (forge.FuelSlot.Empty || s.Collectible.Code.Equals(forge.FuelSlot.Itemstack.Collectible.Code)))
+            .OrderBy(ForgeFuelRank).FirstOrDefault();
+        if (want > 0 && pick != null && TakeFromPack(colony, smith, s => s.Collectible.Code.Equals(pick.Collectible.Code), want) is { } fuel)
         {
             if (forge.FuelSlot.Empty) forge.FuelSlot.Itemstack = fuel;
             else forge.FuelSlot.Itemstack.StackSize += fuel.StackSize;

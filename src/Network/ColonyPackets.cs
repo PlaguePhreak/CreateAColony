@@ -514,6 +514,45 @@ public class HutSnapshot
     /// <summary>Events written down since the last chronicle, and how many make a new one.</summary>
     [ProtoMember(314)] public int ChronicleEvents;
     [ProtoMember(315)] public int ChronicleNeeds;
+    /// <summary>The Requests tab (0.142.0): what the hut asked couriers for and how each is getting on.</summary>
+    [ProtoMember(340)] public bool HasRequestsTab;
+    [ProtoMember(341)] public List<RequestView> Requests = new();
+    /// <summary>A Courier's Station: every courier and settler helping them, what they do and where they move things.</summary>
+    [ProtoMember(342)] public bool IsCourierStation;
+    [ProtoMember(343)] public List<CourierView> Couriers = new();
+    [ProtoMember(344)] public int CourierJobs;
+}
+
+/// <summary>One row of a hut's Requests tab.</summary>
+[ProtoContract]
+public class RequestView
+{
+    [ProtoMember(1)] public byte[] Stack = System.Array.Empty<byte>();
+    /// <summary>The item's name when there is no icon (a tool any material will do).</summary>
+    [ProtoMember(2)] public string Name = "";
+    [ProtoMember(3)] public int Quantity;
+    [ProtoMember(4)] public int Delivered;
+    /// <summary>How many of Quantity are a spare.</summary>
+    [ProtoMember(5)] public int Extra;
+    [ProtoMember(6)] public int InColony;
+    [ProtoMember(7)] public string Status = "";
+    /// <summary>0: on its way. 1: waiting. 2: nobody has it.</summary>
+    [ProtoMember(8)] public int Color;
+    /// <summary>"Builder's Hut: Smelter 2" when it is for a building job, else empty.</summary>
+    [ProtoMember(9)] public string For = "";
+}
+
+/// <summary>One courier on a Courier's Station.</summary>
+[ProtoContract]
+public class CourierView
+{
+    [ProtoMember(1)] public string Name = "";
+    [ProtoMember(2)] public string Doing = "";
+    [ProtoMember(3)] public string From = "";
+    [ProtoMember(4)] public string To = "";
+    [ProtoMember(5)] public string Carrying = "";
+    /// <summary>Not a courier: a settler without a job helping out.</summary>
+    [ProtoMember(6)] public bool Helping;
 }
 
 /// <summary>One line of a hut's chest list: an item, how many there are, and which containers hold it.</summary>

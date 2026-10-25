@@ -35,6 +35,8 @@ public partial class ColonyManager
         {
             excluded.UnionWith(HutStorage(colony, hut).Select(c => c.Pos));
         }
+        // Nor is a work station's own small storage (the Courier's Station stands in the Warehouse).
+        excluded.UnionWith(colony.Buildings.Where(b => b.IsStation).Select(b => b.HutPos));
         // The storage within WarehouseRadius of the Warehouse block, and anywhere inside the Warehouse's own building.
         int x1 = w.X - WarehouseRadius, y1 = w.Y - WarehouseHeight, z1 = w.Z - WarehouseRadius;
         int x2 = w.X + WarehouseRadius, y2 = w.Y + WarehouseHeight, z2 = w.Z + WarehouseRadius;
@@ -155,11 +157,13 @@ public partial class ColonyManager
 
     public DeliveryRequest AddRequest(Colony colony, string itemCode, int quantity, BlockPos dest, string requestedBy)
     {
+        int extra = SpareFor(itemCode, quantity, requestedBy);
         var request = new DeliveryRequest
         {
             RequestId = colony.NextRequestId++,
             ItemCode = itemCode,
-            Quantity = quantity,
+            Quantity = quantity + extra,
+            Extra = extra,
             DestPos = dest.Copy(),
             RequestedBy = requestedBy
         };
@@ -167,6 +171,22 @@ public partial class ColonyManager
         MarkDirty(colony);
         return request;
     }
+
+    /// <summary>
+    /// A few spare on top of what a hut asks for (Aaron, 0.142.0): a potter who needs 4 firewood asks for 5, in case.
+    /// Only for huts' own requests of 2 or more things; tools, Minimum stock and players' requests are left as asked.
+    /// </summary>
+    int SpareFor(string itemCode, int quantity, string requestedBy)
+    {
+        if (Config.RequestSparePercent <= 0 || quantity < 2 || !requestedBy.StartsWith("building:") || ParseToolCode(itemCode) != null) return 0;
+        int extra = (int)Math.Ceiling(quantity * Config.RequestSparePercent / 100.0);
+        return Math.Clamp(extra, 1, Math.Max(1, Config.RequestSpareMax));
+    }
+
+    /// <summary>The first of the containers' stacks that matches, the best by rank (lowest first); null when none matches.</summary>
+    public ItemStack? BestStack(IEnumerable<BlockEntityContainer> containers, ItemMatch match, System.Func<ItemStack, int> rank) => containers
+        .SelectMany(c => c.Inventory).Where(s => !s.Empty && match(s.Itemstack)).Select(s => s.Itemstack!)
+        .OrderBy(rank).FirstOrDefault();
 
     /// <summary>
     /// Gives the courier the oldest request the warehouse (or another hut's spare things) can serve, keeping one
@@ -204,7 +224,8 @@ public partial class ColonyManager
     {
         request.Delivered += amount;
         request.LeasedByCitizenId = 0;
-        if (request.Remaining <= 0) colony.Requests.Remove(request);
+        // Once what the hut needs is there, the spare only comes along on the same trip, so nobody waits for it.
+        if (request.Remaining <= 0 || amount > 0 && request.Remaining <= request.Extra) colony.Requests.Remove(request);
         MarkDirty(colony);
     }
 

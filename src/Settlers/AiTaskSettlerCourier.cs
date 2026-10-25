@@ -44,6 +44,8 @@ public class AiTaskSettlerCourier : SettlerTaskBase
     static readonly System.Collections.Generic.HashSet<BlockPos> torchesTaken = new();
     /// <summary>The request's things come from another hut's storage, which only gives what it does not need (pickupFilter).</summary>
     bool fromHut;
+    /// <summary>Where the load being carried was picked up, for the Courier's Station.</summary>
+    BlockPos? pickedFrom;
 
     public AiTaskSettlerCourier(EntityAgent entity, JsonObject taskConfig, JsonObject aiConfig) : base(entity, taskConfig, aiConfig) { }
 
@@ -103,6 +105,7 @@ public class AiTaskSettlerCourier : SettlerTaskBase
         shelfTarget = null;
         coolTarget = null;
         fromHut = false;
+        pickedFrom = null;
         ReleaseTorch();
         if (!manager!.PackEmpty(citizen))
         {
@@ -266,6 +269,7 @@ public class AiTaskSettlerCourier : SettlerTaskBase
             if (request != null) manager!.ReleaseRequest(colony, request);
             return false;
         }
+        pickedFrom = target!.Copy();
         var destination = request != null ? request.DestPos : shelfTarget ?? coolTarget ?? torchTarget ?? manager!.WarehouseContainers(colony).FirstOrDefault()?.Pos;
         if (destination == null) return false; // warehouse removed mid-trip; the load waits until one exists
         target = destination.Copy();
@@ -356,6 +360,18 @@ public class AiTaskSettlerCourier : SettlerTaskBase
             if (request != null) manager!.ReleaseRequest(colony, request);
         }
         base.FinishExecute(cancelled);
+    }
+
+    /// <summary>
+    /// Where the courier takes things from and to right now, for the Courier's Station. From is null when it is
+    /// carrying something it already had; To is null when the things go to the warehouse.
+    /// </summary>
+    public (BlockPos? From, BlockPos? To) Route(Colony colony)
+    {
+        var request = colony.Requests.Find(r => r.RequestId == requestId);
+        var to = request?.DestPos ?? shelfTarget ?? coolTarget ?? torchTarget;
+        if (step == Step.Pickup) return (target, to);
+        return (pickedFrom, to ?? (toHut ? target : null));
     }
 
     public override string Describe(Colony colony, CitizenRecord citizen)

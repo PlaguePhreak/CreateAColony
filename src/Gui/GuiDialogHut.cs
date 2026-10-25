@@ -60,6 +60,9 @@ public partial class GuiDialogHut : GuiDialog
     const int ChooseResidentsView = 23;
     /// <summary>Teach recipe, opened from the Crafting recipes tab (GuiDialogHut.Teach.cs).</summary>
     const int TeachView = 27;
+    /// <summary>Requests: what the hut asked couriers for (GuiDialogHut.Requests.cs), and a Courier's Station's Couriers tab.</summary>
+    const int RequestsTab = 28;
+    const int CouriersTab = 29;
     const int ListRowsPerPage = 8;
     const double ListRowHeight = 36;
 
@@ -108,6 +111,7 @@ public partial class GuiDialogHut : GuiDialog
     List<(int Id, string Lang)> Tabs()
     {
         var tabs = new List<(int, string)> { (0, "tab-main") };
+        if (snapshot.IsCourierStation) tabs.Add((CouriersTab, "tab-couriers"));
         if (snapshot.HasRecipes) tabs.Add((RecipesTab, "tab-recipes"));
         if (snapshot.IsBuilderHut) tabs.Add((1, "tab-priorities"));
         if (snapshot.HasPriorities) tabs.Add((PrioritiesTab, "tab-priorities"));
@@ -128,6 +132,7 @@ public partial class GuiDialogHut : GuiDialog
         if (snapshot.IsGuardTower || snapshot.IsMiner) tabs.Add((SettingsTab, "tab-settings"));
         if (snapshot.IsMiner && !snapshot.IsMineEntrance) tabs.Add((MineGuardsTab, "tab-guards"));
         if (snapshot.IsBuilderHut || snapshot.IsMiner && !snapshot.IsMineEntrance) tabs.Add((2, "tab-resources"));
+        if (snapshot.HasRequestsTab) tabs.Add((RequestsTab, "tab-requests"));
         if (snapshot.HasStorage) tabs.Add((MinStockTab, "tab-minstock"));
         if (snapshot.Job.Length > 0) tabs.Add((StatsTab, "tab-stats"));
         return tabs;
@@ -180,6 +185,8 @@ public partial class GuiDialogHut : GuiDialog
             case ToolsTab: ComposeTools(composer); break;
             case HostilesTab: ComposeHostiles(composer); break;
             case SettingsTab: if (snapshot.IsMiner) ComposeMineSettings(composer); else ComposeSettings(composer); break;
+            case RequestsTab: ComposeRequests(composer); break;
+            case CouriersTab: ComposeCouriers(composer); break;
             case MinStockTab: ComposeMinStock(composer); break;
             case StatsTab: ComposeStats(composer); break;
             case ManageView: ComposeManage(composer); break;

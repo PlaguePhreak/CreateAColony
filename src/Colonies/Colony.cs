@@ -173,6 +173,8 @@ public class DeliveryRequest
     [ProtoMember(6)] public string RequestedBy = "";
     [ProtoMember(7)] public int LeasedByCitizenId;
     [ProtoMember(8)] public double LeaseUntilTotalHours;
+    /// <summary>How many of Quantity are a spare on top of what the hut needs (ColonyManager.AddRequest, 0.142.0).</summary>
+    [ProtoMember(20)] public int Extra;
 
     public int Remaining => Quantity - Delivered;
 }

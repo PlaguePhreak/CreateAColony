@@ -227,6 +227,14 @@ These work well with Vintage Colonies. Install them separately.
 - **Smithing Plus** (jayu): smith with metal bits, repair tool heads on the anvil and other smithing tweaks. Our smiths still use the game's anvil and recipes beside it; not tested together in game yet.
 - **Coinage** (Xel): design your own coins. One can be the colony's money (Bailiff tab, Taxes & wages).
 
+## Requests tab, Courier's Station and better fuel (0.142.0)
+- **Requests tab on every hut.** It lists what the hut and its worker asked the couriers for (the potter's firewood, dry grass and sticks, a builder's planks, a tool). Each row shows how many were brought, how many are in the warehouse, and what is happening: a courier bringing it, waiting for a courier, the Gatherer cutting grass for it, another hut making it, or nobody has it.
+- **Huts ask for a few spare.** A hut asks for about a quarter more than it needs, at least 1 and at most 8 (a potter needing 4 firewood asks for 5). Once what it needs is there, it does not wait for the spare. Not for tools, Minimum stock or your own requests. Config: `RequestSparePercent` (25, 0 turns it off) and `RequestSpareMax` (8).
+- **Courier's Station.** A new work station for the Warehouse. Craft it from a chest and 4 planks: plank, chest, plank on top, and a plank under each end. Put it inside the Warehouse building, or near the Warehouse block. Its **Couriers** tab shows how many couriers there are, what each is doing, where they take things from and to, and what they carry. Settlers without a job show up while they help.
+- **Pit kilns use the best fuel there is**: coal, then charcoal, then peat, then firewood. Config: `KilnPrefersBestFuel`.
+- **Smiths prefer charcoal** for the forge, then coke, black coal and brown coal, depending on what there is.
+- Not tested in game.
+
 ## Penny coins and Coinage coins (0.141.0)
 - The copper coin now looks like a 1p coin: round, with a rim, a portcullis on one side and a "1" on the other.
 - **Coinage support**: design your own coin with the Coinage mod (Xel), hold it, and press **Use the coin in my hand** on the Bailiff tab's **Taxes & wages** page. From then on only that coin is the colony's money. Taxes, wages and the Church's tithes use it, and the minter strikes copies of it from ingots of its metal: 10 per ingot (`MintCoinsPerIngot`), up to 100 in the Mint (`MintStartKeep`). **Use the Mint's coins** switches back.

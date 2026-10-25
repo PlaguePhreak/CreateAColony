@@ -895,6 +895,8 @@ public static class BuildingTypes
     public const string Jeweller = "jeweller";
     /// <summary>Since 0.137.0 a work station inside a Church (ColonyManager.Stations.cs); older saves may still have a Healer's Hut.</summary>
     public const string Healer = "healer";
+    /// <summary>The Courier's Station (0.142.0): a work station inside the Warehouse that shows what the couriers are doing.</summary>
+    public const string CourierStation = "courierstation";
     /// <summary>The Church: its priests and bishop hold services and funerals, take tithes and run the colony's charity (ColonyManager.Church.cs).</summary>
     public const string Church = "church";
     /// <summary>The Royal Mint: a minter strikes the colony's coins (ColonyManager.Economy.cs).</summary>

@@ -425,6 +425,14 @@ public partial class ColonyManager
         if (hut.KilnPos == null || sapi.World.BlockAccessor.GetBlockEntity(hut.KilnPos) is not BlockEntityPitKiln kiln || kiln.IsComplete) return null;
         var choices = KilnChoices(kiln);
         var storage = HutStorage(colony, hut).ToList();
+        if (Config.KilnPrefersBestFuel && choices.Count > 1)
+        {
+            // The best fuel there is enough of with the potter, in the hut and in the warehouse (KilnChoices is best first).
+            var warehouse = WarehouseContainers(colony).ToList();
+            var best = choices.FirstOrDefault(m => PackCount(potter, s => SameItem(s, m)) + CountItems(storage, s => SameItem(s, m))
+                + CountItems(warehouse, s => SameItem(s, m)) >= m.StackSize);
+            if (best != null) return best;
+        }
         return choices.FirstOrDefault(m => PackCount(potter, s => SameItem(s, m)) >= m.StackSize)
             ?? choices.FirstOrDefault(m => CountItems(storage, s => SameItem(s, m)) > 0)
             ?? choices.FirstOrDefault();
@@ -435,8 +443,20 @@ public partial class ColonyManager
     {
         var stage = kiln.NextBuildStage;
         var used = stage.Materials.FirstOrDefault(m => m?.ItemStack != null && kiln.Inventory.Skip(4).Any(s => !s.Empty && SameItem(s.Itemstack, m.ItemStack)));
-        return stage.Materials.Where(m => m?.ItemStack != null && (used == null || m == used)).Select(m => m.ItemStack).ToList();
+        var choices = stage.Materials.Where(m => m?.ItemStack != null && (used == null || m == used)).Select(m => m.ItemStack);
+        return (Config.KilnPrefersBestFuel ? choices.OrderBy(KilnFuelRank) : choices).ToList();
     }
+
+    /// <summary>Which pit kiln fuel a potter takes first (Aaron, 0.142.0): coal, then charcoal, peat and firewood.</summary>
+    public static int KilnFuelRank(ItemStack s) => s.Collectible.Code.Path switch
+    {
+        var p when p.Contains("anthracite") || p.Contains("bituminouscoal") || p == "coke" => 0,
+        var p when p.Contains("lignite") => 1,
+        "charcoal" => 2,
+        var p when p.Contains("peat") => 3,
+        var p when p.StartsWith("firewood") => 4,
+        _ => 5
+    };
 
     /// <summary>Adds the next layer of fuel from the potter's inventory, as a player does by hand.</summary>
     public bool AddKilnMaterial(Colony colony, Building hut, CitizenRecord potter)
