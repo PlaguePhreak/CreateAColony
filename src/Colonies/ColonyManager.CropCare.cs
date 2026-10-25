@@ -56,12 +56,13 @@ public partial class ColonyManager
         return (cans.Count > 0, cans.Sum(c => ((BlockWateringCan)c.Block).GetRemainingWateringSeconds(c)));
     }
 
-    /// <summary>Waters dry farmland from the worker's watering can.</summary>
-    public bool Water(Colony colony, CitizenRecord worker, BlockPos ground)
+    /// <summary>Waters dry farmland from the watering can in the worker's hand, or else one in its inventory.</summary>
+    public bool Water(Colony colony, CitizenRecord worker, BlockPos ground, ItemSlot? hand = null)
     {
         if (sapi.World.BlockAccessor.GetBlockEntity(ground) is not BlockEntityFarmland farmland) return false;
-        var items = PackItems(worker);
-        var can = items.FirstOrDefault(s => IsWateringCan(s) && ((BlockWateringCan)s.Block).GetRemainingWateringSeconds(s) > 0);
+        bool inHand = hand?.Itemstack is { } held && IsWateringCan(held) && ((BlockWateringCan)held.Block).GetRemainingWateringSeconds(held) > 0;
+        var items = inHand ? new List<ItemStack>() : PackItems(worker);
+        var can = inHand ? hand!.Itemstack : items.FirstOrDefault(s => IsWateringCan(s) && ((BlockWateringCan)s.Block).GetRemainingWateringSeconds(s) > 0);
         if (can == null) return false;
         var block = (BlockWateringCan)can.Block;
         float left = block.GetRemainingWateringSeconds(can);
@@ -69,7 +70,8 @@ public partial class ColonyManager
         float needed = Math.Max(WateringSeconds, (1 - farmland.MoistureLevel) * 2 + 0.1f);
         float pour = Math.Min(left, needed);
         block.SetRemainingWateringSeconds(can, Math.Max(0, left - pour));
-        SavePack(colony, worker, items);
+        if (inHand) hand!.MarkDirty();
+        else SavePack(colony, worker, items);
 
         farmland.WaterFarmland(pour);
         sapi.World.PlaySoundAt(new AssetLocation("sounds/effect/watering"), ground, 0);

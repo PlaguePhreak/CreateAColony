@@ -47,13 +47,22 @@ public class AiTaskSettlerFarmer : AiTaskSettlerWorker
         ? manager!.Config.HunterSecondsPerHit / (Colony is { } c && Citizen is { } me ? manager.SwingFactor(c, me) : 1f)
         : manager!.Config.FarmerSecondsPerBlock;
     /// <summary>The hoe for tilling, and to hit a crop eater with.</summary>
-    protected override bool WorkNeedsTool => work is FieldWork.Till or FieldWork.Chase;
+    protected override bool WorkNeedsTool => work is FieldWork.Till or FieldWork.Chase or FieldWork.Water or FieldWork.Refill;
+    /// <summary>The watering can while watering or filling it, as a player holds it; the hoe otherwise.</summary>
+    protected override bool WantsInHand(ItemStack? stack) => work switch
+    {
+        FieldWork.Water => stack != null && ColonyManager.IsWateringCan(stack) && ((BlockWateringCan)stack.Block).GetRemainingWateringSeconds(stack) > 0,
+        FieldWork.Refill => stack != null && ColonyManager.IsWateringCan(stack),
+        _ => base.WantsInHand(stack)
+    };
     protected override bool AlsoKeeps(ItemStack stack) => ColonyManager.IsWateringCan(stack) || ColonyManager.IsFertilizer(stack);
 
     protected override string WorkAnimation(ItemSlot? hand) => work switch
     {
         FieldWork.Chase => hand?.Itemstack?.Collectible.GetHeldTpHitAnimation(hand, entity) ?? "breakhand",
         FieldWork.Till => hand?.Itemstack?.Collectible.GetHeldTpUseAnimation(hand, entity) ?? "interactstatic",
+        // The game's own watering animation for the can in hand.
+        FieldWork.Water or FieldWork.Refill when hand?.Itemstack is { } can && ColonyManager.IsWateringCan(can) => can.Collectible.GetHeldTpUseAnimation(hand, entity) ?? "interactstatic",
         FieldWork.Sow or FieldWork.Water or FieldWork.Refill => SettlerAnimations.PlayerAnimations.Contains("placeblock") ? "placeblock" : "interactstatic",
         _ => "breakhand"
     };
@@ -119,7 +128,7 @@ public class AiTaskSettlerFarmer : AiTaskSettlerWorker
         if (PlanChase(colony, citizen, hut)) return true;
 
         // Pick up a watering can and fertilizer from the hut once; the farmer keeps them.
-        if (!m.PackItems(citizen).Any(ColonyManager.IsWateringCan) && Supplies(storage, ColonyManager.IsWateringCan) is { } canChest)
+        if (!m.PackItems(citizen).Any(ColonyManager.IsWateringCan) && Hand?.Itemstack is not { Block: BlockWateringCan } && Supplies(storage, ColonyManager.IsWateringCan) is { } canChest)
         {
             return FetchSupplies(canChest, ColonyManager.IsWateringCan, 1);
         }
@@ -129,7 +138,7 @@ public class AiTaskSettlerFarmer : AiTaskSettlerWorker
         }
 
         var fields = m.FieldsFor(colony, citizen, hut);
-        var (hasCan, water) = m.WaterCarried(citizen);
+        var (hasCan, water) = m.FireWater(citizen, Hand);
         var here = entity.Pos.XYZ;
         (FieldWork Work, FieldRecord? Field, BlockPos Pos)? best = null;
         FieldRecord? shortOfSeeds = null;
@@ -236,7 +245,7 @@ public class AiTaskSettlerFarmer : AiTaskSettlerWorker
                 m.PickFruit(colony, hut, citizen, target);
                 return;
             case FieldWork.Refill:
-                m.RefillCans(colony, citizen, target);
+                m.RefillCansAndHand(colony, citizen, Hand, target);
                 return;
         }
 
@@ -252,7 +261,7 @@ public class AiTaskSettlerFarmer : AiTaskSettlerWorker
                 m.Weed(colony, hut, citizen, target);
                 break;
             case FieldWork.Water:
-                m.Water(colony, citizen, target);
+                m.Water(colony, citizen, target, Hand);
                 break;
             case FieldWork.Sow:
                 m.Sow(colony, citizen, entity, target, field, null);
