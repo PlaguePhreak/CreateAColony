@@ -227,6 +227,15 @@ These work well with Vintage Colonies. Install them separately.
 - **Smithing Plus** (jayu): smith with metal bits, repair tool heads on the anvil and other smithing tweaks. Our smiths still use the game's anvil and recipes beside it; not tested together in game yet.
 - **Coinage** (Xel): design your own coins. One can be the colony's money (Bailiff tab, Taxes & wages).
 
+## Foresters clear bushes, and sticks from firewood (0.146.0)
+- **Foresters clear wild bushes.** Besides felling trees, the forester breaks the wild bushes and clumps of leaves standing on the ground around its hut, nearest first. The leaves give sticks (and sometimes tree seeds), the same as when you break them.
+- It leaves alone berry bushes, fruit trees, leaves you placed, and anything in or beside a colony building.
+- **Allowed to collect still counts.** Turn a tree off there and the forester leaves that wood's bushes alone too.
+- **New recipe: axe + firewood = 2 sticks.** Put both in the crafting grid. The axe wears down a little each time.
+- The Forester's **Crafting recipes** tab now has this recipe too, so set how many sticks to keep and the forester splits firewood for them.
+- Config: `ForesterClearsBushes` (on/off), `ForesterSecondsPerBush` (3), `ForesterBushMaxBlocks` (48: bigger clumps are left as part of a tree).
+- Not tested in game.
+
 ## Gatherer priorities (0.145.0)
 - The Gatherer's Hut has a **Priorities** tab. At the top, **What to collect first** lists the kinds of thing the gatherer collects. Use ^ and v to change the order.
 - The usual order is: Colony requests, Ore bits, Food, Herbs, Clay, Peat, Reeds, then Stones, flint, sticks and shells.
@@ -570,7 +579,7 @@ Town Hall. Each works from the free hut of its kind nearest the start of the lis
 
 - The forester needs an axe. It fells wild trees within `ForesterRadius` blocks of its hut (never
   placed logs), nearest first, with the game's own axe logic, and plants a tree seed or sapling of
-  the same wood on the stump.
+  the same wood on the stump. It also clears wild bushes and leaves on the ground near its hut, which give sticks.
 - The farmer needs a hoe. A **Field marker** (dry grass on two sticks, a scarecrow two blocks tall that needs
   the block above it free) marks out the square of
   `FieldRadius` blocks around it. The farmer harvests ripe crops and sows them again, sows bare

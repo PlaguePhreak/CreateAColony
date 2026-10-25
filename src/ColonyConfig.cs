@@ -125,6 +125,15 @@ public class ColonyConfig
     public float ForesterSecondsPerTree = 6f;
     /// <summary>Tree seeds or saplings a forester keeps on hand for replanting; the rest go to the warehouse.</summary>
     public int ForesterSeedReserve = 8;
+    /// <summary>
+    /// The forester also clears wild bushes and leaves standing on the ground near its hut (the leaves give sticks).
+    /// The Allowed to collect tab still counts: a wood turned off there is left alone.
+    /// </summary>
+    public bool ForesterClearsBushes = true;
+    /// <summary>Seconds a forester takes to clear one bush.</summary>
+    public float ForesterSecondsPerBush = 3f;
+    /// <summary>Bigger clumps of leaves than this many blocks are left alone (they are likely part of a tree).</summary>
+    public int ForesterBushMaxBlocks = 48;
 
     // Farmer
     /// <summary>How far a field reaches from its Field marker: 4 makes a 9 by 9 field.</summary>
