@@ -931,13 +931,26 @@ public partial class GuiDialogHut : GuiDialog
         AddPager(composer, pages, y + 14);
     }
 
-    /// <summary>A row's name: the ore or kind of ground in words, otherwise the name of its picture (a log, a fruit, a mushroom, a rock).</summary>
+    /// <summary>A row's name: the ore or kind of ground in words, a tree by its wood, otherwise the name of its picture (a fruit, a mushroom, a rock).</summary>
     static string CollectName(string key, ItemStack stack)
     {
         if (key.StartsWith("ore-") && Lang.HasTranslation(key)) return Lang.Get(key);
         if (key.StartsWith("animal-")) return CreatureName(key.Substring("animal-".Length));
+        if (key.StartsWith("wood-")) return TreeName(key.Substring("wood-".Length), stack);
         if (Lang.HasTranslation("createacolony:collect-" + key)) return Lang.Get("createacolony:collect-" + key);
         return stack.GetName();
+    }
+
+    /// <summary>A tree's name from its wood, such as "Oak" or "Baldcypress", rather than its log's name.</summary>
+    static string TreeName(string wood, ItemStack log)
+    {
+        foreach (string key in new[] { log.Collectible.Code.Domain + ":material-" + wood, "material-" + wood, "createacolony:tree-" + wood })
+        {
+            if (Lang.HasTranslation(key)) return Lang.Get(key);
+        }
+        // A wood no language file names: its code in words.
+        string words = wood.Replace('_', ' ').Replace('-', ' ');
+        return words.Length == 0 ? log.GetName() : char.ToUpperInvariant(words[0]) + words[1..];
     }
 
     static string CreatureName(string code)
