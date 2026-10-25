@@ -51,7 +51,7 @@ public class AiTaskSettlerSleep : SettlerTaskBase
         if (!lyingDown && (Arrived || PathFailed))
         {
             StopWalking();
-            if (bedPos != null && Arrived)
+            if (bedPos != null && (Arrived || NearBed(bedPos)))
             {
                 // Lie along the bed as a player does (on its own half of a furniture double bed).
                 (spot, spotYaw) = manager!.BedSpot(Colony!, Citizen!, bedPos);
@@ -83,7 +83,7 @@ public class AiTaskSettlerSleep : SettlerTaskBase
     public override void FinishExecute(bool cancelled)
     {
         StopAnimation("sleep");
-        if (lyingDown && bedPos != null)
+        if (lyingDown && bedPos != null && spot != null)
         {
             // Step off the bed so the settler does not start the day standing on it.
             entity.TeleportToDouble(bedPos.X + 0.5, bedPos.Y + 1, bedPos.Z + 0.5);

@@ -38,6 +38,8 @@ public class ColonyConfig
     // Sleep
     public float SleepStartHour = 21f;
     public float SleepEndHour = 6f;
+    /// <summary>A settler that cannot find a path to its bed but is this close (blocks) gets into it anyway, instead of sleeping on the floor.</summary>
+    public float BedFindWayRange = 16f;
 
     // Storms
     /// <summary>Settlers head home this many in-game hours before a temporal storm starts.</summary>

@@ -58,7 +58,7 @@ public class AiTaskSettlerRecover : SettlerTaskBase
         if (!lyingDown && (Arrived || PathFailed))
         {
             StopWalking();
-            if (bedPos != null && Arrived)
+            if (bedPos != null && (Arrived || NearBed(bedPos)))
             {
                 (spot, spotYaw) = manager.BedSpot(colony, citizen, bedPos);
                 entity.TeleportToDouble(spot.X, spot.Y, spot.Z);

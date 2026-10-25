@@ -233,6 +233,12 @@ These work well with Vintage Colonies. Install them separately.
 - Rotten food in a bowl, crock or pot gets washed out in water, as you do by dropping it in water. Settlers wash the bowls they carry, and the cook washes the crocks and pots in its hut. Water must be within `WashWaterRadius` (32) blocks. The rot is kept for compost.
 
 
+## Settlers get into their beds (0.128.0)
+- A settler that can't find a way to its bed, but is close to it (`BedFindWayRange`, 16 blocks), now gets into it anyway. Before, it lay down on the floor wherever it got stuck, often under an upstairs bed.
+- Settlers no longer share a double bed with someone who isn't family when a bed is free. They take an empty bed first, and move to one in the same home once it's free (say its owner died).
+- A settler working far away keeps its bed. Before, it could lose it when the bed's land wasn't loaded.
+- A settler that slept on the floor somewhere no longer pops onto its bed in the morning.
+
 ## The Bailiff (0.127.0)
 - A new job, the **Bailiff**. On the Town Hall's Citizens tab, give one settler the Bailiff job (only one per colony). They work from the Town Hall and walk around checking on the huts and fields.
 - The Town Hall has a new **Bailiff** tab with three pages: the bailiff and their rules, the **Ledger**, and the **Estate report**.

@@ -172,6 +172,16 @@ public abstract class SettlerTaskBase : AiTaskBase
 
     protected bool Arrived => arrived || (finalGoal != null && entity.Pos.SquareDistanceTo(finalGoal) <= (finalRange + 0.6f) * (finalRange + 0.6f));
 
+    /// <summary>
+    /// For a settler whose walk to its bed failed: true when the bed is close enough (BedFindWayRange) to get into
+    /// it anyway. A bed up a ladder or behind a door the pathfinder misjudges is still the settler's bed.
+    /// </summary>
+    protected bool NearBed(BlockPos bed)
+    {
+        float range = manager?.Config.BedFindWayRange ?? 0;
+        return range > 0 && entity.Pos.SquareDistanceTo(bed.X + 0.5, bed.Y + 0.5, bed.Z + 0.5) <= range * range;
+    }
+
     /// <summary>True as soon as one path search or walk has failed, before the retries.</summary>
     protected bool PathFailedOnce => failed;
 

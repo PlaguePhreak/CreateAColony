@@ -149,7 +149,13 @@ public partial class ColonyManager : ModSystem
     public BlockPos? EnsureBed(Colony colony, CitizenRecord citizen)
     {
         var ba = sapi.World.BlockAccessor;
-        if (citizen.HomeBedPos != null && ba.GetBlockEntity(citizen.HomeBedPos) is { } own && BedPlaces(own) > 0) return citizen.HomeBedPos;
+        if (citizen.HomeBedPos != null)
+        {
+            var own = ba.GetBlockEntity(citizen.HomeBedPos);
+            if (own != null && BedPlaces(own) > 0) return MoveOutOfSharedBed(colony, citizen) ?? citizen.HomeBedPos;
+            // The bed's land is not loaded (the settler is far out): the bed is still there, so keep it.
+            if (own == null && ba.GetChunkAtBlockPos(citizen.HomeBedPos) == null) return citizen.HomeBedPos;
+        }
 
         citizen.HomeBedPos = null;
         var taken = BedsTaken(colony);
@@ -161,6 +167,8 @@ public partial class ColonyManager : ModSystem
         BlockEntity? free = FindBlockEntities<BlockEntity>(colony)
             .Where(b => BedPlaces(b) > taken.GetValueOrDefault(b.Pos))
             .OrderBy(b => family == null && ResidenceAt(colony, b.Pos, boxes) == null)
+            // Someone on their own takes an empty bed before half of a stranger's double bed.
+            .ThenBy(b => family == null && taken.GetValueOrDefault(b.Pos) > 0)
             .ThenBy(b => b.Pos.DistanceSqTo(anchor.X, anchor.Y, anchor.Z))
             .FirstOrDefault();
         if (free == null) return null;
@@ -169,6 +177,33 @@ public partial class ColonyManager : ModSystem
         SaveColony(colony);
         return citizen.HomeBedPos;
     }
+
+    /// <summary>
+    /// A settler sharing a double bed with someone who is not family moves to an empty bed in the same home, once
+    /// one is free (a bed whose owner died, a new bed). Returns the new bed, or null to stay put.
+    /// </summary>
+    BlockPos? MoveOutOfSharedBed(Colony colony, CitizenRecord citizen)
+    {
+        var bed = citizen.HomeBedPos!;
+        bool shared = colony.Citizens.Any(c => c.Alive && c.CitizenId != citizen.CitizenId && bed.Equals(c.HomeBedPos) && !IsFamily(colony, citizen, c));
+        if (!shared) return null;
+        var taken = BedsTaken(colony);
+        var boxes = ResidenceBoxes(colony);
+        var home = ResidenceAt(colony, bed, boxes);
+        var empty = FindBlockEntities<BlockEntity>(colony)
+            .Where(b => BedPlaces(b) > 0 && taken.GetValueOrDefault(b.Pos) == 0 && ResidenceAt(colony, b.Pos, boxes) == home)
+            .OrderBy(b => b.Pos.DistanceSqTo(bed.X, bed.Y, bed.Z))
+            .FirstOrDefault();
+        if (empty == null) return null;
+        citizen.HomeBedPos = empty.Pos.Copy();
+        SaveColony(colony);
+        return citizen.HomeBedPos;
+    }
+
+    /// <summary>Partners, or a parent and child: the people who share a bed.</summary>
+    bool IsFamily(Colony colony, CitizenRecord a, CitizenRecord b) =>
+        (a.PartnerId != 0 && a.PartnerId == b.CitizenId) || (b.PartnerId != 0 && b.PartnerId == a.CitizenId)
+        || ParentsOf(colony, a).Contains(b) || ParentsOf(colony, b).Contains(a);
 
     /// <summary>How many living settlers sleep in each bed.</summary>
     Dictionary<BlockPos, int> BedsTaken(Colony colony) => colony.Citizens
