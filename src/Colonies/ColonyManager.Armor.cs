@@ -12,7 +12,7 @@ namespace CreateAColony.Colonies;
 /// Armor settlers wear: a helmet, body armor and leg armor, kept on the settler's record. A blow lands
 /// on the head, body or legs as it does for a player, and the armor there takes it the way the game's
 /// own armor does for players (flat reduction, then a share, both weaker against higher-tier weapons),
-/// wearing down as it goes. Guards fetch the best pieces from their tower and the warehouse.
+/// wearing down as it goes. Guards fetch the best pieces from their tower and the warehouse (ColonyManager.GuardGear.cs).
 /// </summary>
 public partial class ColonyManager
 {
@@ -77,24 +77,12 @@ public partial class ColonyManager
         DressEntity(citizen);
     }
 
-    /// <summary>A container (tower storage first, then warehouse) with a piece that beats what the guard wears, or null.</summary>
-    public BlockPos? ArmorChest(Colony colony, Building? tower, CitizenRecord citizen)
-    {
-        if (!Config.GuardsWearArmor) return null;
-        var worn = WornArmor(citizen);
-        foreach (var container in GearContainers(colony, tower))
-        {
-            if (container.Inventory.Any(s => !s.Empty && Beats(s.Itemstack, worn))) return container.Pos;
-        }
-        return null;
-    }
-
-    static bool Beats(ItemStack stack, ItemStack?[] worn)
+    /// <summary>True when the piece beats what is worn in its slot by the upgrade margin (ColonyManager.GuardGear.cs).</summary>
+    bool Beats(ItemStack stack, ItemStack?[] worn)
     {
         int slot = ArmorSlotOf(stack);
         if (slot < 0) return false;
-        float score = ArmorScore(stack);
-        return score > 0 && score > (worn[slot] == null ? 0 : ArmorScore(worn[slot]!));
+        return Beats(ArmorScore(stack), worn[slot] == null ? 0 : ArmorScore(worn[slot]!));
     }
 
     /// <summary>

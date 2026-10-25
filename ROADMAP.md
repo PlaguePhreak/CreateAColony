@@ -20,6 +20,7 @@ Everything listed under "What we have" and "Partly done" has been tested in game
 - Cook: grilling and pot meals, harder meals as the Cooking skill grows *(tested)*
 - Guard Tower: guard, patrol and follow tasks, night watch, alarms, retreat and armor *(tested)*
 - Barracks: a bigger guard post, two guards per level, with a wider watch and patrol (0.54.0, placeholder model and building, not tested yet)
+- Guards swap in better weapons, armor and shields from their tower and the warehouse, and block with shields (0.149.0, not tested yet)
 - Our own jobs: the Prospector (finds ore and marks the map) and the Potter (shapes clay and fires pit kilns) *(tested)*
 - Smelter's Hut: melts nuggets in a crucible over the fire pit and pours ingots into molds (0.50.0, placeholder model and building, not tested yet)
 - Blacksmith's Hut: heats ingots in the forge and makes tool heads and finished tools on the anvil (0.50.0, placeholder model and building, not tested yet)

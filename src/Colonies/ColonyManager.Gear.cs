@@ -207,9 +207,11 @@ public partial class ColonyManager
             if (changed) gearBehavior.storeInv();
         }
 
-        // The offhand item shows in the left hand, or a torch in the dark.
-        var left = (Config.CarryTorches ? TorchToHold(citizen, settler) : null) ?? ToolBarItems(citizen)[OffhandSlot];
-        if (settler.LeftHandItemSlot is { } offhand && SetIfDifferent(offhand, left))
+        // The offhand item shows in the left hand, or a torch in the dark; a shield raised in a fight shows even then.
+        var offhand = ToolBarItems(citizen)[OffhandSlot];
+        var left = offhand != null && IsShield(offhand) && ShieldIsUp(settler) ? offhand
+            : (Config.CarryTorches ? TorchToHold(citizen, settler) : null) ?? offhand;
+        if (settler.LeftHandItemSlot is { } leftHand && SetIfDifferent(leftHand, left))
         {
             settler.GetBehavior<EntityBehaviorVillagerInv>()?.storeInv();
         }

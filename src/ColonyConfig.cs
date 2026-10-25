@@ -428,6 +428,10 @@ public class ColonyConfig
     public float GuardAlarmSeconds = 30f;
     /// <summary>Guards put on the best armor from the tower storage and the warehouse.</summary>
     public bool GuardsWearArmor = true;
+    /// <summary>Guards carry the best shield from the tower storage and the warehouse in their offhand.</summary>
+    public bool GuardsUseShields = true;
+    /// <summary>Guards only swap a weapon, armor piece or shield for one that is this much better (0.15 = 15%).</summary>
+    public float GearUpgradeMargin = 0.15f;
 
     // Running away
     /// <summary>Settlers who are not guards run home, or to a guard, when a creature hurts them.</summary>

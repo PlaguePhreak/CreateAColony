@@ -87,8 +87,11 @@ public partial class ColonyManager
     {
         if (!Config.CarryTorches || citizen.Visitor || citizen.IsChild || !citizen.Alive) return null;
         var own = OwnLight(citizen);
-        // The offhand holds something else, such as a shield: no room for a light.
-        if (own == null && ToolBarItems(citizen)[OffhandSlot] != null) return null;
+        // The offhand holds something else: no room for a light. A shield is the exception: its settler keeps a
+        // torch in its inventory and holds that in the dark, until it raises the shield to fight.
+        var offhand = ToolBarItems(citizen)[OffhandSlot];
+        bool shield = own == null && offhand != null && IsShield(offhand);
+        if (own == null && offhand != null && (!shield || PackItems(citizen).Any(IsHandLight))) return null;
         bool builder = citizen.JobCode == Jobs.Builder;
         var (needed, stock) = LanternBalance(colony);
 
@@ -111,7 +114,7 @@ public partial class ColonyManager
         // A lantern from the warehouse is free when builds need fewer than there are; one in a hut is free when
         // the builds have enough without it.
         bool hasTorch = IsTorch(own);
-        if (!builder && (hasTorch || IsDark(settler)))
+        if (!builder && !shield && (hasTorch || IsDark(settler)))
         {
             var lanternChest = (needed < stock ? Nearest(settler, warehouse.Where(HasLantern)) : null)
                 ?? (needed <= stock ? Nearest(settler, hutChests.Where(HasLantern)) : null);

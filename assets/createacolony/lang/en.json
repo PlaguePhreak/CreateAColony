@@ -745,7 +745,7 @@
 	"scepter-patrol-added": "Patrol point {0} of {1} set here.",
 	"scepter-patrol-full": "A tower keeps at most {0} patrol points.",
 	"activity-guard-alarm": "Answering the alarm: fighting {0}",
-	"activity-guard-gear": "Fetching a weapon or armor",
+	"activity-guard-gear": "Getting better gear",
 	"activity-guard-hold": "Standing guard",
 	"activity-guard-patrol": "On patrol",
 	"activity-guard-bodyguard": "Guarding {0}",

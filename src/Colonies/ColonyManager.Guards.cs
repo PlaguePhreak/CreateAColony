@@ -14,7 +14,7 @@ namespace CreateAColony.Colonies;
 /// Guards: settlers with the Guard job. A guard with a place at a Guard Tower lives there and does what
 /// the tower is set to (stand guard, patrol, or follow a player), keeps watch at night and sleeps by day.
 /// Guards without a tower escort the workers of huts set to "Escort by guard", in hut order, or stay by
-/// the Town Hall. Every guard fights with the best weapon it can find, wears the best armor, and comes
+/// the Town Hall. Every guard fights with the best weapon it can find, wears the best armor and carries the best shield, and comes
 /// running when a monster hurts a settler inside the colony.
 /// </summary>
 public partial class ColonyManager
@@ -116,8 +116,8 @@ public partial class ColonyManager
         (tower == null ? Enumerable.Empty<Vintagestory.GameContent.BlockEntityContainer>() : HutStorage(colony, tower))
         .Concat(WarehouseContainers(colony));
 
-    /// <summary>At a Guard Tower couriers take away everything but weapons, armor and what the Minimum stock tab keeps.</summary>
-    System.Func<ItemStack, bool> GuardTowerJunk(Building tower) => s => !IsWeapon(s) && !IsArmor(s) && !IsMinStock(tower, s);
+    /// <summary>At a Guard Tower couriers take away everything but weapons, armor, shields and what the Minimum stock tab keeps.</summary>
+    System.Func<ItemStack, bool> GuardTowerJunk(Building tower) => s => !IsWeapon(s) && !IsArmor(s) && !IsShield(s) && !IsMinStock(tower, s);
 
     // ---- Where guards go ------------------------------------------------------------------
 
@@ -280,6 +280,7 @@ public partial class ColonyManager
         if (IsAttackerToFlee(attacker) && (FleesWhenHurt(citizen) || FightsBack(colony, citizen, settler))) StartFleeing(colony, citizen, settler, attacker!);
         if (IsAttackerToFlee(attacker) && citizen.JobCode != Jobs.Guard) CallAllies(colony, citizen, settler, attacker!);
 
+        damage = ShieldBlock(colony, citizen, settler, source, damage);
         damage = ArmorAbsorb(colony, citizen, settler, source, damage);
         if (citizen.JobCode == Jobs.Guard && TowerOf(colony, citizen) is { } tower && damage > 0)
         {

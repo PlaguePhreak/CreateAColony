@@ -227,6 +227,16 @@ These work well with Vintage Colonies. Install them separately.
 - **Smithing Plus** (jayu): smith with metal bits, repair tool heads on the anvil and other smithing tweaks. Our smiths still use the game's anvil and recipes beside it; not tested together in game yet.
 - **Coinage** (Xel): design your own coins. One can be the colony's money (Bailiff tab, Taxes & wages).
 
+## Guards upgrade their gear (0.149.0)
+- **Guards look for better gear.** When nothing needs fighting, a guard checks its tower's storage and the warehouse for a better weapon, better armor or a better shield.
+- **It swaps, and puts the old one back.** The guard takes the better one and leaves what it had in the same chest, so the Weaponsmith or Armourer can mend it.
+- **Better means clearly better.** A guard only swaps for something at least 15% better (`GearUpgradeMargin`), so it does not walk back for every scratch. A worn item counts for less, so a badly worn sword gets swapped for a fresh one.
+- **Shields work.** A shield blocks blows from the front, like yours does. While a guard fights it holds the shield up, which blocks more often.
+- **Shields and lights.** A guard with a shield keeps a torch in its bag and holds it in the dark. When it fights, the torch goes away and the shield goes up.
+- Couriers leave shields at the Guard Tower, like weapons and armor.
+- Config: `GuardsUseShields` (on), `GearUpgradeMargin` (0.15).
+- Not tested in game.
+
 ## Farmers guard their crops and plant by season (0.147.0)
 - **Animals that eat the crops get chased off.** When an animal goes for the crops on the colony's farmland, the Town Hall log says so.
 - **The hunter comes first.** If the colony has a hunter, the farmer calls it, and the hunter goes after that animal before anything else, from anywhere. If the animal is still there 45 seconds later (`FarmerWaitsForHunterSeconds`), the farmer goes too.
