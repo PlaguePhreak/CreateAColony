@@ -1007,6 +1007,13 @@ before shipping converted blueprints.
 
 ### The Town Hall window (0.24.0)
 
+### Settlers can clear chiseled ruin blocks (0.158.0)
+- Settlers now remove chiseled blocks (like the game's ruins) properly. Before, the game's break failed without a
+  player, so the block stayed and a few stones dropped on each try. A builder clearing ruins broke the same block
+  over and over, and thousands of stones piled up until the game slowed down (Aaron's report).
+- A chiseled block gives the same few stones a player gets, and they go into the hut's storage. Any other block that
+  fails to break is removed too, with a line in the server log.
+
 ### Miners and prospectors check the gatherer's ore finds (0.122.0)
 - Ore bits a gatherer picks up now always get checked. Before, a prospector's reading up to 16 blocks away counted
   as checked, so the find was dropped without anyone going there (Aaron's report).

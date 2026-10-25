@@ -184,6 +184,7 @@ public partial class ColonyManager
     /// <summary>What a block would drop if broken by hand, or nothing if the block insists on a player.</summary>
     ItemStack[] DropsOf(Block block, BlockPos pos, float multiplier = 1)
     {
+        if (block is BlockMicroBlock) return ChiseledDrops(pos, multiplier);
         try
         {
             return block.GetDrops(sapi.World, pos, null, multiplier) ?? Array.Empty<ItemStack>();
@@ -194,8 +195,47 @@ public partial class ColonyManager
         }
     }
 
-    /// <summary>Breaks a block without it dropping anything; the caller collects the drops itself.</summary>
-    void BreakQuietly(BlockPos pos) => sapi.World.BlockAccessor.BreakBlock(pos, null, 0);
+    /// <summary>
+    /// What a chiseled block (ruins) drops: a few stones of its main rock, as the game gives a player. The game's
+    /// own GetDrops throws these on the ground itself instead of returning them, so they are worked out here.
+    /// </summary>
+    ItemStack[] ChiseledDrops(BlockPos pos, float multiplier)
+    {
+        if (sapi.World.BlockAccessor.GetBlockEntity(pos) is not BlockEntityMicroBlock be || be.BlockIds == null || be.BlockIds.Length == 0) return Array.Empty<ItemStack>();
+        var material = sapi.World.Blocks[be.GetMajorityMaterialId()];
+        string? rock = material.Variant["rock"];
+        if (material.BlockMaterial != EnumBlockMaterial.Stone || rock == null) return Array.Empty<ItemStack>();
+        int count = GameMath.RoundRandom(sapi.World.Rand, be.VolumeRel * 4 * multiplier);
+        var stone = sapi.World.GetItem(new AssetLocation("game", "stone-" + rock));
+        return count <= 0 || stone == null ? Array.Empty<ItemStack>() : new[] { new ItemStack(stone, count) };
+    }
+
+    /// <summary>
+    /// Breaks a block without it dropping anything; the caller collects the drops itself. A chiseled block is
+    /// just removed: the game's break needs a player for those and fails without one, leaving the block there,
+    /// so a builder broke the same ruin block over and over (Aaron saw thousands of stones). Any other block
+    /// that is still there after breaking is removed the same way.
+    /// </summary>
+    void BreakQuietly(BlockPos pos)
+    {
+        var ba = sapi.World.BlockAccessor;
+        var block = ba.GetBlock(pos);
+        if (block.Id == 0) return;
+        if (block is not BlockMicroBlock)
+        {
+            try
+            {
+                ba.BreakBlock(pos, null, 0);
+            }
+            catch (Exception e)
+            {
+                sapi.Logger.Warning("[createacolony] Could not break {0} at {1}, removing it: {2}", block.Code, pos, e.Message);
+            }
+            if (ba.GetBlock(pos).Id != block.Id) return;
+        }
+        ba.SetBlock(0, pos);
+        ba.TriggerNeighbourBlockUpdate(pos);
+    }
 
     /// <summary>
     /// Puts what a worker gathered into its inventory. What does not fit goes straight into the hut

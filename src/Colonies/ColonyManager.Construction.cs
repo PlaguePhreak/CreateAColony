@@ -411,16 +411,8 @@ public partial class ColonyManager
         var old = ba.GetBlock(pos);
         if (old.Id == 0) return;
 
-        ItemStack[] drops;
-        try
-        {
-            drops = old.GetDrops(sapi.World, pos, null) ?? Array.Empty<ItemStack>();
-        }
-        catch (Exception)
-        {
-            drops = Array.Empty<ItemStack>(); // some blocks expect a player when dropping
-        }
-        ba.BreakBlock(pos, null, 0);
+        var drops = DropsOf(old, pos); // some blocks expect a player when dropping: those drop nothing
+        BreakQuietly(pos);
 
         var storage = HutStorage(colony, builderHut).ToList();
         foreach (var drop in drops)
