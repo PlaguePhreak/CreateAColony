@@ -1022,7 +1022,8 @@ public class GuiDialogTownHall : GuiDialog
     /// <summary>Taxes and wages: the treasury, the tax rate and the two switches (ColonyManager.Economy.cs).</summary>
     void ComposeMoney(GuiComposer composer, double y)
     {
-        if (!snapshot.HasMint) y = composer.Text(Lang.Get("createacolony:bailiff-no-mint"), GuiKit.Body().WithColor(GuiKit.WarnColor), 0, y, Width, 8);
+        if (!snapshot.EconomyOpen) y = composer.Text(Lang.Get("createacolony:economy-locked", snapshot.EconomyLevel), GuiKit.Body().WithColor(GuiKit.WarnColor), 0, y, Width, 8);
+        else if (!snapshot.HasMint) y = composer.Text(Lang.Get("createacolony:bailiff-no-mint"), GuiKit.Body().WithColor(GuiKit.WarnColor), 0, y, Width, 8);
         y = composer.Text(Lang.Get("createacolony:bailiff-treasury", snapshot.Treasury, snapshot.WageBill, DayName(snapshot.NextPayday)),
             snapshot.Treasury < snapshot.WageBill ? GuiKit.Body().WithColor(GuiKit.WarnColor) : GuiKit.Body(), 0, y, Width, 10);
 

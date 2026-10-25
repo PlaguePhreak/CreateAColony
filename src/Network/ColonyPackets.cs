@@ -700,6 +700,9 @@ public class ColonySnapshot
     [ProtoMember(124)] public string CurrencyName = "";
     [ProtoMember(125)] public bool OwnCoin;
     [ProtoMember(126)] public string CoinMetalName = "";
+    /// <summary>The Town Hall level taxes and wages start at, and whether the colony has reached it.</summary>
+    [ProtoMember(127)] public int EconomyLevel;
+    [ProtoMember(128)] public bool EconomyOpen;
 }
 
 /// <summary>ColonySnapshot.BailiffState: none, on duty, knocked out, or too unhappy to work.</summary>

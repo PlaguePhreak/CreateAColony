@@ -856,6 +856,8 @@ public class ColonyConfig
     public int MintStartKeep = 100;
     /// <summary>Coins the minter strikes from one ingot when the colony uses its own coin (Coinage).</summary>
     public int MintCoinsPerIngot = 10;
+    /// <summary>No taxes or wages, and no moods about them, until the Town Hall is this level.</summary>
+    public int EconomyTownHallLevel = 3;
     /// <summary>Other mods' coins, as item codes with wildcards. Any of them can be picked as a colony's coin on the Bailiff tab.</summary>
     public string[] OtherCoins = { "coinage:coin", "coinage:coin-*" };
     /// <summary>Mood points a settler loses per percent of tax while the bailiff collects taxes (10% is -2).</summary>

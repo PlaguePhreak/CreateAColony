@@ -2607,6 +2607,7 @@
 	"event-bailiff-wages": "{0} the bailiff paid {1} coins in wages to {2} settlers",
 	"event-bailiff-unpaid": "{0} settlers were not paid in full. The treasury is short of coins.",
 	"bailiff-page-money": "Taxes & wages",
+	"economy-locked": "No taxes or wages until the Town Hall is level {0}. Settlers don't mind either until then.",
 	"bailiff-no-mint": "No Royal Mint yet. Build one to strike coins. Until then there are no taxes or wages.",
 	"bailiff-treasury": "Treasury: {0} coins. Wages cost {1} coins a month. Next payday: {2}.",
 	"currency": "Colony coin",

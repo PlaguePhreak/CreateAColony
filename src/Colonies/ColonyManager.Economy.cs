@@ -133,9 +133,13 @@ public partial class ColonyManager
     /// <summary>The in-game day of the next payday: the first day of next month.</summary>
     public int NextPayday() => (MonthOf(sapi.World.Calendar.TotalDays) + 1) * Math.Max(1, sapi.World.Calendar.DaysPerMonth);
 
+    /// <summary>True once the Town Hall is level EconomyTownHallLevel: before that there are no taxes or wages, and no moods about them.</summary>
+    public bool EconomyOpen(Colony colony) => TownHallLevel(colony) >= Config.EconomyTownHallLevel;
+
     /// <summary>The standing thoughts about money, for ThoughtsOf: taxes, and a wage that was not paid.</summary>
     void MoneyThoughts(Colony colony, CitizenRecord c, Action<string, int> standing)
     {
+        if (!EconomyOpen(colony)) return;
         if (c.Unpaid) standing("unpaid", Config.UnpaidMood);
         if (colony.BailiffCollectsRent && colony.TaxPercent > 0 && (HasMint(colony) || HasOwnCoin(colony)) && BailiffOnDuty(colony) != null)
             standing("taxes", -(int)Math.Round(colony.TaxPercent * Config.TaxMoodPerPercent));
@@ -146,7 +150,7 @@ public partial class ColonyManager
 
     /// <summary>
     /// Part of the bailiff's tick: on the first day of each month, taxes then wages. Nothing happens until the
-    /// colony has a Royal Mint or coins in its treasury.
+    /// colony has a Royal Mint or coins in its treasury, and the Town Hall is level EconomyTownHallLevel.
     /// </summary>
     void Payday(Colony colony, CitizenRecord bailiff, double now)
     {
@@ -160,6 +164,11 @@ public partial class ColonyManager
         if (month <= colony.LastPayMonth) return;
         colony.LastPayMonth = month;
         MarkDirty(colony);
+        if (!EconomyOpen(colony))
+        {
+            foreach (var c in Earners(colony)) c.Unpaid = false;
+            return;
+        }
         if (!HasMint(colony) && TreasuryCoins(colony) == 0) return;
 
         var earners = Earners(colony).ToList();

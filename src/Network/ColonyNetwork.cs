@@ -824,6 +824,8 @@ public partial class ColonyNetwork : ModSystem
         snapshot.Treasury = Manager.TreasuryCoins(colony);
         snapshot.NextPayday = Manager.NextPayday();
         snapshot.CurrencyName = Manager.CurrencyName(colony);
+        snapshot.EconomyLevel = config.EconomyTownHallLevel;
+        snapshot.EconomyOpen = Manager.EconomyOpen(colony);
         snapshot.OwnCoin = Manager.HasOwnCoin(colony);
         snapshot.CoinMetalName = snapshot.OwnCoin && sapi!.World.GetItem(Manager.CoinMetal(colony)) is { } ingot ? new ItemStack(ingot).GetName() : "";
         snapshot.WageBill = colony.Citizens.Where(c => c.Alive && !c.Visitor && !c.IsChild).Sum(c => Manager.WageOf(c.JobCode));

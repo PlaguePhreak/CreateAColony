@@ -227,6 +227,9 @@ These work well with Vintage Colonies. Install them separately.
 - **Smithing Plus** (jayu): smith with metal bits, repair tool heads on the anvil and other smithing tweaks. Our smiths still use the game's anvil and recipes beside it; not tested together in game yet.
 - **Coinage** (Xel): design your own coins. One can be the colony's money (Bailiff tab, Taxes & wages).
 
+## Taxes and wages start at Town Hall level 3 (0.153.0)
+- No taxes are collected and no wages are paid until the Town Hall is level 3 (`EconomyTownHallLevel`). Until then settlers have no "Paying taxes" or "Wasn't paid" moods, and the Church gets no tithes. The Taxes & wages page says so.
+
 ## Gatherers take bush cuttings and need a knife for grass (0.151.0)
 - Gatherers now need a knife to cut dry grass. Without one, the hut asks for a knife and the gatherer picks other things meanwhile. Put a knife in the hut storage or the warehouse.
 - A gatherer with a knife takes cuttings from berry bushes, the way you do (sneak and right-click with a knife). That's one cutting per bush a year, and it doesn't hurt the bush. The colony keeps 4 of each kind (`GathererCuttingsKeep`) in the hut storage for you to plant. Switch it off with `GathererTakesCuttings`.
