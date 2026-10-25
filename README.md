@@ -326,6 +326,7 @@ These work well with Vintage Colonies. Install them separately.
 - Set to **Only look around**, they see twice as far.
 
 ## Church, religion and work stations (0.137.0)
+- With no Church in the colony there is no religion at all: no services or missed services, no tithe, no charity, no church thoughts or learning boost, and Faith is hidden on the Stats tab (0.154.0). Removing the Church takes away the church thoughts it left.
 - A new hut, the **Church** (Education), and a new job, the **Priest**. At Church level 3 one priest can be made the **Bishop** (Manage workers, click their role). Level 4 takes a second priest. The Church has no buildings yet, so build your own around the block.
 - Every settler has **Faith**, shown on their Stats tab: devout, faithful, doubting or faithless.
 - **Services** every 7 days at 9:00 for 2 hours (`ChurchServiceEveryDays`, `ChurchServiceHour`, `ChurchServiceHours`). Settlers with some Faith walk to the Church and stand facing the block while the priest leads. Going gives a "Went to church" thought, raises Faith, and gives +15% skill XP for a day (`ServiceLearnBoost`). There is a 0.1% to 0.5% chance (more with more Faith) of a free level in a random skill. Devout settlers who miss one are unhappy.

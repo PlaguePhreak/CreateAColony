@@ -1074,8 +1074,9 @@ public partial class ColonyNetwork : ModSystem
             Purse = citizen.Purse,
             Wage = citizen.IsChild || citizen.Visitor ? 0 : Manager.WageOf(citizen.JobCode),
             Unpaid = citizen.Unpaid,
-            Faith = citizen.Faith < 0 ? -1 : (int)System.Math.Round(citizen.Faith),
-            FaithWord = citizen.Faith < 0 ? "" : Manager.FaithWord(citizen.Faith)
+            // Faith only means something once the colony has a Church.
+            Faith = citizen.Faith < 0 || !Manager.HasChurch(colony) ? -1 : (int)System.Math.Round(citizen.Faith),
+            FaithWord = citizen.Faith < 0 || !Manager.HasChurch(colony) ? "" : Manager.FaithWord(citizen.Faith)
         };
         if (Manager.Config.Happiness && citizen.Alive && !citizen.IsChild && !citizen.Visitor)
         {

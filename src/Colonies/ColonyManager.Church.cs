@@ -48,6 +48,30 @@ public partial class ColonyManager
 
     IEnumerable<Building> Churches(Colony colony) => colony.Buildings.Where(b => b.Type == BuildingTypes.Church && !b.Removing);
 
+    /// <summary>
+    /// The colony has a Church. Without one there is no religion at all (Aaron, 0.154.0): no services or missed
+    /// services, no tithe, no charity, no church thoughts or learning boost, and Faith is not shown.
+    /// </summary>
+    public bool HasChurch(Colony colony) => Churches(colony).Any();
+
+    /// <summary>Thoughts that only a Church gives.</summary>
+    static readonly string[] ChurchThoughtCodes = { "service", "missedservice", "funeral", "alms" };
+
+    /// <summary>With no Church, takes away what one left behind: its thoughts, the learning boost and today's service.</summary>
+    void ForgetChurch(Colony colony)
+    {
+        serviceAttendance.Remove(colony.ColonyId);
+        foreach (var c in colony.Citizens)
+        {
+            caredFor.Remove(c.CitizenId);
+            if (c.Thoughts.RemoveAll(t => ChurchThoughtCodes.Contains(t.Code)) > 0 || c.LearnBoostUntilTotalDays > 0)
+            {
+                c.LearnBoostUntilTotalDays = 0;
+                MarkDirty(colony);
+            }
+        }
+    }
+
     public static bool IsBishop(CitizenRecord c) => c.JobCode == Jobs.Priest && c.WorkRole == ChurchRoles.Bishop;
 
     /// <summary>The job name to show for a settler: "bishop" for the bishop, else its job.</summary>
@@ -154,6 +178,7 @@ public partial class ColonyManager
     /// <summary>The standing thoughts about the church, for ThoughtsOf: a high tithe for the faithless, the church's care for orphans and the sheltered.</summary>
     void ChurchThoughts(Colony colony, CitizenRecord c, Action<string, int> standing)
     {
+        if (!HasChurch(colony)) return;
         if (colony.TithePercent >= Config.TitheGrumbleAtPercent && FaithOf(c) < 40 && WageOf(c.JobCode) > 0 && HasMint(colony) && ServingChurch(colony) != null)
             standing("tithe", Config.TitheGrumbleMood);
         if (colony.LastAlmsDay >= 0 && (int)sapi.World.Calendar.TotalDays - colony.LastAlmsDay <= Math.Max(1, Config.ChurchServiceEveryDays))
@@ -595,6 +620,11 @@ public partial class ColonyManager
         EnsureFaith(colony);
         FixChurchRoles(colony);
         TickStations(colony);
+        if (!HasChurch(colony))
+        {
+            ForgetChurch(colony);
+            return;
+        }
         SettleService(colony);
         TickCharity(colony);
     }
