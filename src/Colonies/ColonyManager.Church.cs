@@ -359,41 +359,22 @@ public partial class ColonyManager
     }
 
     /// <summary>Coins in the Church's storage.</summary>
-    public int ChurchCoins(Colony colony, Building church) => CountItems(HutStorage(colony, church), IsCoin);
+    public int ChurchCoins(Colony colony, Building church) => CountItems(HutStorage(colony, church), CurrencyMatch(colony));
 
     /// <summary>Puts coins into the Church's storage; returns how many found room.</summary>
-    int PutChurchCoins(Colony colony, Building church, int count)
-    {
-        var item = sapi.World.GetItem(new AssetLocation("createacolony:coin-copper"));
-        if (item == null) return 0;
-        var chests = HutStorage(colony, church).ToList();
-        int stored = 0;
-        while (stored < count)
-        {
-            var stack = new ItemStack(item, Math.Min(count - stored, Math.Max(1, item.MaxStackSize)));
-            int want = stack.StackSize;
-            foreach (var chest in chests)
-            {
-                if (stack.StackSize <= 0) break;
-                PutItems(chest, stack);
-            }
-            int moved = want - stack.StackSize;
-            stored += moved;
-            if (moved < want) break;
-        }
-        return stored;
-    }
+    int PutChurchCoins(Colony colony, Building church, int count) => PutCoins(colony, HutStorage(colony, church).ToList(), count, false);
 
     /// <summary>Spends coins from the Church's storage. False (and nothing taken) when it has too few.</summary>
     bool SpendChurchCoins(Colony colony, Building church, int count)
     {
         if (count <= 0) return true;
         var storage = HutStorage(colony, church).ToList();
-        if (CountItems(storage, IsCoin) < count) return false;
+        var money = CurrencyMatch(colony);
+        if (CountItems(storage, money) < count) return false;
         int got = 0;
         while (got < count)
         {
-            var stack = TakeItems(storage, IsCoin, count - got);
+            var stack = TakeItems(storage, money, count - got);
             if (stack == null || stack.StackSize <= 0) break;
             got += stack.StackSize;
         }

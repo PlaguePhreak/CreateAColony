@@ -808,6 +808,8 @@ public class Colony
     [ProtoMember(117, IsRequired = true)] public bool BailiffPaysWages = true;
     [ProtoMember(118, IsRequired = true)] public int TaxPercent = 10;
     [ProtoMember(119, IsRequired = true)] public int LastPayMonth = -1;
+    /// <summary>The colony's own coin, picked on the Bailiff tab (a Coinage coin a player designed), as stack bytes; null for the Royal Mint's copper coins.</summary>
+    [ProtoMember(120)] public byte[]? Currency;
     // 300-319: the church (ColonyManager.Church.cs).
     /// <summary>The share of every wage settlers give the church, in percent (0, 5 or 10).</summary>
     [ProtoMember(300, IsRequired = true)] public int TithePercent = 10;

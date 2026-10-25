@@ -1026,6 +1026,17 @@ public class GuiDialogTownHall : GuiDialog
         y = composer.Text(Lang.Get("createacolony:bailiff-treasury", snapshot.Treasury, snapshot.WageBill, DayName(snapshot.NextPayday)),
             snapshot.Treasury < snapshot.WageBill ? GuiKit.Body().WithColor(GuiKit.WarnColor) : GuiKit.Body(), 0, y, Width, 10);
 
+        y = composer.Section(Lang.Get("createacolony:currency"), y, Width);
+        y = composer.Text(Lang.Get(snapshot.OwnCoin ? "createacolony:currency-own" : "createacolony:currency-mint", snapshot.CurrencyName, snapshot.CoinMetalName),
+            GuiKit.Body(), 0, y, Width, 6);
+        if (Officer)
+        {
+            composer.AddSmallButton(Lang.Get("createacolony:currency-use-held"), () => { SendBailiffRule("currency|hand"); return true; }, ElementBounds.Fixed(0, y, 220, 28));
+            if (snapshot.OwnCoin) composer.AddSmallButton(Lang.Get("createacolony:currency-use-mint"), () => { SendBailiffRule("currency|mint"); return true; }, ElementBounds.Fixed(230, y, 220, 28));
+            y += 36;
+        }
+        y = composer.Text(Lang.Get("createacolony:currency-hint"), GuiKit.Muted(), 0, y, Width, 10);
+
         y = composer.Section(Lang.Get("createacolony:bailiff-tax"), y, Width);
         string[] rates = Enumerable.Range(0, 11).Select(i => (i * 5).ToString()).ToArray();
         string[] rateNames = rates.Select(r => r + "%").ToArray();

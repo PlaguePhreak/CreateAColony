@@ -185,7 +185,7 @@ public partial class ColonyNetwork : ModSystem
             ColonyAction.SetColonyBanner or ColonyAction.ReplaceBanners or ColonyAction.SetBannerOnNew => BannerAction(player, colony, role, packet),
             ColonyAction.SetPermadeath => SetPermadeath(colony, role, packet.Text == "1"),
             ColonyAction.SetSelfDefence or ColonyAction.SetSupportAllies => SetMilitia(colony, role, packet),
-            ColonyAction.SetBailiffRule => SetBailiffRule(colony, role, packet.Text),
+            ColonyAction.SetBailiffRule => SetBailiffRule(player, colony, role, packet.Text),
             ColonyAction.SetTithe => SetTithe(colony, role, packet.Text),
             ColonyAction.HireRecruit => HireAction(player, colony, role, packet),
             ColonyAction.RemoveHut => RemoveHut(player, colony, role, packet),
@@ -282,7 +282,7 @@ public partial class ColonyNetwork : ModSystem
         return null;
     }
 
-    static string? SetBailiffRule(Colony colony, ColonyRole role, string text)
+    string? SetBailiffRule(IServerPlayer player, Colony colony, ColonyRole role, string text)
     {
         if (role < ColonyRole.Officer) return "createacolony:denied-officer";
         var parts = text.Split('|');
@@ -303,6 +303,14 @@ public partial class ColonyNetwork : ModSystem
                 break;
             case "wages":
                 colony.BailiffPaysWages = parts[1] == "1";
+                break;
+            case "currency" when parts[1] == "hand":
+                var held = player.InventoryManager.ActiveHotbarSlot?.Itemstack;
+                if (held == null || !Manager.IsCoin(held)) return "createacolony:currency-not-coin";
+                Manager.SetCurrency(colony, held.Collectible.Code.ToString() == "createacolony:coin-copper" ? null : held);
+                break;
+            case "currency":
+                Manager.SetCurrency(colony, null);
                 break;
             case "tax":
                 if (int.TryParse(parts[1], out int tax) && tax >= 0 && tax <= 50) colony.TaxPercent = tax;
@@ -810,6 +818,9 @@ public partial class ColonyNetwork : ModSystem
         snapshot.HasMint = Manager.HasMint(colony);
         snapshot.Treasury = Manager.TreasuryCoins(colony);
         snapshot.NextPayday = Manager.NextPayday();
+        snapshot.CurrencyName = Manager.CurrencyName(colony);
+        snapshot.OwnCoin = Manager.HasOwnCoin(colony);
+        snapshot.CoinMetalName = snapshot.OwnCoin && sapi!.World.GetItem(Manager.CoinMetal(colony)) is { } ingot ? new ItemStack(ingot).GetName() : "";
         snapshot.WageBill = colony.Citizens.Where(c => c.Alive && !c.Visitor && !c.IsChild).Sum(c => Manager.WageOf(c.JobCode));
         snapshot.Ledger = colony.Ledger.ToList();
         snapshot.EstateReport = Manager.EstateReport(colony);

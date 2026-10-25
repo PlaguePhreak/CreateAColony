@@ -6,8 +6,8 @@
 	"maxstacksize": 128,
 	"shape": { "base": "createacolony:item/coin" },
 	"textures": { "metal": { "base": "game:block/metal/ingot/{metal}" } },
-	"guiTransform": { "rotation": { "x": -30, "y": 45, "z": 0 }, "origin": { "x": 0.5, "y": 0.1, "z": 0.5 }, "scale": 3.5 },
+	"guiTransform": { "rotation": { "x": -55, "y": 0, "z": 0 }, "origin": { "x": 0.5, "y": 0.03, "z": 0.5 }, "scale": 2.8 },
 	"fpHandTransform": { "translation": { "x": 0, "y": 0.2, "z": 0 }, "rotation": { "x": 0, "y": 0, "z": 60 }, "scale": 2 },
 	"tpHandTransform": { "translation": { "x": -0.8, "y": -0.1, "z": -0.6 }, "rotation": { "x": 0, "y": 0, "z": -60 }, "scale": 0.8 },
-	"groundTransform": { "origin": { "x": 0.5, "y": 0, "z": 0.5 }, "scale": 3 }
+	"groundTransform": { "origin": { "x": 0.5, "y": 0, "z": 0.5 }, "scale": 2.2 }
 }

@@ -809,6 +809,10 @@ public class ColonyConfig
     public int WageDefault = 5;
     /// <summary>Coins a new Royal Mint keeps in stock, set on its Crafting recipes tab.</summary>
     public int MintStartKeep = 100;
+    /// <summary>Coins the minter strikes from one ingot when the colony uses its own coin (Coinage).</summary>
+    public int MintCoinsPerIngot = 10;
+    /// <summary>Other mods' coins, as item codes with wildcards. Any of them can be picked as a colony's coin on the Bailiff tab.</summary>
+    public string[] OtherCoins = { "coinage:coin", "coinage:coin-*" };
     /// <summary>Mood points a settler loses per percent of tax while the bailiff collects taxes (10% is -2).</summary>
     public float TaxMoodPerPercent = 0.2f;
     /// <summary>Mood points a settler has until payday when their last wage was not paid in full.</summary>

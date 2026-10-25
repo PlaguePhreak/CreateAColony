@@ -225,6 +225,13 @@ These work well with Vintage Colonies. Install them separately.
 - **C&N Jewelry** (KenigVovan): gems to cut and set. The Jeweller makes its crafting recipes.
 - **C&N Jewelry Adornments** (KenigVovan): more jewellery for the Jeweller to make and settlers to wear for Happiness.
 - **Smithing Plus** (jayu): smith with metal bits, repair tool heads on the anvil and other smithing tweaks. Our smiths still use the game's anvil and recipes beside it; not tested together in game yet.
+- **Coinage** (Xel): design your own coins. One can be the colony's money (Bailiff tab, Taxes & wages).
+
+## Penny coins and Coinage coins (0.141.0)
+- The copper coin now looks like a 1p coin: round, with a rim, a portcullis on one side and a "1" on the other.
+- **Coinage support**: design your own coin with the Coinage mod (Xel), hold it, and press **Use the coin in my hand** on the Bailiff tab's **Taxes & wages** page. From then on only that coin is the colony's money. Taxes, wages and the Church's tithes use it, and the minter strikes copies of it from ingots of its metal: 10 per ingot (`MintCoinsPerIngot`), up to 100 in the Mint (`MintStartKeep`). **Use the Mint's coins** switches back.
+- Which other mods' items count as coins is set in `OtherCoins` (default `coinage:coin` and `coinage:coin-*`). Coinage is not bundled; it is a separate mod.
+- Not tested in game. Coinage doesn't publish its item codes, so if its coins aren't accepted, add their code to `OtherCoins`.
 
 ## Crafting recipes on every hut, and your own recipes (0.140.0)
 - **Every hut with a worker now has a Crafting recipes tab**, the crafter huts too (Sawmill, Smelter, Blacksmith and the rest). Builders, guards and priests don't, since they have their own work.

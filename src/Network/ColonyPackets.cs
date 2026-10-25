@@ -655,6 +655,10 @@ public class ColonySnapshot
     [ProtoMember(122)] public bool HasMint;
     /// <summary>What wages cost a month, for everyone with a job now.</summary>
     [ProtoMember(123)] public int WageBill;
+    /// <summary>The colony's coin, whether it is one of its own choosing, and the ingot the minter strikes it from.</summary>
+    [ProtoMember(124)] public string CurrencyName = "";
+    [ProtoMember(125)] public bool OwnCoin;
+    [ProtoMember(126)] public string CoinMetalName = "";
 }
 
 /// <summary>ColonySnapshot.BailiffState: none, on duty, knocked out, or too unhappy to work.</summary>
