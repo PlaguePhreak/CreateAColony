@@ -26,6 +26,10 @@ public partial class ColonyManager
         /// <summary>A second tool some recipes take (a Tailor's knife and awl with Tailor's Delight), or null.</summary>
         public CraftingRecipeIngredient? Tool2;
         public required ItemStack Output;
+        /// <summary>A recipe a player taught the hut (ColonyManager.CustomRecipes.cs): its CustomRecipe.Id; 0 for the game's recipes.</summary>
+        public int CustomId;
+        /// <summary>What it is made from, for its row, where the parts' own names would not say it; null for the usual text.</summary>
+        public string? Text;
 
         public int InputCount => Inputs.Sum(i => i.Quantity);
         public bool IsInput(ItemStack s) => Inputs.Any(i => i.Part.SatisfiesAsIngredient(s, false));

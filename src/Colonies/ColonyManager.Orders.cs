@@ -35,18 +35,17 @@ public partial class ColonyManager
     /// <summary>One thing a hut can make: its key on the hut's tab, a sample, and the parts of its recipes (null when unknown).</summary>
     sealed record MakerKind(string Key, ItemStack Sample, List<List<CraftingRecipeIngredient>>? Inputs);
 
-    /// <summary>Everything a hut can make for another hut.</summary>
-    IEnumerable<MakerKind> MakerKinds(Colony colony, Building hut) => hut.Type switch
+    /// <summary>Everything a hut can make for another hut: its crafter tab's things, then its Crafting recipes tab's.</summary>
+    IEnumerable<MakerKind> MakerKinds(Colony colony, Building hut) => (hut.Type switch
     {
         BuildingTypes.Sawmill => SawKinds().Select(k => new MakerKind(k.Key, k.Sample, k.Recipes.Select(r => r.Inputs.Select(i => i.Part).ToList()).ToList())),
-        BuildingTypes.Blacksmith or BuildingTypes.Armourer or BuildingTypes.Weaponsmith => SmithKindsFor(colony, hut.Type).Select(k => new MakerKind(k.Key, k.Sample, null))
-            .Concat(HasHutRecipes(hut.Type) ? HutRecipeKinds(hut.Type).Select(k => new MakerKind(k.Key, k.Sample, k.Recipes.Select(r => r.Inputs.Select(i => i.Part).ToList()).ToList())) : Enumerable.Empty<MakerKind>()),
+        BuildingTypes.Blacksmith or BuildingTypes.Armourer or BuildingTypes.Weaponsmith => SmithKindsFor(colony, hut.Type).Select(k => new MakerKind(k.Key, k.Sample, null)),
         BuildingTypes.Craftsman => KnapKinds().Select(k => new MakerKind(k.Key, k.Sample, null)),
         BuildingTypes.Smelter => SmeltKinds().Select(k => new MakerKind(k.Key, k.Sample, null)),
-        _ => HasHutRecipes(hut.Type)
-            ? HutRecipeKinds(hut.Type).Select(k => new MakerKind(k.Key, k.Sample, k.Recipes.Select(r => r.Inputs.Select(i => i.Part).ToList()).ToList()))
-            : Enumerable.Empty<MakerKind>()
-    };
+        _ => Enumerable.Empty<MakerKind>()
+    }).Concat(HasHutRecipes(hut.Type)
+        ? HutRecipeKinds(colony, hut.Type).Select(k => new MakerKind(k.Key, k.Sample, k.Recipes.Select(r => r.Inputs.Select(i => i.Part).ToList()).ToList()))
+        : Enumerable.Empty<MakerKind>());
 
     /// <summary>Huts that are built and have their worker, so they can make or gather something.</summary>
     IEnumerable<Building> WorkingHuts(Colony colony) => colony.Buildings
@@ -105,7 +104,7 @@ public partial class ColonyManager
         return null;
     }
 
-    int KeepOf(Building hut, string key) => CraftTabOf(hut.Type) != null ? CraftKeep(hut, key) : RecipeKeep(hut, key);
+    int KeepOf(Building hut, string key) => (CraftTabOf(hut.Type) != null ? CraftKeep(hut, key) : 0) + RecipeKeep(hut, key);
 
     /// <summary>How many of a thing a hut makes for other huts right now.</summary>
     public int OrderedFor(Colony colony, Building hut, string key) => Orders(colony).Orders.GetValueOrDefault((hut.BuildingId, key));
@@ -116,8 +115,12 @@ public partial class ColonyManager
     /// <summary>How many of a thing a crafter hut makes: what its tab keeps, plus what other huts are waiting for.</summary>
     public int CraftWant(Colony colony, Building hut, string key) => CraftKeep(hut, key) + OrderedFor(colony, hut, key);
 
-    /// <summary>How many of a thing a hut's Crafting recipes tab makes: what it keeps, plus what other huts are waiting for.</summary>
-    public int RecipeWant(Colony colony, Building hut, string key) => RecipeKeep(hut, key) + OrderedFor(colony, hut, key);
+    /// <summary>
+    /// How many of a thing a hut's Crafting recipes tab makes: what it keeps, plus what other huts are waiting for.
+    /// At a crafter hut, orders for something its crafter tab makes too are made there, not counted twice.
+    /// </summary>
+    public int RecipeWant(Colony colony, Building hut, string key) => RecipeKeep(hut, key)
+        + (CraftTabOf(hut.Type) != null && CraftKeys(hut).Contains(key) ? 0 : OrderedFor(colony, hut, key));
 
     /// <summary>
     /// The name of the hut that makes or gathers a thing the hut asking for it is short of, for its Required resources

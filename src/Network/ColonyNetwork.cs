@@ -171,6 +171,7 @@ public partial class ColonyNetwork : ModSystem
             ColonyAction.SetKitchenKeep => KitchenAction(colony, role, packet),
             ColonyAction.SetCraftKeep => CraftAction(colony, role, packet),
             ColonyAction.SetRecipeKeep => RecipeAction(colony, role, packet),
+            ColonyAction.TeachRecipe or ColonyAction.ForgetRecipe => TeachAction(player, colony, role, packet),
             ColonyAction.SetMineOre or ColonyAction.SetMineProspected or ColonyAction.NewMine => MiningAction(colony, role, packet),
             ColonyAction.SetWorkRole => WorkRoleAction(colony, role, packet),
             >= ColonyAction.SetMineLevel and <= ColonyAction.UnassignMineGuard => MineTabAction(colony, role, packet),
@@ -624,13 +625,17 @@ public partial class ColonyNetwork : ModSystem
         }
     }
 
-    /// <summary>The rows of a hut's Crafting recipes tab: everything it can craft, with what each takes.</summary>
+    /// <summary>
+    /// The rows of a hut's Crafting recipes tab: everything it can craft, with what each takes, and the recipes
+    /// players taught it. A taught recipe's row shows that recipe; otherwise the game's with the fewest things.
+    /// </summary>
     void AddRecipeRows(HutSnapshot snapshot, Colony colony, Building building)
     {
-        snapshot.HasRecipes = true;
-        snapshot.KeepChoices = Manager.Config.CraftKeepChoices.ToList();
+        // A Potter's or Cook's Hut keeps its own tab's choices.
+        if (snapshot.KeepChoices.Count == 0) snapshot.KeepChoices = Manager.Config.CraftKeepChoices.ToList();
+        snapshot.CanTeach = Manager.Config.CustomRecipes;
         var worker = Manager.WorkerAt(colony, building, ColonyManager.JobOf(building.Type) ?? "");
-        foreach (var kind in Manager.HutRecipeKinds(building.Type))
+        foreach (var kind in Manager.HutRecipeKinds(colony, building.Type))
         {
             var recipe = kind.Recipes[0];
             snapshot.Recipes.Add(new PotteryView
@@ -641,9 +646,22 @@ public partial class ColonyNetwork : ModSystem
                 Have = Manager.RecipeStock(colony, building, kind, worker),
                 Clay = recipe.InputCount,
                 Name = Lang.Get("createacolony:recipes-row", recipe.Output.StackSize, kind.Sample.GetName()),
-                Detail = Lang.Get("createacolony:recipes-from", Manager.RecipeInputsText(recipe))
+                Detail = Lang.Get(recipe.CustomId != 0 ? "createacolony:recipes-from-taught" : "createacolony:recipes-from", Manager.RecipeInputsText(recipe))
             });
         }
+        foreach (var taught in Manager.TaughtRecipes(colony, building.Type))
+        {
+            var recipe = Manager.ToSawRecipe(taught);
+            snapshot.Taught.Add(new PotteryView
+            {
+                Key = taught.Id.ToString(),
+                Stack = recipe?.Output.ToBytes() ?? System.Array.Empty<byte>(),
+                Name = recipe != null ? Lang.Get("createacolony:recipes-row", recipe.Output.StackSize, recipe.Output.GetName()) : taught.Output.Code,
+                Detail = recipe != null ? Lang.Get("createacolony:recipes-from", Manager.RecipeInputsText(recipe)) : Lang.Get("createacolony:teach-broken")
+            });
+        }
+        // A hut with nothing to craft yet still gets the tab, so a recipe can be taught there.
+        snapshot.HasRecipes = snapshot.Recipes.Count > 0 || snapshot.Taught.Count > 0 || snapshot.CanTeach;
     }
 
     /// <summary>How many of a thing a hut's worker keeps crafted (Crafting recipes tab).</summary>
@@ -655,9 +673,19 @@ public partial class ColonyNetwork : ModSystem
         int bar = packet.Text.LastIndexOf('|');
         if (bar <= 0 || !int.TryParse(packet.Text[(bar + 1)..], out int keep) || keep < 0 || keep > 999) return "createacolony:bad-building";
         string key = packet.Text[..bar];
-        if (!Manager.HutRecipeKinds(building.Type).Any(k => k.Key == key)) return "createacolony:bad-building";
+        if (!Manager.HutRecipeKinds(colony, building.Type).Any(k => k.Key == key)) return "createacolony:bad-building";
         Manager.SetRecipeKeep(colony, building, key, keep);
         return null;
+    }
+
+    /// <summary>Teach recipe and Forget on a hut's Crafting recipes tab (officers).</summary>
+    string? TeachAction(IServerPlayer player, Colony colony, ColonyRole role, ColonyActionPacket packet)
+    {
+        if (role < ColonyRole.Officer) return "createacolony:denied-officer";
+        var building = colony.Buildings.Find(b => b.BuildingId == packet.BuildingId);
+        if (building == null || !Manager.HasHutRecipes(building.Type)) return "createacolony:bad-building";
+        if (packet.Action == ColonyAction.TeachRecipe) return Manager.TeachRecipe(colony, building, packet.Text, player.PlayerName);
+        return int.TryParse(packet.Text, out int id) ? Manager.ForgetRecipe(colony, building, id) : "createacolony:bad-building";
     }
 
     /// <summary>How many of a thing a crafter hut keeps in stock.</summary>

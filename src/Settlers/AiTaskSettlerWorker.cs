@@ -198,7 +198,9 @@ public abstract class AiTaskSettlerWorker : SettlerTaskBase
                 1, m.Config.HutRecipeBatch);
             foreach (var r in want.Recipes)
             {
-                // The tool must be carried already; the worker never fetches one just for a recipe.
+                // A recipe a player taught the hut: the worker gets the tool it takes from the hut storage, or asks couriers for one.
+                if (r.CustomId != 0 && FetchTaughtTool(colony, citizen, hut, storage, want, r)) return true;
+                // The tool must be carried already; the worker never fetches one just for a game recipe.
                 if (!m.CarriesTool(citizen, r.Tool, Hand?.Itemstack) || !m.CarriesTool(citizen, r.Tool2, Hand?.Itemstack)) continue;
                 foreach (var (part, quantity) in r.Inputs)
                 {
@@ -219,6 +221,29 @@ public abstract class AiTaskSettlerWorker : SettlerTaskBase
                 foreach (var (code, quantity) in codes) m.EnsureCraftRequest(colony, hut, code!, quantity * batches);
                 break;
             }
+        }
+        return false;
+    }
+
+    /// <summary>
+    /// The tools a taught recipe takes that the worker does not carry: it walks to the hut storage for one there,
+    /// or asks couriers to bring one from the warehouse. True when it walks to get one.
+    /// </summary>
+    bool FetchTaughtTool(Colony colony, CitizenRecord citizen, Building hut, List<BlockEntityContainer> storage, ColonyManager.SawKind want, ColonyManager.SawRecipe recipe)
+    {
+        var m = manager!;
+        foreach (var tool in new[] { recipe.Tool, recipe.Tool2 })
+        {
+            if (tool == null || m.CarriesTool(citizen, tool, Hand?.Itemstack)) continue;
+            ItemMatch fits = s => tool.SatisfiesAsIngredient(s, false);
+            var chest = storage.FirstOrDefault(c => c.Inventory.Any(s => !s.Empty && fits(s.Itemstack)));
+            if (chest != null && !m.PackFull(citizen))
+            {
+                craftKind = want;
+                SetStatus("fetching-tools");
+                return FetchSupplies(chest.Pos, fits, 1);
+            }
+            if (m.CodeInWarehouse(colony, fits) is { } code) m.EnsureCraftRequest(colony, hut, code, 1);
         }
         return false;
     }
@@ -311,7 +336,8 @@ public abstract class AiTaskSettlerWorker : SettlerTaskBase
         IsToolStack(Hand?.Itemstack) || manager!.PackCount(citizen, s => IsToolStack(s)) > 0;
 
     /// <summary>What the job keeps, and what the thing it is crafting for the Crafting recipes tab takes.</summary>
-    bool Keeps(ItemStack s) => AlsoKeeps(s) || craftKind?.IsInput(s) == true;
+    bool Keeps(ItemStack s) => AlsoKeeps(s) || craftKind?.IsInput(s) == true
+        || craftKind?.Recipes.Any(r => r.CustomId != 0 && (r.Tool?.SatisfiesAsIngredient(s, false) == true || r.Tool2?.SatisfiesAsIngredient(s, false) == true)) == true;
 
     /// <summary>True when the settler carries anything it does not keep: a harvest, or seeds beyond its stock.</summary>
     bool HasSurplus(CitizenRecord citizen)

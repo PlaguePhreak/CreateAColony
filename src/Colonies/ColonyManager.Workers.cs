@@ -141,6 +141,14 @@ public partial class ColonyManager
     /// </summary>
     System.Func<ItemStack, bool> WorkerHutJunk(Colony colony, Building hut)
     {
+        // Every hut keeps what its Crafting recipes tab needs, the crafter huts too.
+        var junk = OwnHutJunk(colony, hut);
+        var recipeInputs = HasHutRecipes(hut.Type) ? HutRecipeInputs(colony, hut) : _ => false;
+        return s => junk(s) && !recipeInputs(s);
+    }
+
+    System.Func<ItemStack, bool> OwnHutJunk(Colony colony, Building hut)
+    {
         if (hut.Type == BuildingTypes.Potter) return PotterHutJunk();
         if (hut.Type == BuildingTypes.Cook) return CookHutJunk();
         if (hut.Type == BuildingTypes.Smelter) return SmelterHutJunk();
@@ -281,7 +289,7 @@ public partial class ColonyManager
         if (hut.Type == BuildingTypes.Mint) lines.Add(MintInfo(colony));
         if (hut.Type == BuildingTypes.Church) lines.AddRange(ChurchInfo(colony, hut));
         if (hut.IsStation) lines.Add(StationInfo(colony, hut));
-        if (HasHutRecipes(hut.Type) && hut.RecipeKeep.Count > 0) lines.Add(HutRecipesInfo(hut));
+        if (HasHutRecipes(hut.Type) && hut.RecipeKeep.Count > 0) lines.Add(HutRecipesInfo(colony, hut));
         if (hut.Type == BuildingTypes.Prospector) lines.Add(ProspectorInfo(colony, hut));
         if (hut.Type == BuildingTypes.Miner) lines.Add(MineInfo(colony, hut));
         if (hut.Type == BuildingTypes.Quarry) lines.Add(QuarryInfo(hut));

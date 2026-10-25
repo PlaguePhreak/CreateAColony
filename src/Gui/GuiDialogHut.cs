@@ -15,7 +15,7 @@ namespace CreateAColony.Gui;
 /// Builder's Hut also lists the colony's work orders and the items its builder still needs, each with
 /// a picture and have/need counts. Like the Town Hall window it only asks the server for changes.
 /// </summary>
-public class GuiDialogHut : GuiDialog
+public partial class GuiDialogHut : GuiDialog
 {
     const double Width = 560;
     const int OrdersPerPage = 5;
@@ -58,6 +58,8 @@ public class GuiDialogHut : GuiDialog
     const int ChestView = 21;
     const int HelpView = 22;
     const int ChooseResidentsView = 23;
+    /// <summary>Teach recipe, opened from the Crafting recipes tab (GuiDialogHut.Teach.cs).</summary>
+    const int TeachView = 27;
     const int ListRowsPerPage = 8;
     const double ListRowHeight = 36;
 
@@ -90,6 +92,7 @@ public class GuiDialogHut : GuiDialog
 
     public void Update(HutSnapshot fresh)
     {
+        TeachUpdated(fresh);
         snapshot = fresh;
         Compose();
     }
@@ -137,10 +140,10 @@ public class GuiDialogHut : GuiDialog
         bgBounds.BothSizing = ElementSizing.FitToChildren;
 
         var tabs = Tabs();
-        bool subView = currentTab is ManageView or ChestView or HelpView or ChooseResidentsView;
+        bool subView = currentTab is ManageView or ChestView or HelpView or ChooseResidentsView or TeachView;
         if (!subView && !tabs.Any(t => t.Id == currentTab)) currentTab = 0;
         // Choose residents is opened from the Residents tab, so that tab stays lit; the others belong to Main.
-        int activeTab = currentTab == ChooseResidentsView ? ResidentsTab : subView ? 0 : currentTab;
+        int activeTab = currentTab == ChooseResidentsView ? ResidentsTab : currentTab == TeachView ? RecipesTab : subView ? 0 : currentTab;
 
         var composer = capi.Gui.CreateCompo("createacolony-hut", dialogBounds)
             .AddShadedDialogBG(bgBounds)
@@ -164,7 +167,8 @@ public class GuiDialogHut : GuiDialog
             case PotteryTab: ComposeKeepList(composer, snapshot.Pottery, "pottery", ColonyAction.SetPotteryKeep); break;
             case KitchenTab: ComposeKitchen(composer); break;
             case CraftTab: ComposeKeepList(composer, snapshot.Craft, snapshot.CraftTab, ColonyAction.SetCraftKeep); break;
-            case RecipesTab: ComposeKeepList(composer, snapshot.Recipes, "recipes", ColonyAction.SetRecipeKeep); break;
+            case RecipesTab: ComposeRecipes(composer); break;
+            case TeachView: ComposeTeach(composer); break;
             case PrioritiesTab: ComposePriorities(composer); break;
             case RecruitsTab: ComposeRecruits(composer); break;
             case ResidentsTab: ComposeResidents(composer); break;
@@ -192,6 +196,7 @@ public class GuiDialogHut : GuiDialog
         SingleComposer.GetSwitch("mineprospected")?.SetValue(snapshot.MineProspected);
         SingleComposer.GetSwitch("berries")?.SetValue(snapshot.CollectBerries);
         SingleComposer.GetSwitch("retreat")?.SetValue(snapshot.Retreat);
+        SingleComposer.GetSwitch("teachany")?.SetValue(teachAnyType);
         for (int i = 0; SingleComposer.GetSwitch("hostile-" + i) is { } toggle; i++) toggle.SetValue(hostileSwitchStates[i]);
         for (int i = 0; SingleComposer.GetSwitch("collect-" + i) is { } toggle; i++) toggle.SetValue(collectSwitchStates[i]);
         for (int i = 0; SingleComposer.GetSwitch("markers-" + i) is { } toggle; i++) toggle.SetValue(!snapshot.MarkersOff.Contains(snapshot.MarkerGroups[i]));

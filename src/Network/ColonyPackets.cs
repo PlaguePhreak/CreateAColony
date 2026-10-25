@@ -440,6 +440,9 @@ public class HutSnapshot
     /// <summary>A hut with a Crafting recipes tab, and its rows (Clay is how many items one craft takes; Name says what it is made from).</summary>
     [ProtoMember(170)] public bool HasRecipes;
     [ProtoMember(171)] public List<PotteryView> Recipes = new();
+    /// <summary>The recipes players taught this kind of hut (Key is the recipe's Id), and whether officers may teach more.</summary>
+    [ProtoMember(172)] public List<PotteryView> Taught = new();
+    [ProtoMember(173)] public bool CanTeach;
     /// <summary>Priorities tab: the keys of what the hut keeps (rows of its other tabs), in the order its worker makes them.</summary>
     [ProtoMember(240)] public List<string> Priorities = new();
     [ProtoMember(241)] public bool HasPriorities;
@@ -861,6 +864,10 @@ public enum ColonyAction
     SetCollect = 160,
     /// <summary>How many of a thing a hut's worker keeps crafted (Crafting recipes tab): Text = "code|amount".</summary>
     SetRecipeKeep = 170,
+    /// <summary>Teach recipe (officers): every hut of this kind learns a recipe. Text = "any|inputs|output" (ColonyManager.TeachRecipe).</summary>
+    TeachRecipe = 171,
+    /// <summary>Forgets the taught recipe with Id Text.</summary>
+    ForgetRecipe = 172,
     /// <summary>The Bailiff tab's rules (officers): Text "wanderers|n" (BailiffWanderers), "jobs|1", "lend|1" or "rent|0".</summary>
     SetBailiffRule = 180,
     /// <summary>Repair button on a hut's Main tab: a builder puts the building back as its blueprint has it.</summary>

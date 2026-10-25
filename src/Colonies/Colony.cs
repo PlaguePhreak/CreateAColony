@@ -698,6 +698,33 @@ public class RemovedMarker
     [ProtoMember(4)] public double Z;
 }
 
+/// <summary>
+/// A recipe a player taught a kind of hut on its Crafting recipes tab (ColonyManager.CustomRecipes.cs): what goes in,
+/// what comes out. Every hut of that kind in the colony knows it.
+/// </summary>
+[ProtoContract]
+public class CustomRecipe
+{
+    [ProtoMember(1)] public int Id;
+    [ProtoMember(2)] public string HutType = "";
+    [ProtoMember(3)] public List<CustomRecipePart> Inputs = new();
+    [ProtoMember(4)] public CustomRecipePart Output = new();
+    /// <summary>Any type of the inputs will do (any wood for oak planks), not just the one taught.</summary>
+    [ProtoMember(5)] public bool AnyType;
+    [ProtoMember(6)] public string TaughtBy = "";
+}
+
+[ProtoContract]
+public class CustomRecipePart
+{
+    /// <summary>The item or block code, such as game:stick.</summary>
+    [ProtoMember(1)] public string Code = "";
+    [ProtoMember(2)] public bool IsBlock;
+    [ProtoMember(3, IsRequired = true)] public int Quantity = 1;
+    /// <summary>A tool (it has durability): it wears down instead of being used up.</summary>
+    [ProtoMember(4)] public bool Tool;
+}
+
 [ProtoContract]
 public class Colony
 {
@@ -792,6 +819,9 @@ public class Colony
     [ProtoMember(303)] public double LastChronicleTotalDays;
     /// <summary>When the church last paid for the poorhouse and the orphans (in-game day); -1 until the first.</summary>
     [ProtoMember(304, IsRequired = true)] public int LastAlmsDay = -1;
+    // 320-329: recipes players taught the huts (ColonyManager.CustomRecipes.cs).
+    [ProtoMember(320)] public List<CustomRecipe> CustomRecipes = new();
+    [ProtoMember(321, IsRequired = true)] public int NextCustomRecipeId = 1;
     /// <summary>Houses of traders who joined the colony, for a builder to take down (ColonyManager.Traders.cs).</summary>
     [ProtoMember(240)] public List<TeardownOrder> Teardowns = new();
     [ProtoMember(241, IsRequired = true)] public int NextTeardownId = 1;

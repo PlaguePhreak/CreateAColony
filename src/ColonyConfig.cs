@@ -685,6 +685,10 @@ public class ColonyConfig
     public int HutRecipeMaxInputs = 9;
     /// <summary>The most times over a worker fetches or asks couriers for the things of one recipe at once.</summary>
     public int HutRecipeBatch = 4;
+    /// <summary>Officers may teach huts their own recipes on the Crafting recipes tab (Teach recipe). Off: only the game's recipes.</summary>
+    public bool CustomRecipes = true;
+    /// <summary>The most recipes players can teach one kind of hut in a colony.</summary>
+    public int CustomRecipesPerHut = 30;
 
     // Healing: going home to recover, first aid, the Healer and herbs (ColonyManager.Healing.cs)
     /// <summary>Hurt settlers (not guards) go home to their bed to recover.</summary>

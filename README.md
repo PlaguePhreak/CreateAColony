@@ -226,6 +226,18 @@ These work well with Vintage Colonies. Install them separately.
 - **C&N Jewelry Adornments** (KenigVovan): more jewellery for the Jeweller to make and settlers to wear for Happiness.
 - **Smithing Plus** (jayu): smith with metal bits, repair tool heads on the anvil and other smithing tweaks. Our smiths still use the game's anvil and recipes beside it; not tested together in game yet.
 
+## Crafting recipes on every hut, and your own recipes (0.140.0)
+- **Every hut with a worker now has a Crafting recipes tab**, the crafter huts too (Sawmill, Smelter, Blacksmith and the rest). Builders, guards and priests don't, since they have their own work.
+- **Teach recipe.** On the tab, press **Teach recipe** (officers). Put what it takes in the 3x3 grid and what it makes in the slot on the right, then press **Teach**. Every hut of that kind in the colony learns it.
+  - Open your bag with E and click your items into the slots. Your items stay in your bag; the slots only show copies.
+  - Click adds one more, right click puts the whole stack, an empty hand takes one off.
+  - Or hold an item and press **Add held item** (for the grid) or **Makes held item** (for the result).
+  - Tools (anything with durability) wear down instead of being used up. Any tool of that kind will do (any axe). Up to 2 tools.
+  - Turn on **Any type will do** to let any wood or any stone count, not just the one you put in.
+- Your recipes show on the tab with "(your recipe)". Set how many to keep, like any other row. **Forget** on the Teach recipe page removes one.
+- The worker fetches the things and tools from its hut storage, or asks couriers for them from the warehouse.
+- Server owners can turn teaching off with `CustomRecipes: false`. A kind of hut can learn up to 30 (`CustomRecipesPerHut`).
+
 ## Craftsmanship tabs (0.139.0)
 - The Builder's Wand's **Craftsmanship** tab now has its own tabs along the top:
   - **Wood working**: Sawmill

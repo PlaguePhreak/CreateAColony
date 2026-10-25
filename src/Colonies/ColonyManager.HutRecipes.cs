@@ -8,28 +8,34 @@ using ItemMatch = System.Func<Vintagestory.API.Common.ItemStack, bool>;
 namespace CreateAColony.Colonies;
 
 /// <summary>
-/// The Crafting recipes tab of huts that are not crafter huts (Forester, Farmer, Gatherer, Miner, Quarry):
-/// the player sets how many of a thing to keep, such as firewood or sticks at a Forester's Hut, and the
-/// hut's worker crafts it at the hut block between its other work, as a player would at the crafting grid.
-/// What a hut can make is set by config HutRecipeOutputs and HutRecipeTools and found in the game's grid
-/// recipes. The crafting itself is in AiTaskSettlerWorker (PlanRecipe).
+/// The Crafting recipes tab, on every hut with a worker: the player sets how many of a thing to keep, such as
+/// firewood or sticks at a Forester's Hut, and the hut's worker crafts it at the hut block between its other
+/// work, as a player would at the crafting grid. What a hut can make is set by config HutRecipeOutputs and
+/// HutRecipeTools and found in the game's grid recipes, plus the recipes players taught it
+/// (ColonyManager.CustomRecipes.cs). The crafting itself is in AiTaskSettlerWorker (PlanRecipe).
 /// </summary>
 public partial class ColonyManager
 {
     readonly Dictionary<string, List<SawKind>> hutRecipeKinds = new();
     readonly Dictionary<string, string> partNames = new();
 
-    /// <summary>True for a hut with a Crafting recipes tab.</summary>
-    public bool HasHutRecipes(string type) => (CraftTabOf(type) == null || type == BuildingTypes.Armourer) && Config.HutRecipeOutputs.ContainsKey(type);
+    /// <summary>
+    /// True for a hut with a Crafting recipes tab: every hut whose worker works at the hut (AiTaskSettlerWorker).
+    /// Builders, guards and priests have their own work.
+    /// </summary>
+    public bool HasHutRecipes(string type) => JobOf(type) != null
+        && type is not (BuildingTypes.Builder or BuildingTypes.GuardTower or BuildingTypes.Barracks or BuildingTypes.Church);
 
-    /// <summary>Everything a hut of this type can craft, from the game's grid recipes (and other mods' with config HutRecipeDomains).</summary>
+    /// <summary>
+    /// Everything a hut of this type can craft from the game's grid recipes (and other mods' with config
+    /// HutRecipeDomains), without the recipes players taught it; HutRecipeKinds(colony, type) has those too.
+    /// </summary>
     public List<SawKind> HutRecipeKinds(string type)
     {
         if (hutRecipeKinds.TryGetValue(type, out var known)) return known;
         var kinds = new List<SawKind>();
-        if (HasHutRecipes(type))
+        if (HasHutRecipes(type) && Config.HutRecipeOutputs.TryGetValue(type, out var outputs))
         {
-            var outputs = Config.HutRecipeOutputs[type];
             var domains = Config.HutRecipeDomains.GetValueOrDefault(type) ?? new[] { "game" };
             var traits = Config.HutRecipeTraits.GetValueOrDefault(type);
             var tools = ToolSamples(Config.HutRecipeTools.GetValueOrDefault(type) ?? System.Array.Empty<string>());
@@ -93,7 +99,7 @@ public partial class ColonyManager
     public List<SawKind> WantedRecipes(Colony colony, Building hut, CitizenRecord? worker)
     {
         if (hut.RecipeKeep.Count == 0 && !HasOrders(colony, hut)) return new List<SawKind>();
-        return ByPriority(hut, HutRecipeKinds(hut.Type)
+        return ByPriority(hut, HutRecipeKinds(colony, hut.Type)
             .Select(k => (Kind: k, Want: RecipeWant(colony, hut, k.Key)))
             .Where(k => k.Want > 0)
             .Select(k => (k.Kind, k.Kind.Key, Short: k.Want - RecipeStock(colony, hut, k.Kind, worker)))
@@ -126,13 +132,15 @@ public partial class ColonyManager
     ItemMatch HutRecipeInputs(Colony colony, Building hut)
     {
         if (hut.RecipeKeep.Count == 0 && !HasOrders(colony, hut)) return _ => false;
-        var parts = WantedRecipes(colony, hut, WorkerAt(colony, hut, JobOf(hut.Type) ?? ""))
-            .SelectMany(k => k.Recipes).SelectMany(r => r.Inputs).Select(i => i.Part).ToList();
+        var recipes = WantedRecipes(colony, hut, WorkerAt(colony, hut, JobOf(hut.Type) ?? "")).SelectMany(k => k.Recipes).ToList();
+        // The tools of taught recipes stay too, since the worker fetches those from the hut storage.
+        var parts = recipes.SelectMany(r => r.Inputs).Select(i => i.Part)
+            .Concat(recipes.Where(r => r.CustomId != 0).SelectMany(r => new[] { r.Tool, r.Tool2 }).OfType<CraftingRecipeIngredient>()).ToList();
         return s => parts.Any(p => p.SatisfiesAsIngredient(s, false));
     }
 
     /// <summary>What a recipe is made from, for its row: "1 Log, 2 Sticks".</summary>
-    public string RecipeInputsText(SawRecipe recipe) =>
+    public string RecipeInputsText(SawRecipe recipe) => recipe.Text ??
         string.Join(", ", recipe.Inputs.Select(i => i.Quantity + " " + PartName(i.Part)))
         + (recipe.Tool != null ? " + " + PartName(recipe.Tool) : "")
         + (recipe.Tool2 != null ? " + " + PartName(recipe.Tool2) : "");
@@ -158,6 +166,6 @@ public partial class ColonyManager
     }
 
     /// <summary>A line about what the hut crafts, for the hut window.</summary>
-    public string HutRecipesInfo(Building hut) =>
-        Lang.Get("createacolony:recipes-keeping", HutRecipeKinds(hut.Type).Count(k => RecipeKeep(hut, k.Key) > 0));
+    public string HutRecipesInfo(Colony colony, Building hut) =>
+        Lang.Get("createacolony:recipes-keeping", HutRecipeKinds(colony, hut.Type).Count(k => RecipeKeep(hut, k.Key) > 0));
 }
