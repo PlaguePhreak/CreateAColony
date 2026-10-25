@@ -219,7 +219,9 @@ public abstract class SettlerTaskBase : AiTaskBase
         StepUpFromStairs();
         // Another task finishing, or a work animation ending, can stop the shared walk animation while this
         // task is still walking, and the settler glides. Start it again whenever it is moving without it.
-        if (animMeta != null && ladderPhase == LadderPhase.None && pathTraverser.Active && !entity.AnimManager.IsAnimationActive(animMeta.Code))
+        // Swimming and climbing have their own animations (SettlerBody); the walk comes back once out of the water.
+        bool ownWay = entity is EntitySettler { Body.MovesOwnWay: true };
+        if (animMeta != null && !ownWay && ladderPhase == LadderPhase.None && pathTraverser.Active && !entity.AnimManager.IsAnimationActive(animMeta.Code))
         {
             entity.AnimManager.StartAnimation(animMeta);
         }
@@ -393,13 +395,18 @@ public abstract class SettlerTaskBase : AiTaskBase
             return;
         }
         ladderPhase = LadderPhase.Climbing;
+        if (entity is EntitySettler { Body: { } body }) body.OnLadder = true;
         ladder!.Begin(entity);
         failed = false;
     }
 
     void EndLadder()
     {
-        if (ladderPhase == LadderPhase.Climbing) entity.Controls.WalkVector.Set(0, 0, 0);
+        if (ladderPhase == LadderPhase.Climbing)
+        {
+            entity.Controls.WalkVector.Set(0, 0, 0);
+            if (entity is EntitySettler { Body: { } body }) body.OnLadder = false;
+        }
         ladderPhase = LadderPhase.None;
         ladder = null;
     }

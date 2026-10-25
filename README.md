@@ -233,6 +233,17 @@ These work well with Vintage Colonies. Install them separately.
 - Rotten food in a bowl, crock or pot gets washed out in water, as you do by dropping it in water. Settlers wash the bowls they carry, and the cook washes the crocks and pots in its hut. Water must be within `WashWaterRadius` (32) blocks. The rot is kept for compost.
 
 
+## Settlers swim, climb, greet you and hold their food (0.131.0)
+- In water, settlers now swim like a player instead of walking upright. Standing still in deep water, they tread water.
+- On ladders, settlers use the player's climbing animation.
+- Settlers walk and stand like a player now. When running away, fighting back or rushing to a fire, they sprint.
+- A settler with nothing to do waves, nods or bows when you come near. Each settler greets each player at most once every 5 minutes.
+- Happy settlers sometimes cheer or laugh. Unhappy ones cry, shrug or facepalm. One having a breakdown rages.
+- Outdoors in the cold (below 2 °C), a settler with nothing to do hugs itself to keep warm.
+- When eating, settlers hold the food in their hand. Their tool goes back in their hand after.
+- Sheltering from a storm, they sit on the floor like a player.
+- Config switches: `SwimAndClimbLikePlayers`, `GreetPlayers`, `ShiverWhenCold`, `HoldFoodToEat`.
+
 ## Gatherers mark what they find, and look-only mode (0.130.0)
 - While picking or looking around, the gatherer now also marks herbs like horsetail, cattails and other reeds, clay, peat, seashells and flint on the Colony markers map. It marks them even when it isn't allowed to pick them.
 - Each has a switch on the Gatherer's Hut's **Markers** tab, all on to start.

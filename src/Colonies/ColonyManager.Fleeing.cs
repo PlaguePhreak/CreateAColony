@@ -73,7 +73,7 @@ public partial class ColonyManager
     /// <summary>The weapon a settler would fight with: the one in its hand, else the hardest-hitting one it carries.</summary>
     public ItemStack? BestWeapon(CitizenRecord citizen)
     {
-        var held = sapi.World.GetEntityById(citizen.EntityId) is EntityAgent agent && agent.RightHandItemSlot?.Itemstack is { } h && IsWeapon(h) ? h : null;
+        var held = sapi.World.GetEntityById(citizen.EntityId) is EntityAgent agent && Settlers.AiTaskSettlerEat.ToolInHand(agent) is { } h && IsWeapon(h) ? h : null;
         var carried = CarriedItems(citizen).Where(IsWeapon).OrderByDescending(WeaponDamage).FirstOrDefault();
         if (held == null) return carried;
         return carried != null && WeaponDamage(carried) > WeaponDamage(held) ? carried : held;
@@ -95,7 +95,7 @@ public partial class ColonyManager
         if (!(helping ? SupportAllies(colony) : SelfDefence(colony))) return false;
         if (citizen.JobCode == Jobs.Guard || citizen.IsDowned || citizen.IsChild || citizen.Visitor) return false;
         if (settler.GetBehavior<EntityBehaviorHealth>() is { } hp && hp.Health < hp.MaxHealth * Config.FightBackMinHealth) return false;
-        if (!(settler.RightHandItemSlot?.Itemstack is { } held && IsWeapon(held)) && PackCount(citizen, IsWeapon) == 0) return false;
+        if (!(Settlers.AiTaskSettlerEat.ToolInHand(settler) is { } held && IsWeapon(held)) && PackCount(citizen, IsWeapon) == 0) return false;
         return !GuardNear(colony, settler.Pos.XYZ, Config.FightBackGuardRadius);
     }
 

@@ -33,6 +33,8 @@ public class SettlerAnimations : ModSystem
     public const string SitFloor = "sitflooridle";
     /// <summary>Sitting on the edge of a block with the legs hanging down, as a player does; used for chairs and benches.</summary>
     public const string SitSeat = "sitflooredge";
+    /// <summary>Settler animations that take the player's in place of the villager's (CopyPlayerAnimationConfigs).</summary>
+    static readonly string[] PlayerInPlaceOfVillager = { "walk", "idle", "hurt", "die" };
 
     public override double ExecuteOrder() => 0.05;
 
@@ -137,6 +139,32 @@ public class SettlerAnimations : ModSystem
             {
                 sleep["animation"] = "lie";
                 sleep.Remove("blendMode");
+            }
+        }
+        // Walking, standing, getting hurt and dying use the player's own animations too, in place of the villager's.
+        foreach (string code in PlayerInPlaceOfVillager)
+        {
+            if (source.OfType<JObject>().FirstOrDefault(a => (string?)a["code"] == code) is not { } playerAnim) continue;
+            if (!PlayerAnimations.Contains((string?)playerAnim["animation"] ?? code)) continue;
+            foreach (var old in target.OfType<JObject>().Where(a => (string?)a["code"] == code).ToList())
+            {
+                var copy = (JObject)playerAnim.DeepClone();
+                copy.Remove("clientSide");
+                // The standing pose stays the one that plays when nothing else does.
+                if (old["triggeredBy"] is { } trigger) copy["triggeredBy"] = trigger.DeepClone();
+                else copy.Remove("triggeredBy");
+                // Dying still plays over everything else, as the villager's did.
+                if (copy["weight"] == null && old["weight"] is { } weight) copy["weight"] = weight.DeepClone();
+                old.Replace(copy);
+            }
+        }
+        // Sheltering from a storm, they sit on the floor as a player does.
+        if (PlayerAnimations.Contains(SitFloor))
+        {
+            foreach (var shelter in target.OfType<JObject>().Where(a => (string?)a["code"] == "shelter"))
+            {
+                shelter["animation"] = SitFloor;
+                shelter.Remove("blendMode");
             }
         }
         var have = new HashSet<string>(target.Select(a => (string?)a["code"] ?? "").Where(c => c.Length > 0));

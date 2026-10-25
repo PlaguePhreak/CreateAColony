@@ -275,15 +275,22 @@ public partial class ColonyManager
         }
     }
 
-    public string? EatFood(Colony colony, CitizenRecord citizen, EntityAgent eater, BlockEntityContainer container)
+    public string? EatFood(Colony colony, CitizenRecord citizen, EntityAgent eater, BlockEntityContainer container) =>
+        EatFood(colony, citizen, eater, container, out _);
+
+    /// <summary>As EatFood, also giving a copy of what was eaten (one item, slice or bowl) for the settler to hold.</summary>
+    public string? EatFood(Colony colony, CitizenRecord citizen, EntityAgent eater, BlockEntityContainer container, out ItemStack? eaten)
     {
+        eaten = null;
         var choice = FindFoodIn(container, citizen, eater, EatsRaw(citizen));
         if (choice == null) return null;
 
         var slot = choice.Slot;
+        var copy = slot.Itemstack!.Clone();
         string name = slot.Itemstack!.GetName();
         bool cooked = choice.Placed != null || IsCookedFood(slot.Itemstack);
         if (!(choice.Placed != null ? TakePlacedServing(container, choice.Placed) : TakeServing(container, slot))) return null;
+        eaten = copy;
 
         citizen.Saturation = Math.Min(Config.SaturationMax, citizen.Saturation + choice.Satiety);
         AddNutrition(citizen, choice.Props);

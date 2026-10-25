@@ -1059,6 +1059,14 @@ public class ColonyConfig
     public bool SitToEat = true;
     /// <summary>Settlers taking a break sometimes sit down: on a chair, stool or bench near home, else on the floor.</summary>
     public bool SitWhenIdle = true;
+    /// <summary>Settlers swim in water and climb ladders with the player's swimming and climbing animations.</summary>
+    public bool SwimAndClimbLikePlayers = true;
+    /// <summary>Settlers with nothing to do wave, nod or bow to a player who comes near.</summary>
+    public bool GreetPlayers = true;
+    /// <summary>Settlers with nothing to do out in the cold hug themselves to keep warm.</summary>
+    public bool ShiverWhenCold = true;
+    /// <summary>Settlers hold their food in their hand while they eat it.</summary>
+    public bool HoldFoodToEat = true;
 
     // Town map (see Map/ColonyLandMap.cs)
     /// <summary>Blocks around the colony's land that the Town map shows, once a player or a settler has loaded them.</summary>

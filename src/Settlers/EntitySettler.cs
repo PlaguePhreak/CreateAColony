@@ -31,7 +31,7 @@ public class EntitySettler : EntityHumanoid
         if (api.Side == EnumAppSide.Server)
         {
             manager = api.ModLoader.GetModSystem<Colonies.ColonyManager>();
-            Body = new SettlerBody(this);
+            Body = new SettlerBody(this, manager);
         }
     }
 
@@ -67,6 +67,8 @@ public class EntitySettler : EntityHumanoid
     public override void OnEntityLoaded()
     {
         base.OnEntityLoaded();
+        // Unloaded in the middle of a meal: the food copy goes and the tool comes back.
+        if (Api.Side == EnumAppSide.Server) AiTaskSettlerEat.PutDownFood(this);
         ShowHeldItems();
     }
 

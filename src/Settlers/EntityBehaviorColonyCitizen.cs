@@ -191,6 +191,7 @@ public class EntityBehaviorColonyCitizen : EntityBehavior
             {
                 var dropped = manager.EmptyPackAndBags(colony, record).Concat(manager.TakeOffArmor(colony, record)).ToList();
                 // The tool in hand too; and the clothes when they are gone for good (a downed settler keeps them).
+                AiTaskSettlerEat.PutDownFood((EntityAgent)entity);
                 if (((EntityAgent)entity).RightHandItemSlot is { Empty: false } hand)
                 {
                     dropped.Add(hand.TakeOutWhole());
