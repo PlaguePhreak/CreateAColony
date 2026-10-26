@@ -3,7 +3,7 @@ python3 run.py [type ...]   writes assets/.../blueprints/oakshale/ and preview s
 import os, sys, importlib, collections
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
-import kit2, roofdata, helpers
+import kit2, roofdata, preview
 from design import Design
 
 PACK = os.path.normpath(os.path.join(HERE, '..', '..', '..', 'assets', 'createacolony', 'config', 'blueprints', 'oakshale'))
@@ -33,7 +33,7 @@ def build_all(which=None, save=True):
             print(f'{tag:24s} {x1 - x0 + 1:2d}x{y1 - y0 + 1:2d}x{z1 - z0 + 1:2d} blocks {len(d.blocks):5d} roof {n:3d} ({ex} exact)' + (f'  PROBLEMS {problems}' if problems else ''))
             builds.append(d); results[(type, variant, level)] = (d, problems)
         os.makedirs(PREVIEWS, exist_ok=True)
-        helpers.sheet(builds, [f'{type} {variant} level {l}'.replace('  ', ' ') for l in range(1, 6)],
+        preview.sheet(builds, [f'{type} {variant} level {l}'.replace('  ', ' ') for l in range(1, 6)],
                       os.path.join(PREVIEWS, f'preview_{type}{"_" + variant if variant else ""}.png'))
     bad = {k: p for k, (d, p) in results.items() if p}
     print(len(results), 'files,', len(bad), 'with problems')

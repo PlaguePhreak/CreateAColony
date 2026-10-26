@@ -23,6 +23,9 @@ AIRY = ('multiblock', 'fence', 'torch', 'lantern', 'ladder', 'tallgrass', 'flowe
 LOG = 'game:log-placed-oak-ud'
 LOG_X = 'game:log-placed-oak-we'     # a beam that runs east-west
 LOG_Z = 'game:log-placed-oak-ns'
+DEBARKED = 'game:debarkedlog-oak-ud'
+DEBARKED_X = 'game:debarkedlog-oak-we'   # not yet seen in an export: on the palette list for Aaron
+DEBARKED_Z = 'game:debarkedlog-oak-ns'
 PLANK = 'game:planks-oak-ud'
 PLANK_X = 'game:planks-oak-we'       # wall planks on a wall that runs east-west, and floors
 PLANK_Z = 'game:planks-oak-ns'
@@ -54,7 +57,7 @@ def stairs(material, facing, up=True):
 
 
 def slab(material, side='down'):
-    base = {'planks': 'game:plankslab-oak', 'cobble': 'game:cobblestoneslab-shale'}[material]
+    base = {'planks': 'game:plankslab-oak', 'cobble': 'game:cobblestoneslab-shale', 'brick': 'game:stonebrickslab-shale'}[material]
     return f'{base}-{side}-free'
 
 
