@@ -4,3 +4,4 @@ Releases/
 *.user
 .vs/
 __pycache__/
+tools/blueprints/levels/roofdata.pkl

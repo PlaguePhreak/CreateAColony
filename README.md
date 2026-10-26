@@ -357,25 +357,29 @@ These work well with Vintage Colonies. Install them separately.
 - Settlers keep their coins in their purse, shown on the settler's Stats tab with their wage. Spending them comes later.
 - The page shows the treasury, what wages cost a month and the next payday. The **Ledger** now has columns for taxes and wages.
 
-## Five levels for every building in Dev's Builds (0.161.0)
-Every building type in the Dev's Builds pack now has levels 1 to 5, made from Aaron's own exports, so the
-builders can upgrade anything all the way up. Nothing is drawn from scratch: each new level starts from one
-of his files and is changed by the moves his own levels use: walls one step up the material ladder (dirt
-and wattle, rammed earth, mud brick, oak planks, shale cobblestone, shale stone bricks), a storey added by
-repeating a wall layer, a hall made longer by repeating a middle slice (only where the roof repeats, so every
-VS Roofing piece keeps the saved shape it had), a cellar dug, and his own furniture, doors and lanterns
-copied with their saved details.
-- New levels for his huts: Town Hall 5, Builder's Hut 5, Cook's Hut 3 to 5, Residence 2 to 5 (Small and
-  Medium), Smelter 2 to 5, Blacksmith 2 to 5, Sawmill 3 to 5, Gatherer 2 to 5, Forester 2 to 5 (Small and Large).
-- Huts that had no Dev's Build take the whole ladder of the nearest building of his, with the hut block
-  swapped: Farmer, Craftsman and Miner from the Builder's Hut (the Farmer gets a fenced field, the Miner a
-  mine marker); Potter, Armourer and Weaponsmith from the Blacksmith; Quarry from the Smelter (with a pit
-  marker); Prospector and Explorer from the Small Forester; Hunter and Jeweller from the Large Forester;
-  Tailor from the Gatherer; Tavern from the Cook's Hut; Healer from the Small house; Church from the Town
-  Hall; Warehouse (with chests) and Royal Mint from the Sawmill; Barracks from the Guard Tower.
-- The scripts are in `tools/blueprints/levels/` (`python3 batch2.py` remakes every file into `out/`).
-  `kit2.py` reads and writes the exports, `helpers.py` holds the moves, `batch1.py` and `batch2.py` the
-  recipes. Change a recipe, run it, copy the folder over `blueprints/devsbuilds/`.
+## Oak & Shale: a full pack of 30 building types, 5 levels each (0.162.0)
+A new asset pack, **Oak & Shale** (`blueprints/oakshale/`), with every building type at levels 1 to 5:
+150 designs in the style of Aaron's Dev's Builds, each one drawn from scratch. The 0.161.0 attempt (his
+files stretched, stacked and re-skinned) is gone, and Dev's Builds is back to his own 24 files only.
+- Same material language as his builds, by level: 1 packed dirt, wattle and hay; 2 daub panels in oak
+  frames on a cobble sill; 3 rammed earth with daub gables and solid-oak doors; 4 shale cobble below and
+  oak planks above; 5 shale stone bricks on a polished footing with mud brick above, drystone walls. Red
+  VS Roofing shingles throughout, laid his way: the eave row flush with the end walls, each row above one
+  block past, jerkinhead tops, hipped towers. Only block codes that appear in his exports (one ladder
+  facing aside), and his furniture with its saved details.
+- Each level is a different building, not a bigger one: a shelter, a cottage, a hall with a cross-wing, a
+  two-storey house with a yard, a stone hall with a tower or a walled court. Every type gets something of
+  its own: the Sawmill a saw pit and crane, the Cook ovens and a cellar, the Miner a lined shaft with a
+  ladder and a headframe (the Mine marker at the bottom), the Quarry cranes and a dressing barn (the pit
+  marker beyond the north wall), the Explorer lookouts, the Guard Tower a different tower at every level
+  and a bailey wall at 5, the Barracks a drill yard and gatehouse.
+- The roof pieces take their shape data from the nearest matching piece in his files (`roofdata.py`), so
+  the roofing mod resolves them the same way; the previews in `tools/blueprints/levels/out_oakshale/` show
+  every level.
+- The scripts are in `tools/blueprints/levels/`: `python3 run.py` remakes the whole pack into
+  `blueprints/oakshale/` (`python3 run.py sawmill cook` for a few types). `design.py` is the drawing kit,
+  `parts.py` the pieces (houses, lean-tos, towers, yards), `recipes_*.py` the buildings, `kit2.py` reads and
+  writes the export format, `roofdata.py` the roof shapes.
 Not tested in game: Aaron is reviewing them by spawning them in.
 
 ## New Dev's Builds huts (0.134.0)
@@ -515,9 +519,9 @@ placed in for every level, also after you change packs. Your choice is saved wit
 - **Dev's Builds** (`blueprints/devsbuilds/`): Aaron's own buildings: Town Hall 1 to 4, Builder's Hut 1
   to 4, Guard Tower 1 to 5, Cook's Hut 1 and 2 (new ones in 0.60.0) and Residence 1 in two types:
   Medium and Small (0.60.0; the older Standard house was removed in 0.60.1), and since 0.134.0 Smelter 1,
-  Blacksmith 1, Sawmill 1 and 2, Gatherer 1 and Forester (Lumberjack) 1 in two types: Small and Large. Since
-  0.161.0 every building type has levels 1 to 5, the rest made from his exports (see "Five levels for every
-  building in Dev's Builds").
+  Blacksmith 1, Sawmill 1 and 2, Gatherer 1 and Forester (Lumberjack) 1 in two types: Small and Large.
+- **Oak & Shale** (`blueprints/oakshale/`): every building type, levels 1 to 5, designed in the Dev's
+  Builds style (0.162.0, see "Oak & Shale").
 
 Since 0.64.0 a pack never borrows another pack's design: when your pack has no design for a building, the
 wand places just its block (no preview, no build order), so you can build your own building around it. The

@@ -15,7 +15,9 @@ COLOURS = [
     ("barrel", (120, 80, 45)), ("storagevessel", (170, 70, 50)), ("basket", (190, 160, 100)), ("bookshelf", (120, 70, 40)),
     ("chest", (160, 110, 50)), ("bed-hay", (220, 200, 120)), ("bed-wood", (180, 40, 40)), ("ladder", (140, 100, 60)),
     ("woodenfence", (130, 95, 55)), ("drystonefence", (125, 125, 120)), ("wattle", (150, 115, 70)),
-    ("w4rd0sfurniture", (120, 80, 50)), ("heraldry", (200, 30, 30)), ("soil", (90, 140, 60)),
+    ("w4rd0sfurniture", (120, 80, 50)), ("forge", (70, 60, 60)), ("anvil", (95, 95, 105)), ("toolrack", (110, 80, 50)),
+    ("crate", (170, 125, 70)), ("groundstorage", (150, 150, 140)), ("trunk", (150, 100, 50)), ("shelf", (130, 90, 55)),
+    ("foodshelves", (140, 95, 55)), ("stonebakeoven", (120, 100, 90)), ("aculinaryartillery", (110, 80, 60)), ("woodbucket", (150, 110, 60)), ("cabinet", (125, 85, 50)), ("heraldry", (200, 30, 30)), ("soil", (90, 140, 60)),
 ]
 
 
