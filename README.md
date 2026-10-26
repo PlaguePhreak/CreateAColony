@@ -357,6 +357,27 @@ These work well with Vintage Colonies. Install them separately.
 - Settlers keep their coins in their purse, shown on the settler's Stats tab with their wage. Spending them comes later.
 - The page shows the treasury, what wages cost a month and the next payday. The **Ledger** now has columns for taxes and wages.
 
+## Five levels for every building in Dev's Builds (0.161.0)
+Every building type in the Dev's Builds pack now has levels 1 to 5, made from Aaron's own exports, so the
+builders can upgrade anything all the way up. Nothing is drawn from scratch: each new level starts from one
+of his files and is changed by the moves his own levels use: walls one step up the material ladder (dirt
+and wattle, rammed earth, mud brick, oak planks, shale cobblestone, shale stone bricks), a storey added by
+repeating a wall layer, a hall made longer by repeating a middle slice (only where the roof repeats, so every
+VS Roofing piece keeps the saved shape it had), a cellar dug, and his own furniture, doors and lanterns
+copied with their saved details.
+- New levels for his huts: Town Hall 5, Builder's Hut 5, Cook's Hut 3 to 5, Residence 2 to 5 (Small and
+  Medium), Smelter 2 to 5, Blacksmith 2 to 5, Sawmill 3 to 5, Gatherer 2 to 5, Forester 2 to 5 (Small and Large).
+- Huts that had no Dev's Build take the whole ladder of the nearest building of his, with the hut block
+  swapped: Farmer, Craftsman and Miner from the Builder's Hut (the Farmer gets a fenced field, the Miner a
+  mine marker); Potter, Armourer and Weaponsmith from the Blacksmith; Quarry from the Smelter (with a pit
+  marker); Prospector and Explorer from the Small Forester; Hunter and Jeweller from the Large Forester;
+  Tailor from the Gatherer; Tavern from the Cook's Hut; Healer from the Small house; Church from the Town
+  Hall; Warehouse (with chests) and Royal Mint from the Sawmill; Barracks from the Guard Tower.
+- The scripts are in `tools/blueprints/levels/` (`python3 batch2.py` remakes every file into `out/`).
+  `kit2.py` reads and writes the exports, `helpers.py` holds the moves, `batch1.py` and `batch2.py` the
+  recipes. Change a recipe, run it, copy the folder over `blueprints/devsbuilds/`.
+Not tested in game: Aaron is reviewing them by spawning them in.
+
 ## New Dev's Builds huts (0.134.0)
 Aaron's new buildings in the Dev's Builds pack: Smelter level 1, Blacksmith level 1, Sawmill levels 1 and 2,
 Gatherer level 1, and two Forester (Lumberjack) level 1 types, Small and Large (pick with Previous/Next type).
@@ -494,8 +515,9 @@ placed in for every level, also after you change packs. Your choice is saved wit
 - **Dev's Builds** (`blueprints/devsbuilds/`): Aaron's own buildings: Town Hall 1 to 4, Builder's Hut 1
   to 4, Guard Tower 1 to 5, Cook's Hut 1 and 2 (new ones in 0.60.0) and Residence 1 in two types:
   Medium and Small (0.60.0; the older Standard house was removed in 0.60.1), and since 0.134.0 Smelter 1,
-  Blacksmith 1, Sawmill 1 and 2, Gatherer 1 and Forester (Lumberjack) 1 in two types: Small and Large. Other
-  buildings have no blueprint in this pack yet, and the list says so.
+  Blacksmith 1, Sawmill 1 and 2, Gatherer 1 and Forester (Lumberjack) 1 in two types: Small and Large. Since
+  0.161.0 every building type has levels 1 to 5, the rest made from his exports (see "Five levels for every
+  building in Dev's Builds").
 
 Since 0.64.0 a pack never borrows another pack's design: when your pack has no design for a building, the
 wand places just its block (no preview, no build order), so you can build your own building around it. The
