@@ -47,12 +47,10 @@ public static class BlueprintStyles
     /// <summary>The type (variant) Medieval Oak's alternative buildings are under.</summary>
     public const string AltVariant = "alt";
     public const string DevsBuilds = "devsbuilds";
-    /// <summary>Oak &amp; Shale: a full set of 30 building types at levels 1 to 5, designed in the Dev's Builds style.</summary>
-    public const string OakShale = "oakshale";
     /// <summary>The old Testing style (blueprints/&lt;type&gt;/), removed in 0.46.0. Buildings saved with it move to a pack that still exists.</summary>
     public const string OldTesting = "testing";
 
-    public static readonly string[] All = { MedievalOak, DevsBuilds, OakShale };
+    public static readonly string[] All = { MedievalOak, DevsBuilds };
 
     /// <summary>The pack for buildings and players with none (or one that no longer exists).</summary>
     public const string Default = MedievalOak;

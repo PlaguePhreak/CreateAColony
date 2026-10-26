@@ -4,6 +4,3 @@ Releases/
 *.user
 .vs/
 __pycache__/
-tools/blueprints/levels/roofdata.pkl
-tools/blueprints/levels/out_proto/
-tools/blueprints/levels/out_samples/
