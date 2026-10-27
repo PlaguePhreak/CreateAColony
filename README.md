@@ -126,8 +126,8 @@ All three are on the new Mining tab of the Builder's Wand and use placeholder bl
   Warehouse only looks around itself (and inside its building), which was a big source of lag.
 - **Doors**: settlers close a door or gate once they have walked through it (after 8 seconds at most), unless
   someone is standing in the doorway.
-- **Trader claims**: a land claim the world made for a trader (no player owner, "trader" in its name) is
-  lifted when the colony's land reaches it, so the colony can grow over it. `ClearedWorldgenClaims` lists
+- **Trader claims**: a land claim the world made for a trader (no player owner, "trader" in its name) does
+  not shrink the colony's land. Since 0.164.0 it stays until its trader joins. `ClearedWorldgenClaims` lists
   the words to look for.
 - **Placement**: only officers and the owner can move, turn, confirm or take back placed huts.
 - **Lag**: colonies are saved together every 30 seconds (and whenever the world saves) instead of on every
@@ -155,13 +155,14 @@ All three are on the new Mining tab of the Builder's Wand and use placeholder bl
 - Turn it off with `SettlersDecorate: false`.
 
 ## Traders join the colony (0.108.0)
-- **No trader claims.** Every trader's land claim in the world is taken away, near a colony or not, so players can take what they want from trader houses. Turn it off with `RemoveAllTraderClaims: false`.
+- **Trader claims (0.164.0).** Traders keep their land claims, as in the base game. A trader's claim goes only when that trader joins a colony. Trader houses that lost their claim in older versions get it back while their trader is there. (0.108.0 to 0.163.0 took every trader claim away, which broke the game's balance. `RemoveAllTraderClaims: true` still does that.)
+- **The house is emptied (0.164.0).** When a trader joins, everything in its house is destroyed: what is in chests, shelves and racks, things set down on the ground or piled up, clutter, and items lying about. Only the building blocks stay, so trader houses can't be used to skip ahead (no free steel tools).
 - **Finding a trader.** When a grown-up settler comes within 16 blocks of a trader (`TraderFindRange`) and can see it, the trader leaves in a puff of smoke and a new settler takes its place, with the trader's name. Walls don't stop it when the trader is on colony land or within 6 blocks of the settler (0.135.0: before, a trader inside its house was never found). Nobody may be trading with it at the time. An Explorer far away sends them home to the Town Hall.
 - **Skills for the trade.** The new settler gets a job that fits the trader's goods (`assets/createacolony/config/traderjobs.json`): its skill at level 6 to 10 with ++, a second skill at 3 to 4 with +, the job's trait, and never a trait that rules the job out. They start work at once when a hut for that job has room.
   - Agriculture: Farmer, Cook or Gatherer. Survival goods: Guard or Hunter. Building materials: Builder or Quarrier. Commodities: Courier. Artisan: Potter or Blacksmith. Furniture: Sawyer. Treasure hunter: Explorer or Prospector. Clothing: Tailor. Luxuries: Jeweller (0.113.0). Traders from other mods: a random job. (Before 0.113.0 every trader got a random job, because the trade was read wrongly from the trader's code.)
 - **Goods.** Each stack the trader was selling, and its money, has a 25% chance (`TraderGoodsChance`) to go to the warehouse. The rest is lost.
 - **A full colony.** They join anyway, but sit at the Tavern (or the Town Hall) and do nothing. Their window says "waiting at the Tavern for room in the colony". When the population cap goes up they start work. They don't count towards the cap while they wait.
-- **The house comes down.** A builder takes the trader's house down without being asked, after any building work orders. It shows in the Builder's Hut's Work orders tab and the Town Hall as "Hilda's old house", with Cancel. The box is the structure the world placed (or the claim it had). Everything comes down from the top except natural ground, soil, plants, standing trees, snow and colony buildings. **Clutter** (the decorations you need glue to pick up) is destroyed; pick it up yourself with glue first if you want it. Everything else, and what is in chests, goes to the builder's hut. Houses more than 400 blocks from the Town Hall are left (`TraderTeardownMaxDistance`). Turn it off with `TraderHouseTeardown: false`.
+- **The house comes down.** A builder takes the trader's house down without being asked, after any building work orders. It shows in the Builder's Hut's Work orders tab and the Town Hall as "Hilda's old house", with Cancel. The box is the structure the world placed (or the claim it had). Everything comes down from the top except natural ground, soil, plants, standing trees, snow and colony buildings. The blocks go to the builder's hut (the house was already emptied when the trader joined). Houses more than 400 blocks from the Town Hall are left (`TraderTeardownMaxDistance`). Turn it off with `TraderHouseTeardown: false`.
 
 ## Priorities tab (0.109.0)
 - **Builders.** The Builder's Hut's work order tab is now called **Priorities**. Each order has a number, ^ and v to move it, **Do next** to put it at the top, and Cancel. The Town Hall's Work orders list has the same buttons, and both show the same order. Builders always take the highest order nobody else is on; "Do next" makes a builder switch at once. Trader houses are in the same list.

@@ -7,7 +7,7 @@ public class ColonyConfig
 {
     public const string FileName = "createacolony.json";
     /// <summary>Bumped when a default changes in a way old config files should pick up; see ColonyManager.UpgradeConfig.</summary>
-    public const int CurrentConfigVersion = 6;
+    public const int CurrentConfigVersion = 7;
 
     /// <summary>Which defaults this file has been brought up to. Files from before 0.33.0 have none, so read as 0.</summary>
     public int ConfigVersion;
@@ -93,14 +93,17 @@ public class ColonyConfig
     public string[] HutStorageBlocks = System.Array.Empty<string>();
 
     /// <summary>
-    /// World-generated land claims (no player owner) whose name or description contains one of these words are
-    /// taken away when the colony's land reaches them, so a trader's claim does not stop the colony growing.
+    /// World-generated land claims (no player owner) whose name or description contains one of these words count as
+    /// trader claims: they do not shrink the colony's land, and go when their trader joins.
     /// </summary>
     public string[] ClearedWorldgenClaims = { "trader" };
 
     // Traders join the colony (see Colonies/ColonyManager.Traders.cs)
-    /// <summary>Every trader's land claim in the world is taken away, near a colony or not, so players can take what they want from trader houses.</summary>
-    public bool RemoveAllTraderClaims = true;
+    /// <summary>
+    /// Every trader's land claim in the world is taken away, near a colony or not. Off: traders keep their claims
+    /// (given back to houses that lost them) until they join a colony.
+    /// </summary>
+    public bool RemoveAllTraderClaims = false;
     /// <summary>A trader a settler finds joins the colony as a new settler, skilled for its trade.</summary>
     public bool TradersJoin = true;
     /// <summary>How close, in blocks, a settler must come to a trader (and see it) to find it.</summary>

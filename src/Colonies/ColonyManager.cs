@@ -117,6 +117,11 @@ public partial class ColonyManager : ModSystem
             // 0.76.0: mineshafts are limited by levels per hut level, not by sections.
             if (config.MinerSectionsPerHutLevel == 4) config.MinerSectionsPerHutLevel = 0;
         }
+        if (config.ConfigVersion < 7)
+        {
+            // 0.164.0: traders keep their land claims until they join (taking them all away broke the game's balance).
+            config.RemoveAllTraderClaims = false;
+        }
         config.ConfigVersion = ColonyConfig.CurrentConfigVersion;
     }
 
@@ -270,6 +275,7 @@ public partial class ColonyManager : ModSystem
     {
         double now = sapi.World.Calendar.TotalDays;
         LiftAllTraderClaims();
+        RestoreTraderClaims();
         foreach (var colony in colonies.Values)
         {
             if (sapi.World.BlockAccessor.GetChunkAtBlockPos(colony.TownHallPos) == null) continue;

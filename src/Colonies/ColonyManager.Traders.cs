@@ -8,15 +8,17 @@ using Vintagestory.API.Config;
 using Vintagestory.API.MathTools;
 using Vintagestory.API.Server;
 using Vintagestory.GameContent;
+using Vintagestory.ServerMods;
 
 namespace CreateAColony.Colonies;
 
 /// <summary>
-/// Colonies take over traders (Aaron, TRADERS_DRAFT.md). Trader land claims are taken away everywhere. When a
-/// settler comes within TraderFindRange of a trader and can see it (or the trader is on colony land, or very close), the trader leaves the game and a new
+/// Colonies take over traders (Aaron, TRADERS_DRAFT.md). Traders keep their land claims (0.164.0: taking them all
+/// away broke the game's balance) until they join a colony. When a settler comes within TraderFindRange of a trader and can see it (or the trader is on colony land, or very close), the trader leaves the game and a new
 /// settler takes its place, skilled for its trade (config/traderjobs.json). Some of its goods go to the
-/// warehouse. A full colony keeps the newcomer waiting at the Tavern until there is room. A builder then takes
-/// the trader's house down without being asked: clutter is destroyed, everything else goes to the builder's hut.
+/// warehouse. A full colony keeps the newcomer waiting at the Tavern until there is room. Everything in the house
+/// is destroyed and its claim goes, so nothing in it skips progress (steel tools); only the building blocks stay.
+/// A builder then takes the house down without being asked.
 /// </summary>
 public partial class ColonyManager
 {
@@ -41,7 +43,7 @@ public partial class ColonyManager
 
     // ---- Claims ---------------------------------------------------------------------------
 
-    /// <summary>Takes away every trader land claim in the world (RemoveAllTraderClaims), remembering where they were.</summary>
+    /// <summary>Takes away every trader land claim in the world (RemoveAllTraderClaims, off by default), remembering where they were.</summary>
     void LiftAllTraderClaims()
     {
         if (!Config.RemoveAllTraderClaims) return;
@@ -52,6 +54,56 @@ public partial class ColonyManager
             Mod.Logger.Notification("Removed the trader land claim '{0}' ({1})", claim.Description, claim.LastKnownOwnerName);
         }
         if (liftedTraderClaims.Count > 2000) liftedTraderClaims.RemoveRange(0, liftedTraderClaims.Count - 2000);
+    }
+
+    /// <summary>
+    /// Gives a claim back to every loaded trader whose house has none (taken away by RemoveAllTraderClaims before
+    /// 0.164.0), made the way the game makes it. A trader that joined is gone, so its house never gets one back.
+    /// </summary>
+    void RestoreTraderClaims()
+    {
+        if (Config.RemoveAllTraderClaims) return;
+        foreach (var trader in sapi.World.LoadedEntities.Values.Where(IsTrader).ToList())
+        {
+            var pos = trader.Pos.AsBlockPos;
+            if (sapi.World.Claims.Get(pos) is { Length: > 0 }) continue;
+            var house = TraderStructure(pos);
+            if (house?.Location == null || !house.Location.Contains(pos.X, pos.Y, pos.Z)) continue;
+            if (sapi.World.Claims.All.Any(c => c.Intersects(house.Location))) continue;
+            var def = WorldGenStructureOf(house.Code);
+            if (def is { BuildProtected: false }) continue;
+            sapi.World.Claims.Add(new LandClaim
+            {
+                Areas = new List<Cuboidi> { house.Location.Clone() },
+                Description = def?.BuildProtectionDesc ?? "Trader",
+                ProtectionLevel = def?.ProtectionLevel ?? 10,
+                LastKnownOwnerName = def?.BuildProtectionName ?? "Trader",
+                AllowUseEveryone = def?.AllowUseEveryone ?? true,
+                AllowTraverseEveryone = def?.AllowTraverseEveryone ?? true
+            });
+            Mod.Logger.Notification("Gave the trader at {0} its land claim back", pos);
+        }
+    }
+
+    /// <summary>The game's worldgen structure a placed structure came from ("schematic/code"); null when not found.</summary>
+    WorldGenStructure? WorldGenStructureOf(string? placedCode)
+    {
+        if (placedCode == null) return null;
+        string code = placedCode[(placedCode.LastIndexOf('/') + 1)..];
+        var gen = sapi.ModLoader.GetModSystem<GenStructures>();
+        var config = gen == null ? null : HarmonyLib.AccessTools.Field(typeof(GenStructures), "scfg")?.GetValue(gen) as WorldGenStructuresConfig;
+        return config?.Structures?.FirstOrDefault(s => s.Code == code);
+    }
+
+    /// <summary>Takes away the claim of a trader who joined: the one over its house, or where it stood.</summary>
+    void RemoveJoinedTraderClaim(Colony colony, BlockPos at, Cuboidi? house)
+    {
+        foreach (var claim in sapi.World.Claims.All.Where(c => IsClearedClaim(c) && (house != null ? c.Intersects(house) : c.PositionInside(at))).ToList())
+        {
+            sapi.World.Claims.Remove(claim);
+            Mod.Logger.Notification("Removed the land claim '{0}' of a trader who joined colony {1}", claim.Description, colony.Name);
+            LogEvent(colony, "event-trader-claim", claim.LastKnownOwnerName ?? claim.Description ?? "");
+        }
     }
 
     // ---- Finding traders ------------------------------------------------------------------
@@ -128,6 +180,8 @@ public partial class ColonyManager
         var house = TraderHouse(trader.Pos.AsBlockPos);
         JoinEffect(at);
         trader.Die(EnumDespawnReason.Removed);
+        RemoveJoinedTraderClaim(colony, trader.Pos.AsBlockPos, house);
+        int wiped = house == null ? 0 : WipeTraderHouse(colony, house);
 
         // Far from home (an explorer found it), it makes its own way back and turns up at the Town Hall.
         var spot = at.HorizontalSquareDistanceTo(colony.TownHallPos.X, colony.TownHallPos.Z) > TraderJoinAtTownHallFrom * TraderJoinAtTownHallFrom
@@ -148,7 +202,9 @@ public partial class ColonyManager
         LogEvent(colony, "event-trader-joined", record.Name, tradeKey, "@job-" + choice.Job, finder?.Name ?? "");
         TellMembers(colony, full ? "createacolony:trader-joined-waiting" : "createacolony:trader-joined", record.Name, Lang.Get("createacolony:job-" + choice.Job), colony.Name);
         if (stored > 0) LogEvent(colony, "event-trader-goods", record.Name, stored.ToString());
-        Mod.Logger.Notification("Trader {0} ({1}) joined colony {2} as a {3}; {4} items to the warehouse", record.Name, type, colony.Name, choice.Job, stored);
+        if (wiped > 0) LogEvent(colony, "event-trader-house-emptied", record.Name);
+        Mod.Logger.Notification("Trader {0} ({1}) joined colony {2} as a {3}; {4} items to the warehouse, {5} things in the house destroyed",
+            record.Name, type, colony.Name, choice.Job, stored, wiped);
 
         if (house != null) QueueTeardown(colony, record.Name, house);
         MarkDirty(colony);
@@ -316,11 +372,23 @@ public partial class ColonyManager
     /// </summary>
     Cuboidi? TraderHouse(BlockPos pos)
     {
+        if (TraderStructure(pos)?.Location is { } box) return box.Clone();
+        var near = new Cuboidi(pos.X - TraderHouseSearch, pos.Y - TraderHouseSearch, pos.Z - TraderHouseSearch,
+            pos.X + TraderHouseSearch, pos.Y + TraderHouseSearch, pos.Z + TraderHouseSearch);
+        // From its claim, or the one it had (lifted this session when RemoveAllTraderClaims is on).
+        var claim = sapi.World.Claims.All.Where(IsClearedClaim).SelectMany(c => c.Areas).FirstOrDefault(a => a.Intersects(near))
+            ?? liftedTraderClaims.FirstOrDefault(a => a.Intersects(near));
+        return claim?.Clone();
+    }
+
+    /// <summary>The trader structure the world placed near a block (from its map region), the one around it first; null when none.</summary>
+    GeneratedStructure? TraderStructure(BlockPos pos)
+    {
         var ba = sapi.World.BlockAccessor;
         int size = sapi.WorldManager.RegionSize;
         var near = new Cuboidi(pos.X - TraderHouseSearch, pos.Y - TraderHouseSearch, pos.Z - TraderHouseSearch,
             pos.X + TraderHouseSearch, pos.Y + TraderHouseSearch, pos.Z + TraderHouseSearch);
-        Cuboidi? best = null;
+        GeneratedStructure? best = null;
         for (int rx = (pos.X - TraderHouseSearch) / size; rx <= (pos.X + TraderHouseSearch) / size; rx++)
         for (int rz = (pos.Z - TraderHouseSearch) / size; rz <= (pos.Z + TraderHouseSearch) / size; rz++)
         {
@@ -330,14 +398,62 @@ public partial class ColonyManager
             {
                 if (s.Location == null || s.Code?.Contains("trader", StringComparison.OrdinalIgnoreCase) != true) continue;
                 if (!s.Location.Intersects(near)) continue;
-                if (best == null || s.Location.Contains(pos.X, pos.Y, pos.Z)) best = s.Location.Clone();
+                if (best == null || s.Location.Contains(pos.X, pos.Y, pos.Z)) best = s;
             }
         }
-        if (best != null) return best;
-        // From the claim it had, here or in an older session (the claim may still be there if lifting is off).
-        var claim = liftedTraderClaims.FirstOrDefault(a => a.Intersects(near))
-            ?? sapi.World.Claims.All.Where(IsClearedClaim).SelectMany(c => c.Areas).FirstOrDefault(a => a.Intersects(near));
-        return claim?.Clone();
+        return best;
+    }
+
+    /// <summary>
+    /// Destroys everything in a joined trader's house that is not building: what is in chests, shelves and racks,
+    /// things set down on the ground or piled, clutter, and items lying about. The blocks of the house stay.
+    /// Only loaded land is touched (the trader was just found there). Returns how many things went.
+    /// </summary>
+    int WipeTraderHouse(Colony colony, Cuboidi box)
+    {
+        var ba = sapi.World.BlockAccessor;
+        int wiped = 0;
+        var pos = new BlockPos(0, 0, 0);
+        for (int y = Math.Max(1, box.Y1); y <= box.Y2; y++)
+        for (int x = box.X1; x <= box.X2; x++)
+        for (int z = box.Z1; z <= box.Z2; z++)
+        {
+            pos.Set(x, y, z);
+            if (ba.GetChunkAtBlockPos(pos) == null) continue;
+            var block = ba.GetBlock(pos);
+            if (block.Id == 0 || block.Code?.Domain == CreateAColonyModSystem.ModId) continue;
+            if (!CanWorkAt(colony, pos) || GetBuilding(colony, pos) != null || ZoneAt(colony, pos) != null) continue;
+            var be = ba.GetBlockEntity(pos);
+            // Things set down on the ground or piled up are only items: the whole block goes.
+            if (IsClutter(block) || be is BlockEntityGroundStorage or BlockEntityItemPile)
+            {
+                ba.SetBlock(0, pos);
+                ba.TriggerNeighbourBlockUpdate(pos);
+                wiped++;
+                continue;
+            }
+            if (be is BlockEntityContainer container)
+            {
+                bool any = false;
+                foreach (var slot in container.Inventory.Where(s => !s.Empty))
+                {
+                    slot.Itemstack = null;
+                    slot.MarkDirty();
+                    any = true;
+                    wiped++;
+                }
+                if (any) container.MarkDirty(true);
+            }
+        }
+        var center = new Vec3d((box.X1 + box.X2) / 2.0, (box.Y1 + box.Y2) / 2.0, (box.Z1 + box.Z2) / 2.0);
+        float reach = Math.Max(box.SizeX, Math.Max(box.SizeY, box.SizeZ)) / 2f + 1;
+        foreach (var item in sapi.World.GetEntitiesAround(center, reach, reach, e => e is EntityItem))
+        {
+            if (!box.ContainsOrTouches(item.Pos.AsBlockPos)) continue;
+            item.Die(EnumDespawnReason.Removed);
+            wiped++;
+        }
+        return wiped;
     }
 
     /// <summary>Asks a builder to take the house down, unless it is too far from the Town Hall.</summary>
