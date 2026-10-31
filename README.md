@@ -5,6 +5,13 @@ MineColonies to Vintage Story: found a colony with a Town Hall, recruit settlers
 settlers build, staff and level up: builders, farmers, foresters, miners, cooks, couriers, guards, crafters
 and more. See [ROADMAP.md](ROADMAP.md) for what is done and what is planned.
 
+## The name and the internal id
+The mod is called **Vintage Colonies** (it used to be called Create a Colony). Only the name changed.
+The internal mod id stays `createacolony`, and so do the code namespace (`CreateAColony`), the asset
+domain (`assets/createacolony/`, block and item codes like `createacolony:townhall`), the config files
+(`ModConfig/createacolony.json`), the release zips (`createacolony_<version>.zip`) and all save data keys.
+Changing any of those would stop old worlds from loading their colonies, so leave them as they are.
+
 ## Build
 1. Install the .NET 10 SDK and set `VINTAGE_STORY` to your game folder.
 2. Run `dotnet build CreateAColony.csproj -c Release`.
@@ -1292,7 +1299,7 @@ permission logs, auto hiring and housing, and enter/leave messages.
 
 The Town Hall's **Banners** tab works with the [Heraldry](https://mods.vintagestory.at/heraldry) and
 [Heraldry: Banners](https://mods.vintagestory.at/heraldrybanners) mods (both need Attribute Rendering Library).
-Create a Colony does not need them; without them the tab says they are missing.
+Vintage Colonies does not need them; without them the tab says they are missing.
 
 - Design a banner at the Heraldry Workbench, hold it, and press **Use banner in hand**. The Town Hall
   remembers the design and you keep the banner.
