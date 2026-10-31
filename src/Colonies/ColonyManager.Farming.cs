@@ -10,7 +10,8 @@ using ItemMatch = System.Func<Vintagestory.API.Common.ItemStack, bool>;
 namespace CreateAColony.Colonies;
 
 /// <summary>What a farmer has to do, most urgent first.</summary>
-public enum FieldWork { None, Harvest, Pick, Weed, Water, Sow, Till, Refill }
+/// <summary>Upgrade: lay better soil on bare ground (ColonyManager.SoilUpgrade.cs). Chase: go after an animal eating the crops (ColonyManager.CropPests.cs).</summary>
+public enum FieldWork { None, Harvest, Pick, Weed, Water, Upgrade, Sow, Till, Refill, Chase }
 
 /// <summary>
 /// The farmer's trade. A Field marker marks out a square of ground around it; on that ground the farmer
@@ -187,12 +188,13 @@ public partial class ColonyManager
     /// Sows a seed from the worker's inventory on farmland. A field with a chosen crop gets that crop;
     /// otherwise the farmer picks the seed whose crop needs the nutrient the soil has most of, so a field
     /// that a crop wore down gets a different crop next. Poor soil gets fertilizer first if the worker has some.
+    /// Only a crop that lives until ripe in the weather ahead is sown, and nothing in winter (ColonyManager.Seasons.cs).
     /// </summary>
     public bool Sow(Colony colony, CitizenRecord worker, EntityAgent entity, BlockPos ground, FieldRecord field, string? lastCrop)
     {
         if (sapi.World.BlockAccessor.GetBlockEntity(ground) is not BlockEntityFarmland farmland || !farmland.CanPlant()) return false;
 
-        var allowed = SeedMatcher(field);
+        var allowed = SowableNow(ground, SeedMatcher(field));
         var best = PackItems(worker).Where(allowed)
             .OrderByDescending(s => CropFor(s) is { } c ? farmland.Nutrients[(int)c.CropProps.RequiredNutrient] : -1)
             .ThenByDescending(s => VariantOf(s.Collectible, "type") == lastCrop)
@@ -224,18 +226,20 @@ public partial class ColonyManager
         return true;
     }
 
-    /// <summary>Harvests the ripe (or dead) crop on the farmland. Returns the crop's type, so the same can be sown again.</summary>
+    /// <summary>Harvests the ripe (or dead) crop on the farmland. Returns the crop's type, so the same can be sown again (a dead crop's too).</summary>
     public string? Harvest(Colony colony, Building hut, CitizenRecord worker, BlockPos ground)
     {
         var ba = sapi.World.BlockAccessor;
         var cropPos = ground.UpCopy();
         var crop = ba.GetBlock(cropPos);
         if (crop.Id == 0) return null;
+        // A dead crop keeps the crop it was, so a farmer can sow the same again where it still fits.
+        var was = crop is BlockCrop ? crop : (ba.GetBlockEntity(cropPos) as BlockEntityDeadCrop)?.Inventory[0].Itemstack?.Block as BlockCrop;
         StoreHarvest(colony, hut, worker, DropsOf(crop, cropPos), cropPos);
         AddStat(hut, "crops-harvested");
         BreakQuietly(cropPos);
         if (crop.Sounds?.Break != null) sapi.World.PlaySoundAt(crop.Sounds.Break, cropPos, 0);
-        return crop is BlockCrop ? VariantOf(crop, "type") : null;
+        return was != null ? VariantOf(was, "type") : null;
     }
 
     /// <summary>The seeds that may be sown on a field.</summary>
@@ -246,14 +250,19 @@ public partial class ColonyManager
         return s => only(s) && IsSowable(s);
     }
 
-    /// <summary>Asks couriers to bring seeds for a field to the farmer's hut, once at a time.</summary>
-    public bool EnsureSeedRequest(Colony colony, Building hut, FieldRecord field)
+    /// <summary>
+    /// Asks couriers to bring seeds for a field to the farmer's hut, once at a time: seeds that may be sown there now
+    /// when the warehouse has some, otherwise the field's crop or any seeds.
+    /// </summary>
+    public bool EnsureSeedRequest(Colony colony, Building hut, FieldRecord field, BlockPos? ground = null)
     {
         var chest = HutStorage(colony, hut).FirstOrDefault();
         if (chest == null) return false;
-        string code = field.Seed.Length > 0 ? field.Seed : AnySeed;
         string tag = RequestTag(hut);
-        if (!colony.Requests.Any(r => r.RequestedBy == tag && r.ItemCode == code)) AddRequest(colony, code, SeedRequestSize, chest.Pos, tag);
+        if (colony.Requests.Any(r => r.RequestedBy == tag && (r.ItemCode == AnySeed || r.ItemCode.Contains(":seeds-") || r.ItemCode == field.Seed))) return true;
+        string code = (ground != null ? CodeInWarehouse(colony, SowableNow(ground, SeedMatcher(field))) : null)
+            ?? (field.Seed.Length > 0 ? field.Seed : AnySeed);
+        AddRequest(colony, code, SeedRequestSize, chest.Pos, tag);
         return true;
     }
 }

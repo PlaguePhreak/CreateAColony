@@ -95,8 +95,9 @@ public class GuiDialogPlacement : GuiDialog
             y += 4;
         }
 
-        // Flip through the building's levels to see each one where it would stand.
-        if (snapshot.MaxLevel > 1)
+        // Flip through the building's levels to see each one where it would stand. A building with types keeps
+        // the buttons even when this type has one level, so they do not seem to be swapped for the type buttons.
+        if (snapshot.MaxLevel > 1 || snapshot.Variants.Count > 1)
         {
             AddPair(composer, "level-down", ColonyAction.PlacementLevel, "-1", "level-up", ColonyAction.PlacementLevel, "1", y);
             y += 34;

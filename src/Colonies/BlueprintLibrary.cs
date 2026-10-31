@@ -47,6 +47,11 @@ public class Blueprint
     /// the Miner's Hut's shaft or the Quarry's pit goes.
     /// </summary>
     public Dictionary<string, (int Dx, int Dy, int Dz)> Waypoints = new();
+    /// <summary>
+    /// The lowest solid block of each column the building stands on (at or below the hut block's level), as offsets:
+    /// builders fill any gap under these down to the ground (ColonyManager.Foundations.cs).
+    /// </summary>
+    public List<(int Dx, int Dy, int Dz)> Footing = new();
 }
 
 /// <summary>
@@ -67,6 +72,13 @@ public class MinePiece
     public int Period;
     /// <summary>Where the piece's waypoint blocks were (offsets, as for Steps): the ground there is left alone, and nothing is filled in on or above them.</summary>
     public HashSet<(int X, int Y, int Z)> Markers = new();
+    /// <summary>
+    /// The entrance: the middle of the shaft down through its ground layer, as an offset; the level pieces hang
+    /// under it. A level piece: always 0, as it lines up by the middle of the hole in its top layer.
+    /// </summary>
+    public (int X, int Z) Shaft;
+    /// <summary>The entrance: where a Mineshaft Entrance's hut block sits in it (its createacolony:hut-mineshaftentrance block), as an offset; null when it has none.</summary>
+    public (int X, int Y, int Z)? HutSpot;
 
     readonly Dictionary<int, MinePiece> deeper = new();
 
@@ -93,7 +105,7 @@ public class MinePiece
         }
         // Digging first; the miner sorts the rest as it works (ColonyManager.ScanMineshaft).
         var steps = cells.Values.OrderBy(s => s.BlockId == 0 ? 0 : 1).ToList();
-        piece = new MinePiece { Name = Name, Steps = steps, Open = open, Min = (Min.X, Min.Y - repeats * Period, Min.Z), Max = Max, Period = Period, Markers = markers };
+        piece = new MinePiece { Name = Name, Steps = steps, Open = open, Min = (Min.X, Min.Y - repeats * Period, Min.Z), Max = Max, Period = Period, Markers = markers, Shaft = Shaft, HutSpot = HutSpot };
         deeper[repeats] = piece;
         return piece;
     }
@@ -135,6 +147,8 @@ public class BlueprintLibrary
         variant = VariantFor(style, type, variant);
         if (maxLevels.TryGetValue((style, type, variant), out int known)) return known;
         int max = 0;
+        if (type == BuildingTypes.MineshaftEntrance) max = EntranceStyle(style) != null ? 1 : 0;
+        else
         for (int level = 1; level <= MaxLevels; level++)
         {
             if (FindJson(style, type, variant, level) != null) max = level;
@@ -166,6 +180,12 @@ public class BlueprintLibrary
             if (rest.Length == 2) names.Add(rest[0]);
         }
         var list = new List<string>();
+        if (type == BuildingTypes.MineshaftEntrance)
+        {
+            if (EntranceStyle(style) != null) list.Add("");
+            variants[(style, type)] = list;
+            return list;
+        }
         if (FindJson(style, type, "", 1) != null) list.Add("");
         list.AddRange(names.Where(n => IsVariantName(n) && FindJson(style, type, n, 1) != null));
         variants[(style, type)] = list;
@@ -191,7 +211,7 @@ public class BlueprintLibrary
         variants.Clear();
     }
 
-    public int MaxLevel(Building building) => MaxLevel(StyleFor(building), building.Type, building.Variant);
+    public int MaxLevel(Building building) => building.IsStation ? 0 : MaxLevel(StyleFor(building), building.Type, building.Variant);
 
     /// <summary>
     /// The style a building's blueprints come from: always its own asset pack. When that pack has no design for
@@ -217,7 +237,8 @@ public class BlueprintLibrary
     }
 
     /// <summary>The building's blueprint for a level, in its own style, variant and turn.</summary>
-    public Blueprint? Get(Building building, int level) => Get(StyleFor(building), building.Type, level, building.Rotation, building.Variant);
+    /// <summary>A work station never has one: it is only its block.</summary>
+    public Blueprint? Get(Building building, int level) => building.IsStation ? null : Get(StyleFor(building), building.Type, level, building.Rotation, building.Variant);
 
     string? FindJson(string style, string type, string variant, int level)
     {
@@ -231,6 +252,7 @@ public class BlueprintLibrary
 
     Blueprint? Load(string style, string type, string variant, int level, int rotation)
     {
+        if (type == BuildingTypes.MineshaftEntrance) return EntranceBlueprint(style, level, rotation);
         string? json = FindJson(style, type, variant, level);
         if (variant != "") style += "/" + variant;
         if (json == null) return null;
@@ -277,17 +299,24 @@ public class BlueprintLibrary
 
         int? front = rotation == 0 ? EntranceSide(schematic, blocks) : null;
 
-        // The lowest and highest block of each column, to tell a cellar (empty space under a floor, with saved
-        // ground below it) from the ground underneath or a yard that was lower than the floor.
+        // The lowest and highest block of each column, and the lowest built one (not natural ground). Empty space
+        // below the hut's floor is dug out when it is a cellar (blocks under and over it), or when part of the
+        // building is under it: a sunken room, stairs or a path, which the ground on top would bury (Aaron's
+        // build kept its grass there before 0.102.0). Over saved ground alone (a yard lower than the floor) the
+        // ground is left alone, so no moat is dug round the house.
         var lowest = new Dictionary<(int, int), int>();
         var highest = new Dictionary<(int, int), int>();
-        foreach (var ((x, y, z), _) in blocks)
+        var lowestBuilt = new Dictionary<(int, int), int>();
+        foreach (var ((x, y, z), b) in blocks)
         {
             if (!lowest.TryGetValue((x, z), out int low) || y < low) lowest[(x, z)] = y;
             if (!highest.TryGetValue((x, z), out int high) || y > high) highest[(x, z)] = y;
+            if (b.Id != 0 && !IsNaturalGround(b) && !IsWaypoint(b) && b.BlockMaterial != EnumBlockMaterial.Plant
+                && (!lowestBuilt.TryGetValue((x, z), out int built) || y < built)) lowestBuilt[(x, z)] = y;
         }
         bool InCellar(int x, int y, int z) =>
-            lowest.TryGetValue((x, z), out int low) && low < y && highest.TryGetValue((x, z), out int high) && high > y;
+            (lowest.TryGetValue((x, z), out int low) && low < y && highest.TryGetValue((x, z), out int high) && high > y)
+            || (lowestBuilt.TryGetValue((x, z), out int built) && built < y);
 
         // Where the hut block sits inside the blueprint.
         string hutCode = HutBlockCode(type);
@@ -327,7 +356,8 @@ public class BlueprintLibrary
                 }
                 if (dugOut.Contains((dx - ax, dy - ay, dz - az))) continue;
                 // The top half of a door (or another part of a big block) comes with the door itself; until then the spot is cleared.
-                if (block is BlockMultiblock || IsFurniturePart(block, saved.GetValueOrDefault((dx, dy, dz))))
+                if (block is BlockMultiblock || IsFurniturePart(block, saved.GetValueOrDefault((dx, dy, dz)))
+                    || IsShapelessChisel(block, saved.GetValueOrDefault((dx, dy, dz))))
                 {
                     clear.Add(new BuildStep(dx - ax, dy - ay, dz - az, 0));
                     continue;
@@ -340,26 +370,73 @@ public class BlueprintLibrary
             else if (dugOut.Contains((dx - ax, dy - ay, dz - az))) continue;
             else if (dy >= ay || InCellar(dx, dy, dz))
             {
-                // Empty space at or above the hut's floor is cleared. Below it, only with blueprint blocks both
-                // under and over it (a cellar dug into the ground it was saved with); elsewhere the ground is left alone.
+                // Empty space at or above the hut's floor is cleared. Below it, only in a cellar or over a sunken
+                // part of the building; elsewhere the ground is left alone.
                 clear.Add(new BuildStep(dx - ax, dy - ay, dz - az, 0));
             }
         }
 
+        // What the building stands on: the lowest solid block of each column, where it is at or below the hut block,
+        // except over a mine shaft or a quarry pit.
+        var openColumns = dugOut.Select(d => (d.Item1, d.Item3)).Concat(waypoints.Values.Select(w => (w.Dx, w.Dz))).ToHashSet();
+        var footing = solid
+            .Where(s => !openColumns.Contains((s.Dx, s.Dz)))
+            .GroupBy(s => (s.Dx, s.Dz))
+            .Select(g => g.OrderBy(s => s.Dy).First())
+            .Where(s => s.Dy <= 0)
+            .Select(s => (s.Dx, s.Dy, s.Dz))
+            .ToList();
+
         // Clear from the top down so nothing is left floating, then walls bottom-up, then torches, doors and the like.
         clear.Reverse();
-        return new Blueprint { Type = type, Level = level, Steps = clear.Concat(solid).Concat(decor).ToList(), Front = front, Waypoints = waypoints };
+        return new Blueprint { Type = type, Level = level, Steps = clear.Concat(solid).Concat(decor).ToList(), Front = front, Waypoints = waypoints, Footing = footing };
     }
 
     // ---- Mineshaft pieces ------------------------------------------------------------------
 
     /// <summary>The pieces a Miner's Hut's mineshaft is made of: the way in, and the sections it grows from there.</summary>
     public const string MineEntrance = "entrance";
-    public static readonly string[] MineSections = { "cross", "tee", "straight" };
+    /// <summary>
+    /// One level of the mine under the entrance (Aaron, 0.87.0): the same middle on every level, stacked under
+    /// the entrance's shaft, with sections branching off its tunnel starts. Optional: without it the mine grows
+    /// from the entrance alone, as before.
+    /// </summary>
+    public const string MineLevel = "level";
+    public static readonly string[] MineSections = { "cross", "tee", "straight", "corner" };
 
     readonly Dictionary<(string, string, int), MinePiece?> mineCache = new();
 
     /// <summary>A mineshaft piece (blueprints/&lt;style&gt;/mineshaft/&lt;name&gt;.json) turned by rotation degrees, or null when there is none.</summary>
+    /// <summary>The pack a Mineshaft Entrance's mine pieces come from: its own, or the first with an entrance (as ColonyManager.MineshaftStyle).</summary>
+    public string? EntranceStyle(string style) =>
+        BlueprintStyles.All.Prepend(BlueprintStyles.Normalize(style)).FirstOrDefault(s => GetMinePiece(s, MineEntrance, 0) != null);
+
+    /// <summary>
+    /// A Mineshaft Entrance's building (Aaron, 0.95.0): its pack's mineshaft entrance piece, with the hut block on
+    /// the ground just outside it, on the side the player placed it from. It shows as the placement preview; the
+    /// linked Miner's Huts' miners dig and build it, never a builder.
+    /// </summary>
+    Blueprint? EntranceBlueprint(string style, int level, int rotation)
+    {
+        if (level != 1 || EntranceStyle(style) is not { } from || GetMinePiece(from, MineEntrance, rotation) is not { } piece) return null;
+        var (ex, ey, ez) = EntranceBlockSpot(piece, rotation);
+        var steps = piece.Steps.Where(s => (s.Dx, s.Dy, s.Dz) != (ex, ey, ez)).Select(s => s with { Dx = s.Dx - ex, Dy = s.Dy - ey, Dz = s.Dz - ez }).ToList();
+        return new Blueprint { Type = BuildingTypes.MineshaftEntrance, Level = 1, Steps = steps };
+    }
+
+    /// <summary>
+    /// Where the Mineshaft Entrance's hut block sits, in the entrance piece's offsets: where the piece has its hut
+    /// block, else on the ground just outside the middle of its side towards the player.
+    /// </summary>
+    public static (int X, int Y, int Z) EntranceBlockSpot(MinePiece piece, int rotation)
+    {
+        if (piece.HutSpot is { } spot) return spot;
+        var towards = BlockFacing.HORIZONTALS_ANGLEORDER[GameMath.Mod(rotation / 90, 4)].Normali;
+        int midX = (piece.Min.X + piece.Max.X) / 2, midZ = (piece.Min.Z + piece.Max.Z) / 2;
+        if (towards.X != 0) return (towards.X > 0 ? piece.Max.X + 1 : piece.Min.X - 1, 1, midZ);
+        return (midX, 1, towards.Z > 0 ? piece.Max.Z + 1 : piece.Min.Z - 1);
+    }
+
     public MinePiece? GetMinePiece(string style, string name, int rotation)
     {
         style = BlueprintStyles.Normalize(style);
@@ -416,42 +493,64 @@ public class BlueprintLibrary
 
         int sx = schematic.SizeX, sy = schematic.SizeY, sz = schematic.SizeZ;
         bool entrance = name == MineEntrance;
+        bool level = name == MineLevel;
         bool Empty(int x, int y, int z) => !blocks.TryGetValue((x, y, z), out var b) || b.Id == 0;
 
-        // The entrance's ground layer: the highest layer whose edge is mostly natural ground. It goes at the
-        // height of the ground beside the hut, and it and everything below it repeat downwards to go deeper.
+        // The entrance's ground layer: the highest layer whose edge is mostly filled in, by natural ground or by
+        // a deck built over it (a fence round the top stands above it). It goes at the height of the ground
+        // beside the hut; with MinerEntranceRepeatsPerHutLevel, it and everything below it repeat to go deeper.
         int ground = sy - 1;
         if (entrance)
         {
             for (int y = sy - 1; y >= 0; y--)
             {
-                int edge = 0, natural = 0;
+                int edge = 0, filled = 0;
                 for (int x = 0; x < sx; x++)
                 for (int z = 0; z < sz; z++)
                 {
                     if (x != 0 && z != 0 && x != sx - 1 && z != sz - 1) continue;
                     edge++;
-                    if (blocks.TryGetValue((x, y, z), out var b) && IsNaturalGround(b)) natural++;
+                    if (blocks.TryGetValue((x, y, z), out var b) && b.Id != 0 && !IsWaypoint(b)) filled++;
                 }
-                if (natural * 2 < edge) continue;
+                if (filled * 2 < edge) continue;
                 ground = y;
                 break;
             }
         }
         var anchor = entrance ? (sx / 2, ground, sz / 2) : (sx / 2, 0, sz / 2);
+        // The entrance's shaft: the opening in its ground layer nearest its middle. A level piece lines up by
+        // the opening in its top layer nearest its middle, which goes right under it.
+        (int X, int Z)? hole = entrance ? MiddleOpening(Empty, sx, sz, ground) : level ? MiddleOpening(Empty, sx, sz, sy - 1) : null;
+        if (level && hole is { } topHole) anchor = (topHole.X, sy - 1, topHole.Z);
         var (ax, ay, az) = anchor;
 
         var digs = new List<BuildStep>();
         var solid = new List<BuildStep>();
         var decor = new List<BuildStep>();
         var markers = new HashSet<(int X, int Y, int Z)>();
+        (int X, int Y, int Z)? hutSpot = null;
         for (int dy = sy - 1; dy >= 0; dy--)
         for (int dx = 0; dx < sx; dx++)
         for (int dz = 0; dz < sz; dz++)
         {
             blocks.TryGetValue((dx, dy, dz), out var block);
+            // Where the Mineshaft Entrance's hut block goes (Aaron's surface example, 0.95.0): the spot is dug out
+            // like air for a Miner's Hut's own mine; a Mineshaft Entrance stands there itself.
+            if (block?.Code?.Path == "hut-" + BuildingTypes.MineshaftEntrance)
+            {
+                hutSpot = (dx - ax, dy - ay, dz - az);
+                digs.Add(new BuildStep(dx - ax, dy - ay, dz - az, 0));
+                continue;
+            }
             // A waypoint sits in the floor where the tunnels start: the miner lays the floor's planks there (the
             // block beside it in the floor), never fill.
+            // In a section, waypoints standing above the floor fill a doorway (Aaron's corner marks its far end so):
+            // they are dug out like the air around them.
+            if (block != null && IsWaypoint(block) && !entrance && !level && dy > 0)
+            {
+                digs.Add(new BuildStep(dx - ax, dy - ay, dz - az, 0));
+                continue;
+            }
             if (block != null && IsWaypoint(block))
             {
                 markers.Add((dx - ax, dy - ay, dz - az));
@@ -459,7 +558,8 @@ public class BlueprintLibrary
                 continue;
             }
             if (block != null && (IsMetaBlock(block) || IsNaturalGround(block))) continue;
-            if (block == null || block.Id == 0 || block is BlockMultiblock || IsFurniturePart(block, saved.GetValueOrDefault((dx, dy, dz))))
+            if (block == null || block.Id == 0 || block is BlockMultiblock || IsFurniturePart(block, saved.GetValueOrDefault((dx, dy, dz)))
+                || IsShapelessChisel(block, saved.GetValueOrDefault((dx, dy, dz))))
             {
                 digs.Add(new BuildStep(dx - ax, dy - ay, dz - az, 0));
                 continue;
@@ -469,8 +569,22 @@ public class BlueprintLibrary
             else decor.Add(step);
         }
 
+        // A level piece opens the floor of the level above where its top layer is open (the shaft) and carries its
+        // ladders up through it, so the levels join.
+        if (level)
+        {
+            for (int dx = 0; dx < sx; dx++)
+            for (int dz = 0; dz < sz; dz++)
+            {
+                blocks.TryGetValue((dx, sy - 1, dz), out var top);
+                if (top == null || top.Id == 0) digs.Add(new BuildStep(dx - ax, sy - ay, dz - az, 0));
+                else if (top.Climbable) decor.Add(new BuildStep(dx - ax, sy - ay, dz - az, top.Id));
+            }
+        }
+
         // The open sides of a section, in its bottom four layers: the middle of the widest gap along each edge,
-        // on its floor (the bottom layer), so pieces line up by their ways through whatever their size.
+        // on its floor (the bottom layer), so pieces line up by their ways through whatever their size. Waypoints
+        // count as gaps: they mark where the next section joins.
         (int From, int To)? Gap(BlockFacing face)
         {
             int length = face.Axis == EnumAxis.X ? sz : sx;
@@ -482,7 +596,7 @@ public class BlueprintLibrary
                 {
                     int x = face == BlockFacing.EAST ? sx - 1 : face == BlockFacing.WEST ? 0 : i;
                     int z = face == BlockFacing.SOUTH ? sz - 1 : face == BlockFacing.NORTH ? 0 : i;
-                    bool empty = i < length && Empty(x, y, z);
+                    bool empty = i < length && (Empty(x, y, z) || blocks.TryGetValue((x, y, z), out var w) && IsWaypoint(w));
                     if (empty && start < 0) start = i;
                     if (empty || start < 0) continue;
                     if (best is not { } b || i - 1 - start > b.To - b.From) best = (start, i - 1);
@@ -502,7 +616,8 @@ public class BlueprintLibrary
         if (entrance)
         {
             // Where tunnels start off the entrance's stairs: a row of two or more Mine waypoints along an edge, at
-            // or under the ground layer, in place of the landing's floor. The tunnel's floor goes level with them.
+            // or under the ground layer. The tunnel's floor goes level with the landing: the waypoints' own layer
+            // when they stand in place of its floor, the layer above when they sit under a built floor.
             foreach (var face in BlockFacing.HORIZONTALS)
             {
                 int length = face.Axis == EnumAxis.X ? sz : sx;
@@ -516,11 +631,59 @@ public class BlueprintLibrary
                         bool mark = i < length && blocks.TryGetValue((x, y, z), out var b) && IsWaypoint(b);
                         if (mark && start < 0) start = i;
                         if (mark || start < 0) continue;
-                        if (i - start >= 2) AddOpen(face, (start, i - 1), y);
+                        if (i - start >= 2)
+                        {
+                            bool underFloor = Enumerable.Range(start, i - start).All(j =>
+                            {
+                                var (fx, fz) = (face == BlockFacing.EAST ? sx - 1 : face == BlockFacing.WEST ? 0 : j, face == BlockFacing.SOUTH ? sz - 1 : face == BlockFacing.NORTH ? 0 : j);
+                                return blocks.TryGetValue((fx, y + 1, fz), out var above) && above.Id != 0 && !IsNaturalGround(above) && !IsWaypoint(above);
+                            });
+                            AddOpen(face, (start, i - 1), underFloor ? y + 1 : y);
+                        }
                         start = -1;
                     }
                 }
             }
+        }
+        if (entrance || level)
+        {
+            // Tunnels also start off the rooms inside (Aaron's 0.87.0 entrance and levels): each patch of Mine
+            // waypoints in a floor below the ground layer, away from the edges, is a doorway out, facing away from
+            // the middle. The tunnel starts just past its outer edge, level with it.
+            int mx = hole?.X ?? ax, mz = hole?.Z ?? az;
+            var seen = new HashSet<(int, int, int)>();
+            for (int y = 0; y < (entrance ? ground : sy); y++)
+            for (int x = 1; x < sx - 1; x++)
+            for (int z = 1; z < sz - 1; z++)
+            {
+                if (seen.Contains((x, y, z)) || !blocks.TryGetValue((x, y, z), out var b) || !IsWaypoint(b)) continue;
+                var patch = new List<(int X, int Z)>();
+                var todo = new Stack<(int X, int Z)>();
+                todo.Push((x, z));
+                seen.Add((x, y, z));
+                while (todo.Count > 0)
+                {
+                    var (px, pz) = todo.Pop();
+                    patch.Add((px, pz));
+                    foreach (var (nx, nz) in new[] { (px + 1, pz), (px - 1, pz), (px, pz + 1), (px, pz - 1) })
+                    {
+                        if (seen.Contains((nx, y, nz)) || !blocks.TryGetValue((nx, y, nz), out var n) || !IsWaypoint(n)) continue;
+                        seen.Add((nx, y, nz));
+                        todo.Push((nx, nz));
+                    }
+                }
+                if (patch.Count < 2 || patch.Any(p => p.X == 0 || p.Z == 0 || p.X == sx - 1 || p.Z == sz - 1)) continue;
+                int x1 = patch.Min(p => p.X), x2 = patch.Max(p => p.X), z1 = patch.Min(p => p.Z), z2 = patch.Max(p => p.Z);
+                double cx = (x1 + x2) / 2.0 - mx, cz = (z1 + z2) / 2.0 - mz;
+                var face = Math.Abs(cx) >= Math.Abs(cz) ? (cx < 0 ? BlockFacing.WEST : BlockFacing.EAST) : (cz < 0 ? BlockFacing.NORTH : BlockFacing.SOUTH);
+                int ox = face == BlockFacing.WEST ? x1 : face == BlockFacing.EAST ? x2 : (x1 + x2) / 2;
+                int oz = face == BlockFacing.NORTH ? z1 : face == BlockFacing.SOUTH ? z2 : (z1 + z2) / 2;
+                bool underFloor = patch.All(p => blocks.TryGetValue((p.X, y + 1, p.Z), out var above) && above.Id != 0 && !IsNaturalGround(above) && !IsWaypoint(above));
+                open.Add((face, ox - ax, (underFloor ? y + 1 : y) - ay, oz - az));
+            }
+        }
+        if (entrance)
+        {
             // Without waypoints: one tunnel off the widest gap at its bottom.
             if (open.Count == 0)
             {
@@ -529,19 +692,49 @@ public class BlueprintLibrary
                 if (widest.Face != null) AddOpen(widest.Face, widest.Gap!.Value, 0);
             }
         }
-        else
+        else if (!level)
         {
             foreach (var face in BlockFacing.HORIZONTALS)
             {
                 if (Gap(face) is { } gap) AddOpen(face, gap, 0);
             }
         }
+        // A level piece repeats every Period layers: its top layer sits just under the floor of the level above.
+        int period = entrance ? ground : level && open.Count > 0 ? -open.Max(o => o.Item3) + 1 : 0;
         return new MinePiece
         {
             Name = name, Steps = digs.Concat(solid).Concat(decor).ToList(), Open = open,
-            Min = (-ax, -ay, -az), Max = (sx - 1 - ax, sy - 1 - ay, sz - 1 - az),
-            Period = entrance ? ground : 0, Markers = markers
+            Min = (-ax, -ay, -az), Max = (sx - 1 - ax, (level ? sy : sy - 1) - ay, sz - 1 - az),
+            Period = period, Markers = markers, HutSpot = entrance ? hutSpot : null,
+            Shaft = entrance && hole is { } shaft ? (shaft.X - ax, shaft.Z - az) : (0, 0)
         };
+    }
+
+    /// <summary>The middle of the opening in a layer nearest the layer's middle (one connected patch of empty spots), or null when the layer has none.</summary>
+    static (int X, int Z)? MiddleOpening(System.Func<int, int, int, bool> empty, int sx, int sz, int y)
+    {
+        (int X, int Z)? start = null;
+        int best = int.MaxValue;
+        for (int x = 0; x < sx; x++)
+        for (int z = 0; z < sz; z++)
+        {
+            int d = (x - sx / 2) * (x - sx / 2) + (z - sz / 2) * (z - sz / 2);
+            if (d < best && empty(x, y, z)) (start, best) = ((x, z), d);
+        }
+        if (start is not { } first) return null;
+        var patch = new HashSet<(int X, int Z)> { first };
+        var todo = new Stack<(int X, int Z)>(patch);
+        while (todo.Count > 0)
+        {
+            var (px, pz) = todo.Pop();
+            foreach (var n in new[] { (px + 1, pz), (px - 1, pz), (px, pz + 1), (px, pz - 1) })
+            {
+                if (n.Item1 < 0 || n.Item2 < 0 || n.Item1 >= sx || n.Item2 >= sz || patch.Contains(n) || !empty(n.Item1, y, n.Item2)) continue;
+                patch.Add(n);
+                todo.Push(n);
+            }
+        }
+        return ((patch.Min(p => p.X) + patch.Max(p => p.X)) / 2, (patch.Min(p => p.Z) + patch.Max(p => p.Z)) / 2);
     }
 
     /// <summary>
@@ -639,11 +832,12 @@ public class BlueprintLibrary
     }
 
     /// <summary>
-    /// Doors always keep theirs (which way they face), support beams theirs (where each beam runs); blocks placed from their item keep theirs to know which
-    /// item (its wood and colours, a pole's banner); other blocks when the config lists them.
+    /// Doors always keep theirs (which way they face), support beams theirs (where each beam runs), chiseled blocks theirs (shape and
+    /// materials); blocks placed from their item keep theirs to know which item (its wood and colours, a pole's banner); other blocks
+    /// when the config lists them.
     /// </summary>
     bool KeepsDetails(Block block) =>
-        block.EntityClass != null && (IsDoor(block) || block is BlockSupportBeam || PlacedAsItem(block) || config.BlueprintBlockDetails.Any(p => WildcardUtil.Match(new AssetLocation(p), block.Code)));
+        block.EntityClass != null && (IsDoor(block) || block is BlockSupportBeam || block is BlockMicroBlock || PlacedAsItem(block) || config.BlueprintBlockDetails.Any(p => WildcardUtil.Match(new AssetLocation(p), block.Code)));
 
     /// <summary>
     /// True for blocks a builder places from their item, as a player does, so they set themselves up: the
@@ -669,6 +863,12 @@ public class BlueprintLibrary
         var tree = saved.Tree();
         return tree.GetInt("partX") != 0 || tree.GetInt("partY") != 0 || tree.GetInt("partZ") != 0;
     }
+
+    /// <summary>
+    /// A chiseled block the blueprint saved without its shape. It cannot be built (it would be an empty block and
+    /// cost a chiseled block nobody can carry), so the spot is cleared instead.
+    /// </summary>
+    static bool IsShapelessChisel(Block block, SavedBlockEntity? saved) => block is BlockMicroBlock && saved == null;
 
     public static string HutBlockCode(string type) => type switch
     {
@@ -696,8 +896,26 @@ public static class BuildingTypes
     public const string Quarry = "quarry";
     public const string Smelter = "smelter";
     public const string Blacksmith = "blacksmith";
+    public const string Armourer = "armourer";
+    public const string Weaponsmith = "weaponsmith";
     public const string Sawmill = "sawmill";
+    public const string Craftsman = "craftsman";
+    public const string Tailor = "tailor";
+    public const string Jeweller = "jeweller";
+    /// <summary>Since 0.137.0 a work station inside a Church (ColonyManager.Stations.cs); older saves may still have a Healer's Hut.</summary>
+    public const string Healer = "healer";
+    /// <summary>The Courier's Station (0.142.0): a work station inside the Warehouse that shows what the couriers are doing.</summary>
+    public const string CourierStation = "courierstation";
+    /// <summary>The Church: its priests and bishop hold services and funerals, take tithes and run the colony's charity (ColonyManager.Church.cs).</summary>
+    public const string Church = "church";
+    /// <summary>The Royal Mint: a minter strikes the colony's coins (ColonyManager.Economy.cs).</summary>
+    public const string Mint = "mint";
+    public const string Explorer = "explorer";
+    public const string Gatherer = "gatherer";
+    public const string Hunter = "hunter";
     public const string Barracks = "barracks";
+    /// <summary>Put at a mine's entrance; several Miner's Huts can work the one mine through it.</summary>
+    public const string MineshaftEntrance = "mineshaftentrance";
     /// <summary>Not a colony building: only used to find the supply camp's own blueprint.</summary>
     public const string SupplyCamp = "supplycamp";
 }

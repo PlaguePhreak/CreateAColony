@@ -115,7 +115,7 @@ public class AiTaskSettlerSmelter : AiTaskSettlerWorker
 
         foreach (var want in wanted)
         {
-            int shortBy = m.CraftKeep(hut, want.Key) - m.SmeltStock(colony, hut, want, citizen);
+            int shortBy = m.CraftWant(colony, hut, want.Key) - m.SmeltStock(colony, hut, want, citizen);
             int ingots = System.Math.Max(1, System.Math.Min(shortBy, System.Math.Min(free, m.Config.SmelterIngotsPerBatch)));
             var pack = m.PackItems(citizen);
             var ore = pack.Where(want.IsOre).GroupBy(s => s.Collectible.Code).OrderByDescending(g => g.Sum(s => s.StackSize)).FirstOrDefault();

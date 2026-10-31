@@ -141,7 +141,8 @@ public partial class ColonyManager
         foreach (var stack in items)
         {
             if (which != null && !which(stack)) continue;
-            foreach (var container in targets)
+            // Food that can spoil goes in the coolest of them first, such as a cellar chest (ColonyManager.Freshness.cs).
+            foreach (var container in CoolestFirst(targets, stack))
             {
                 if (stack.StackSize <= 0) break;
                 PutItems(container, stack);
@@ -155,6 +156,8 @@ public partial class ColonyManager
     public List<ItemStack> EmptyPackAndBags(Colony colony, CitizenRecord citizen)
     {
         var all = PackItems(citizen).Concat(PackBags(citizen)).Concat(ToolBarItems(citizen).OfType<ItemStack>()).Concat(LunchItems(citizen)).ToList();
+        if (FirstAidOf(citizen) is { } aid) all.Add(aid);
+        citizen.FirstAid = null;
         citizen.Pack.Clear();
         citizen.Bags.Clear();
         citizen.ToolBar.Clear();

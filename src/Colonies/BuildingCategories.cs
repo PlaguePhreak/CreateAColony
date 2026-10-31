@@ -1,19 +1,29 @@
+using System.Linq;
+
 namespace CreateAColony.Colonies;
 
 /// <summary>The tabs of the Builder's Wand building list, in order, and the building types on each.</summary>
 public static class BuildingCategories
 {
-    public record Category(string Code, string[] Types);
+    /// <summary>A tab. Subs, when set, are its own tabs along the top (Types is then all their types).</summary>
+    public record Category(string Code, string[] Types, Category[]? Subs = null);
+
+    static Category Group(string code, params Category[] subs) => new(code, subs.SelectMany(s => s.Types).ToArray(), subs);
 
     /// <summary>Tabs with no types yet still show, as placeholders for buildings to come.</summary>
     public static readonly Category[] All =
     {
         new("fundamentals", new[] { BuildingTypes.TownHall, BuildingTypes.Builder, BuildingTypes.Tavern, BuildingTypes.Residence }),
-        new("agriculture", new[] { BuildingTypes.Farmer, BuildingTypes.Forester }),
-        new("craftsmanship", new[] { BuildingTypes.Potter, BuildingTypes.Cook, BuildingTypes.Smelter, BuildingTypes.Blacksmith, BuildingTypes.Sawmill }),
-        new("mining", new[] { BuildingTypes.Prospector, BuildingTypes.Miner, BuildingTypes.Quarry }),
-        new("education", System.Array.Empty<string>()),
-        new("infrastructure", new[] { BuildingTypes.Warehouse }),
+        new("agriculture", new[] { BuildingTypes.Farmer, BuildingTypes.Forester, BuildingTypes.Gatherer, BuildingTypes.Hunter }),
+        Group("craftsmanship",
+            new("woodworking", new[] { BuildingTypes.Sawmill }),
+            new("food", new[] { BuildingTypes.Cook }),
+            new("metallurgy", new[] { BuildingTypes.Smelter, BuildingTypes.Blacksmith, BuildingTypes.Armourer, BuildingTypes.Weaponsmith, BuildingTypes.Mint }),
+            new("primitive", new[] { BuildingTypes.Potter, BuildingTypes.Craftsman }),
+            new("luxury", new[] { BuildingTypes.Tailor, BuildingTypes.Jeweller })),
+        new("mining", new[] { BuildingTypes.Prospector, BuildingTypes.Miner, BuildingTypes.MineshaftEntrance, BuildingTypes.Quarry }),
+        new("education", new[] { BuildingTypes.Church }),
+        new("infrastructure", new[] { BuildingTypes.Warehouse, BuildingTypes.Explorer }),
         new("military", new[] { BuildingTypes.GuardTower, BuildingTypes.Barracks }),
         new("walls", System.Array.Empty<string>()),
         new("decoration", System.Array.Empty<string>()),

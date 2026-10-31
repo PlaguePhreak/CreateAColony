@@ -35,6 +35,8 @@ public partial class ColonyManager
         {
             excluded.UnionWith(HutStorage(colony, hut).Select(c => c.Pos));
         }
+        // Nor is a work station's own small storage (the Courier's Station stands in the Warehouse).
+        excluded.UnionWith(colony.Buildings.Where(b => b.IsStation).Select(b => b.HutPos));
         // The storage within WarehouseRadius of the Warehouse block, and anywhere inside the Warehouse's own building.
         int x1 = w.X - WarehouseRadius, y1 = w.Y - WarehouseHeight, z1 = w.Z - WarehouseRadius;
         int x2 = w.X + WarehouseRadius, y2 = w.Y + WarehouseHeight, z2 = w.Z + WarehouseRadius;
@@ -74,29 +76,30 @@ public partial class ColonyManager
     /// <summary>
     /// Takes up to <paramref name="max"/> items of one kind from the containers: the first matching
     /// stack found decides the kind, and further slots of the same kind top it up to a full stack.
+    /// Food that can spoil is taken soonest-to-spoil first (ColonyManager.Freshness.cs).
     /// </summary>
     public ItemStack? TakeItems(IEnumerable<BlockEntityContainer> containers, ItemMatch match, int max)
     {
-        ItemStack? taken = null;
-        foreach (var container in containers)
-        {
-            bool changed = false;
-            foreach (var slot in container.Inventory)
-            {
-                if (slot.Empty || !match(slot.Itemstack)) continue;
-                if (taken != null && !taken.Equals(sapi.World, slot.Itemstack, GlobalConstants.IgnoredStackAttributes)) continue;
+        var found = containers.SelectMany(c => c.Inventory.Where(s => !s.Empty && match(s.Itemstack)).Select(s => (Container: c, Slot: s))).ToList();
+        if (found.Any(f => CanSpoil(f.Slot.Itemstack))) found = found.OrderBy(f => HoursUntilSpoiled(f.Slot)).ToList();
 
-                int limit = Math.Min(max, slot.Itemstack.Collectible.MaxStackSize) - (taken?.StackSize ?? 0);
-                if (limit <= 0) break;
-                var part = slot.TakeOut(Math.Min(limit, slot.StackSize));
-                slot.MarkDirty();
-                changed = true;
-                if (taken == null) taken = part;
-                else taken.StackSize += part.StackSize;
-            }
-            if (changed) container.MarkDirty(true);
-            if (taken != null && taken.StackSize >= Math.Min(max, taken.Collectible.MaxStackSize)) break;
+        ItemStack? taken = null;
+        var changed = new HashSet<BlockEntityContainer>();
+        foreach (var (container, slot) in found)
+        {
+            if (slot.Empty) continue;
+            if (taken != null && !taken.Equals(sapi.World, slot.Itemstack, GlobalConstants.IgnoredStackAttributes)) continue;
+
+            int limit = Math.Min(max, slot.Itemstack.Collectible.MaxStackSize) - (taken?.StackSize ?? 0);
+            if (limit <= 0) break;
+            var part = slot.TakeOut(Math.Min(limit, slot.StackSize));
+            slot.MarkDirty();
+            changed.Add(container);
+            if (taken == null) taken = part;
+            else taken.StackSize += part.StackSize;
+            if (taken.StackSize >= Math.Min(max, taken.Collectible.MaxStackSize)) break;
         }
+        foreach (var container in changed) container.MarkDirty(true);
         return taken;
     }
 
@@ -126,13 +129,12 @@ public partial class ColonyManager
         return moved;
     }
 
-    /// <summary>Stores the stack in the warehouse, preferring chests that already hold the same item.</summary>
+    /// <summary>Stores the stack in the warehouse, preferring chests that already hold the same item. Food that can spoil goes in the coolest chests first.</summary>
     public int PutInWarehouse(Colony colony, ItemStack stack)
     {
         int moved = 0;
-        var containers = WarehouseContainers(colony)
-            .OrderByDescending(c => c.Inventory.Any(s => !s.Empty && s.Itemstack.Collectible == stack.Collectible))
-            .ToList();
+        var containers = CoolestFirst(WarehouseContainers(colony)
+            .OrderByDescending(c => c.Inventory.Any(s => !s.Empty && s.Itemstack.Collectible == stack.Collectible)), stack);
         foreach (var container in containers)
         {
             if (stack.StackSize <= 0) break;
@@ -155,11 +157,13 @@ public partial class ColonyManager
 
     public DeliveryRequest AddRequest(Colony colony, string itemCode, int quantity, BlockPos dest, string requestedBy)
     {
+        int extra = SpareFor(itemCode, quantity, requestedBy);
         var request = new DeliveryRequest
         {
             RequestId = colony.NextRequestId++,
             ItemCode = itemCode,
-            Quantity = quantity,
+            Quantity = quantity + extra,
+            Extra = extra,
             DestPos = dest.Copy(),
             RequestedBy = requestedBy
         };
@@ -169,8 +173,24 @@ public partial class ColonyManager
     }
 
     /// <summary>
-    /// Gives the courier the oldest request the warehouse can serve, keeping one the courier already
-    /// holds. Returns null when there is nothing the warehouse has stock for.
+    /// A few spare on top of what a hut asks for (Aaron, 0.142.0): a potter who needs 4 firewood asks for 5, in case.
+    /// Only for huts' own requests of 2 or more things; tools, Minimum stock and players' requests are left as asked.
+    /// </summary>
+    int SpareFor(string itemCode, int quantity, string requestedBy)
+    {
+        if (Config.RequestSparePercent <= 0 || quantity < 2 || !requestedBy.StartsWith("building:") || ParseToolCode(itemCode) != null) return 0;
+        int extra = (int)Math.Ceiling(quantity * Config.RequestSparePercent / 100.0);
+        return Math.Clamp(extra, 1, Math.Max(1, Config.RequestSpareMax));
+    }
+
+    /// <summary>The first of the containers' stacks that matches, the best by rank (lowest first); null when none matches.</summary>
+    public ItemStack? BestStack(IEnumerable<BlockEntityContainer> containers, ItemMatch match, System.Func<ItemStack, int> rank) => containers
+        .SelectMany(c => c.Inventory).Where(s => !s.Empty && match(s.Itemstack)).Select(s => s.Itemstack!)
+        .OrderBy(rank).FirstOrDefault();
+
+    /// <summary>
+    /// Gives the courier the oldest request the warehouse (or another hut's spare things) can serve, keeping one
+    /// the courier already holds. Returns null when there is nothing in stock for any of them.
     /// </summary>
     public DeliveryRequest? LeaseRequest(Colony colony, CitizenRecord courier)
     {
@@ -179,12 +199,11 @@ public partial class ColonyManager
         if (own != null) return own;
 
         var warehouse = WarehouseContainers(colony).Cast<BlockEntityContainer>().ToList();
-        if (warehouse.Count == 0) return null;
 
         foreach (var request in colony.Requests.OrderBy(r => r.RequestId))
         {
             if (request.LeasedByCitizenId != 0 && request.LeaseUntilTotalHours > now) continue;
-            if (CountItems(warehouse, Matcher(request.ItemCode)) <= 0) continue;
+            if (CountItems(warehouse, Matcher(request.ItemCode)) <= 0 && SpareForRequest(colony, request) == null) continue;
 
             request.LeasedByCitizenId = courier.CitizenId;
             request.LeaseUntilTotalHours = now + RequestLeaseHours;
@@ -192,6 +211,33 @@ public partial class ColonyManager
             return request;
         }
         return null;
+    }
+
+    /// <summary>Gives a courier another request it brings along on the same trip (same chest to deliver to).</summary>
+    public void LeaseAlong(Colony colony, DeliveryRequest request, CitizenRecord courier)
+    {
+        request.LeasedByCitizenId = courier.CitizenId;
+        request.LeaseUntilTotalHours = sapi.World.Calendar.TotalHours + RequestLeaseHours;
+        MarkDirty(colony);
+    }
+
+    /// <summary>
+    /// How many a courier takes for a request (Aaron, 0.160.0): for a worker's own hut it fills up to a full stack
+    /// when the warehouse has that many, so a crafter asking for 1 at a time gets a load it can work through. Builders'
+    /// work orders, Minimum stock, tools, food that spoils and players' requests get what they asked for.
+    /// </summary>
+    public int CourierLoad(Colony colony, DeliveryRequest request, ItemStack sample)
+    {
+        int wanted = request.Remaining;
+        if (!Config.CouriersCarryFullLoads || ParseToolCode(request.ItemCode) != null || !request.RequestedBy.StartsWith("building:")
+            || !int.TryParse(request.RequestedBy.Substring(9), out int id)) return wanted;
+        var hut = colony.Buildings.Find(b => b.BuildingId == id);
+        if (hut == null || hut.Type == BuildingTypes.Builder || !IsWorkerHut(hut.Type) || !HutStorage(colony, hut).Any(c => c.Pos.Equals(request.DestPos))) return wanted;
+        // Food that spoils is only brought as asked, so it stays in the cooler warehouse.
+        if (CanSpoil(sample)) return wanted;
+        // Nor anything the hut would send back to the warehouse as not needed.
+        if (WorkerHutJunk(colony, hut)(sample)) return wanted;
+        return Math.Max(wanted, sample.Collectible.MaxStackSize);
     }
 
     public void ReleaseRequest(Colony colony, DeliveryRequest request)
@@ -205,7 +251,8 @@ public partial class ColonyManager
     {
         request.Delivered += amount;
         request.LeasedByCitizenId = 0;
-        if (request.Remaining <= 0) colony.Requests.Remove(request);
+        // Once what the hut needs is there, the spare only comes along on the same trip, so nobody waits for it.
+        if (request.Remaining <= 0 || amount > 0 && request.Remaining <= request.Extra) colony.Requests.Remove(request);
         MarkDirty(colony);
     }
 

@@ -40,8 +40,9 @@ public class AreaScanner
         Radius = radius;
         this.scan = scan;
         int size = GlobalConstants.ChunkSize;
-        int cx0 = (center.X - radius) / size, cx1 = (center.X + radius) / size;
-        int cz0 = (center.Z - radius) / size, cz1 = (center.Z + radius) / size;
+        // Rounded down, also west and north of 0, where plain division rounds towards 0 and missed a column.
+        int cx0 = (int)Math.Floor((center.X - radius) / (double)size), cx1 = (int)Math.Floor((center.X + radius) / (double)size);
+        int cz0 = (int)Math.Floor((center.Z - radius) / (double)size), cz1 = (int)Math.Floor((center.Z + radius) / (double)size);
         columns = new List<Vec2i>();
         for (int cx = cx0; cx <= cx1; cx++)
         for (int cz = cz0; cz <= cz1; cz++)

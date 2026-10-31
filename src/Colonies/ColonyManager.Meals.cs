@@ -56,7 +56,7 @@ public partial class ColonyManager
 
     /// <summary>How many servings of a meal to keep in stock.</summary>
     public int MealKeep(Building hut, CookingRecipe recipe) =>
-        hut.KitchenChosen ? hut.KitchenKeep.GetValueOrDefault(MealKey(recipe)) : Config.KitchenDefaultMealKeep;
+        hut.KitchenChosen ? hut.KitchenKeep.GetValueOrDefault(MealKey(recipe)) : Config.KitchenAutoMealKeep;
 
     /// <summary>How many servings of a meal are ready: at the hut, in the warehouse, with the cook and in the fire pit.</summary>
     public int MealStock(Colony colony, Building hut, CookingRecipe recipe, CitizenRecord? cook) =>
@@ -103,7 +103,8 @@ public partial class ColonyManager
             .Where(r => KnowsMeal(colony, cook, r))
             .Select(r => (Recipe: r, Short: MealKeep(hut, r) - MealStock(colony, hut, r, cook, pit)))
             .Where(w => w.Short > 0)
-            .OrderByDescending(w => w.Short)
+            .OrderBy(w => hut.Priorities.Count == 0 ? 0 : PriorityIndex(hut.Priorities, MealKey(w.Recipe)))
+            .ThenByDescending(w => w.Short)
             .ToList();
         if (wanted.Count == 0) return null;
 
@@ -122,10 +123,10 @@ public partial class ColonyManager
     }
 
     /// <summary>Everything the cook could cook with, by item code: in its inventory, the hut storage and the warehouse.</summary>
-    Dictionary<AssetLocation, (ItemStack Sample, int Count)> Larder(Colony colony, Building hut, CitizenRecord cook)
+    Dictionary<AssetLocation, (ItemStack Sample, int Count)> Larder(Colony colony, Building hut, CitizenRecord? cook)
     {
         var larder = new Dictionary<AssetLocation, (ItemStack Sample, int Count)>();
-        var stacks = PackItems(cook)
+        var stacks = (cook == null ? new List<ItemStack>() : PackItems(cook))
             .Concat(KitchenStores(colony, hut).Concat(WarehouseContainers(colony)).SelectMany(c => c.Inventory).Where(s => !s.Empty).Select(s => s.Itemstack!));
         foreach (var stack in stacks)
         {

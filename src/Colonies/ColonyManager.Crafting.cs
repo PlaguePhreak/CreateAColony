@@ -8,7 +8,7 @@ using ItemMatch = System.Func<Vintagestory.API.Common.ItemStack, bool>;
 namespace CreateAColony.Colonies;
 
 /// <summary>
-/// What the crafter huts share (Smelter, Blacksmith, Sawmill, and the ones to come): a "keep in stock" list on the
+/// What the crafter huts share (Smelter, Blacksmith, Sawmill, Primitive Craftsman, and the ones to come): a "keep in stock" list on the
 /// hut window, saved on the building as CraftKeep, and asking couriers for what the work needs. Each
 /// crafter hut has its own list of things it can make, by key (CraftRows).
 /// </summary>
@@ -18,8 +18,9 @@ public partial class ColonyManager
     public static string? CraftTabOf(string type) => type switch
     {
         BuildingTypes.Smelter => "smelting",
-        BuildingTypes.Blacksmith => "smithing",
+        BuildingTypes.Blacksmith or BuildingTypes.Armourer or BuildingTypes.Weaponsmith => "smithing",
         BuildingTypes.Sawmill => "sawmill",
+        BuildingTypes.Craftsman => "knapping",
         _ => null
     };
 
@@ -31,6 +32,7 @@ public partial class ColonyManager
         {
             BuildingTypes.Smelter => Config.SmelterDefaultKeep,
             BuildingTypes.Sawmill => Config.SawmillDefaultKeep,
+            BuildingTypes.Craftsman => Config.CraftsmanDefaultKeep,
             _ => Config.BlacksmithDefaultKeep
         };
         foreach (var (pattern, keep) in defaults)
@@ -44,8 +46,9 @@ public partial class ColonyManager
     public IEnumerable<string> CraftKeys(Building hut) => hut.Type switch
     {
         BuildingTypes.Smelter => SmeltKinds().Select(k => k.Key),
-        BuildingTypes.Blacksmith => SmithKinds().Select(k => k.Key),
+        BuildingTypes.Blacksmith or BuildingTypes.Armourer or BuildingTypes.Weaponsmith => SmithKinds().Select(k => k.Key),
         BuildingTypes.Sawmill => SawKinds().Select(k => k.Key),
+        BuildingTypes.Craftsman => KnapKinds().Select(k => k.Key),
         _ => Enumerable.Empty<string>()
     };
 

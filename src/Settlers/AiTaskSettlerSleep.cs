@@ -13,6 +13,9 @@ public class AiTaskSettlerSleep : SettlerTaskBase
 {
     BlockPos? bedPos;
     bool lyingDown;
+    /// <summary>Where the settler lies on its bed and which way it faces, held while it sleeps.</summary>
+    Vec3d? spot;
+    float? spotYaw;
 
     public AiTaskSettlerSleep(EntityAgent entity, JsonObject taskConfig, JsonObject aiConfig) : base(entity, taskConfig, aiConfig) { }
 
@@ -26,13 +29,15 @@ public class AiTaskSettlerSleep : SettlerTaskBase
 
     public override bool ShouldExecute()
     {
-        return manager != null && IsSleepTime() && !CalledToArms;
+        return manager != null && IsSleepTime() && !WokenByThreat;
     }
 
     public override void StartExecute()
     {
         base.StartExecute();
         lyingDown = false;
+        spot = null;
+        spotYaw = null;
         var colony = Colony!;
         bedPos = manager!.EnsureBed(colony, Citizen!);
         BlockPos target = bedPos ?? colony.TownHallPos;
@@ -41,15 +46,15 @@ public class AiTaskSettlerSleep : SettlerTaskBase
 
     public override bool ContinueExecute(float dt)
     {
-        if (!IsSleepTime() || CalledToArms) return false;
+        if (!IsSleepTime() || WokenByThreat) return false;
 
         if (!lyingDown && (Arrived || PathFailed))
         {
             StopWalking();
-            if (bedPos != null && Arrived)
+            if (bedPos != null && (Arrived || NearBed(bedPos)))
             {
-                // Lie on top of the bed block (on its own half of a furniture double bed).
-                var spot = manager!.BedSpot(Colony!, Citizen!, bedPos);
+                // Lie along the bed as a player does (on its own half of a furniture double bed).
+                (spot, spotYaw) = manager!.BedSpot(Colony!, Citizen!, bedPos);
                 entity.TeleportToDouble(spot.X, spot.Y, spot.Z);
             }
             PlayAnimation("sleep");
@@ -57,13 +62,28 @@ public class AiTaskSettlerSleep : SettlerTaskBase
         }
 
         if (!lyingDown) KeepWalking();
+        else HoldStill();
         return true;
+    }
+
+    /// <summary>Keeps a sleeper in its place and facing along the bed, so a bedmate or passer-by does not push it askew.</summary>
+    void HoldStill()
+    {
+        var pos = entity.ServerPos;
+        pos.Motion.Set(0, 0, 0);
+        if (spot != null && pos.SquareDistanceTo(spot.X, spot.Y, spot.Z) > 0.01) pos.SetPos(spot);
+        if (spotYaw is float yaw)
+        {
+            pos.Yaw = yaw;
+            pos.HeadYaw = yaw;
+            entity.BodyYaw = yaw;
+        }
     }
 
     public override void FinishExecute(bool cancelled)
     {
         StopAnimation("sleep");
-        if (lyingDown && bedPos != null)
+        if (lyingDown && bedPos != null && spot != null)
         {
             // Step off the bed so the settler does not start the day standing on it.
             entity.TeleportToDouble(bedPos.X + 0.5, bedPos.Y + 1, bedPos.Z + 0.5);

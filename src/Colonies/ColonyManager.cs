@@ -69,6 +69,10 @@ public partial class ColonyManager : ModSystem
         api.Event.RegisterGameTickListener(OnFarWorkTick, FarWorkTickMs);
         api.Event.RegisterGameTickListener(_ => SaveDirty(), DirtySaveMs, DirtySaveMs);
         StartDoors();
+        StartFires();
+        StartCropWatch();
+        // The list of things with their own marker icon, made once on the main thread before settlers look around.
+        api.Event.ServerRunPhase(EnumServerRunPhase.RunGame, () => Map.MarkerSubjects.All(api));
     }
 
     const int ColonyTickMs = 10_000;
@@ -97,6 +101,26 @@ public partial class ColonyManager : ModSystem
             if (config.SkillLevelMax == 10) config.SkillLevelMax = fresh.SkillLevelMax;
             if ((config.SkillCapByBuildingLevel ?? Array.Empty<int>()).SequenceEqual(new[] { 4, 6, 8, 10 })) config.SkillCapByBuildingLevel = fresh.SkillCapByBuildingLevel;
             if (config.SkillEffectMax == 2f) config.SkillEffectMax = fresh.SkillEffectMax;
+        }
+        if (config.ConfigVersion < 4)
+        {
+            // 0.73.0: the new mineshaft entrance goes down two levels by itself, so its stairs no longer repeat.
+            if (config.MinerEntranceRepeatsPerHutLevel == 1) config.MinerEntranceRepeatsPerHutLevel = 0;
+        }
+        if (config.ConfigVersion < 5)
+        {
+            // 0.75.4: work areas go out to 1000 and 2000 blocks.
+            if ((config.GatherRadiusChoices ?? Array.Empty<int>()).SequenceEqual(new[] { 16, 32, 64, 128, 200, 300, 500 })) config.GatherRadiusChoices = new ColonyConfig().GatherRadiusChoices;
+        }
+        if (config.ConfigVersion < 6)
+        {
+            // 0.76.0: mineshafts are limited by levels per hut level, not by sections.
+            if (config.MinerSectionsPerHutLevel == 4) config.MinerSectionsPerHutLevel = 0;
+        }
+        if (config.ConfigVersion < 7)
+        {
+            // 0.164.0: traders keep their land claims until they join (taking them all away broke the game's balance).
+            config.RemoveAllTraderClaims = false;
         }
         config.ConfigVersion = ColonyConfig.CurrentConfigVersion;
     }
@@ -131,7 +155,13 @@ public partial class ColonyManager : ModSystem
     public BlockPos? EnsureBed(Colony colony, CitizenRecord citizen)
     {
         var ba = sapi.World.BlockAccessor;
-        if (citizen.HomeBedPos != null && ba.GetBlockEntity(citizen.HomeBedPos) is { } own && BedPlaces(own) > 0) return citizen.HomeBedPos;
+        if (citizen.HomeBedPos != null)
+        {
+            var own = ba.GetBlockEntity(citizen.HomeBedPos);
+            if (own != null && BedPlaces(own) > 0) return MoveOutOfSharedBed(colony, citizen) ?? citizen.HomeBedPos;
+            // The bed's land is not loaded (the settler is far out): the bed is still there, so keep it.
+            if (own == null && ba.GetChunkAtBlockPos(citizen.HomeBedPos) == null) return citizen.HomeBedPos;
+        }
 
         citizen.HomeBedPos = null;
         var taken = BedsTaken(colony);
@@ -142,7 +172,11 @@ public partial class ColonyManager : ModSystem
         var boxes = ResidenceBoxes(colony);
         BlockEntity? free = FindBlockEntities<BlockEntity>(colony)
             .Where(b => BedPlaces(b) > taken.GetValueOrDefault(b.Pos))
-            .OrderBy(b => family == null && ResidenceAt(colony, b.Pos, boxes) == null)
+            // Beds in a Church are the poorhouse: for those with nowhere else.
+            .OrderBy(b => IsChurchBed(colony, b.Pos))
+            .ThenBy(b => family == null && ResidenceAt(colony, b.Pos, boxes) == null)
+            // Someone on their own takes an empty bed before half of a stranger's double bed.
+            .ThenBy(b => family == null && taken.GetValueOrDefault(b.Pos) > 0)
             .ThenBy(b => b.Pos.DistanceSqTo(anchor.X, anchor.Y, anchor.Z))
             .FirstOrDefault();
         if (free == null) return null;
@@ -151,6 +185,33 @@ public partial class ColonyManager : ModSystem
         SaveColony(colony);
         return citizen.HomeBedPos;
     }
+
+    /// <summary>
+    /// A settler sharing a double bed with someone who is not family moves to an empty bed in the same home, once
+    /// one is free (a bed whose owner died, a new bed). Returns the new bed, or null to stay put.
+    /// </summary>
+    BlockPos? MoveOutOfSharedBed(Colony colony, CitizenRecord citizen)
+    {
+        var bed = citizen.HomeBedPos!;
+        bool shared = colony.Citizens.Any(c => c.Alive && c.CitizenId != citizen.CitizenId && bed.Equals(c.HomeBedPos) && !IsFamily(colony, citizen, c));
+        if (!shared) return null;
+        var taken = BedsTaken(colony);
+        var boxes = ResidenceBoxes(colony);
+        var home = ResidenceAt(colony, bed, boxes);
+        var empty = FindBlockEntities<BlockEntity>(colony)
+            .Where(b => BedPlaces(b) > 0 && taken.GetValueOrDefault(b.Pos) == 0 && ResidenceAt(colony, b.Pos, boxes) == home)
+            .OrderBy(b => b.Pos.DistanceSqTo(bed.X, bed.Y, bed.Z))
+            .FirstOrDefault();
+        if (empty == null) return null;
+        citizen.HomeBedPos = empty.Pos.Copy();
+        SaveColony(colony);
+        return citizen.HomeBedPos;
+    }
+
+    /// <summary>Partners, or a parent and child: the people who share a bed.</summary>
+    bool IsFamily(Colony colony, CitizenRecord a, CitizenRecord b) =>
+        (a.PartnerId != 0 && a.PartnerId == b.CitizenId) || (b.PartnerId != 0 && b.PartnerId == a.CitizenId)
+        || ParentsOf(colony, a).Contains(b) || ParentsOf(colony, b).Contains(a);
 
     /// <summary>How many living settlers sleep in each bed.</summary>
     Dictionary<BlockPos, int> BedsTaken(Colony colony) => colony.Citizens
@@ -213,12 +274,17 @@ public partial class ColonyManager : ModSystem
     void OnColonyTick(float dt)
     {
         double now = sapi.World.Calendar.TotalDays;
+        LiftAllTraderClaims();
+        RestoreTraderClaims();
         foreach (var colony in colonies.Values)
         {
             if (sapi.World.BlockAccessor.GetChunkAtBlockPos(colony.TownHallPos) == null) continue;
             EnsureCoreBuildings(colony);
             RefreshClaim(colony);
             TickWanderers(colony, now);
+            TickBailiff(colony, now);
+            TickTraders(colony);
+            TickWaitingForRoom(colony);
             TickFamilies(colony, now);
             EnsureSkills(colony);
             EnsureTraits(colony);
@@ -226,7 +292,9 @@ public partial class ColonyManager : ModSystem
             TickTraits(colony, now);
             TickSkills(colony, now);
             TickHappiness(colony);
+            TickChurch(colony);
             EnsureMinStock(colony);
+            TickUpkeep(colony);
 
             foreach (var citizen in colony.Citizens.ToList())
             {
@@ -248,6 +316,7 @@ public partial class ColonyManager : ModSystem
                 if (entity != null && entity.Alive)
                 {
                     citizen.LastSeenTotalDays = now;
+                    citizen.LastSeenPos = entity.Pos.XYZ.Clone(); // where FarWork looks for it if its land unloads
                     continue;
                 }
 

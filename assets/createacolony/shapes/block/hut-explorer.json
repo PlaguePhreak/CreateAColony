@@ -1,0 +1,635 @@
+{
+ "textureWidth": 16,
+ "textureHeight": 16,
+ "textures": {
+  "sides": "sides",
+  "planks": "planks",
+  "cloth": "cloth",
+  "linen": "linen",
+  "metal": "metal",
+  "leather": "leather"
+ },
+ "elements": [
+  {
+   "name": "Crate",
+   "from": [
+    1,
+    0,
+    1
+   ],
+   "to": [
+    15,
+    8,
+    15
+   ],
+   "faces": {
+    "north": {
+     "texture": "#sides",
+     "uv": [
+      0,
+      0,
+      14,
+      8
+     ]
+    },
+    "east": {
+     "texture": "#sides",
+     "uv": [
+      0,
+      0,
+      14,
+      8
+     ]
+    },
+    "south": {
+     "texture": "#sides",
+     "uv": [
+      0,
+      0,
+      14,
+      8
+     ]
+    },
+    "west": {
+     "texture": "#sides",
+     "uv": [
+      0,
+      0,
+      14,
+      8
+     ]
+    },
+    "up": {
+     "texture": "#sides",
+     "uv": [
+      0,
+      0,
+      14,
+      14
+     ]
+    },
+    "down": {
+     "texture": "#sides",
+     "uv": [
+      0,
+      0,
+      14,
+      14
+     ]
+    }
+   }
+  },
+  {
+   "name": "Lid",
+   "from": [
+    0,
+    8,
+    0
+   ],
+   "to": [
+    16,
+    9,
+    16
+   ],
+   "faces": {
+    "north": {
+     "texture": "#planks",
+     "uv": [
+      0,
+      0,
+      16,
+      1
+     ]
+    },
+    "east": {
+     "texture": "#planks",
+     "uv": [
+      0,
+      0,
+      16,
+      1
+     ]
+    },
+    "south": {
+     "texture": "#planks",
+     "uv": [
+      0,
+      0,
+      16,
+      1
+     ]
+    },
+    "west": {
+     "texture": "#planks",
+     "uv": [
+      0,
+      0,
+      16,
+      1
+     ]
+    },
+    "up": {
+     "texture": "#planks",
+     "uv": [
+      0,
+      0,
+      16,
+      16
+     ]
+    },
+    "down": {
+     "texture": "#planks",
+     "uv": [
+      0,
+      0,
+      16,
+      16
+     ]
+    }
+   }
+  },
+  {
+   "name": "Pack",
+   "from": [
+    2,
+    9,
+    3
+   ],
+   "to": [
+    8,
+    15,
+    7
+   ],
+   "faces": {
+    "north": {
+     "texture": "#leather",
+     "uv": [
+      0,
+      0,
+      6,
+      6
+     ]
+    },
+    "east": {
+     "texture": "#leather",
+     "uv": [
+      0,
+      0,
+      4,
+      6
+     ]
+    },
+    "south": {
+     "texture": "#leather",
+     "uv": [
+      0,
+      0,
+      6,
+      6
+     ]
+    },
+    "west": {
+     "texture": "#leather",
+     "uv": [
+      0,
+      0,
+      4,
+      6
+     ]
+    },
+    "up": {
+     "texture": "#leather",
+     "uv": [
+      0,
+      0,
+      6,
+      4
+     ]
+    },
+    "down": {
+     "texture": "#leather",
+     "uv": [
+      0,
+      0,
+      6,
+      4
+     ]
+    }
+   }
+  },
+  {
+   "name": "PackFlap",
+   "from": [
+    2,
+    13,
+    2.5
+   ],
+   "to": [
+    8,
+    15,
+    3
+   ],
+   "faces": {
+    "north": {
+     "texture": "#leather",
+     "uv": [
+      0,
+      0,
+      6,
+      2
+     ]
+    },
+    "east": {
+     "texture": "#leather",
+     "uv": [
+      0,
+      0,
+      0.5,
+      2
+     ]
+    },
+    "south": {
+     "texture": "#leather",
+     "uv": [
+      0,
+      0,
+      6,
+      2
+     ]
+    },
+    "west": {
+     "texture": "#leather",
+     "uv": [
+      0,
+      0,
+      0.5,
+      2
+     ]
+    },
+    "up": {
+     "texture": "#leather",
+     "uv": [
+      0,
+      0,
+      6,
+      0.5
+     ]
+    },
+    "down": {
+     "texture": "#leather",
+     "uv": [
+      0,
+      0,
+      6,
+      0.5
+     ]
+    }
+   }
+  },
+  {
+   "name": "Bedroll",
+   "from": [
+    2,
+    15,
+    3.5
+   ],
+   "to": [
+    8,
+    17,
+    6.5
+   ],
+   "faces": {
+    "north": {
+     "texture": "#cloth",
+     "uv": [
+      0,
+      0,
+      6,
+      2
+     ]
+    },
+    "east": {
+     "texture": "#cloth",
+     "uv": [
+      0,
+      0,
+      3.0,
+      2
+     ]
+    },
+    "south": {
+     "texture": "#cloth",
+     "uv": [
+      0,
+      0,
+      6,
+      2
+     ]
+    },
+    "west": {
+     "texture": "#cloth",
+     "uv": [
+      0,
+      0,
+      3.0,
+      2
+     ]
+    },
+    "up": {
+     "texture": "#cloth",
+     "uv": [
+      0,
+      0,
+      6,
+      3.0
+     ]
+    },
+    "down": {
+     "texture": "#cloth",
+     "uv": [
+      0,
+      0,
+      6,
+      3.0
+     ]
+    }
+   }
+  },
+  {
+   "name": "Map",
+   "from": [
+    9,
+    9,
+    3
+   ],
+   "to": [
+    14,
+    10.5,
+    12
+   ],
+   "faces": {
+    "north": {
+     "texture": "#linen",
+     "uv": [
+      0,
+      0,
+      5,
+      1.5
+     ]
+    },
+    "east": {
+     "texture": "#linen",
+     "uv": [
+      0,
+      0,
+      9,
+      1.5
+     ]
+    },
+    "south": {
+     "texture": "#linen",
+     "uv": [
+      0,
+      0,
+      5,
+      1.5
+     ]
+    },
+    "west": {
+     "texture": "#linen",
+     "uv": [
+      0,
+      0,
+      9,
+      1.5
+     ]
+    },
+    "up": {
+     "texture": "#linen",
+     "uv": [
+      0,
+      0,
+      5,
+      9
+     ]
+    },
+    "down": {
+     "texture": "#linen",
+     "uv": [
+      0,
+      0,
+      5,
+      9
+     ]
+    }
+   }
+  },
+  {
+   "name": "MapRoll",
+   "from": [
+    9,
+    9,
+    12
+   ],
+   "to": [
+    14,
+    11,
+    13.5
+   ],
+   "faces": {
+    "north": {
+     "texture": "#linen",
+     "uv": [
+      0,
+      0,
+      5,
+      2
+     ]
+    },
+    "east": {
+     "texture": "#linen",
+     "uv": [
+      0,
+      0,
+      1.5,
+      2
+     ]
+    },
+    "south": {
+     "texture": "#linen",
+     "uv": [
+      0,
+      0,
+      5,
+      2
+     ]
+    },
+    "west": {
+     "texture": "#linen",
+     "uv": [
+      0,
+      0,
+      1.5,
+      2
+     ]
+    },
+    "up": {
+     "texture": "#linen",
+     "uv": [
+      0,
+      0,
+      5,
+      1.5
+     ]
+    },
+    "down": {
+     "texture": "#linen",
+     "uv": [
+      0,
+      0,
+      5,
+      1.5
+     ]
+    }
+   }
+  },
+  {
+   "name": "Spyglass",
+   "from": [
+    3,
+    9,
+    10
+   ],
+   "to": [
+    8,
+    10.5,
+    11.5
+   ],
+   "faces": {
+    "north": {
+     "texture": "#metal",
+     "uv": [
+      0,
+      0,
+      5,
+      1.5
+     ]
+    },
+    "east": {
+     "texture": "#metal",
+     "uv": [
+      0,
+      0,
+      1.5,
+      1.5
+     ]
+    },
+    "south": {
+     "texture": "#metal",
+     "uv": [
+      0,
+      0,
+      5,
+      1.5
+     ]
+    },
+    "west": {
+     "texture": "#metal",
+     "uv": [
+      0,
+      0,
+      1.5,
+      1.5
+     ]
+    },
+    "up": {
+     "texture": "#metal",
+     "uv": [
+      0,
+      0,
+      5,
+      1.5
+     ]
+    },
+    "down": {
+     "texture": "#metal",
+     "uv": [
+      0,
+      0,
+      5,
+      1.5
+     ]
+    }
+   }
+  },
+  {
+   "name": "Stick",
+   "from": [
+    13,
+    9,
+    14
+   ],
+   "to": [
+    14,
+    22,
+    15
+   ],
+   "faces": {
+    "north": {
+     "texture": "#planks",
+     "uv": [
+      0,
+      0,
+      1,
+      13
+     ]
+    },
+    "east": {
+     "texture": "#planks",
+     "uv": [
+      0,
+      0,
+      1,
+      13
+     ]
+    },
+    "south": {
+     "texture": "#planks",
+     "uv": [
+      0,
+      0,
+      1,
+      13
+     ]
+    },
+    "west": {
+     "texture": "#planks",
+     "uv": [
+      0,
+      0,
+      1,
+      13
+     ]
+    },
+    "up": {
+     "texture": "#planks",
+     "uv": [
+      0,
+      0,
+      1,
+      1
+     ]
+    },
+    "down": {
+     "texture": "#planks",
+     "uv": [
+      0,
+      0,
+      1,
+      1
+     ]
+    }
+   }
+  }
+ ]
+}

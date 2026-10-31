@@ -15,15 +15,13 @@ namespace CreateAColony.Gui;
 /// Builder's Hut also lists the colony's work orders and the items its builder still needs, each with
 /// a picture and have/need counts. Like the Town Hall window it only asks the server for changes.
 /// </summary>
-public class GuiDialogHut : GuiDialog
+public partial class GuiDialogHut : GuiDialog
 {
     const double Width = 560;
     const int OrdersPerPage = 5;
     const double OrderRowHeight = 62;
     const int WorkAreaTab = 3;
     const int PotteryTab = 4;
-    const int PotteryRowsPerPage = 7;
-    const double PotteryRowHeight = 44;
     const int RecruitsTab = 5;
     const int KitchenTab = 6;
     const double RecruitRowHeight = 62;
@@ -41,6 +39,16 @@ public class GuiDialogHut : GuiDialog
     /// <summary>A Miner's Hut's Levels and Guards tabs (its Settings tab shares SettingsTab with the Guard Tower's).</summary>
     const int LevelsTab = 16;
     const int MineGuardsTab = 17;
+    /// <summary>An Explorer's or Gatherer's Hut's Markers tab.</summary>
+    const int MarkersTab = 18;
+    /// <summary>A gathering hut's Allowed to collect tab.</summary>
+    const int CollectTab = 19;
+    /// <summary>The Crafting recipes tab of huts that are not crafter huts (Forester, Farmer and others).</summary>
+    const int RecipesTab = 24;
+    /// <summary>Priorities: what a crafting hut keeps, in the order its worker makes it, with buttons to change that.</summary>
+    const int PrioritiesTab = 25;
+    /// <summary>A Church's Church tab: Faith, services, the tithe and what the church spends it on.</summary>
+    const int ChurchTab = 26;
     const int OreRowsPerPage = 6;
     const double OreRowHeight = 44;
     /// <summary>Households shown per page of a Residence's Residents tab.</summary>
@@ -49,6 +57,12 @@ public class GuiDialogHut : GuiDialog
     const int ManageView = 20;
     const int ChestView = 21;
     const int HelpView = 22;
+    const int ChooseResidentsView = 23;
+    /// <summary>Teach recipe, opened from the Crafting recipes tab (GuiDialogHut.Teach.cs).</summary>
+    const int TeachView = 27;
+    /// <summary>Requests: what the hut asked couriers for (GuiDialogHut.Requests.cs), and a Courier's Station's Couriers tab.</summary>
+    const int RequestsTab = 28;
+    const int CouriersTab = 29;
     const int ListRowsPerPage = 8;
     const double ListRowHeight = 36;
 
@@ -57,8 +71,11 @@ public class GuiDialogHut : GuiDialog
     int currentTab;
     int page;
     bool renaming;
+    /// <summary>Remove hut was pressed once; the second press removes it.</summary>
+    bool confirmRemove;
     string pendingName = "";
     string hostileSearch = "";
+    string collectSearch = "";
     bool settingSearch;
     int statPeriod = 4;
 
@@ -78,6 +95,7 @@ public class GuiDialogHut : GuiDialog
 
     public void Update(HutSnapshot fresh)
     {
+        TeachUpdated(fresh);
         snapshot = fresh;
         Compose();
     }
@@ -86,14 +104,17 @@ public class GuiDialogHut : GuiDialog
     bool Officer => ViewerRole >= ColonyRole.Officer;
 
     /// <summary>
-    /// The tabs down the left side, in MineColonies' order: Main, then the hut's own tabs (Work orders,
+    /// The tabs down the left side, in MineColonies' order: Main, Crafting recipes, then the hut's own tabs (Work orders,
     /// Levels, Ore...), then the shared ones where the hut has a use for them: Settings, Guards, Required
     /// resources, Minimum stock and Statistics.
     /// </summary>
     List<(int Id, string Lang)> Tabs()
     {
         var tabs = new List<(int, string)> { (0, "tab-main") };
-        if (snapshot.IsBuilderHut) tabs.Add((1, "tab-orders"));
+        if (snapshot.IsCourierStation) tabs.Add((CouriersTab, "tab-couriers"));
+        if (snapshot.HasRecipes) tabs.Add((RecipesTab, "tab-recipes"));
+        if (snapshot.IsBuilderHut) tabs.Add((1, "tab-priorities"));
+        if (snapshot.HasPriorities) tabs.Add((PrioritiesTab, "tab-priorities"));
         if (snapshot.MineLevels.Count > 0) tabs.Add((LevelsTab, "tab-levels"));
         if (snapshot.IsGatherHut) tabs.Add((WorkAreaTab, "tab-workarea"));
         if (snapshot.IsPotterHut) tabs.Add((PotteryTab, "tab-pottery"));
@@ -101,13 +122,17 @@ public class GuiDialogHut : GuiDialog
         if (snapshot.CraftTab.Length > 0) tabs.Add((CraftTab, "tab-" + snapshot.CraftTab));
         if (snapshot.IsTavern) tabs.Add((RecruitsTab, "tab-recruits"));
         if (snapshot.IsResidence) tabs.Add((ResidentsTab, "tab-residents"));
+        if (snapshot.IsChurch) tabs.Add((ChurchTab, "tab-church"));
         if (snapshot.IsOreHut) tabs.Add((OreTab, "tab-ore"));
         if (snapshot.IsQuarry) tabs.Add((QuarryTab, "tab-quarry"));
+        if (snapshot.MarkerGroups.Count > 0) tabs.Add((MarkersTab, "tab-markers"));
+        if (snapshot.CollectKeys.Count > 0) tabs.Add((CollectTab, "tab-collect"));
         if (snapshot.IsGuardTower) tabs.AddRange(new[] { (ToolsTab, "tab-tools"), (HostilesTab, "tab-hostiles") });
         // The shared tabs.
         if (snapshot.IsGuardTower || snapshot.IsMiner) tabs.Add((SettingsTab, "tab-settings"));
-        if (snapshot.IsMiner) tabs.Add((MineGuardsTab, "tab-guards"));
-        if (snapshot.IsBuilderHut || snapshot.IsMiner) tabs.Add((2, "tab-resources"));
+        if (snapshot.IsMiner && !snapshot.IsMineEntrance) tabs.Add((MineGuardsTab, "tab-guards"));
+        if (snapshot.IsBuilderHut || snapshot.IsMiner && !snapshot.IsMineEntrance) tabs.Add((2, "tab-resources"));
+        if (snapshot.HasRequestsTab) tabs.Add((RequestsTab, "tab-requests"));
         if (snapshot.HasStorage) tabs.Add((MinStockTab, "tab-minstock"));
         if (snapshot.Job.Length > 0) tabs.Add((StatsTab, "tab-stats"));
         return tabs;
@@ -120,9 +145,10 @@ public class GuiDialogHut : GuiDialog
         bgBounds.BothSizing = ElementSizing.FitToChildren;
 
         var tabs = Tabs();
-        bool subView = currentTab is ManageView or ChestView or HelpView;
+        bool subView = currentTab is ManageView or ChestView or HelpView or ChooseResidentsView or TeachView;
         if (!subView && !tabs.Any(t => t.Id == currentTab)) currentTab = 0;
-        int activeTab = subView ? 0 : currentTab;
+        // Choose residents is opened from the Residents tab, so that tab stays lit; the others belong to Main.
+        int activeTab = currentTab == ChooseResidentsView ? ResidentsTab : currentTab == TeachView ? RecipesTab : subView ? 0 : currentTab;
 
         var composer = capi.Gui.CreateCompo("createacolony-hut", dialogBounds)
             .AddShadedDialogBG(bgBounds)
@@ -144,20 +170,29 @@ public class GuiDialogHut : GuiDialog
             case MineGuardsTab: ComposeMineGuards(composer); break;
             case WorkAreaTab: ComposeWorkArea(composer); break;
             case PotteryTab: ComposeKeepList(composer, snapshot.Pottery, "pottery", ColonyAction.SetPotteryKeep); break;
-            case KitchenTab: ComposeKeepList(composer, snapshot.Kitchen, "kitchen", ColonyAction.SetKitchenKeep); break;
+            case KitchenTab: ComposeKitchen(composer); break;
             case CraftTab: ComposeKeepList(composer, snapshot.Craft, snapshot.CraftTab, ColonyAction.SetCraftKeep); break;
+            case RecipesTab: ComposeRecipes(composer); break;
+            case TeachView: ComposeTeach(composer); break;
+            case PrioritiesTab: ComposePriorities(composer); break;
             case RecruitsTab: ComposeRecruits(composer); break;
             case ResidentsTab: ComposeResidents(composer); break;
+            case ChurchTab: ComposeChurch(composer); break;
             case OreTab: ComposeOre(composer); break;
             case QuarryTab: ComposeQuarry(composer); break;
+            case MarkersTab: ComposeMarkers(composer); break;
+            case CollectTab: ComposeCollect(composer); break;
             case ToolsTab: ComposeTools(composer); break;
             case HostilesTab: ComposeHostiles(composer); break;
             case SettingsTab: if (snapshot.IsMiner) ComposeMineSettings(composer); else ComposeSettings(composer); break;
+            case RequestsTab: ComposeRequests(composer); break;
+            case CouriersTab: ComposeCouriers(composer); break;
             case MinStockTab: ComposeMinStock(composer); break;
             case StatsTab: ComposeStats(composer); break;
             case ManageView: ComposeManage(composer); break;
             case ChestView: ComposeChest(composer); break;
             case HelpView: ComposeHelp(composer); break;
+            case ChooseResidentsView: ComposeChooseResidents(composer); break;
         }
         composer.FitTabs(tabs.Count);
         SingleComposer = composer.EndChildElements().Compose();
@@ -168,7 +203,10 @@ public class GuiDialogHut : GuiDialog
         SingleComposer.GetSwitch("mineprospected")?.SetValue(snapshot.MineProspected);
         SingleComposer.GetSwitch("berries")?.SetValue(snapshot.CollectBerries);
         SingleComposer.GetSwitch("retreat")?.SetValue(snapshot.Retreat);
+        SingleComposer.GetSwitch("teachany")?.SetValue(teachAnyType);
         for (int i = 0; SingleComposer.GetSwitch("hostile-" + i) is { } toggle; i++) toggle.SetValue(hostileSwitchStates[i]);
+        for (int i = 0; SingleComposer.GetSwitch("collect-" + i) is { } toggle; i++) toggle.SetValue(collectSwitchStates[i]);
+        for (int i = 0; SingleComposer.GetSwitch("markers-" + i) is { } toggle; i++) toggle.SetValue(!snapshot.MarkersOff.Contains(snapshot.MarkerGroups[i]));
         if (SingleComposer.GetTextInput("buildingname") is { } nameInput) nameInput.SetValue(pendingName);
         if (SingleComposer.GetTextInput("hostilesearch") is { } search)
         {
@@ -176,6 +214,13 @@ public class GuiDialogHut : GuiDialog
             search.SetValue(hostileSearch);
             settingSearch = false;
             if (hostileSearch.Length > 0) SingleComposer.FocusElement(search.TabIndex);
+        }
+        if (SingleComposer.GetTextInput("collectsearch") is { } collectInput)
+        {
+            settingSearch = true;
+            collectInput.SetValue(collectSearch);
+            settingSearch = false;
+            if (collectSearch.Length > 0) SingleComposer.FocusElement(collectInput.TabIndex);
         }
     }
 
@@ -193,12 +238,14 @@ public class GuiDialogHut : GuiDialog
 
         // Header: name and level with the pencil, then the level line, the asset pack and any build in progress,
         // each on its own line so a long one wraps instead of running into the next.
-        string levelText = LevelText(b);
+        string levelText = snapshot.IsStation
+            ? Lang.Get(snapshot.HostName.Length > 0 ? "createacolony:station-level" : "createacolony:station-level-nohost", b.Level, snapshot.HostName)
+            : LevelText(b);
         string packText = b.Variant == ""
             ? Lang.Get("createacolony:placement-style", Lang.Get("createacolony:style-" + BlueprintStyles.Normalize(b.Style)))
             : Lang.Get("createacolony:placement-style-variant", Lang.Get("createacolony:style-" + BlueprintStyles.Normalize(b.Style)), GuiKit.VariantName(b.Variant));
         double levelHeight = GuiKit.TextHeight(capi, GuiKit.Detail(), levelText, Width - 20);
-        double headerHeight = 40 + levelHeight + 22 + (b.TargetLevel > 0 ? 22 : 0) + 6;
+        double headerHeight = 40 + levelHeight + 22 + (b.TargetLevel > 0 || b.Removing ? 22 : 0) + 6;
         composer.AddInset(ElementBounds.Fixed(0, y, Width, headerHeight), 3, 0.8f);
         if (renaming)
         {
@@ -218,11 +265,17 @@ public class GuiDialogHut : GuiDialog
         }
         double line = composer.Text(levelText, GuiKit.Detail(), 10, y + 38, Width - 20, 2);
         composer.AddStaticText(packText, GuiKit.Muted(), ElementBounds.Fixed(10, line, Width - 20, 20));
-        if (b.TargetLevel > 0)
+        if (b.TargetLevel > 0 || b.Removing)
         {
             composer.AddStaticText(StatusText(b), GuiKit.Detail().WithColor(GuiStyle.ActiveButtonTextColor), ElementBounds.Fixed(10, line + 22, Width - 20, 22));
         }
         y += headerHeight + 12;
+
+        if (snapshot.IsMineEntrance) y = ComposeEntranceHuts(composer, y);
+        if (snapshot.MineEntranceName.Length > 0)
+        {
+            y = composer.Text(Lang.Get("createacolony:miner-at-entrance", snapshot.MineEntranceName), GuiKit.Detail(), 0, y, Width, 8);
+        }
 
         // Assigned workers, with Manage workers and Recall workers.
         if (snapshot.Job.Length > 0)
@@ -241,11 +294,21 @@ public class GuiDialogHut : GuiDialog
             }
         }
 
-        // Build options.
-        if (Officer && (b.TargetLevel > 0 || b.Level < b.MaxLevel))
+        // Build options, and Remove hut.
+        bool removable = b.Type is not (BuildingTypes.TownHall or BuildingTypes.Warehouse);
+        if (Officer && (b.TargetLevel > 0 || b.Removing || b.Level < b.MaxLevel || b.Level > 0 && b.MaxLevel > 0 || removable))
         {
             y = composer.Section(Lang.Get("createacolony:hut-build-options"), y, Width);
-            y = AddOrderButtons(composer, b, y) + 4;
+            y = AddOrderButtons(composer, b, y);
+            if (removable && !b.Removing)
+            {
+                string label = Lang.Get(confirmRemove ? "createacolony:remove-confirm" : "createacolony:remove-hut");
+                composer.AddSmallButton(label, ConfirmRemove, ElementBounds.Fixed(0, y, 220, 28));
+                if (confirmRemove) composer.AddSmallButton(Lang.Get("createacolony:cancel"), () => { confirmRemove = false; Compose(); return true; }, ElementBounds.Fixed(230, y, 100, 28));
+                y += 34;
+                y = composer.Text(Lang.Get(confirmRemove ? "createacolony:remove-hint-sure" : "createacolony:remove-hint"), GuiKit.Muted(), 0, y, Width, 4);
+            }
+            y += 4;
         }
 
         // Request system: how soon couriers come for this hut's things.
@@ -298,6 +361,57 @@ public class GuiDialogHut : GuiDialog
         }
     }
 
+    /// <summary>The first press asks again; the second sends Remove hut. A hut with nothing built goes at once, so the window closes.</summary>
+    bool ConfirmRemove()
+    {
+        if (!confirmRemove)
+        {
+            confirmRemove = true;
+            Compose();
+            return true;
+        }
+        confirmRemove = false;
+        var b = snapshot.Building;
+        Send(ColonyAction.RemoveHut, b.BuildingId);
+        if (b.Level == 0) TryClose();
+        return true;
+    }
+
+    /// <summary>A Mineshaft Entrance: its mine, then the Miner's Huts that work it (with Unlink) and the others (with Link).</summary>
+    double ComposeEntranceHuts(GuiComposer composer, double y)
+    {
+        int id = BuildingId;
+        if (snapshot.MineInfo.Length > 0) y = composer.Text(snapshot.MineInfo, GuiKit.Detail(), 0, y, Width, 8);
+        var linked = snapshot.MineHuts.Where(h => h.Linked).ToList();
+        y = composer.Section(Lang.Get("createacolony:entrance-huts", linked.Count), y, Width);
+        if (linked.Count == 0) y = composer.Text(Lang.Get("createacolony:entrance-huts-none"), GuiKit.Body().WithColor(GuiKit.WarnColor), 0, y, Width, 8);
+        foreach (var h in linked) y = EntranceHutRow(composer, h, id, y);
+        var others = snapshot.MineHuts.Where(h => !h.Linked).ToList();
+        if (others.Count > 0)
+        {
+            y = composer.Section(Lang.Get("createacolony:entrance-others"), y + 6, Width);
+            foreach (var h in others.Take(ListRowsPerPage)) y = EntranceHutRow(composer, h, id, y);
+            y = composer.Text(Lang.Get("createacolony:entrance-link-hint"), GuiKit.Muted(), 0, y + 4, Width, 8);
+        }
+        return y + 6;
+    }
+
+    double EntranceHutRow(GuiComposer composer, MineHutView h, int entranceId, double y)
+    {
+        string worker = h.Worker.Length > 0 ? Lang.Get("createacolony:entrance-hut-worker", h.Worker) : Lang.Get("createacolony:entrance-hut-noworker");
+        if (h.Elsewhere.Length > 0) worker += " " + Lang.Get("createacolony:entrance-hut-elsewhere", h.Elsewhere);
+        composer
+            .AddStaticText(Lang.Get("createacolony:hut-name-level", h.Name, h.Level), GuiKit.Body(), ElementBounds.Fixed(10, y + 2, Width - 150, 22))
+            .AddStaticText(worker, GuiKit.Detail().WithColor(h.Worker.Length > 0 ? GuiKit.MutedColor : GuiKit.WarnColor), ElementBounds.Fixed(10, y + 24, Width - 150, 20));
+        if (Officer)
+        {
+            string hut = h.BuildingId.ToString();
+            composer.AddSmallButton(Lang.Get(h.Linked ? "createacolony:entrance-unlink" : "createacolony:entrance-link"),
+                () => SendText(h.Linked ? ColonyAction.UnlinkMineHut : ColonyAction.LinkMineHut, entranceId, hut), ElementBounds.Fixed(Width - 130, y + 8, 120, 28));
+        }
+        return y + 48;
+    }
+
     bool SaveName()
     {
         renaming = false;
@@ -331,19 +445,22 @@ public class GuiDialogHut : GuiDialog
 
         y = composer.Section(Lang.Get("createacolony:manage-here", snapshot.Workers.Count, snapshot.WorkerSlots), y, Width);
         if (snapshot.Workers.Count == 0) y = composer.Text(Lang.Get("createacolony:hut-workers-none", job), GuiKit.Detail(), 0, y, Width, 8);
-        bool roles = snapshot.Building.Type == BuildingTypes.Prospector;
+        bool church = snapshot.Building.Type == BuildingTypes.Church;
+        bool roles = snapshot.Building.Type == BuildingTypes.Prospector || church;
+        string rolePrefix = church ? "createacolony:church-role-" : "createacolony:prospector-role-";
         foreach (var w in snapshot.Workers)
         {
             int id = w.CitizenId;
             if (roles)
             {
-                // A prospector finds ore or mines it: the button shows what it does now and switches it.
-                int other = w.WorkRole == ProspectorRoles.Mine ? ProspectorRoles.Find : ProspectorRoles.Mine;
+                // A prospector finds ore or mines it; a priest can be made the bishop. The button shows the role now and switches it.
+                int other = church ? (w.WorkRole == ChurchRoles.Bishop ? ChurchRoles.Priest : ChurchRoles.Bishop)
+                    : w.WorkRole == ProspectorRoles.Mine ? ProspectorRoles.Find : ProspectorRoles.Mine;
                 composer
                     .AddStaticText(w.Name, GuiKit.Body(), ElementBounds.Fixed(10, y + 5, 160, 25))
                     .AddStaticText(SkillText(w), GuiKit.Muted(), ElementBounds.Fixed(175, y + 8, 120, 22))
-                    .AddSmallButton(Lang.Get("createacolony:prospector-role-" + w.WorkRole), () => SendCitizenText(ColonyAction.SetWorkRole, id, other.ToString()), ElementBounds.Fixed(Width - 260, y, 120, 28))
-                    .AddHoverText(Lang.Get("createacolony:prospector-role-hint"), CairoFont.WhiteDetailText(), 300, ElementBounds.Fixed(Width - 260, y, 120, 28))
+                    .AddSmallButton(Lang.Get(rolePrefix + w.WorkRole), () => SendCitizenText(ColonyAction.SetWorkRole, id, other.ToString()), ElementBounds.Fixed(Width - 260, y, 120, 28))
+                    .AddHoverText(Lang.Get(rolePrefix + "hint"), CairoFont.WhiteDetailText(), 300, ElementBounds.Fixed(Width - 260, y, 120, 28))
                     .AddSmallButton(Lang.Get("createacolony:manage-remove"), () => SendCitizen(ColonyAction.UnassignWorker, id), ElementBounds.Fixed(Width - 130, y, 120, 28));
                 y += ListRowHeight;
                 continue;
@@ -697,6 +814,147 @@ public class GuiDialogHut : GuiDialog
         AddPager(composer, pages, y + 14);
     }
 
+    /// <summary>
+    /// The Markers tab of an Explorer's or Gatherer's Hut: which kinds of thing its worker puts on the "Colony
+    /// markers" map layer, and a button to take its markers away again.
+    /// </summary>
+    void ComposeMarkers(GuiComposer composer)
+    {
+        int id = BuildingId;
+        double y = 30;
+        if (snapshot.GatherMode.Length > 0)
+        {
+            y = composer.Section(Lang.Get("createacolony:gathermode"), y, Width);
+            y = AddStringChoice(composer, y, snapshot.GatherMode, ColonyAction.SetGatherMode, GatherModes.All.Select(m => (m, "createacolony:gathermode-" + m)).ToArray());
+            y = composer.Text(Lang.Get("createacolony:gathermode-hint-" + snapshot.GatherMode), GuiKit.Muted(), 0, y, Width, 12);
+            y = composer.Section(Lang.Get("createacolony:markers-title"), y, Width);
+        }
+        y = composer.Text(Lang.Get("createacolony:markers-hint", snapshot.MarkerCount), GuiKit.Muted(), 0, y, Width, 8);
+        if (Officer)
+        {
+            composer.AddSmallButton(Lang.Get("createacolony:markers-remove"), () => SendText(ColonyAction.RemoveMarkers, id, ""), ElementBounds.Fixed(0, y, 220, 28));
+            y += 38;
+            if (snapshot.RemovedMarkerCount > 0)
+            {
+                y = composer.Text(Lang.Get("createacolony:markers-removed-hint", snapshot.RemovedMarkerCount), GuiKit.Muted(), 0, y, Width, 4);
+                composer.AddSmallButton(Lang.Get("createacolony:markers-removed-again"), () => SendText(ColonyAction.MarkRemovedAgain, id, ""), ElementBounds.Fixed(0, y, 220, 28));
+                y += 38;
+            }
+        }
+        y = composer.Section(Lang.Get("createacolony:markers-groups"), y, Width);
+        for (int i = 0; i < snapshot.MarkerGroups.Count; i++)
+        {
+            string group = snapshot.MarkerGroups[i];
+            bool on = !snapshot.MarkersOff.Contains(group);
+            string name = Lang.Get("createacolony:markergroup-" + group);
+            if (Officer)
+            {
+                composer
+                    .AddSwitch(value => SendText(ColonyAction.SetMarkerGroup, id, group + "|" + (value ? "1" : "0")), ElementBounds.Fixed(0, y, 30, 30), "markers-" + i)
+                    .AddStaticText(name, GuiKit.Body(), ElementBounds.Fixed(40, y + 5, Width - 40, 25));
+            }
+            else
+            {
+                composer.AddStaticText(name + ": " + Lang.Get(on ? "createacolony:on" : "createacolony:off"), GuiKit.Body(), ElementBounds.Fixed(0, y + 5, Width, 25));
+            }
+            y += 34;
+        }
+    }
+
+    readonly List<bool> collectSwitchStates = new();
+
+    /// <summary>
+    /// The Allowed to collect tab of a gathering hut: every tree, fruit, mushroom, ore, rock or kind of ground
+    /// its worker can take, each with a switch. All are on until an officer turns one off.
+    /// </summary>
+    void ComposeCollect(GuiComposer composer)
+    {
+        int id = BuildingId;
+        double y = composer.Text(Lang.Get("createacolony:collect-hint-" + snapshot.Building.Type), GuiKit.Muted(), 0, 30, Width, 8);
+        composer.AddTextInput(ElementBounds.Fixed(0, y, Width - 250, 28), text =>
+        {
+            if (settingSearch || text == collectSearch) return;
+            collectSearch = text;
+            page = 0;
+            Compose();
+        }, GuiKit.Body(), "collectsearch");
+        if (Officer)
+        {
+            composer
+                .AddSmallButton(Lang.Get("createacolony:collect-all-on"), () => SendText(ColonyAction.SetCollect, id, "*"), ElementBounds.Fixed(Width - 240, y, 115, 28))
+                .AddSmallButton(Lang.Get("createacolony:collect-all-off"), () => SendText(ColonyAction.SetCollect, id, "-"), ElementBounds.Fixed(Width - 115, y, 115, 28));
+        }
+        y += 38;
+
+        var rows = new List<(string Key, ItemStack Stack, string Name)>();
+        for (int k = 0; k < snapshot.CollectKeys.Count && k < snapshot.CollectStacks.Count; k++)
+        {
+            var stack = new ItemStack(snapshot.CollectStacks[k]);
+            if (!stack.ResolveBlockOrItem(capi.World)) continue;
+            string key = snapshot.CollectKeys[k];
+            string name = CollectName(key, stack);
+            if (collectSearch.Length > 0 && name.IndexOf(collectSearch, StringComparison.OrdinalIgnoreCase) < 0) continue;
+            rows.Add((key, stack, name));
+        }
+        collectSwitchStates.Clear();
+        if (rows.Count == 0)
+        {
+            composer.Text(Lang.Get("createacolony:collect-none"), GuiKit.Body(), 0, y, Width);
+            return;
+        }
+        int pages = (rows.Count + ListRowsPerPage - 1) / ListRowsPerPage;
+        page = Math.Clamp(page, 0, pages - 1);
+        int shown = Math.Min(ListRowsPerPage, rows.Count - page * ListRowsPerPage);
+        composer.AddInset(ElementBounds.Fixed(0, y, Width, shown * ListRowHeight + 8), 3, 0.8f);
+        y += 4;
+        int i = 0;
+        foreach (var row in rows.Skip(page * ListRowsPerPage).Take(ListRowsPerPage))
+        {
+            bool on = !snapshot.CollectOff.Contains(row.Key);
+            string key = row.Key;
+            if (Officer)
+            {
+                composer.AddSwitch(value => SendText(ColonyAction.SetCollect, id, key + "|" + (value ? "1" : "0")), ElementBounds.Fixed(10, y + 3, 30, 30), "collect-" + i);
+                collectSwitchStates.Add(on);
+                i++;
+            }
+            composer
+                .AddRichtext(new RichTextComponentBase[]
+                {
+                    new ItemstackTextComponent(capi, row.Stack, 30, 6),
+                    new RichTextComponent(capi, row.Name, on ? GuiKit.Body() : GuiKit.Body().WithColor(GuiKit.MutedColor)) { VerticalAlign = EnumVerticalAlign.Middle }
+                }, ElementBounds.Fixed(50, y + 1, Width - 210, ListRowHeight - 2))
+                .AddStaticText(Lang.Get(on ? "createacolony:collect-yes" : "createacolony:collect-no"),
+                    GuiKit.Detail().WithColor(on ? GuiKit.GoodColor : GuiKit.MutedColor).WithOrientation(EnumTextOrientation.Right), ElementBounds.Fixed(Width - 160, y + 9, 150, 22));
+            y += ListRowHeight;
+        }
+        AddPager(composer, pages, y + 14);
+    }
+
+    /// <summary>A row's name: the ore or kind of ground in words, a tree by its wood, otherwise the name of its picture (a fruit, a mushroom, a rock).</summary>
+    static string CollectName(string key, ItemStack stack)
+    {
+        if (key.StartsWith("ore-") && Lang.HasTranslation(key)) return Lang.Get(key);
+        if (key.StartsWith("animal-")) return CreatureName(key.Substring("animal-".Length));
+        if (key.StartsWith("wood-")) return TreeName(key.Substring("wood-".Length), stack);
+        // A fruit tree's picture is its fruit: "Cherry tree".
+        if (key.StartsWith("fruittree")) return Lang.Get("createacolony:collect-fruittree", stack.GetName());
+        if (Lang.HasTranslation("createacolony:collect-" + key)) return Lang.Get("createacolony:collect-" + key);
+        return stack.GetName();
+    }
+
+    /// <summary>A tree's name from its wood, such as "Oak" or "Baldcypress", rather than its log's name.</summary>
+    static string TreeName(string wood, ItemStack log)
+    {
+        foreach (string key in new[] { log.Collectible.Code.Domain + ":material-" + wood, "material-" + wood, "createacolony:tree-" + wood })
+        {
+            if (Lang.HasTranslation(key)) return Lang.Get(key);
+        }
+        // A wood no language file names: its code in words.
+        string words = wood.Replace('_', ' ').Replace('-', ' ');
+        return words.Length == 0 ? log.GetName() : char.ToUpperInvariant(words[0]) + words[1..];
+    }
+
     static string CreatureName(string code)
     {
         string key = "item-creature-" + code;
@@ -922,6 +1180,7 @@ public class GuiDialogHut : GuiDialog
             composer.AddStaticText(range, GuiKit.Body(), ElementBounds.Fixed(0, y + 4, Width, 25));
         }
         y += 36;
+        if (snapshot.WorkRadius > 128) y = composer.Text(Lang.Get("createacolony:workarea-far"), GuiKit.Detail().WithColor(GuiKit.WarnColor), 0, y, Width, 8);
         y = composer.Text(Lang.Get("createacolony:workarea-range-hint-" + snapshot.Building.Type), GuiKit.Muted(), 0, y, Width, 14);
         return y;
     }
@@ -1000,10 +1259,10 @@ public class GuiDialogHut : GuiDialog
     /// with how many the colony has and how many to keep. Kinds kept in stock come first. Lang keys start
     /// with the prefix: "-hint", "-none", "-have" and "-keep".
     /// </summary>
-    void ComposeKeepList(GuiComposer composer, List<PotteryView> list, string prefix, ColonyAction action)
+    void ComposeKeepList(GuiComposer composer, List<PotteryView> list, string prefix, ColonyAction action, double? top = null, double pageHeight = KeepListHeight)
     {
         bool officer = ViewerRole >= ColonyRole.Officer;
-        double y = composer.Text(Lang.Get("createacolony:" + prefix + "-hint"), GuiKit.Muted(), 0, 30, Width, 10);
+        double y = top ?? composer.Text(Lang.Get("createacolony:" + prefix + "-hint"), GuiKit.Muted(), 0, 30, Width, 10);
         // Meals the cook cannot make yet sink to the bottom.
         var rows = list.OrderBy(p => p.Locked).ThenByDescending(p => p.Keep > 0).ThenBy(p => p.Key).ToList();
         if (rows.Count == 0)
@@ -1011,46 +1270,138 @@ public class GuiDialogHut : GuiDialog
             composer.Text(Lang.Get("createacolony:" + prefix + "-none"), GuiKit.Body(), 0, y, Width);
             return;
         }
-        int pages = (rows.Count + PotteryRowsPerPage - 1) / PotteryRowsPerPage;
-        page = Math.Clamp(page, 0, pages - 1);
-        int shown = Math.Min(PotteryRowsPerPage, rows.Count - page * PotteryRowsPerPage);
-        composer.AddInset(ElementBounds.Fixed(0, y, Width, shown * PotteryRowHeight + 8), 3, 0.8f);
-        y += 4;
-        foreach (var row in rows.Skip(page * PotteryRowsPerPage).Take(PotteryRowsPerPage))
+        // Each row is as tall as its wrapped text, and a page holds as many rows as fit, so long names never run into the next row.
+        var layouts = rows.Select(row => KeepRowLayout(row, prefix)).ToList();
+        var pageStarts = new List<int> { 0 };
+        double filled = 0;
+        for (int i = 0; i < layouts.Count; i++)
         {
+            if (filled > 0 && filled + layouts[i].Height > pageHeight)
+            {
+                pageStarts.Add(i);
+                filled = 0;
+            }
+            filled += layouts[i].Height;
+        }
+        int pages = pageStarts.Count;
+        page = Math.Clamp(page, 0, pages - 1);
+        int from = pageStarts[page], to = page + 1 < pages ? pageStarts[page + 1] : rows.Count;
+        double listHeight = layouts.Skip(from).Take(to - from).Sum(l => l.Height);
+        composer.AddInset(ElementBounds.Fixed(0, y, Width, listHeight + 8), 3, 0.8f);
+        y += 4;
+        for (int i = from; i < to; i++)
+        {
+            var row = rows[i];
+            var (height, name, nameHeight, detail, detailHeight, have) = layouts[i];
             var stack = new ItemStack(row.Stack);
             if (!stack.ResolveBlockOrItem(capi.World)) continue;
-            var countFont = CairoFont.WhiteDetailText().WithColor(row.Keep == 0 ? GuiKit.MutedColor
+            // A thin line between rows.
+            if (i > from) composer.AddInset(ElementBounds.Fixed(8, y, Width - 16, 1), 1, 0.4f);
+
+            var countFont = CairoFont.WhiteDetailText().WithColor(row.Locked ? GuiKit.WarnColor : row.Keep == 0 ? GuiKit.MutedColor
                 : row.Have >= row.Keep ? GuiKit.GoodColor : GuiKit.WarnColor);
-            // A locked meal shows greyed, with the Cooking level it takes ("Needs Cooking 6").
-            string have = Lang.Get("createacolony:" + prefix + "-have", row.Have, row.Clay);
-            if (row.Locked) have = Lang.Get("createacolony:kitchen-needs-level", row.NeedsLevel, row.CookLevel) + "  " + have;
-            else if (row.NeedsLevel > 0) have = Lang.Get("createacolony:kitchen-level", row.NeedsLevel) + "  " + have;
-            composer.AddRichtext(new RichTextComponentBase[]
+            composer.AddRichtext(new RichTextComponentBase[] { new ItemstackTextComponent(capi, stack, 36, 6) }, ElementBounds.Fixed(6, y + (height - 40) / 2, 44, 40));
+            double ty = y + KeepRowPad;
+            composer.AddStaticText(name, row.Locked ? GuiKit.Body().WithColor(GuiKit.MutedColor) : GuiKit.Body(), ElementBounds.Fixed(KeepTextX, ty, KeepTextWidth, nameHeight));
+            ty += nameHeight;
+            if (detailHeight > 0)
             {
-                new ItemstackTextComponent(capi, stack, 38, 10),
-                new RichTextComponent(capi, (row.Name ?? stack.GetName()) + "\n", row.Locked ? CairoFont.WhiteSmallText().WithColor(GuiKit.MutedColor) : CairoFont.WhiteSmallText()) { VerticalAlign = EnumVerticalAlign.Top },
-                new RichTextComponent(capi, have, row.Locked ? CairoFont.WhiteDetailText().WithColor(GuiKit.WarnColor) : countFont)
-            }, ElementBounds.Fixed(6, y, 330, PotteryRowHeight));
+                composer.AddStaticText(detail, GuiKit.Muted(), ElementBounds.Fixed(KeepTextX, ty, KeepTextWidth, detailHeight));
+                ty += detailHeight;
+            }
+            composer.AddStaticText(have, countFont, ElementBounds.Fixed(KeepTextX, ty, KeepTextWidth, KeepHaveHeight));
 
             string keep = Lang.Get("createacolony:" + prefix + "-keep", row.Keep);
+            double by = y + (height - 28) / 2;
             if (officer)
             {
                 var choices = snapshot.KeepChoices.Union(new[] { row.Keep }).OrderBy(c => c).ToList();
                 int at = choices.IndexOf(row.Keep);
                 string key = row.Key;
                 composer
-                    .AddSmallButton("<", () => SetKeep(action, key, choices[Math.Max(0, at - 1)]), ElementBounds.Fixed(Width - 210, y + 6, 36, 28))
-                    .AddStaticText(keep, GuiKit.Body().WithOrientation(EnumTextOrientation.Center), ElementBounds.Fixed(Width - 170, y + 10, 120, 25))
-                    .AddSmallButton(">", () => SetKeep(action, key, choices[Math.Min(choices.Count - 1, at + 1)]), ElementBounds.Fixed(Width - 46, y + 6, 36, 28));
+                    .AddSmallButton("<", () => SetKeep(action, key, choices[Math.Max(0, at - 1)]), ElementBounds.Fixed(Width - 200, by, 36, 28))
+                    .AddStaticText(keep, GuiKit.Body().WithOrientation(EnumTextOrientation.Center), ElementBounds.Fixed(Width - 162, by + 4, 106, 25))
+                    .AddSmallButton(">", () => SetKeep(action, key, choices[Math.Min(choices.Count - 1, at + 1)]), ElementBounds.Fixed(Width - 52, by, 36, 28));
             }
             else
             {
-                composer.AddStaticText(keep, GuiKit.Body().WithOrientation(EnumTextOrientation.Right), ElementBounds.Fixed(Width - 210, y + 10, 200, 25));
+                composer.AddStaticText(keep, GuiKit.Body().WithOrientation(EnumTextOrientation.Right), ElementBounds.Fixed(Width - 200, by + 4, 184, 25));
             }
-            y += PotteryRowHeight;
+            y += height;
         }
         AddPager(composer, pages, y + 14);
+    }
+
+    /// <summary>
+    /// The Kitchen tab of a Cook's Hut: the food the cook has on hand, then the dishes it can make from it, each with
+    /// how many to keep (ColonyManager.KitchenMenu.cs). Until an officer picks amounts, the cook chooses for itself.
+    /// </summary>
+    void ComposeKitchen(GuiComposer composer)
+    {
+        double y = composer.Text(Lang.Get("createacolony:kitchen-onhand"), GuiKit.Body(), 0, 30, Width, 4);
+        var food = snapshot.KitchenOnHand;
+        if (food.Count == 0) y = composer.Text(Lang.Get("createacolony:kitchen-onhand-none"), GuiKit.Muted(), 0, y, Width, 8);
+        else
+        {
+            int perRow = (int)(Width / OnHandCell);
+            int rows = Math.Min(2, (food.Count + perRow - 1) / perRow);
+            composer.AddInset(ElementBounds.Fixed(0, y, Width, rows * OnHandCellHeight + 6), 2, 0.6f);
+            for (int i = 0; i < Math.Min(food.Count, rows * perRow); i++)
+            {
+                var stack = new ItemStack(food[i].Stack);
+                if (!stack.ResolveBlockOrItem(capi.World)) continue;
+                double cx = 4 + i % perRow * OnHandCell, cy = y + 3 + i / perRow * OnHandCellHeight;
+                composer.AddRichtext(new RichTextComponentBase[] { new ItemstackTextComponent(capi, stack, 30, 4) }, ElementBounds.Fixed(cx + 4, cy, 38, 36));
+                composer.AddStaticText(food[i].Count.ToString(), CairoFont.WhiteDetailText().WithOrientation(EnumTextOrientation.Center), ElementBounds.Fixed(cx, cy + 34, OnHandCell - 4, 16));
+            }
+            y += rows * OnHandCellHeight + 12;
+        }
+
+        string mode = Lang.Get(snapshot.KitchenChosen ? "createacolony:kitchen-chosen" : "createacolony:kitchen-auto");
+        if (snapshot.KitchenChosen && Officer)
+        {
+            composer.AddSmallButton(Lang.Get("createacolony:kitchen-reset"), () =>
+            {
+                network.SendAction(new ColonyActionPacket { ColonyId = snapshot.ColonyId, Action = ColonyAction.SetKitchenKeep, BuildingId = snapshot.Building.BuildingId, Text = "" });
+                return true;
+            }, ElementBounds.Fixed(Width - 170, y, 170, 26));
+            y = composer.Text(mode, GuiKit.Muted(), 0, y + 2, Width - 180, 10);
+        }
+        else y = composer.Text(mode, GuiKit.Muted(), 0, y, Width, 10);
+        y = Math.Max(y, 30 + 24);
+        ComposeKeepList(composer, snapshot.Kitchen, "kitchen", ColonyAction.SetKitchenKeep, y, Math.Max(120, KeepListHeight + 60 - y));
+    }
+
+    const double OnHandCell = 46;
+    const double OnHandCellHeight = 52;
+
+    /// <summary>The Priorities tab's rows: one line of name each.</summary>
+    const int PotteryRowsPerPage = 7;
+    const double PotteryRowHeight = 44;
+    const double KeepTextX = 56;
+    const double KeepTextWidth = Width - 200 - KeepTextX - 12;
+    const double KeepRowPad = 6;
+    const double KeepHaveHeight = 18;
+    /// <summary>How tall the rows on one page of a keep list may be together.</summary>
+    const double KeepListHeight = 330;
+
+    /// <summary>
+    /// The text of one keep-list row and how tall it is: its name, what it is made from (a recipe row) and how
+    /// many the colony has, each measured at the width it wraps to.
+    /// </summary>
+    (double Height, string Name, double NameHeight, string Detail, double DetailHeight, string Have) KeepRowLayout(PotteryView row, string prefix)
+    {
+        var stack = new ItemStack(row.Stack);
+        string name = row.Name ?? (stack.ResolveBlockOrItem(capi.World) ? stack.GetName() : row.Key);
+        string detail = row.Detail ?? "";
+        // A locked meal shows greyed, with the Cooking level it takes ("Needs Cooking 6").
+        string have = Lang.Get("createacolony:" + prefix + "-have", row.Have, row.Clay);
+        if (row.Locked) have = Lang.Get("createacolony:kitchen-needs-level", row.NeedsLevel, row.CookLevel) + "  " + have;
+        else if (row.NeedsLevel > 0) have = Lang.Get("createacolony:kitchen-level", row.NeedsLevel) + "  " + have;
+        double nameHeight = GuiKit.TextHeight(capi, GuiKit.Body(), name, KeepTextWidth);
+        double detailHeight = GuiKit.TextHeight(capi, GuiKit.Muted(), detail, KeepTextWidth);
+        double height = Math.Max(48, KeepRowPad + nameHeight + detailHeight + KeepHaveHeight + KeepRowPad);
+        return (height, name, nameHeight, detail, detailHeight, have);
     }
 
     /// <summary>
@@ -1060,7 +1411,8 @@ public class GuiDialogHut : GuiDialog
     /// <summary>A Residence's Residents tab: its beds, then each household living there with how they are related.</summary>
     void ComposeResidents(GuiComposer composer)
     {
-        double y = composer.Text(Lang.Get("createacolony:residence-beds", snapshot.ResidenceBeds, snapshot.ResidenceFreeBeds), GuiKit.Body(), 0, 30, Width);
+        composer.AddSmallButton(Lang.Get("createacolony:residence-choose"), () => Open(ChooseResidentsView), ElementBounds.Fixed(Width - 170, 28, 170, 28));
+        double y = composer.Text(Lang.Get("createacolony:residence-beds", snapshot.ResidenceBeds, snapshot.ResidenceFreeBeds), GuiKit.Body(), 0, 34, Width - 180);
         y = composer.Text(Lang.Get("createacolony:residence-hint"), GuiKit.Muted(), 0, y, Width, 10);
         if (snapshot.Households.Count == 0)
         {
@@ -1090,6 +1442,116 @@ public class GuiDialogHut : GuiDialog
             y += 14;
         }
         composer.Pager(page, pages, y + 4, Width, p => { page = p; Compose(); });
+    }
+
+    /// <summary>
+    /// A Church's Church tab: the colony's Faith, the next service, the tithe (officers pick 0, 5 or 10 percent),
+    /// the church's coins and the people it looks after, then what it took in and spent over the last 30 days.
+    /// </summary>
+    void ComposeChurch(GuiComposer composer)
+    {
+        double y = 30;
+        int id = BuildingId;
+        y = composer.Section(Lang.Get("createacolony:church-faith-section"), y, Width);
+        y = composer.Row(Lang.Get("createacolony:church-faith-average"), snapshot.AverageFaith < 0 ? "-" : snapshot.AverageFaith.ToString(), 0, y, Width);
+        string[] words = { "devout", "faithful", "doubting", "faithless" };
+        for (int i = 0; i < words.Length && i < snapshot.FaithCounts.Count; i++)
+        {
+            y = composer.Row(Lang.Get("createacolony:faith-" + words[i]), snapshot.FaithCounts[i].ToString(), 10, y, Width - 10);
+        }
+        string service = snapshot.ServiceNow ? Lang.Get("createacolony:church-tab-service-now")
+            : snapshot.ServiceInDays == 0 ? Lang.Get("createacolony:church-tab-service-today")
+            : Lang.Get("createacolony:church-tab-service-in", snapshot.ServiceInDays);
+        y = composer.Text(service, GuiKit.Body(), 0, y + 4, Width, 10);
+
+        y = composer.Section(Lang.Get("createacolony:church-tithe-section"), y, Width);
+        composer.AddStaticText(Lang.Get("createacolony:church-tithe", snapshot.TithePercent), GuiKit.Body(), ElementBounds.Fixed(0, y + 5, 200, 25));
+        if (Officer)
+        {
+            double x = 200;
+            foreach (int percent in new[] { 0, 5, 10 })
+            {
+                string label = (percent == snapshot.TithePercent ? "> " : "") + percent + "%";
+                composer.AddSmallButton(label, () => SendText(ColonyAction.SetTithe, id, percent.ToString()), ElementBounds.Fixed(x, y, 60, 28));
+                x += 66;
+            }
+        }
+        y += 34;
+        y = composer.Text(Lang.Get("createacolony:church-tithe-hint"), GuiKit.Muted(), 0, y, Width, 6);
+        y = composer.Row(Lang.Get("createacolony:church-tab-coins"), snapshot.ChurchCoins.ToString(), 0, y, Width);
+
+        y = composer.Section(Lang.Get("createacolony:church-care-section"), y + 6, Width);
+        y = composer.Row(Lang.Get("createacolony:church-orphans"), snapshot.Orphans.ToString(), 0, y, Width);
+        y = composer.Row(Lang.Get("createacolony:church-sheltered"), snapshot.Sheltered.ToString(), 0, y, Width);
+        y = composer.Row(Lang.Get("createacolony:church-funerals-waiting"), snapshot.AwaitingFuneral.ToString(), 0, y, Width);
+        y = composer.Row(Lang.Get("createacolony:church-chronicle"), Lang.Get("createacolony:church-chronicle-progress", Math.Min(snapshot.ChronicleEvents, snapshot.ChronicleNeeds), snapshot.ChronicleNeeds), 0, y, Width);
+        y = composer.Row(Lang.Get("createacolony:church-stations"), snapshot.Stations.Count == 0 ? Lang.Get("createacolony:church-stations-none") : string.Join(", ", snapshot.Stations), 0, y, Width);
+
+        y = composer.Section(Lang.Get("createacolony:church-ledger-section"), y + 6, Width);
+        var days = snapshot.ChurchLedger;
+        if (days.Count == 0)
+        {
+            composer.Text(Lang.Get("createacolony:church-ledger-empty"), GuiKit.Muted(), 0, y, Width);
+            return;
+        }
+        y = composer.Row(Lang.Get("createacolony:church-ledger-tithes"), days.Sum(d => d.Tithes).ToString(), 0, y, Width);
+        y = composer.Row(Lang.Get("createacolony:church-ledger-food"), Lang.Get("createacolony:church-ledger-coins-for", days.Sum(d => d.FoodCoins), days.Sum(d => d.Meals)), 0, y, Width);
+        y = composer.Row(Lang.Get("createacolony:church-ledger-bandages"), Lang.Get("createacolony:church-ledger-coins-for", days.Sum(d => d.BandageCoins), days.Sum(d => d.Bandages)), 0, y, Width);
+        y = composer.Row(Lang.Get("createacolony:church-ledger-care"), days.Sum(d => d.CareCoins).ToString(), 0, y, Width);
+        y = composer.Row(Lang.Get("createacolony:church-ledger-attended"), days.Sum(d => d.Attended).ToString(), 0, y, Width);
+        y = composer.Row(Lang.Get("createacolony:church-ledger-funerals"), days.Sum(d => d.Funerals).ToString(), 0, y, Width);
+        composer.Row(Lang.Get("createacolony:church-ledger-books"), days.Sum(d => d.Books).ToString(), 0, y, Width);
+    }
+
+    /// <summary>
+    /// Choose residents: who lives here (with Move out) and every other grown settler with where they
+    /// live now (with Move in). A settler's partner and children always move with them.
+    /// </summary>
+    void ComposeChooseResidents(GuiComposer composer)
+    {
+        composer
+            .AddStaticText(Lang.Get("createacolony:residence-choose"), GuiKit.Heading(), ElementBounds.Fixed(0, 30, Width - 110, 26))
+            .AddSmallButton(Lang.Get("createacolony:back"), () => Open(ResidentsTab), ElementBounds.Fixed(Width - 100, 28, 100, 28));
+        double y = composer.Text(Lang.Get("createacolony:residence-choose-hint"), GuiKit.Muted(), 0, 64, Width, 8);
+
+        var here = snapshot.Households.SelectMany(h => h.Members).ToList();
+        y = composer.Section(Lang.Get("createacolony:residence-living-here", here.Count, snapshot.ResidenceBeds), y, Width);
+        if (here.Count == 0) y = composer.Text(Lang.Get("createacolony:residence-nobody"), GuiKit.Detail(), 0, y, Width, 8);
+        foreach (var m in here)
+        {
+            int id = m.CitizenId;
+            composer
+                .AddStaticText(m.Name, GuiKit.Body(), ElementBounds.Fixed(10, y + 5, 220, 25))
+                .AddStaticText(m.Child ? Lang.Get("createacolony:job-child") : JobName(m.Job), GuiKit.Muted(), ElementBounds.Fixed(240, y + 8, 160, 22));
+            // Children move with their parents, so only the grown-ups get a button.
+            if (!m.Child) composer.AddSmallButton(Lang.Get("createacolony:residence-move-out"), () => SendCitizen(ColonyAction.MoveOutResidence, id), ElementBounds.Fixed(Width - 130, y, 120, 28));
+            y += ListRowHeight;
+        }
+
+        y = composer.Section(Lang.Get("createacolony:residence-others", snapshot.ResidenceFreeBeds), y + 6, Width);
+        var others = snapshot.ResidentChoices;
+        if (others.Count == 0)
+        {
+            composer.Text(Lang.Get("createacolony:manage-nobody"), GuiKit.Detail(), 0, y, Width);
+            return;
+        }
+        int pages = (others.Count + ListRowsPerPage - 1) / ListRowsPerPage;
+        page = Math.Clamp(page, 0, pages - 1);
+        int shown = Math.Min(ListRowsPerPage, others.Count - page * ListRowsPerPage);
+        composer.AddInset(ElementBounds.Fixed(0, y, Width, shown * ListRowHeight + 8), 3, 0.8f);
+        y += 4;
+        foreach (var c in others.Skip(page * ListRowsPerPage).Take(ListRowsPerPage))
+        {
+            int id = c.CitizenId;
+            string home = c.Relation.Length > 0 ? c.Relation : Lang.Get("createacolony:citizen-no-home");
+            composer
+                .AddStaticText(c.Name, GuiKit.Body(), ElementBounds.Fixed(10, y + 6, 190, 25))
+                .AddStaticText(home, GuiKit.Muted(), ElementBounds.Fixed(200, y + 8, Width - 340, 22));
+            if (snapshot.ResidenceFreeBeds > 0) composer.AddSmallButton(Lang.Get("createacolony:residence-move-in"), () => SendCitizen(ColonyAction.MoveInResidence, id), ElementBounds.Fixed(Width - 130, y + 3, 120, 28));
+            y += ListRowHeight;
+        }
+        AddPager(composer, pages, y + 14);
+        if (snapshot.ResidenceFreeBeds == 0) composer.Text(Lang.Get("createacolony:residence-full"), GuiKit.Detail().WithColor(GuiKit.WarnColor), 0, y + (pages > 1 ? 50 : 14), Width);
     }
 
     static string JobName(string job) => Lang.Get("createacolony:job-" + (job.Length == 0 ? "none" : job));
@@ -1225,20 +1687,41 @@ public class GuiDialogHut : GuiDialog
     {
         if (ViewerRole < ColonyRole.Officer) return y;
         int id = b.BuildingId;
-        if (b.TargetLevel > 0)
+        if (b.Removing)
         {
-            composer.AddSmallButton(Lang.Get("createacolony:build-cancel"), () => Send(ColonyAction.CancelBuild, id), ElementBounds.Fixed(0, y, 160, 28));
+            composer.AddSmallButton(Lang.Get("createacolony:remove-stop"), () => Send(ColonyAction.CancelBuild, id), ElementBounds.Fixed(0, y, 200, 28));
             return y + 34;
         }
-        if (b.Level >= b.MaxLevel) return y;
-
-        string label = Lang.Get(b.Level == 0 ? "createacolony:build-start" : "createacolony:build-upgrade", b.Level + 1);
-        composer.AddSmallButton(label, () => Send(ColonyAction.Build, id), ElementBounds.Fixed(0, y, 160, 28));
+        if (b.TargetLevel > 0)
+        {
+            composer.AddSmallButton(Lang.Get(b.Repairing ? "createacolony:repair-stop" : "createacolony:build-cancel"), () => Send(ColonyAction.CancelBuild, id), ElementBounds.Fixed(0, y, 160, 28));
+            // An upkeep order (digging out ground) can be turned into a full repair.
+            if (!b.Repairing && b.TargetLevel == b.Level) AddRepairButton(composer, b, 170, y);
+            return y + 34;
+        }
+        double x = 0;
+        if (b.Level < b.MaxLevel)
+        {
+            string label = Lang.Get(b.Level == 0 ? "createacolony:build-start" : "createacolony:build-upgrade", b.Level + 1);
+            composer.AddSmallButton(label, () => Send(ColonyAction.Build, id), ElementBounds.Fixed(0, y, 160, 28));
+            x = 170;
+        }
         if (b.Level == 0)
         {
+            if (b.MaxLevel == 0) return y;
             composer.AddSmallButton(Lang.Get("createacolony:build-rotate", b.Rotation), () => Send(ColonyAction.Rotate, id), ElementBounds.Fixed(170, y, 200, 28));
         }
+        else if (b.MaxLevel > 0 && b.Type != BuildingTypes.MineshaftEntrance) AddRepairButton(composer, b, x, y);
+        else if (x == 0) return y;
         return y + 34;
+    }
+
+    /// <summary>Repair: a builder puts the building back as its blueprint has it (ColonyManager.Repair.cs).</summary>
+    internal void AddRepairButton(GuiComposer composer, BuildingView b, double x, double y)
+    {
+        int id = b.BuildingId;
+        composer.AddSmallButton(Lang.Get("createacolony:repair"), () => Send(ColonyAction.Repair, id), ElementBounds.Fixed(x, y, 160, 28));
+        composer.AddHoverText(Lang.Get("createacolony:repair-hint"), GuiKit.Detail(), 300, ElementBounds.Fixed(x, y, 160, 28));
     }
 
     void ComposeOrders(GuiComposer composer)
@@ -1255,20 +1738,122 @@ public class GuiDialogHut : GuiDialog
         int shown = Math.Min(OrdersPerPage, orders.Count - page * OrdersPerPage);
         composer.AddInset(ElementBounds.Fixed(0, 30, Width, shown * OrderRowHeight + 8), 3, 0.8f);
         double y = 34;
+        int number = page * OrdersPerPage;
         foreach (var o in orders.Skip(page * OrdersPerPage).Take(OrdersPerPage))
         {
-            string title = Lang.Get("createacolony:building-" + o.Type) + " " + Lang.Get("createacolony:order-level", o.TargetLevel);
+            number++;
+            string title = number + ". " + OrderTitle(o);
             composer
-                .AddStaticText(title, GuiKit.Body(), ElementBounds.Fixed(10, y + 6, Width - 150, 25))
-                .AddStaticText(StatusText(o), GuiKit.Detail().WithColor(GuiStyle.ActiveButtonTextColor), ElementBounds.Fixed(10, y + 30, Width - 150, 22));
+                .AddStaticText(title, GuiKit.Body(), ElementBounds.Fixed(10, y + 6, Width - 250, 25))
+                .AddStaticText(StatusText(o), GuiKit.Detail().WithColor(GuiStyle.ActiveButtonTextColor), ElementBounds.Fixed(10, y + 30, Width - 250, 22));
             if (ViewerRole >= ColonyRole.Officer)
             {
-                int id = o.BuildingId;
-                composer.AddSmallButton(Lang.Get("createacolony:build-cancel"), () => Send(ColonyAction.CancelBuild, id), ElementBounds.Fixed(Width - 130, y + 14, 120, 28));
+                int id = o.TeardownId > 0 ? o.TeardownId : o.BuildingId;
+                var action = o.TeardownId > 0 ? ColonyAction.CancelTeardown : ColonyAction.CancelBuild;
+                AddMoveButtons(composer, OrderKey(o), Width - 236, y + 14, 0);
+                composer.AddSmallButton(Lang.Get("createacolony:build-cancel"), () => Send(action, id), ElementBounds.Fixed(Width - 100, y + 14, 90, 28));
             }
             y += OrderRowHeight;
         }
         AddPager(composer, pages, y + 12);
+    }
+
+    /// <summary>The key a work order or trader house has in the builders' queue (ColonyManager.OrderKey).</summary>
+    internal static string OrderKey(BuildingView o) => o.TeardownId > 0 ? "t:" + o.TeardownId : "b:" + o.BuildingId;
+
+    /// <summary>▲, ▼ and "Do next" for one row of a Priorities list. Hut 0: the builders' queue.</summary>
+    void AddMoveButtons(GuiComposer composer, string key, double x, double y, int hutId)
+    {
+        composer
+            .AddSmallButton("^", () => Move(key, ColonyManager.MoveUp, hutId), ElementBounds.Fixed(x, y, 30, 28))
+            .AddSmallButton("v", () => Move(key, ColonyManager.MoveDown, hutId), ElementBounds.Fixed(x + 34, y, 30, 28))
+            .AddSmallButton(Lang.Get("createacolony:priority-top"), () => Move(key, ColonyManager.MoveTop, hutId), ElementBounds.Fixed(x + 68, y, 62, 28));
+    }
+
+    bool Move(string key, int move, int hutId)
+    {
+        network.SendAction(new ColonyActionPacket { ColonyId = snapshot.ColonyId, Action = ColonyAction.MovePriority, BuildingId = hutId, Text = key, Role = move });
+        return true;
+    }
+
+    /// <summary>
+    /// The Priorities tab of a crafting hut: what it keeps, in the order its worker makes what is short, with
+    /// how many there are. Officers move rows up and down; the order is the hut's from then on.
+    /// </summary>
+    void ComposePriorities(GuiComposer composer)
+    {
+        double y = 30;
+        if (snapshot.GatherOrder.Count > 0)
+        {
+            y = ComposeGatherOrder(composer, y);
+            y = composer.Section(Lang.Get("createacolony:priorities-crafting"), y, Width);
+        }
+        y = composer.Text(Lang.Get("createacolony:priorities-hint"), GuiKit.Muted(), 0, y, Width, 10);
+        var rows = snapshot.Craft.Concat(snapshot.Recipes).Concat(snapshot.Kitchen).Concat(snapshot.Pottery).Concat(snapshot.WorkRows)
+            .Where(r => r.Keep > 0).GroupBy(r => r.Key).ToDictionary(g => g.Key, g => g.First());
+        var keys = snapshot.Priorities.Where(rows.ContainsKey).ToList();
+        if (keys.Count == 0)
+        {
+            composer.Text(Lang.Get("createacolony:priorities-none"), GuiKit.Body(), 0, y, Width);
+            return;
+        }
+        // Under a Gatherer's collecting order there is room for fewer rows.
+        int perPage = snapshot.GatherOrder.Count > 0 ? 3 : PotteryRowsPerPage;
+        int pages = (keys.Count + perPage - 1) / perPage;
+        page = Math.Clamp(page, 0, pages - 1);
+        int shown = Math.Min(perPage, keys.Count - page * perPage);
+        composer.AddInset(ElementBounds.Fixed(0, y, Width, shown * PotteryRowHeight + 8), 3, 0.8f);
+        y += 4;
+        int number = page * perPage;
+        foreach (var key in keys.Skip(page * perPage).Take(perPage))
+        {
+            number++;
+            var row = rows[key];
+            var stack = new ItemStack(row.Stack);
+            if (!stack.ResolveBlockOrItem(capi.World)) continue;
+            var countFont = CairoFont.WhiteDetailText().WithColor(row.Have >= row.Keep ? GuiKit.GoodColor : GuiKit.WarnColor);
+            composer.AddRichtext(new RichTextComponentBase[]
+            {
+                new RichTextComponent(capi, number + ". ", CairoFont.WhiteSmallText()) { VerticalAlign = EnumVerticalAlign.Top },
+                new ItemstackTextComponent(capi, stack, 38, 10),
+                new RichTextComponent(capi, (row.Name ?? stack.GetName()) + "\n", CairoFont.WhiteSmallText()) { VerticalAlign = EnumVerticalAlign.Top },
+                new RichTextComponent(capi, row.PriorityText ?? Lang.Get("createacolony:priorities-have", row.Have, row.Keep), countFont)
+            }, ElementBounds.Fixed(6, y, Width - 150, PotteryRowHeight));
+            if (ViewerRole >= ColonyRole.Officer) AddMoveButtons(composer, key, Width - 136, y + 6, snapshot.Building.BuildingId);
+            y += PotteryRowHeight;
+        }
+        AddPager(composer, pages, y + 14);
+    }
+
+    const double GatherRowHeight = 32;
+
+    /// <summary>
+    /// A Gatherer's collecting order: the kinds of thing its gatherer goes for first, in two columns, with ^ and v
+    /// for officers. Returns the height below it.
+    /// </summary>
+    double ComposeGatherOrder(GuiComposer composer, double y)
+    {
+        y = composer.Section(Lang.Get("createacolony:gatherorder"), y, Width);
+        y = composer.Text(Lang.Get("createacolony:gatherorder-hint"), GuiKit.Muted(), 0, y, Width, 6);
+        var order = snapshot.GatherOrder;
+        int perColumn = (order.Count + 1) / 2;
+        double column = Width / 2;
+        composer.AddInset(ElementBounds.Fixed(0, y, Width, perColumn * GatherRowHeight + 8), 3, 0.8f);
+        for (int i = 0; i < order.Count; i++)
+        {
+            double x = (i / perColumn) * column + 8, rowY = y + 4 + (i % perColumn) * GatherRowHeight;
+            string key = ColonyManager.GatherKeyPrefix + order[i];
+            composer.AddStaticText((i + 1) + ". " + Lang.Get("createacolony:gatherorder-" + order[i]), GuiKit.Body(),
+                ElementBounds.Fixed(x, rowY + 5, column - 90, 24));
+            if (ViewerRole >= ColonyRole.Officer)
+            {
+                int hutId = snapshot.Building.BuildingId;
+                composer
+                    .AddSmallButton("^", () => Move(key, ColonyManager.MoveUp, hutId), ElementBounds.Fixed(x + column - 84, rowY + 2, 30, 26))
+                    .AddSmallButton("v", () => Move(key, ColonyManager.MoveDown, hutId), ElementBounds.Fixed(x + column - 50, rowY + 2, 30, 26));
+            }
+        }
+        return y + perColumn * GatherRowHeight + 20;
     }
 
     static readonly double[] MissingColor = { 1.0, 0.4, 0.35, 1.0 };
@@ -1362,7 +1947,7 @@ public class GuiDialogHut : GuiDialog
 
     /// <summary>White when the hut has enough, green when you carry some, red when nobody has it.</summary>
     static CairoFont CountFont(ResourceView r) => r.Have >= r.Needed ? GuiKit.Detail()
-        : GuiKit.Detail().WithColor(r.PlayerHas > 0 ? GuiKit.GoodColor : MissingColor);
+        : GuiKit.Detail().WithColor(r.PlayerHas > 0 ? GuiKit.GoodColor : r.InColony > 0 || r.MadeBy.Length > 0 ? GuiKit.WarnColor : MissingColor);
 
     string ResourceName(ItemStack stack, ResourceView r) =>
         r.IsTool ? Lang.Get("createacolony:items-tool", Lang.Get("createacolony:tool-" + (stack.Collectible.Tool?.ToString().ToLowerInvariant() ?? "")))
@@ -1373,8 +1958,12 @@ public class GuiDialogHut : GuiDialog
     {
         if (r.Have >= r.Needed) return Lang.Get("createacolony:resources-ready");
         string line = Lang.Get("createacolony:resources-in-hut", r.Have);
-        return r.PlayerHas > 0 ? line + "   " + Lang.Get("createacolony:resources-you-have", r.PlayerHas)
-            : r.IsTool ? line : line + "   " + Lang.Get("createacolony:resources-nobody");
+        if (r.PlayerHas > 0) return line + "   " + Lang.Get("createacolony:resources-you-have", r.PlayerHas);
+        if (r.IsTool) return line;
+        // On its way: in the warehouse for a courier, or another hut makes it.
+        if (r.InColony > 0) return line + "   " + Lang.Get("createacolony:resources-in-warehouse", r.InColony);
+        if (r.MadeBy.Length > 0) return line + "   " + Lang.Get("createacolony:resources-made-by", r.MadeBy);
+        return line + "   " + Lang.Get("createacolony:resources-nobody");
     }
 
     /// <summary>
@@ -1396,8 +1985,16 @@ public class GuiDialogHut : GuiDialog
         ? Lang.Get("createacolony:building-no-blueprints", b.Level)
         : Lang.Get("createacolony:building-level", b.Level, b.MaxLevel);
 
-    internal static string StatusText(BuildingView b) =>
-        Lang.Get("createacolony:build-status", b.TargetLevel, b.ProgressPercent, Lang.Get("createacolony:buildstatus-" + b.Status));
+    internal static string StatusText(BuildingView b) => b.Removing
+        ? Lang.Get("createacolony:remove-status", b.ProgressPercent, Lang.Get("createacolony:buildstatus-" + b.Status))
+        : b.Repairing ? Lang.Get("createacolony:repair-status", b.ProgressPercent, Lang.Get("createacolony:buildstatus-" + b.Status))
+        : Lang.Get("createacolony:build-status", b.TargetLevel, b.ProgressPercent, Lang.Get("createacolony:buildstatus-" + b.Status));
+
+    /// <summary>A work order's title in the lists: the building and the level it goes to, or that it comes down.</summary>
+    internal static string OrderTitle(BuildingView o) => o.TeardownId > 0 ? Lang.Get("createacolony:teardown-name", o.Name) : o.Removing
+        ? Lang.Get("createacolony:order-remove", o.Name)
+        : o.Repairing ? Lang.Get("createacolony:order-repair", o.Name)
+        : Lang.Get("createacolony:building-" + o.Type) + " " + Lang.Get("createacolony:order-level", o.TargetLevel);
 
     /// <summary>The server opens the storage window; this one closes so they do not overlap.</summary>
     bool OpenStorage()

@@ -1,9 +1,9 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Runtime.InteropServices;
 using Cairo;
 using CreateAColony.Colonies;
+using CreateAColony.Map;
 using CreateAColony.Network;
 using Vintagestory.API.Client;
 using Vintagestory.API.Common;
@@ -12,117 +12,10 @@ using Vintagestory.API.MathTools;
 
 namespace CreateAColony.Gui;
 
-/// <summary>
-/// A picture of the ground seen from above, sampled from the chunks the client has loaded: one pixel per
-/// Step blocks, coloured like the vanilla world map and shaded by slope. Land that is not loaded is dark.
-/// Made once and kept, as MineColonies' town map is, until the player asks for a fresh one.
-/// </summary>
-public class ColonyMapTerrain
-{
-    static readonly int Unknown = Argb(38, 38, 42);
-
-    public int MinX, MinZ, Width, Height, Step;
-    public int[] Pixels = Array.Empty<int>();
-
-    /// <summary>Samples the ground between the two corners (inclusive), at most maxSide pixels a side.</summary>
-    public static ColonyMapTerrain Build(ICoreClientAPI capi, int minX, int minZ, int maxX, int maxZ, int maxSide)
-    {
-        int step = Math.Max(1, (int)Math.Ceiling(Math.Max(maxX - minX + 1, maxZ - minZ + 1) / (double)maxSide));
-        var map = new ColonyMapTerrain
-        {
-            MinX = minX, MinZ = minZ, Step = step,
-            Width = (maxX - minX) / step + 1, Height = (maxZ - minZ) / step + 1
-        };
-        map.Pixels = new int[map.Width * map.Height];
-        var heights = new int[map.Width * map.Height];
-        var ba = capi.World.BlockAccessor;
-        var pos = new BlockPos(0);
-        const int chunkSize = GlobalConstants.ChunkSize;
-
-        for (int pz = 0; pz < map.Height; pz++)
-        {
-            for (int px = 0; px < map.Width; px++)
-            {
-                int i = pz * map.Width + px;
-                int x = minX + px * step + step / 2, z = minZ + pz * step + step / 2;
-                var mapChunk = ba.GetMapChunk(x / chunkSize, z / chunkSize);
-                if (mapChunk == null)
-                {
-                    map.Pixels[i] = Unknown;
-                    heights[i] = -1;
-                    continue;
-                }
-                int y = mapChunk.RainHeightMap[GameMath.Mod(z, chunkSize) * chunkSize + GameMath.Mod(x, chunkSize)];
-                if (ba.GetChunk(x / chunkSize, y / chunkSize, z / chunkSize) == null)
-                {
-                    map.Pixels[i] = Unknown;
-                    heights[i] = -1;
-                    continue;
-                }
-                heights[i] = y;
-                pos.Set(x, y, z);
-                try
-                {
-                    var block = ba.GetBlock(pos, BlockLayersAccess.FluidOrSolid);
-                    if (block.BlockMaterial == EnumBlockMaterial.Snow && y > 0)
-                    {
-                        // Snow on top hides the ground, so look at what it lies on, as the world map does.
-                        pos.Y--;
-                        block = ba.GetBlock(pos, BlockLayersAccess.FluidOrSolid);
-                    }
-                    int color = block.Id == 0 ? Unknown : block.GetColor(capi, pos);
-                    // Block colours keep red in the lowest byte; Cairo wants 0xAARRGGBB.
-                    map.Pixels[i] = Argb(color & 0xff, (color >> 8) & 0xff, (color >> 16) & 0xff);
-                }
-                catch (Exception)
-                {
-                    map.Pixels[i] = Unknown;
-                }
-            }
-        }
-
-        // Slopes facing north-west lighter, the others darker, so hills show.
-        for (int pz = 1; pz < map.Height; pz++)
-        {
-            for (int px = 1; px < map.Width; px++)
-            {
-                int i = pz * map.Width + px;
-                int here = heights[i], there = heights[(pz - 1) * map.Width + px - 1];
-                if (here < 0 || there < 0 || here == there) continue;
-                float shade = here > there ? 1.12f : 0.86f;
-                map.Pixels[i] = Shade(map.Pixels[i], shade);
-            }
-        }
-        return map;
-    }
-
-    public bool Covers(int minX, int minZ, int maxX, int maxZ, int maxSide)
-    {
-        int step = Math.Max(1, (int)Math.Ceiling(Math.Max(maxX - minX + 1, maxZ - minZ + 1) / (double)maxSide));
-        return MinX == minX && MinZ == minZ && Step == step && Width == (maxX - minX) / step + 1 && Height == (maxZ - minZ) / step + 1;
-    }
-
-    public static int Argb(int r, int g, int b) => unchecked((int)0xff000000) | r << 16 | g << 8 | b;
-
-    public static int Shade(int argb, float f)
-    {
-        int r = Math.Min(255, (int)(((argb >> 16) & 0xff) * f));
-        int g = Math.Min(255, (int)(((argb >> 8) & 0xff) * f));
-        int b = Math.Min(255, (int)((argb & 0xff) * f));
-        return Argb(r, g, b);
-    }
-
-    public static int Mix(int argb, int r, int g, int b, float amount)
-    {
-        int Blend(int from, int to) => (int)(from + (to - from) * amount);
-        return Argb(Blend((argb >> 16) & 0xff, r), Blend((argb >> 8) & 0xff, g), Blend(argb & 0xff, b));
-    }
-}
-
 /// <summary>Where the Town map is looking and how close, kept by the window so it stays put when the window redraws.</summary>
 public class ColonyMapView
 {
-    /// <summary>1 shows the whole map; 2 shows half as much land, twice as big; and so on.</summary>
+    /// <summary>1 fits the colony in the box; 2 shows half as much land, twice as big; below 1 shows the land around it.</summary>
     public double Zoom = 1;
     /// <summary>The block the middle of the map shows; NaN for the middle of the colony.</summary>
     public double CenterX = double.NaN, CenterZ = double.NaN;
@@ -135,48 +28,54 @@ public class ColonyMapView
 }
 
 /// <summary>
-/// The Town map: the ground, the colony's land tinted with a gold outline, each building's ground
-/// (Town Hall gold, huts blue, buildings being built orange), the settlers as dots and the player.
-/// North is up. The mouse wheel zooms in and out around the pointer, dragging with the left button
-/// moves the map, and pointing at a building names it. The picture is drawn into its own texture and
-/// redrawn only when something changes, so zooming and dragging do not rebuild the whole window.
+/// The Town map: the ground as the world map draws it, for all land near the colony that the player or a
+/// settler has loaded (see ColonyLandMap), with the colony's land tinted and outlined in gold, each building's
+/// ground (Town Hall gold, huts blue, buildings being built orange), the settlers as dots and the player.
+/// North is up. The mouse wheel zooms around the pointer, from the whole area down to a few blocks, dragging
+/// with the left button moves the map, and pointing at a building names it. The ground is drawn from
+/// textures of 8 by 8 chunks; the rest is drawn into one texture redrawn only when something changes.
 /// </summary>
 public class GuiElementColonyMap : GuiElement
 {
-    public const double MinZoom = 1, MaxZoom = 10;
+    /// <summary>Most screen pixels one block may take when zoomed right in.</summary>
+    const double MaxPixelsPerBlock = 16;
 
-    readonly ColonyMapTerrain terrain;
+    readonly ColonyLandMap? landMap;
+    readonly string colonyId;
+    readonly (int MinX, int MinZ, int MaxX, int MaxZ) box;
     readonly ColonyMapView view;
     ColonySnapshot snapshot;
     Vec3d? player;
-    bool[] mask;
-    // The ground with the colony's land tinted, one pixel per map pixel; scaled up when drawn.
-    ImageSurface? ground;
+    // The colony's land as non-overlapping cells (to tint) and the edge of it (to outline), in blocks.
+    List<(double X1, double Z1, double X2, double Z2)> claimCells = new();
+    List<(double X1, double Z1, double X2, double Z2)> claimEdges = new();
+    // Buildings, dots and labels; the ground is drawn under it from ColonyLandMap's textures.
     LoadedTexture texture;
     bool dirty = true;
+    bool hadTiles;
     bool dragging;
     int prevMouseX, prevMouseY;
     MapBuildingView? hovered;
+    // The settler under the pointer, by citizen id; settlers are on top of buildings, so they win.
+    int hoveredCitizen = -1;
 
-    public GuiElementColonyMap(ICoreClientAPI capi, ElementBounds bounds, ColonyMapTerrain terrain, ColonySnapshot snapshot, Vec3d? player, ColonyMapView view) : base(capi, bounds)
+    /// <summary>box is the colony's land and buildings in blocks (inclusive), which Fit shows.</summary>
+    public GuiElementColonyMap(ICoreClientAPI capi, ElementBounds bounds, ColonySnapshot snapshot, (int MinX, int MinZ, int MaxX, int MaxZ) box, Vec3d? player, ColonyMapView view) : base(capi, bounds)
     {
-        this.terrain = terrain;
+        landMap = capi.ModLoader.GetModSystem<ColonyLandMap>();
+        colonyId = snapshot.ColonyId;
         this.snapshot = snapshot;
+        this.box = box;
         this.player = player;
         this.view = view;
         texture = new LoadedTexture(capi);
-        mask = ClaimMask(terrain, snapshot);
+        MakeClaimShape(snapshot.ClaimRects);
     }
 
     /// <summary>New settler positions and claim from the server, without rebuilding the window (which would drop a drag).</summary>
     public void SetSnapshot(ColonySnapshot fresh, Vec3d? player)
     {
-        if (!fresh.ClaimRects.SequenceEqual(snapshot.ClaimRects))
-        {
-            mask = ClaimMask(terrain, fresh);
-            ground?.Dispose();
-            ground = null;
-        }
+        if (!fresh.ClaimRects.SequenceEqual(snapshot.ClaimRects)) MakeClaimShape(fresh.ClaimRects);
         var was = hovered;
         snapshot = fresh;
         this.player = player;
@@ -185,10 +84,7 @@ public class GuiElementColonyMap : GuiElement
     }
 
     /// <summary>Zooms by a factor around the middle of the map (the + and − buttons).</summary>
-    public void ZoomBy(double factor)
-    {
-        ZoomAt(factor, Bounds.InnerWidth / 2, Bounds.InnerHeight / 2);
-    }
+    public void ZoomBy(double factor) => ZoomAt(factor, Bounds.InnerWidth / 2, Bounds.InnerHeight / 2);
 
     /// <summary>Shows the whole colony again.</summary>
     public void Fit()
@@ -197,71 +93,112 @@ public class GuiElementColonyMap : GuiElement
         dirty = true;
     }
 
-    /// <summary>Which map pixels lie on the colony's land.</summary>
-    public static bool[] ClaimMask(ColonyMapTerrain terrain, ColonySnapshot snapshot)
+    /// <summary>Moves the map so the player is in the middle.</summary>
+    public void CenterOnPlayer()
     {
-        var mask = new bool[terrain.Width * terrain.Height];
-        var rects = snapshot.ClaimRects;
-        for (int r = 0; r + 3 < rects.Count; r += 4)
+        if (player == null) return;
+        view.CenterX = player.X;
+        view.CenterZ = player.Z;
+        dirty = true;
+    }
+
+    /// <summary>
+    /// Cuts the claim rectangles (minX, minZ, maxX, maxZ, inclusive) along every edge any of them has, so the
+    /// land is a grid of cells that are either claimed or not: claimed cells are tinted once each, and the outline
+    /// is every side of a claimed cell that touches an unclaimed one.
+    /// </summary>
+    void MakeClaimShape(List<int> rects)
+    {
+        claimCells = new();
+        claimEdges = new();
+        var all = new List<(int X1, int Z1, int X2, int Z2)>();
+        for (int r = 0; r + 3 < rects.Count; r += 4) all.Add((rects[r], rects[r + 1], rects[r + 2] + 1, rects[r + 3] + 1));
+        if (all.Count == 0) return;
+        var xs = all.SelectMany(a => new[] { a.X1, a.X2 }).Distinct().OrderBy(v => v).ToList();
+        var zs = all.SelectMany(a => new[] { a.Z1, a.Z2 }).Distinct().OrderBy(v => v).ToList();
+        int w = xs.Count - 1, h = zs.Count - 1;
+        var claimed = new bool[w, h];
+        for (int i = 0; i < w; i++)
         {
-            for (int pz = 0; pz < terrain.Height; pz++)
+            for (int j = 0; j < h; j++)
             {
-                int z = terrain.MinZ + pz * terrain.Step + terrain.Step / 2;
-                if (z < rects[r + 1] || z > rects[r + 3]) continue;
-                for (int px = 0; px < terrain.Width; px++)
-                {
-                    int x = terrain.MinX + px * terrain.Step + terrain.Step / 2;
-                    if (x >= rects[r] && x <= rects[r + 2]) mask[pz * terrain.Width + px] = true;
-                }
+                double mx = (xs[i] + xs[i + 1]) / 2.0, mz = (zs[j] + zs[j + 1]) / 2.0;
+                claimed[i, j] = all.Any(a => mx >= a.X1 && mx < a.X2 && mz >= a.Z1 && mz < a.Z2);
             }
         }
-        return mask;
+        bool In(int i, int j) => i >= 0 && j >= 0 && i < w && j < h && claimed[i, j];
+        for (int i = 0; i < w; i++)
+        {
+            for (int j = 0; j < h; j++)
+            {
+                if (!claimed[i, j]) continue;
+                double x0 = xs[i], x1 = xs[i + 1], z0 = zs[j], z1 = zs[j + 1];
+                claimCells.Add((x0, z0, x1, z1));
+                if (!In(i, j - 1)) claimEdges.Add((x0, z0, x1, z0));
+                if (!In(i, j + 1)) claimEdges.Add((x0, z1, x1, z1));
+                if (!In(i - 1, j)) claimEdges.Add((x0, z0, x0, z1));
+                if (!In(i + 1, j)) claimEdges.Add((x1, z0, x1, z1));
+            }
+        }
     }
 
     // ---- Where things are on screen -------------------------------------------------------
 
-    /// <summary>Screen size of one map pixel at the current zoom; at zoom 1 the whole map fits the box.</summary>
-    double Cell => Math.Min(Bounds.InnerWidth / terrain.Width, Bounds.InnerHeight / terrain.Height) * view.Zoom;
+    /// <summary>Screen pixels per block that fit the colony in the box.</summary>
+    double FitScale => Math.Min(Bounds.InnerWidth / (box.MaxX - box.MinX + 1.0), Bounds.InnerHeight / (box.MaxZ - box.MinZ + 1.0));
 
-    /// <summary>Where the map's top left corner is drawn, inside the element, at the current zoom and position.</summary>
-    (double Left, double Top) Origin()
+    double PixelsPerBlock => FitScale * view.Zoom;
+
+    /// <summary>The land the map can show, in blocks: what the server allows, else a guess until it answers.</summary>
+    (double MinX, double MinZ, double MaxX, double MaxZ) Area()
     {
-        double cell = Cell;
-        double cx = (view.CenterX - terrain.MinX) / terrain.Step, cz = (view.CenterZ - terrain.MinZ) / terrain.Step;
-        return (Bounds.InnerWidth / 2 - cx * cell, Bounds.InnerHeight / 2 - cz * cell);
+        int chunk = GlobalConstants.ChunkSize;
+        if (landMap?.RangeOf(colonyId) is { } r) return (r.MinX * chunk, r.MinZ * chunk, (r.MaxX + 1) * chunk, (r.MaxZ + 1) * chunk);
+        return (box.MinX - 1024, box.MinZ - 1024, box.MaxX + 1024, box.MaxZ + 1024);
     }
 
-    /// <summary>
-    /// Keeps the zoom between MinZoom and MaxZoom and the map on screen: an edge of the map never comes past
-    /// the edge of the box, and a map smaller than the box stays in its middle.
-    /// </summary>
+    /// <summary>Zoomed out, the whole area fits; zoomed in, a block is at most MaxPixelsPerBlock across.</summary>
+    (double Min, double Max) ZoomLimits()
+    {
+        var a = Area();
+        double fit = FitScale;
+        double whole = Math.Min(Bounds.InnerWidth / (a.MaxX - a.MinX), Bounds.InnerHeight / (a.MaxZ - a.MinZ));
+        return (Math.Min(1, whole / fit), Math.Max(1, MaxPixelsPerBlock / fit));
+    }
+
+    /// <summary>Keeps the zoom in its limits and the middle of the map inside the area.</summary>
     void Clamp()
     {
-        view.Zoom = Math.Clamp(double.IsFinite(view.Zoom) ? view.Zoom : 1, MinZoom, MaxZoom);
-        double cell = Cell;
-        double Axis(double center, int origin, int pixels, double box)
+        var (min, max) = ZoomLimits();
+        view.Zoom = Math.Clamp(double.IsFinite(view.Zoom) ? view.Zoom : 1, min, max);
+        var a = Area();
+        if (double.IsNaN(view.CenterX) || double.IsNaN(view.CenterZ))
         {
-            double mid = pixels / 2.0;
-            double c = double.IsNaN(center) ? mid : (center - origin) / terrain.Step;
-            double half = box / 2 / cell;
-            c = pixels * cell <= box ? mid : Math.Clamp(c, half, pixels - half);
-            return origin + c * terrain.Step;
+            view.CenterX = (box.MinX + box.MaxX + 1) / 2.0;
+            view.CenterZ = (box.MinZ + box.MaxZ + 1) / 2.0;
         }
-        view.CenterX = Axis(view.CenterX, terrain.MinX, terrain.Width, Bounds.InnerWidth);
-        view.CenterZ = Axis(view.CenterZ, terrain.MinZ, terrain.Height, Bounds.InnerHeight);
+        view.CenterX = Math.Clamp(view.CenterX, a.MinX, a.MaxX);
+        view.CenterZ = Math.Clamp(view.CenterZ, a.MinZ, a.MaxZ);
+    }
+
+    /// <summary>A block position on screen, in the element's own pixels.</summary>
+    (double X, double Y) WorldToScreen(double x, double z)
+    {
+        double scale = PixelsPerBlock;
+        return (Bounds.InnerWidth / 2 + (x - view.CenterX) * scale, Bounds.InnerHeight / 2 + (z - view.CenterZ) * scale);
     }
 
     /// <summary>Zooms by a factor keeping the land under (mx, my), in the element's own pixels, where it is.</summary>
     void ZoomAt(double factor, double mx, double my)
     {
         Clamp();
-        var (left, top) = Origin();
-        double cell = Cell;
-        double px = (mx - left) / cell, pz = (my - top) / cell;
-        view.Zoom = Math.Clamp(view.Zoom * factor, MinZoom, MaxZoom);
-        double newCell = Cell;
-        view.CenterX = terrain.MinX + (px - (mx - Bounds.InnerWidth / 2) / newCell) * terrain.Step;
-        view.CenterZ = terrain.MinZ + (pz - (my - Bounds.InnerHeight / 2) / newCell) * terrain.Step;
+        double scale = PixelsPerBlock;
+        double wx = view.CenterX + (mx - Bounds.InnerWidth / 2) / scale, wz = view.CenterZ + (my - Bounds.InnerHeight / 2) / scale;
+        var (min, max) = ZoomLimits();
+        view.Zoom = Math.Clamp(view.Zoom * factor, min, max);
+        double newScale = PixelsPerBlock;
+        view.CenterX = wx - (mx - Bounds.InnerWidth / 2) / newScale;
+        view.CenterZ = wz - (my - Bounds.InnerHeight / 2) / newScale;
         Clamp();
         dirty = true;
     }
@@ -289,21 +226,45 @@ public class GuiElementColonyMap : GuiElement
         if (dragging && !api.Input.MouseButton.Left) dragging = false;
         if (dragging)
         {
-            double cell = Cell;
-            view.CenterX -= (args.X - prevMouseX) / cell * terrain.Step;
-            view.CenterZ -= (args.Y - prevMouseY) / cell * terrain.Step;
+            double scale = PixelsPerBlock;
+            view.CenterX -= (args.X - prevMouseX) / scale;
+            view.CenterZ -= (args.Y - prevMouseY) / scale;
             prevMouseX = args.X;
             prevMouseY = args.Y;
             Clamp();
             dirty = true;
         }
 
-        var under = Bounds.PointInside(args.X, args.Y) ? BuildingAt(args.X - Bounds.absX, args.Y - Bounds.absY) : null;
-        if (under != hovered)
+        bool inside = Bounds.PointInside(args.X, args.Y);
+        int citizen = inside ? CitizenAt(args.X - Bounds.absX, args.Y - Bounds.absY) : -1;
+        var under = inside && citizen < 0 ? BuildingAt(args.X - Bounds.absX, args.Y - Bounds.absY) : null;
+        if (under != hovered || citizen != hoveredCitizen)
         {
             hovered = under;
+            hoveredCitizen = citizen;
             dirty = true;
         }
+    }
+
+    IEnumerable<CitizenView> ShownCitizens => snapshot.Citizens.Where(c => c.State != "dead" && (c.X != 0 || c.Z != 0));
+
+    /// <summary>The settler whose dot is nearest a point in the element's own pixels, within a few pixels; -1 for none.</summary>
+    int CitizenAt(double x, double y)
+    {
+        Clamp();
+        double reach = scaled(7), best = reach * reach;
+        int found = -1;
+        foreach (var c in ShownCitizens)
+        {
+            var (cx, cy) = WorldToScreen(c.X + 0.5, c.Z + 0.5);
+            double d = (cx - x) * (cx - x) + (cy - y) * (cy - y);
+            if (d < best)
+            {
+                best = d;
+                found = c.CitizenId;
+            }
+        }
+        return found;
     }
 
     public override void OnMouseWheel(ICoreClientAPI api, MouseWheelEventArgs args)
@@ -317,11 +278,9 @@ public class GuiElementColonyMap : GuiElement
     MapBuildingView? BuildingAt(double x, double y)
     {
         Clamp();
-        var (left, top) = Origin();
-        double cell = Cell;
         foreach (var b in snapshot.MapBuildings.OrderBy(b => b.Type == BuildingTypes.TownHall))
         {
-            var (bx, by, bw, bh) = Rect(terrain, b, cell, left, top, scaled(6));
+            var (bx, by, bw, bh) = Rect(b, scaled(6));
             if (x >= bx && x <= bx + bw && y >= by && y <= by + bh) return b;
         }
         return null;
@@ -337,9 +296,47 @@ public class GuiElementColonyMap : GuiElement
 
     public override void RenderInteractiveElements(float deltaTime)
     {
+        landMap?.Poll(colonyId);
+        bool hasTiles = landMap?.HasAnyTiles == true;
+        if (hasTiles != hadTiles)
+        {
+            hadTiles = hasTiles;
+            dirty = true;
+        }
+        Clamp();
+        api.Render.PushScissor(Bounds);
+        RenderGround();
         if (dirty) Redraw();
-        if (texture.TextureId == 0) return;
-        api.Render.Render2DTexturePremultipliedAlpha(texture.TextureId, Bounds.renderX, Bounds.renderY, Bounds.InnerWidth, Bounds.InnerHeight);
+        if (texture.TextureId != 0)
+        {
+            api.Render.Render2DTexturePremultipliedAlpha(texture.TextureId, Bounds.renderX, Bounds.renderY, Bounds.InnerWidth, Bounds.InnerHeight);
+        }
+        api.Render.PopScissor();
+    }
+
+    /// <summary>The ground: each texture of 8 by 8 chunks that is on screen. Land nobody has loaded stays dark.</summary>
+    void RenderGround()
+    {
+        if (landMap == null) return;
+        int size = ColonyLandMap.RegionSize;
+        double scale = PixelsPerBlock, halfW = Bounds.InnerWidth / 2 / scale, halfH = Bounds.InnerHeight / 2 / scale;
+        int rx0 = ColonyLandMap.FloorDiv((int)Math.Floor(view.CenterX - halfW), size), rx1 = ColonyLandMap.FloorDiv((int)Math.Floor(view.CenterX + halfW), size);
+        int rz0 = ColonyLandMap.FloorDiv((int)Math.Floor(view.CenterZ - halfH), size), rz1 = ColonyLandMap.FloorDiv((int)Math.Floor(view.CenterZ + halfH), size);
+        // Remaking a texture takes a moment, so only a few are remade each frame.
+        int budget = 3;
+        for (int rz = rz0; rz <= rz1; rz++)
+        {
+            for (int rx = rx0; rx <= rx1; rx++)
+            {
+                int id = landMap.RegionTexture(rx, rz, ref budget);
+                if (id == 0) continue;
+                var (x0, y0) = WorldToScreen(rx * size, rz * size);
+                var (x1, y1) = WorldToScreen((rx + 1) * size, (rz + 1) * size);
+                // Whole pixels, so neighbouring textures meet without a gap.
+                x0 = Math.Floor(x0); y0 = Math.Floor(y0); x1 = Math.Floor(x1); y1 = Math.Floor(y1);
+                api.Render.Render2DTexture(id, (float)(Bounds.renderX + x0), (float)(Bounds.renderY + y0), (float)(x1 - x0), (float)(y1 - y0));
+            }
+        }
     }
 
     void Redraw()
@@ -349,75 +346,32 @@ public class GuiElementColonyMap : GuiElement
         using var surface = new ImageSurface(Format.Argb32, width, height);
         using (var ctx = new Context(surface))
         {
-            Clamp();
-            var (left, top) = Origin();
-            Draw(ctx, Cell, left, top, width, height);
+            Draw(ctx, width, height);
         }
         api.Gui.LoadOrUpdateCairoTexture(surface, false, ref texture);
     }
 
-    /// <summary>The ground, with the colony's land tinted gold, as one small picture to scale up.</summary>
-    ImageSurface Ground()
+    void Draw(Context ctx, int width, int height)
     {
-        int w = terrain.Width, h = terrain.Height;
-        var pixels = (int[])terrain.Pixels.Clone();
-        for (int i = 0; i < pixels.Length; i++)
-        {
-            if (mask[i]) pixels[i] = ColonyMapTerrain.Mix(pixels[i], 255, 210, 90, 0.18f);
-        }
-        var image = new ImageSurface(Format.Argb32, w, h);
-        image.Flush();
-        int stride = image.Stride / 4;
-        var rowBuffer = new int[stride];
-        for (int row = 0; row < h; row++)
-        {
-            Array.Copy(pixels, row * w, rowBuffer, 0, w);
-            Marshal.Copy(rowBuffer, 0, image.DataPtr + row * image.Stride, stride);
-        }
-        image.MarkDirty();
-        return image;
-    }
+        double scale = PixelsPerBlock;
 
-    void Draw(Context ctx, double cell, double left, double top, int width, int height)
-    {
-        int w = terrain.Width, h = terrain.Height;
-
-        // Behind the map, where it does not reach.
-        ctx.SetSourceRGBA(0.15, 0.15, 0.16, 1);
-        ctx.Rectangle(0, 0, width, height);
+        // The colony's land: a light gold tint, and a gold line round the edge.
+        ctx.SetSourceRGBA(1, 0.82, 0.35, 0.18);
+        foreach (var c in claimCells)
+        {
+            var (x0, y0) = WorldToScreen(c.X1, c.Z1);
+            var (x1, y1) = WorldToScreen(c.X2, c.Z2);
+            ctx.Rectangle(x0, y0, x1 - x0, y1 - y0);
+        }
         ctx.Fill();
-
-        ground ??= Ground();
-        ctx.Save();
-        ctx.Translate(left, top);
-        ctx.Scale(cell, cell);
-        using (var pattern = new SurfacePattern(ground) { Filter = Filter.Nearest })
-        {
-            ctx.SetSource(pattern);
-            ctx.Rectangle(0, 0, w, h);
-            ctx.Fill();
-        }
-        ctx.Restore();
-
-        // Only the map pixels on screen need their edges drawn.
-        int px0 = Math.Max(0, (int)Math.Floor(-left / cell) - 1), px1 = Math.Min(w - 1, (int)Math.Ceiling((width - left) / cell) + 1);
-        int pz0 = Math.Max(0, (int)Math.Floor(-top / cell) - 1), pz1 = Math.Min(h - 1, (int)Math.Ceiling((height - top) / cell) + 1);
-
-        // The edge of the colony's land: every side of a claimed pixel that touches unclaimed land.
-        bool Claimed(int px, int pz) => px >= 0 && pz >= 0 && px < w && pz < h && mask[pz * w + px];
         ctx.SetSourceRGBA(1, 0.82, 0.25, 1);
         ctx.LineWidth = Math.Max(1.5, scaled(2));
-        for (int pz = pz0; pz <= pz1; pz++)
+        foreach (var e in claimEdges)
         {
-            for (int px = px0; px <= px1; px++)
-            {
-                if (!mask[pz * w + px]) continue;
-                double x0 = left + px * cell, y0 = top + pz * cell, x1 = x0 + cell, y1 = y0 + cell;
-                if (!Claimed(px, pz - 1)) { ctx.MoveTo(x0, y0); ctx.LineTo(x1, y0); }
-                if (!Claimed(px, pz + 1)) { ctx.MoveTo(x0, y1); ctx.LineTo(x1, y1); }
-                if (!Claimed(px - 1, pz)) { ctx.MoveTo(x0, y0); ctx.LineTo(x0, y1); }
-                if (!Claimed(px + 1, pz)) { ctx.MoveTo(x1, y0); ctx.LineTo(x1, y1); }
-            }
+            var (x0, y0) = WorldToScreen(e.X1, e.Z1);
+            var (x1, y1) = WorldToScreen(e.X2, e.Z2);
+            ctx.MoveTo(x0, y0);
+            ctx.LineTo(x1, y1);
         }
         ctx.Stroke();
 
@@ -425,7 +379,7 @@ public class GuiElementColonyMap : GuiElement
         double minSize = scaled(5);
         foreach (var b in snapshot.MapBuildings.OrderBy(b => b.Type == BuildingTypes.TownHall))
         {
-            var (x, y, bw, bh) = Rect(terrain, b, cell, left, top, minSize);
+            var (x, y, bw, bh) = Rect(b, minSize);
             double[] color = b.Type == BuildingTypes.TownHall ? new[] { 1.0, 0.8, 0.2 }
                 : b.UnderConstruction || b.Level == 0 ? new[] { 1.0, 0.55, 0.2 }
                 : new[] { 0.45, 0.75, 1.0 };
@@ -439,34 +393,52 @@ public class GuiElementColonyMap : GuiElement
             ctx.SetDash(Array.Empty<double>(), 0);
         }
 
-        // Settlers, then the player on top. Dots grow a little when zoomed in.
-        double dotScale = Math.Min(2, 1 + (view.Zoom - 1) / 6);
-        foreach (var c in snapshot.Citizens.Where(c => c.State != "dead" && (c.X != 0 || c.Z != 0)))
+        // Settlers, then the player on top. Dots grow a little when zoomed in, and shrink a little zoomed out.
+        double dotScale = Math.Clamp(1 + (view.Zoom - 1) / 6, 0.7, 2);
+        foreach (var c in ShownCitizens)
         {
             double[] color = c.Visitor ? new[] { 1.0, 0.9, 0.3 } : c.State == "downed" ? new[] { 0.9, 0.3, 0.3 } : new[] { 0.4, 0.95, 0.45 };
-            Dot(ctx, WorldToScreen(terrain, c.X + 0.5, c.Z + 0.5, cell, left, top), scaled(3) * dotScale, color);
+            Dot(ctx, WorldToScreen(c.X + 0.5, c.Z + 0.5), scaled(3) * dotScale * (c.CitizenId == hoveredCitizen ? 1.5 : 1), color);
         }
-        if (player != null) Dot(ctx, WorldToScreen(terrain, player.X, player.Z, cell, left, top), scaled(4) * dotScale, new[] { 1.0, 1.0, 1.0 });
+        if (player != null) Dot(ctx, WorldToScreen(player.X, player.Z), scaled(4) * Math.Max(1, dotScale), new[] { 1.0, 1.0, 1.0 });
 
-        // North arrow, and how far zoomed in.
+        // North arrow, how far zoomed in, and a note while the ground is on its way.
         ctx.SelectFontFace("Sans", FontSlant.Normal, FontWeight.Bold);
         ctx.SetFontSize(scaled(14));
         Label(ctx, "N ↑", scaled(6), scaled(6), false);
-        if (view.Zoom > MinZoom + 0.01)
+        ctx.SelectFontFace("Sans", FontSlant.Normal, FontWeight.Normal);
+        ctx.SetFontSize(scaled(12));
+        if (Math.Abs(view.Zoom - 1) > 0.01)
         {
-            ctx.SelectFontFace("Sans", FontSlant.Normal, FontWeight.Normal);
-            ctx.SetFontSize(scaled(12));
-            string zoom = Lang.Get("createacolony:townmap-zoom", view.Zoom.ToString("0.#"));
+            string zoom = Lang.Get("createacolony:townmap-zoom", view.Zoom.ToString(view.Zoom < 1 ? "0.##" : "0.#"));
             Label(ctx, zoom, width - scaled(14) - ctx.TextExtents(zoom).XAdvance, scaled(6), false);
+        }
+        if (!hadTiles)
+        {
+            string loading = Lang.Get("createacolony:townmap-loading");
+            Label(ctx, loading, scaled(6), height - scaled(6) - ctx.FontExtents.Height - scaled(4), false);
+        }
+
+        // The name of the settler under the pointer, and their job, just above the dot.
+        if (ShownCitizens.FirstOrDefault(c => c.CitizenId == hoveredCitizen) is { } who)
+        {
+            var (cx, cy) = WorldToScreen(who.X + 0.5, who.Z + 0.5);
+            string job = who.Child ? Lang.Get("createacolony:citizens-child") : Lang.Get("createacolony:job-" + (who.Job.Length == 0 ? "none" : who.Job));
+            string text = Lang.Get("createacolony:settler-dot-hover", who.Name, job);
+            ctx.SetFontSize(scaled(13));
+            double boxWidth = ctx.TextExtents(text).XAdvance + scaled(8), boxHeight = ctx.FontExtents.Height + scaled(4);
+            double lx = Math.Clamp(cx - boxWidth / 2, scaled(2), Math.Max(scaled(2), width - boxWidth - scaled(2)));
+            double ly = cy - boxHeight - scaled(8);
+            if (ly < scaled(2)) ly = Math.Min(height - boxHeight - scaled(2), cy + scaled(8));
+            Label(ctx, text, lx, ly, true);
         }
 
         // The name of the building under the pointer, just above it (or below when there is no room).
         if (hovered != null)
         {
-            var (x, y, bw, bh) = Rect(terrain, hovered, cell, left, top, minSize);
+            var (x, y, bw, bh) = Rect(hovered, minSize);
             string text = Lang.Get("createacolony:hut-name-level", hovered.Name, hovered.Level)
                 + (hovered.UnderConstruction ? " · " + Lang.Get("createacolony:townmap-being-built") : "");
-            ctx.SelectFontFace("Sans", FontSlant.Normal, FontWeight.Normal);
             ctx.SetFontSize(scaled(13));
             double boxWidth = ctx.TextExtents(text).XAdvance + scaled(8), boxHeight = ctx.FontExtents.Height + scaled(4);
             double lx = Math.Clamp(x + bw / 2 - boxWidth / 2, scaled(2), Math.Max(scaled(2), width - boxWidth - scaled(2)));
@@ -495,14 +467,11 @@ public class GuiElementColonyMap : GuiElement
         ctx.ShowText(text);
     }
 
-    static (double X, double Y) WorldToScreen(ColonyMapTerrain t, double x, double z, double cell, double left, double top) =>
-        (left + (x - t.MinX) / t.Step * cell, top + (z - t.MinZ) / t.Step * cell);
-
     /// <summary>A building's ground on screen, at least minSize across so small huts still show.</summary>
-    public static (double X, double Y, double W, double H) Rect(ColonyMapTerrain t, MapBuildingView b, double cell, double left, double top, double minSize)
+    (double X, double Y, double W, double H) Rect(MapBuildingView b, double minSize)
     {
-        var (x1, y1) = WorldToScreen(t, b.X1, b.Z1, cell, left, top);
-        var (x2, y2) = WorldToScreen(t, b.X2 + 1, b.Z2 + 1, cell, left, top);
+        var (x1, y1) = WorldToScreen(b.X1, b.Z1);
+        var (x2, y2) = WorldToScreen(b.X2 + 1, b.Z2 + 1);
         double bw = Math.Max(minSize, x2 - x1), bh = Math.Max(minSize, y2 - y1);
         return ((x1 + x2 - bw) / 2, (y1 + y2 - bh) / 2, bw, bh);
     }
@@ -521,7 +490,5 @@ public class GuiElementColonyMap : GuiElement
     {
         base.Dispose();
         texture.Dispose();
-        ground?.Dispose();
-        ground = null;
     }
 }

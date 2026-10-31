@@ -68,6 +68,8 @@ public abstract class SettlerTaskBase : AiTaskBase
     LadderClimb? ladder;
     /// <summary>Ladders that did not work out on this walk, so the next try picks another.</summary>
     readonly List<BlockPos> triedLadders = new();
+    /// <summary>Falls off ladders on this walk; the first fall is retried on the same ladder.</summary>
+    int ladderFalls;
     int seenRelocations;
     Willpower? willpower;
 
@@ -90,6 +92,9 @@ public abstract class SettlerTaskBase : AiTaskBase
     /// <summary>A guard with a monster close by or an alarm to answer leaves what it is doing (eating, sleeping, sheltering).</summary>
     protected bool CalledToArms => manager != null && manager.GuardCalled(entity, Colony, Citizen);
 
+    /// <summary>For a guard going to or in bed: only a monster close by or an alarm gets it up (ColonyManager.GuardWoken).</summary>
+    protected bool WokenByThreat => manager != null && manager.GuardWoken(entity, Colony, Citizen);
+
     /// <summary>
     /// Starts walking to a position. Check Arrived / PathFailed from ContinueExecute and call KeepWalking.
     /// A far goal is walked in stretches; refresh, if given, works the goal out again for the last
@@ -104,6 +109,7 @@ public abstract class SettlerTaskBase : AiTaskBase
         legTry = 0;
         EndLadder();
         triedLadders.Clear();
+        ladderFalls = 0;
         if (Will is { } will)
         {
             will.Heading(target, range);
@@ -166,6 +172,16 @@ public abstract class SettlerTaskBase : AiTaskBase
 
     protected bool Arrived => arrived || (finalGoal != null && entity.Pos.SquareDistanceTo(finalGoal) <= (finalRange + 0.6f) * (finalRange + 0.6f));
 
+    /// <summary>
+    /// For a settler whose walk to its bed failed: true when the bed is close enough (BedFindWayRange) to get into
+    /// it anyway. A bed up a ladder or behind a door the pathfinder misjudges is still the settler's bed.
+    /// </summary>
+    protected bool NearBed(BlockPos bed)
+    {
+        float range = manager?.Config.BedFindWayRange ?? 0;
+        return range > 0 && entity.Pos.SquareDistanceTo(bed.X + 0.5, bed.Y + 0.5, bed.Z + 0.5) <= range * range;
+    }
+
     /// <summary>True as soon as one path search or walk has failed, before the retries.</summary>
     protected bool PathFailedOnce => failed;
 
@@ -201,6 +217,14 @@ public abstract class SettlerTaskBase : AiTaskBase
     {
         if (goal == null || arrived) return;
         StepUpFromStairs();
+        // Another task finishing, or a work animation ending, can stop the shared walk animation while this
+        // task is still walking, and the settler glides. Start it again whenever it is moving without it.
+        // Swimming and climbing have their own animations (SettlerBody); the walk comes back once out of the water.
+        bool ownWay = entity is EntitySettler { Body.MovesOwnWay: true };
+        if (animMeta != null && !ownWay && ladderPhase == LadderPhase.None && pathTraverser.Active && !entity.AnimManager.IsAnimationActive(animMeta.Code))
+        {
+            entity.AnimManager.StartAnimation(animMeta);
+        }
         if (Will is { } will && will.Relocations != seenRelocations)
         {
             // Willpower moved the settler: plan the walk again from the new spot.
@@ -213,7 +237,7 @@ public abstract class SettlerTaskBase : AiTaskBase
         if (ladderPhase == LadderPhase.Climbing)
         {
             if (!ladder!.Tick(entity, moveSpeed, out bool climbFailed)) return;
-            if (climbFailed) triedLadders.Add(ladder.Column);
+            if (climbFailed && (!ladder.Fell || ++ladderFalls > 1)) triedLadders.Add(ladder.Column);
             EndLadder();
             legTry = 0;
             StartLeg();
@@ -243,6 +267,12 @@ public abstract class SettlerTaskBase : AiTaskBase
                 {
                     legTry++;
                     StartLeg();
+                }
+                // No stretch can be walked: a cliff in the way. Climb it by ladder, or put ladders up.
+                else if (ladderPhase == LadderPhase.None && now >= retryAtMs)
+                {
+                    retryAtMs = now + RetryDelayMs;
+                    if (TryLadder()) legTry = 0;
                 }
             }
             else if (attempts < MaxPathAttempts && now >= retryAtMs)
@@ -329,6 +359,12 @@ public abstract class SettlerTaskBase : AiTaskBase
     {
         if (manager == null || !manager.Config.LadderClimbing || goal == null) return false;
         var climb = LadderClimb.Find(manager, entity, goal, System.Math.Max(2, manager.Config.LadderSearchRadius), triedLadders);
+        // No ladder there: put one up against the cliff from the ladders the settler carries.
+        if (climb == null && manager.Config.ScaffoldClimbing && Colony is { } colony && Citizen is { } citizen)
+        {
+            int have = manager.PackCount(citizen, ColonyManager.IsLadderStack);
+            climb = manager.FindScaffoldSpot(colony, entity, goal, 4, have, triedLadders);
+        }
         if (climb == null) return false;
         ladder = climb;
         if (manager.PathDebug) manager.Mod.Logger.Notification("[pathing] settler {0} at {1} climbs the ladder at {2} towards {3}", entity.EntityId, entity.Pos.AsBlockPos, climb.Column, goal.AsBlockPos);
@@ -349,14 +385,28 @@ public abstract class SettlerTaskBase : AiTaskBase
     void StartClimbing()
     {
         pathTraverser.Stop();
+        if (ladder!.ToPlace != null && (Colony is not { } colony || Citizen is not { } citizen || !manager!.PlaceScaffold(colony, citizen, ladder)))
+        {
+            // The ladders could not go up after all: walk on without them.
+            triedLadders.Add(ladder.Column);
+            EndLadder();
+            failed = true;
+            retryAtMs = entity.World.ElapsedMilliseconds + RetryDelayMs;
+            return;
+        }
         ladderPhase = LadderPhase.Climbing;
+        if (entity is EntitySettler { Body: { } body }) body.OnLadder = true;
         ladder!.Begin(entity);
         failed = false;
     }
 
     void EndLadder()
     {
-        if (ladderPhase == LadderPhase.Climbing) entity.Controls.WalkVector.Set(0, 0, 0);
+        if (ladderPhase == LadderPhase.Climbing)
+        {
+            entity.Controls.WalkVector.Set(0, 0, 0);
+            if (entity is EntitySettler { Body: { } body }) body.OnLadder = false;
+        }
         ladderPhase = LadderPhase.None;
         ladder = null;
     }
@@ -429,6 +479,9 @@ public abstract class SettlerTaskBase : AiTaskBase
     /// </summary>
     protected string PlayShapeAnimation(string code, string fallback)
     {
+        // The player's "smithing" swing (the prospecting pick's and the hammer's) went with prospectors
+        // vanishing while taking a reading (Aaron, 0.75.4), so settlers swing those like a pickaxe.
+        if (code == "smithing") code = "pickaxe";
         if (!SettlerAnimations.PlayerAnimations.Contains(code))
         {
             PlayAnimation(fallback);

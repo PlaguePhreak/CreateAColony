@@ -1,0 +1,10 @@
+{
+	"ingredientPattern": "PPP,PXP,PXP",
+	"ingredients": {
+		"P": { "type": "item", "code": "game:plank-*" },
+		"X": { "type": "block", "code": "game:torch-*" }
+	},
+	"width": 3,
+	"height": 3,
+	"output": { "type": "block", "code": "createacolony:hut-mineshaftentrance" }
+}

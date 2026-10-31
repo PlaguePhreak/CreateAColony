@@ -38,14 +38,19 @@ public partial class ColonyManager
     {
         string? job = JobOf(hut.Type);
         if (job == null) return "createacolony:bad-building";
+        if (hut.Removing) return "createacolony:remove-no-workers";
         if (!citizen.Alive || citizen.Visitor) return "createacolony:bad-citizen";
         if (citizen.IsChild) return "createacolony:child-no-job";
+        if (citizen.WaitingForRoom) return "createacolony:waiting-no-job";
         if (IncapableOfJob(citizen, job) != null) return "createacolony:job-incapable";
         var workers = WorkersAt(colony, hut);
         if (workers.Contains(citizen)) return null;
         if (workers.Count >= WorkerSlots(hut)) return "createacolony:hut-full";
         citizen.JobCode = job;
         citizen.WorkplacePos = hut.HutPos.Copy();
+        // A new member of the clergy starts as a priest; the bishop is chosen on the Manage workers page.
+        if (job == Jobs.Priest) citizen.WorkRole = ChurchRoles.Priest;
+        EndLoan(citizen);
         MarkDirty(colony);
         return null;
     }
@@ -56,6 +61,7 @@ public partial class ColonyManager
         if (!WorkersAt(colony, hut).Contains(citizen)) return "createacolony:bad-citizen";
         citizen.JobCode = null;
         citizen.WorkplacePos = null;
+        EndLoan(citizen);
         MarkDirty(colony);
         return null;
     }
@@ -94,7 +100,7 @@ public partial class ColonyManager
     /// priority (10 first); huts set to Never are skipped unless a pickup was asked for.
     /// </summary>
     IEnumerable<Building> HutsForPickup(Colony colony) => colony.Buildings
-        .Where(b => HasOwnStorage(b.Type) && (b.PickupNow || (IsWorkerHut(b.Type) && b.PickupPriority > 0)))
+        .Where(b => HasOwnStorage(b.Type) && !b.IsStation && (b.PickupNow || (IsWorkerHut(b.Type) && b.PickupPriority > 0)))
         .OrderByDescending(b => b.PickupNow).ThenByDescending(b => b.PickupPriority).ThenBy(b => b.BuildingId);
 
     // ---- Minimum stock --------------------------------------------------------------------

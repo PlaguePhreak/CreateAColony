@@ -65,9 +65,13 @@ public partial class ColonyManager
         if (current is BlockBaseDoor && target is BlockBaseDoor && SameIgnoring(current, target, "state", "cover")) return true;
         // A torch is a torch, lit or burned out.
         if (IsTorch(target) && IsTorch(current) && LitTorch(current.Code).Equals(LitTorch(target.Code))) return true;
+        // A torch put up where the colony had no lantern stays, lit or not.
+        if (Config.LanternTorchFallback && IsLantern(target) && IsTorch(current)) return true;
         // Ground in a blueprint is any soil: grass comes and goes, and how fertile it is depends on the spot. Natural
         // ground of another kind (rock, gravel, sand) will do too, so builders do not dig out stone to put dirt there.
-        if (IsSoil(target) && (IsSoil(current) || IsNaturalGround(current))) return true;
+        if (IsSoil(target) && (IsSoil(current) || IsFarmland(current) || IsNaturalGround(current))) return true;
+        // Farmland is farmland however wet or fertile it is (Aaron, 0.97.0): it dries out and wears down by itself.
+        if (IsFarmland(target) && IsFarmland(current)) return true;
         // A VS Roofing roof block turns bare or filled by itself as its materials load; either one is the roof.
         if (target.Code.Domain == RoofingDomain && VariantOf(current, "type") is { } roofState
             && target.CodeWithVariant("type", roofState).Equals(current.Code)) return true;
@@ -87,7 +91,8 @@ public partial class ColonyManager
 
     /// <summary>True when the block is a half-built step towards the blueprint's block, so it must not be torn down.</summary>
     public bool InProgress(Colony colony, Block current, int targetId, BlockPos pos) =>
-        current is BlockFirepit pit && !IsStoneOvenBlock(pit) && pit.Stage < FirepitReady && sapi.World.GetBlock(targetId) is BlockFirepit want && !IsStoneOvenBlock(want)
+        IsSoil(current) && sapi.World.GetBlock(targetId) is { } field && IsFarmland(field)
+        || current is BlockFirepit pit && !IsStoneOvenBlock(pit) && pit.Stage < FirepitReady && sapi.World.GetBlock(targetId) is BlockFirepit want && !IsStoneOvenBlock(want)
         || DaubInProgress(colony, current, VariedDaub(sapi.World.GetBlock(targetId), pos));
 
     /// <summary>True when the two blocks' codes differ at most in the given variant groups.</summary>
@@ -117,6 +122,23 @@ public partial class ColonyManager
     /// <summary>Plain soil blocks (soil-medium-normal and the like), not farmland, packed dirt or rammed earth.</summary>
     static bool IsSoil(Block block) => block.Code?.Domain == "game" && block.Code.Path.StartsWith("soil-");
 
+    /// <summary>Tilled farmland, wet or dry, of any fertility.</summary>
+    static bool IsFarmland(Block block) => block.Code?.Domain == "game" && block.Code.Path.StartsWith("farmland-");
+
+    /// <summary>The code to ask for when any wood or stone will do: the item's own code with its wood or rock left open.</summary>
+    static string OpenType(CollectibleObject collectible)
+    {
+        foreach (string v in SwappableVariants)
+        {
+            if (VariantOf(collectible, v) != null) return collectible.CodeWithVariant(v, "*").ToString();
+        }
+        return collectible.Code.ToString();
+    }
+
+    /// <summary>Costs with their wood or stone left open, so a roof's planks are asked for with the rest of the planks.</summary>
+    static IReadOnlyList<MaterialCost> OpenTypes(IReadOnlyList<MaterialCost> costs) =>
+        costs.Select(c => c.Code.Contains('*') || c.Code.Contains('|') || c.Code.Contains('{') ? c : c with { Code = OpenType(c.Sample.Collectible) }).ToList();
+
     // ---- What to place and what it costs --------------------------------------------------
 
     /// <summary>
@@ -139,8 +161,23 @@ public partial class ColonyManager
             var start = sapi.World.GetBlock(new AssetLocation("game:firepit-construct1"));
             if (start != null) return (start, Costs(ItemCost("game:drygrass", 1)));
         }
+        // Farmland: soil first, then the builder tills it with a hoe (ColonyManager.Tilling.cs).
+        if (IsFarmland(target))
+        {
+            var here = sapi.World.BlockAccessor.GetBlock(pos);
+            if (IsSoil(here)) return (TilledFrom(here) ?? target, Array.Empty<MaterialCost>());
+            var soil = sapi.World.GetBlock(new AssetLocation("game", "soil-" + target.LastCodePart(0) + "-none"))
+                ?? sapi.World.GetBlock(new AssetLocation("game:soil-medium-none"));
+            if (soil != null) return (soil, Costs(PickCost(colony, soil, pos)));
+        }
         if (DaubPlacement(colony, VariedDaub(target, pos), pos) is { } daub) return daub;
-        if (Config.BuildersNeedMaterials && (PlacedItemCosts(step, target, pos, colony.AnyWoodOrStone) ?? SavedCost(step, target)) is { } saved) return (target, saved);
+        // No lantern in the colony: a torch goes up instead (ColonyManager.Torches.cs).
+        if (TorchForLantern(colony, target, pos) is { } torch) return (torch, Costs(TorchCost(torch)));
+        if (Config.BuildersNeedMaterials && PlacedItemCosts(step, target, pos, colony.AnyWoodOrStone) is { } placed) return (target, placed);
+        // A roof's planks and logs, like every other block's, may be any wood when the colony allows it. A chiseled
+        // block keeps its own materials: its shape is copied as saved, so other wood or stone would not show.
+        if (Config.BuildersNeedMaterials && SavedCost(step, target) is { } saved)
+            return (target, colony.AnyWoodOrStone && target is not BlockMicroBlock ? OpenTypes(saved) : saved);
         return (target, Costs(PickCost(colony, target, pos)));
     }
 
@@ -171,6 +208,8 @@ public partial class ColonyManager
     /// <summary>The block actually placed: the blueprint's, or the same block in the wood or stone the builder brought.</summary>
     public Block SwapToMaterial(Colony colony, Block place, ItemStack? used)
     {
+        // Any soil will do, so the soil goes down as the kind the builder brought (and farmland tilled from it is as fertile).
+        if (IsSoil(place) && used?.Block is { } broughtSoil && IsSoil(broughtSoil)) return broughtSoil;
         if (!colony.AnyWoodOrStone || used == null) return place;
         if (SwapDaubColor(place, used) is { } recoloured) return recoloured;
         foreach (string v in SwappableVariants)
@@ -229,17 +268,11 @@ public partial class ColonyManager
         }
         stack ??= new ItemStack(block);
         stack.StackSize = 1;
+        // Planks laid sideways pick as themselves (planks-oak-ns), but players only carry upright ones: ask for what it drops.
+        if (stack.Block is { } picked && DroppedBlock(picked) is { } carried) stack = new ItemStack(carried);
 
         string code = stack.Collectible.Code.ToString();
-        if (colony.AnyWoodOrStone)
-        {
-            foreach (string v in SwappableVariants)
-            {
-                if (VariantOf(stack.Collectible, v) == null) continue;
-                code = stack.Collectible.CodeWithVariant(v, "*").ToString();
-                break;
-            }
-        }
+        if (colony.AnyWoodOrStone) code = OpenType(stack.Collectible);
         var cost = new MaterialCost(code, stack, 1);
         pickCostCache[key] = cost;
         return cost;

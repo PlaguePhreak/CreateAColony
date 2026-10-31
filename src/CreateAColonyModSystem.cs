@@ -53,13 +53,16 @@ public class CreateAColonyModSystem : ModSystem
         api.RegisterBlockClass("BlockWarehouse", typeof(BlockWarehouse));
         api.RegisterBlockClass("BlockDropOff", typeof(BlockDropOff));
         api.RegisterBlockClass("BlockColonyHut", typeof(BlockColonyHut));
+        api.RegisterBlockClass("BlockWorkStation", typeof(BlockWorkStation));
         api.RegisterBlockEntityClass("ColonyHut", typeof(BlockEntityColonyHut));
         api.RegisterBlockClass("BlockFieldMarker", typeof(BlockFieldMarker));
+        api.RegisterBlockClass("BlockPainting", typeof(BlockPainting));
         api.RegisterItemClass("ItemBuildersWand", typeof(Items.ItemBuildersWand));
         api.RegisterItemClass("ItemGuardScepter", typeof(Items.ItemGuardScepter));
         api.RegisterItemClass("ItemColonyLedger", typeof(Items.ItemColonyLedger));
 
         AiTaskRegistry.Register<AiTaskSettlerFlee>("settlerflee");
+        AiTaskRegistry.Register<AiTaskSettlerDefend>("settlerdefend");
         AiTaskRegistry.Register<AiTaskSettlerShelter>("settlershelter");
         AiTaskRegistry.Register<AiTaskSettlerSleep>("settlersleep");
         AiTaskRegistry.Register<AiTaskSettlerEat>("settlereat");
@@ -71,14 +74,31 @@ public class CreateAColonyModSystem : ModSystem
         AiTaskRegistry.Register<AiTaskSettlerPotter>("settlerpotter");
         AiTaskRegistry.Register<AiTaskSettlerSmelter>("settlersmelter");
         AiTaskRegistry.Register<AiTaskSettlerBlacksmith>("settlerblacksmith");
+        AiTaskRegistry.Register<AiTaskSettlerArmourer>("settlerarmourer");
+        AiTaskRegistry.Register<AiTaskSettlerWeaponsmith>("settlerweaponsmith");
         AiTaskRegistry.Register<AiTaskSettlerSawyer>("settlersawyer");
+        AiTaskRegistry.Register<AiTaskSettlerCraftsman>("settlercraftsman");
+        AiTaskRegistry.Register<AiTaskSettlerTailor>("settlertailor");
+        AiTaskRegistry.Register<AiTaskSettlerJeweller>("settlerjeweller");
+        AiTaskRegistry.Register<AiTaskSettlerMinter>("settlerminter");
+        AiTaskRegistry.Register<AiTaskSettlerHealer>("settlerhealer");
+        AiTaskRegistry.Register<AiTaskSettlerPriest>("settlerpriest");
+        AiTaskRegistry.Register<AiTaskSettlerWorship>("settlerworship");
+        AiTaskRegistry.Register<AiTaskSettlerRecover>("settlerrecover");
+        AiTaskRegistry.Register<AiTaskSettlerFirefight>("settlerfirefight");
+        AiTaskRegistry.Register<AiTaskSettlerLight>("settlerlight");
+        AiTaskRegistry.Register<AiTaskSettlerExplorer>("settlerexplorer");
+        AiTaskRegistry.Register<AiTaskSettlerGatherer>("settlergatherer");
+        AiTaskRegistry.Register<AiTaskSettlerHunter>("settlerhunter");
         AiTaskRegistry.Register<AiTaskSettlerCook>("settlercook");
         AiTaskRegistry.Register<AiTaskSettlerProspector>("settlerprospector");
         AiTaskRegistry.Register<AiTaskSettlerMiner>("settlerminer");
         AiTaskRegistry.Register<AiTaskSettlerProspectorMiner>("settlerprospectorminer");
         AiTaskRegistry.Register<AiTaskSettlerQuarrier>("settlerquarrier");
         AiTaskRegistry.Register<AiTaskSettlerVisitor>("settlervisitor");
+        AiTaskRegistry.Register<AiTaskSettlerBailiff>("settlerbailiff");
         AiTaskRegistry.Register<AiTaskSettlerChores>("settlerchores");
+        AiTaskRegistry.Register<AiTaskSettlerDecorate>("settlerdecorate");
         AiTaskRegistry.Register<AiTaskSettlerIdle>("settleridle");
     }
 

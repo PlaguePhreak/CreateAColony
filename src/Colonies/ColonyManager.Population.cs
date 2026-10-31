@@ -18,7 +18,7 @@ public partial class ColonyManager
         Config.PopulationBase <= 0 ? 0 : Config.PopulationBase + Math.Max(0, Config.PopulationPerTownHallLevel) * TownHallLevel(colony);
 
     /// <summary>Everyone who lives here: settlers and children, not visitors or the dead.</summary>
-    public int Population(Colony colony) => colony.Citizens.Count(c => c.Alive && !c.Visitor);
+    public int Population(Colony colony) => colony.Citizens.Count(c => c.Alive && !c.Visitor && !c.WaitingForRoom);
 
     public bool IsFull(Colony colony) => PopulationCap(colony) > 0 && Population(colony) >= PopulationCap(colony);
 }

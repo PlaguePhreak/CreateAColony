@@ -18,7 +18,8 @@ public partial class ColonyNetwork
     {
         if (role < ColonyRole.Officer) return "createacolony:denied-officer";
         var mine = colony.Buildings.Find(b => b.BuildingId == packet.BuildingId);
-        if (mine == null || mine.Type != BuildingTypes.Miner) return "createacolony:bad-building";
+        if (mine == null || mine.Type is not (BuildingTypes.Miner or BuildingTypes.MineshaftEntrance)) return "createacolony:bad-building";
+        if (mine.Type != BuildingTypes.Miner && packet.Action is ColonyAction.AssignMineGuard or ColonyAction.UnassignMineGuard) return "createacolony:bad-building";
         int.TryParse(packet.Text, out int number);
         switch (packet.Action)
         {
@@ -32,6 +33,36 @@ public partial class ColonyNetwork
             case ColonyAction.UnassignMineGuard: Manager.UnassignMineGuard(colony, mine, packet.CitizenId); return null;
         }
         return null;
+    }
+
+    /// <summary>Remove hut. When nothing was built yet the hut block comes straight back.</summary>
+    string? RemoveHut(IServerPlayer player, Colony colony, ColonyRole role, ColonyActionPacket packet)
+    {
+        if (role < ColonyRole.Officer) return "createacolony:denied-officer";
+        var building = colony.Buildings.Find(b => b.BuildingId == packet.BuildingId);
+        if (building == null) return "createacolony:bad-building";
+        string name = ColonyManager.BuildingName(building);
+        bool mine = building.Type == BuildingTypes.Miner && building.Mine.HasMine || building.Type == BuildingTypes.MineshaftEntrance && building.HasMine;
+        string? result = Manager.StartRemoval(colony, building, player);
+        if (result == "createacolony:remove-done")
+        {
+            player.SendMessage(0, Lang.GetL(player.LanguageCode, result, name), EnumChatType.Notification);
+            return null;
+        }
+        if (result != null) return result;
+        player.SendMessage(0, Lang.GetL(player.LanguageCode, mine ? "createacolony:remove-started-mine" : "createacolony:remove-started", name), EnumChatType.Notification);
+        return null;
+    }
+
+    /// <summary>Link and Unlink on a Mineshaft Entrance's Main tab; Text is the Miner's Hut's BuildingId.</summary>
+    string? LinkMineAction(Colony colony, ColonyRole role, ColonyActionPacket packet)
+    {
+        if (role < ColonyRole.Officer) return "createacolony:denied-officer";
+        var entrance = colony.Buildings.Find(b => b.BuildingId == packet.BuildingId && b.Type == BuildingTypes.MineshaftEntrance);
+        int.TryParse(packet.Text, out int hutId);
+        var hut = colony.Buildings.Find(b => b.BuildingId == hutId && b.Type == BuildingTypes.Miner);
+        if (entrance == null || hut == null) return "createacolony:bad-building";
+        return packet.Action == ColonyAction.LinkMineHut ? Manager.LinkHut(colony, entrance, hut) : Manager.UnlinkHut(colony, entrance, hut);
     }
 
     /// <summary>The viewer's hotbar and backpack slots, where the give button takes items from.</summary>
@@ -104,25 +135,51 @@ public partial class ColonyNetwork
 
     /// <summary>"wood" or "rock" when any wood or any stone will do for the item code, as the Builder's list says it; else empty.</summary>
     internal static string AnyOfFor(string code, ItemStack sample) =>
-        code.Contains('|') ? "binding"
+        code == "game:soil-*" ? "soil"
+        : code.Contains('|') ? "binding"
         : ColonyManager.AnyType(code) ? "wood"
         : code.StartsWith("heraldrybanners:banner") && code.Contains('{') ? "design"
         : !code.Contains('*') ? ""
         : sample.Collectible.Variant?.ContainsKey("wood") == true ? "wood"
         : sample.Collectible.Variant?.ContainsKey("rock") == true ? "rock" : "";
 
-    /// <summary>Fills in a Miner's Hut's Levels, Settings, Guards and Required resources tabs.</summary>
+    /// <summary>
+    /// Fills in a Miner's Hut's Levels, Settings, Guards and Required resources tabs. A Mineshaft Entrance gets
+    /// the Levels and Settings tabs and its list of Miner's Huts. Levels and Settings are the shared mine's.
+    /// </summary>
     void AddMineTabs(HutSnapshot snapshot, Colony colony, Building mine, string viewerUid)
     {
+        var shared = mine.Mine;
         snapshot.IsMiner = true;
-        snapshot.MineLevel = mine.MineLevel;
-        snapshot.RepairLevel = mine.RepairLevel;
-        snapshot.MaxMineLevels = mine.MaxMineLevels;
+        snapshot.MineLevel = shared.MineLevel;
+        snapshot.RepairLevel = shared.RepairLevel;
+        snapshot.MaxMineLevels = shared.MaxMineLevels;
         snapshot.MineLevelsAllowed = Manager.MineshaftLevelsAllowed(mine);
-        snapshot.FillBlock = mine.FillBlock;
-        if (Manager.MineLevels(colony, mine) is { } levels)
+        snapshot.FillBlock = shared.FillBlock;
+        snapshot.MineEntranceName = mine.Entrance != null ? ColonyManager.BuildingName(mine.Entrance) : "";
+        // A Mineshaft Entrance shows its mine's levels only once it has a mine; without one it would start one beside itself.
+        bool showLevels = mine.Type == BuildingTypes.Miner || mine.HasMine || mine.LinkedHuts.Count > 0;
+        if (showLevels && Manager.MineLevels(colony, mine) is { } levels)
         {
             snapshot.MineLevels = levels.Select(l => new MineLevelView { Level = l.Level, Y = l.Y, Sections = l.Sections, Left = l.Left, Working = l.Working }).ToList();
+        }
+
+        if (mine.Type == BuildingTypes.MineshaftEntrance)
+        {
+            snapshot.IsMineEntrance = true;
+            snapshot.MineInfo = !mine.HasMine ? Lang.Get("createacolony:entrance-no-mine")
+                : (Manager.MineshaftInfo(colony, mine) ?? "") + (mine.LinkedHuts.Count == 0 ? "\n" + Lang.Get("createacolony:entrance-derelict") : "");
+            foreach (var hut in colony.Buildings.Where(b => b.Type == BuildingTypes.Miner && !b.Removing)
+                .OrderByDescending(b => b.Entrance == mine).ThenBy(b => b.BuildingId))
+            {
+                snapshot.MineHuts.Add(new MineHutView
+                {
+                    BuildingId = hut.BuildingId, Name = ColonyManager.BuildingName(hut), Level = hut.Level,
+                    Worker = Manager.WorkerAt(colony, hut, Jobs.Miner)?.Name ?? "", Linked = hut.Entrance == mine,
+                    Elsewhere = hut.Entrance != null && hut.Entrance != mine ? ColonyManager.BuildingName(hut.Entrance) : ""
+                });
+            }
+            return;
         }
 
         Manager.CleanMineGuards(colony, mine);
@@ -149,7 +206,19 @@ public partial class ColonyNetwork
             int have = Manager.CountItems(storage, match) + (miner == null ? 0 : Manager.PackCount(miner, match));
             snapshot.Resources.Add(new ResourceView { Stack = need.Sample.ToBytes(), Needed = need.Count, Have = have, Code = need.Code, AnyOf = AnyOfFor(need.Code, need.Sample) });
         }
+        AddMakers(snapshot, colony, ColonyManager.RequestTag(mine));
         AddPlayerHas(snapshot, viewerUid);
+    }
+
+    /// <summary>For each thing the hut is short of: how many the warehouse has, and which other hut makes it.</summary>
+    void AddMakers(HutSnapshot snapshot, Colony colony, string tag)
+    {
+        var warehouse = Manager.WarehouseContainers(colony).ToList();
+        foreach (var row in snapshot.Resources.Where(r => !r.IsTool && r.Code.Length > 0 && r.Have < r.Needed))
+        {
+            row.InColony = Manager.CountItems(warehouse, ColonyManager.Matcher(row.Code));
+            row.MadeBy = Manager.MakerName(colony, row.Code, tag) ?? "";
+        }
     }
 
     /// <summary>How many of each required resource the viewer carries, for the green rows and the give button.</summary>

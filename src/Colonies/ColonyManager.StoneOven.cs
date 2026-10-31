@@ -204,7 +204,7 @@ public partial class ColonyManager
     public bool KnowsBake(Colony colony, CitizenRecord cook, OvenKind kind) => !Config.Skills || BakeLevel(kind) <= CookLevel(colony, cook);
 
     public int BakeKeep(Building hut, OvenKind kind) =>
-        hut.KitchenChosen ? hut.KitchenKeep.GetValueOrDefault(kind.Key) : kind.IsPie ? Config.OvenDefaultPieKeep : Config.KitchenDefaultKeep;
+        hut.KitchenChosen ? hut.KitchenKeep.GetValueOrDefault(kind.Key) : kind.IsPie ? Config.OvenDefaultPieKeep : Config.KitchenAutoKeep;
 
     /// <summary>How many of a baked food are ready or baking: at the hut, in the warehouse, with the cook and in the oven.</summary>
     public int BakeStock(Colony colony, Building hut, OvenKind kind, CitizenRecord? cook) =>
@@ -247,7 +247,8 @@ public partial class ColonyManager
             .Where(k => KnowsBake(colony, cook, k))
             .Select(k => (Kind: k, Short: BakeKeep(hut, k) - BakeStock(colony, hut, k, cook, oven)))
             .Where(w => w.Short > 0)
-            .OrderByDescending(w => w.Short)
+            .OrderBy(w => hut.Priorities.Count == 0 ? 0 : PriorityIndex(hut.Priorities, w.Kind.Key))
+            .ThenByDescending(w => w.Short)
             .ToList();
         if (wanted.Count == 0) return null;
 

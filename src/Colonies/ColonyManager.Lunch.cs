@@ -36,6 +36,8 @@ public partial class ColonyManager
     /// </summary>
     FoodNutritionProperties[]? LunchProps(ItemStack stack, EntityAgent eater)
     {
+        // A bowl with a meal in it is packed food too (ColonyManager.Crocks.cs); a pot, crock or pie stays in the kitchen.
+        if (stack.Block is BlockMeal bowl) return BowlProps(stack, bowl, eater);
         if (stack.Block is IBlockMealContainer or BlockPie) return null;
         FoodNutritionProperties[]? props;
         try
@@ -50,6 +52,23 @@ public partial class ColonyManager
         return props;
     }
 
+    /// <summary>What a serving of the meal in a carried bowl gives. Null for an empty or rotten bowl.</summary>
+    FoodNutritionProperties[]? BowlProps(ItemStack stack, BlockMeal bowl, EntityAgent eater)
+    {
+        try
+        {
+            var copy = stack.Clone();
+            if (bowl.GetQuantityServings(sapi.World, copy) <= 0 || IsRottenMeal(copy, update: true)) return null;
+            var props = MealServingProps(new DummySlot(copy), bowl, bowl.GetNonEmptyContents(sapi.World, copy) ?? Array.Empty<ItemStack>(), eater);
+            if (props == null || props.Sum(p => p.Satiety) <= 0 || props.Sum(p => p.Health) < 0) return null;
+            return props;
+        }
+        catch (Exception)
+        {
+            return null;
+        }
+    }
+
     public bool IsLunchFood(ItemStack stack, EntityAgent eater) => LunchProps(stack, eater) != null;
 
     /// <summary>True when the settler has packed food left that it can eat.</summary>
@@ -59,7 +78,8 @@ public partial class ColonyManager
     void ClearSpoiledLunch(Colony colony, CitizenRecord citizen, EntityAgent eater, List<ItemStack> items)
     {
         bool changed = false;
-        foreach (var stack in items.Where(s => LunchProps(s, eater) == null).ToList())
+        // Bowls stay in the food slots: an empty one for the next meal, a rotten one to wash out.
+        foreach (var stack in items.Where(s => !IsBowl(s) && LunchProps(s, eater) == null).ToList())
         {
             AddToPack(colony, citizen, stack);
             if (stack.StackSize <= 0) changed = true;
@@ -69,7 +89,7 @@ public partial class ColonyManager
 
     /// <summary>
     /// Eats one item of packed food when a whole bite fits in the stomach, or whenever the settler is
-    /// hungry. The best one for variety is eaten. Returns its name, or null when it ate nothing.
+    /// hungry. The best one for variety is eaten, food that will spoil soon first. Returns its name, or null when it ate nothing.
     /// </summary>
     public string? SnackFromLunch(Colony colony, CitizenRecord citizen, EntityAgent eater)
     {
@@ -86,7 +106,7 @@ public partial class ColonyManager
             if (props == null) continue;
             float satiety = props.Sum(p => p.Satiety);
             if (!hungry && citizen.Saturation + satiety > Config.SaturationMax) continue;
-            float score = VarietyScore(props, citizen);
+            float score = VarietyScore(props, citizen) * SpoilPull(new DummySlot(stack));
             if (best != null && score <= bestScore) continue;
             best = stack;
             bestProps = props;
@@ -95,10 +115,22 @@ public partial class ColonyManager
         if (best == null || bestProps == null) return null;
 
         string name = best.GetName();
-        if (IsCookedFood(best)) AddThought(citizen, "meal");
-        best.StackSize--;
+        if (best.Block is BlockMeal)
+        {
+            // The bowl is kept for the next meal.
+            AddThought(citizen, "meal");
+            int at = items.IndexOf(best);
+            if (EatenBowl(best) is { } empty) items[at] = empty;
+            else best.StackSize--;
+        }
+        else
+        {
+            if (IsCookedFood(best)) AddThought(citizen, "meal");
+            best.StackSize--;
+        }
         SaveLunch(colony, citizen, items);
         citizen.Saturation = Math.Min(Config.SaturationMax, citizen.Saturation + bestProps.Sum(p => p.Satiety));
+        AddNutrition(citizen, bestProps);
         float health = bestProps.Sum(p => p.Health);
         if (health > 0) eater.ReceiveDamage(new DamageSource { Source = EnumDamageSource.Internal, Type = EnumDamageType.Heal }, health);
         foreach (var cat in bestProps.Where(p => p.Satiety > 0).Select(p => (int)p.FoodCategory).Distinct()) citizen.RecentFood.Add(cat);
@@ -109,18 +141,23 @@ public partial class ColonyManager
 
     /// <summary>
     /// At a food store after a meal: packs plain food until the settler carries CarryFoodSaturation worth
-    /// (or its food slots are full), taking the kinds best for variety first. Returns how many items.
+    /// (or its food slots are full), taking the kinds best for variety, and soonest to spoil, first. Returns how many items.
     /// </summary>
     public int PackLunch(Colony colony, CitizenRecord citizen, EntityAgent eater, BlockEntityContainer container)
     {
-        if (!Config.CarryFood || !IsFoodStore(container) || container is IBlockEntityMealContainer) return 0;
+        if (!Config.CarryFood || !IsFoodStore(container)) return 0;
         var items = LunchItems(citizen);
+        // A serving of a crock or pot meal goes along in the settler's bowl (ColonyManager.Crocks.cs).
+        bool bowlFilled = FillBowl(colony, citizen, container, items);
+        if (bowlFilled) SaveLunch(colony, citizen, items);
+        if (container is IBlockEntityMealContainer) return bowlFilled ? 1 : 0;
         float carried = items.Sum(s => (LunchProps(s, eater)?.Sum(p => p.Satiety) ?? 0) * s.StackSize);
         IEnumerable<ItemSlot> slots = container is BlockEntityFirepit firepit ? new[] { firepit.outputSlot } : container.Inventory;
         var choices = slots.Where(s => !s.Empty)
             .Select(s => (Slot: s, Props: LunchProps(s.Itemstack, eater)))
-            .Where(c => c.Props != null)
-            .OrderByDescending(c => VarietyScore(c.Props!, citizen))
+            // Raw grain, meat and vegetables are left for the cooks.
+            .Where(c => c.Props != null && !IsRawIngredient(c.Slot.Itemstack))
+            .OrderByDescending(c => VarietyScore(c.Props!, citizen) * SpoilPull(c.Slot))
             .ToList();
 
         int taken = 0;
@@ -150,7 +187,7 @@ public partial class ColonyManager
             container.MarkDirty(true);
             SaveLunch(colony, citizen, items);
         }
-        return taken;
+        return taken + (bowlFilled ? 1 : 0);
     }
 
     /// <summary>A lit torch, the kind that lights up the one who holds it.</summary>
@@ -159,46 +196,4 @@ public partial class ColonyManager
     /// <summary>True when it is dark where the settler stands: night outdoors, or a dark cave or house.</summary>
     public bool IsDark(EntityAgent settler) =>
         sapi.World.BlockAccessor.GetLightLevel(settler.Pos.AsBlockPos.Up(), EnumLightLevelType.MaxTimeOfDayLight) < TorchBelowLight;
-
-    /// <summary>
-    /// The torch a settler would hold right now: in the dark, the first lit torch it carries (offhand
-    /// first); otherwise null and the offhand item shows as usual.
-    /// </summary>
-    public ItemStack? TorchToHold(CitizenRecord citizen, EntityAgent settler)
-    {
-        if (!IsDark(settler)) return null;
-        var offhand = ToolBarItems(citizen)[OffhandSlot];
-        if (IsTorch(offhand)) return offhand;
-        return PackItems(citizen).FirstOrDefault(IsTorch);
-    }
-
-    /// <summary>A container in the settler's hut storage or the warehouse with a lit torch in it, for a settler who has none.</summary>
-    public BlockEntityContainer? TorchChest(Colony colony, CitizenRecord citizen)
-    {
-        if (!Config.CarryTorches || CarriedItems(citizen).Any(IsTorch)) return null;
-        var hut = citizen.WorkplacePos == null ? null : GetBuilding(colony, citizen.WorkplacePos);
-        var places = (hut == null ? Enumerable.Empty<BlockEntityContainer>() : HutStorage(colony, hut).Cast<BlockEntityContainer>())
-            .Concat(WarehouseContainers(colony));
-        return places.FirstOrDefault(c => c.Inventory.Any(s => IsTorch(s.Itemstack)));
-    }
-
-    /// <summary>Takes one lit torch out of the container into the settler's offhand (or inventory if the offhand is taken).</summary>
-    public bool TakeTorch(Colony colony, CitizenRecord citizen, BlockEntityContainer container)
-    {
-        var slot = container.Inventory.FirstOrDefault(s => IsTorch(s.Itemstack));
-        if (slot == null) return false;
-        var torch = slot.TakeOut(1);
-        slot.MarkDirty();
-        container.MarkDirty(true);
-        var bar = ToolBarItems(citizen);
-        if (bar[OffhandSlot] == null)
-        {
-            bar[OffhandSlot] = torch;
-            SaveToolBar(colony, citizen, bar);
-            return true;
-        }
-        if (AddToPack(colony, citizen, torch) > 0) return true;
-        PutItems(container, torch);
-        return false;
-    }
 }

@@ -25,7 +25,9 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 OUT = os.path.normpath(os.path.join(HERE, "..", "..", "assets", "createacolony", "config", "blueprints", "devsbuilds"))
 
 NAMES = {"townhall": "townhall", "buildershut": "builder", "guardtower": "guardtower", "chef": "cook",
-         "cook": "cook", "cookshut": "cook", "home01": "residence", "residence": "residence", "house": "residence"}
+         "cook": "cook", "cookshut": "cook", "home01": "residence", "residence": "residence", "house": "residence",
+         "smelter": "smelter", "blacksmith": "blacksmith", "sawmill": "sawmill", "gatherer": "gatherer",
+         "gatherhut": "gatherer", "forester": "forester", "lumberjack": "forester"}
 
 # Exports saved without their hut block get one here: (type, level) -> spot inside the export.
 HUT_SPOTS = {}  # e.g. {("cook", "", 1): (3, 1, 7)}: inside, in the corner beside the doorway
@@ -78,6 +80,8 @@ def check(bp, type):
                 problems.append(f"door at {(x, y, z)} has no top half above it")
         if c.startswith("vsroofing:") and (x, y, z) not in entities:
             problems.append(f"roof block at {(x, y, z)} has no saved roof data")
+        if (c.startswith("game:chiseledblock") or c.startswith("game:microblock")) and (x, y, z) not in entities:
+            problems.append(f"chiseled block at {(x, y, z)} has no saved shape")
     if len(huts) == 1:
         hx, hy, hz = huts[0]
         if (hx, hy - 1, hz) not in at:

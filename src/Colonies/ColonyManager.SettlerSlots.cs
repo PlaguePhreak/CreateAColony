@@ -79,7 +79,7 @@ public partial class ColonyManager
             AreaLunch => new SlotArea
             {
                 Slots = Padded(LunchItems(citizen), LunchSlots),
-                Fits = (s, _) => IsLunchFood(s, eater),
+                Fits = (s, _) => IsLunchFood(s, eater) || IsBowl(s),
                 Save = slots => SaveLunch(colony, citizen, slots.OfType<ItemStack>())
             },
             _ => null

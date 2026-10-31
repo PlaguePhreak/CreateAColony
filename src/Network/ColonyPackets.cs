@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using ProtoBuf;
 using Vintagestory.API.MathTools;
+using CreateAColony.Colonies;
 
 namespace CreateAColony.Network;
 
@@ -31,6 +32,8 @@ public class CitizenView
     [ProtoMember(12)] public int GrowsUpHours;
     /// <summary>For the dead: when they died (0 if unknown) and whether they have been buried.</summary>
     [ProtoMember(13)] public double DiedTotalDays;
+    /// <summary>CitizenRecord.DeathCause, named on the client.</summary>
+    [ProtoMember(31)] public string DeathCause = "";
     [ProtoMember(14)] public bool Buried;
     /// <summary>In a hut's worker lists: the settler's level in the hut's job skill, and the skill's code.</summary>
     [ProtoMember(15)] public int SkillLevel;
@@ -44,6 +47,8 @@ public class CitizenView
     [ProtoMember(20)] public string Incapable = "";
     /// <summary>What the worker does at a hut whose workers each pick their work (a prospector's ProspectorRoles).</summary>
     [ProtoMember(21)] public int WorkRole;
+    /// <summary>Colony militia tab: the weapon the settler would fight with, empty for none.</summary>
+    [ProtoMember(30)] public string Weapon = "";
 }
 
 /// <summary>One person in a family list: who, how they are related, and what they do.</summary>
@@ -103,6 +108,12 @@ public class BuildingView
     [ProtoMember(11)] public string Name = "";
     /// <summary>Which of its type's variants it is; "" when the type has only one.</summary>
     [ProtoMember(12)] public string Variant = "";
+    /// <summary>Remove hut was pressed: a builder is taking it down (ProgressPercent and Status are for that).</summary>
+    [ProtoMember(13)] public bool Removing;
+    /// <summary>Not a building but a trader's old house a builder is taking down (TeardownOrder.Id); Name is the trader's.</summary>
+    [ProtoMember(240)] public int TeardownId;
+    /// <summary>The work order is a repair (ColonyManager.Repair.cs); TargetLevel is then the level it is at.</summary>
+    [ProtoMember(250)] public bool Repairing;
 }
 
 /// <summary>One line of the Town Hall's event log; the window fills the lang key in.</summary>
@@ -184,6 +195,24 @@ public class CitizenSnapshot
     [ProtoMember(53)] public int BreakdownHours;
     /// <summary>Full XP a skill gets per day before the soft cap; 0 = no cap.</summary>
     [ProtoMember(54)] public int SkillDailyCap;
+    /// <summary>The food groups (fruit, vegetable, protein, grain, dairy) as 0-1 of full; empty for an old save. 60-69 are the detailed stats.</summary>
+    [ProtoMember(60)] public List<float> Nutrition = new();
+    [ProtoMember(61)] public float Saturation;
+    [ProtoMember(62)] public float SaturationMax;
+    /// <summary>The air temperature where the settler stands, in °C; NaN when unknown.</summary>
+    [ProtoMember(63, IsRequired = true)] public float Temperature = float.NaN;
+    /// <summary>0 (dry) to 1 (soaked).</summary>
+    [ProtoMember(64)] public float Wetness;
+    /// <summary>How fast they heal and grow hungry, 1 = normal (traits and perks).</summary>
+    [ProtoMember(65, IsRequired = true)] public float HealingRate = 1;
+    [ProtoMember(66, IsRequired = true)] public float HungerRate = 1;
+    /// <summary>Coins in their purse, their monthly wage, and whether the last one went unpaid (ColonyManager.Economy.cs).</summary>
+    [ProtoMember(120)] public int Purse;
+    [ProtoMember(121)] public int Wage;
+    [ProtoMember(122)] public bool Unpaid;
+    /// <summary>Their Faith (0 to 100, -1 unknown) and the word for it (ColonyManager.Church.cs).</summary>
+    [ProtoMember(300, IsRequired = true)] public int Faith = -1;
+    [ProtoMember(301)] public string FaithWord = "";
 }
 
 /// <summary>A click on a slot of the settler window: which settler, which area and slot, and how.</summary>
@@ -203,6 +232,14 @@ public class SettlerSlotPacket
 public class HandPlacePacket
 {
     [ProtoMember(1)] public bool On;
+}
+/// <summary>A settler put something on a rack or shelf whose block entity does not redraw by itself when the server changes it (A Culinary Artillery's bottle rack).</summary>
+[ProtoContract]
+public class DisplayRedrawPacket
+{
+    [ProtoMember(1)] public int X;
+    [ProtoMember(2)] public int Y;
+    [ProtoMember(3)] public int Z;
 }
 /// <summary>One trait of a settler for the windows.</summary>
 [ProtoContract]
@@ -270,6 +307,10 @@ public class ResourceView
     [ProtoMember(6)] public string Code = "";
     /// <summary>How many of it the viewer carries.</summary>
     [ProtoMember(7)] public int PlayerHas;
+    /// <summary>The hut that makes it for this one when the colony has none ("Sawmill"), or empty.</summary>
+    [ProtoMember(8)] public string MadeBy = "";
+    /// <summary>How many are in the warehouse or other huts, ready for a courier to bring.</summary>
+    [ProtoMember(9)] public int InColony;
 }
 
 /// <summary>One level of a Miner's Hut's mineshaft, for the Levels tab.</summary>
@@ -333,6 +374,10 @@ public class HutSnapshot
     /// <summary>A Cook's Hut, whose window has a Kitchen tab. Its rows reuse PotteryView (Clay unused).</summary>
     [ProtoMember(29)] public bool IsCookHut;
     [ProtoMember(30)] public List<PotteryView> Kitchen = new();
+    /// <summary>Kitchen: the food the cook has to cook with (its inventory, the hut, the warehouse), most first.</summary>
+    [ProtoMember(190)] public List<HutItemView> KitchenOnHand = new();
+    /// <summary>Kitchen: an officer has picked dishes; else the cook makes what it can.</summary>
+    [ProtoMember(191)] public bool KitchenChosen;
 
     // The Main tab every hut has.
     /// <summary>The building's name (its own or its type's), without the level.</summary>
@@ -392,6 +437,17 @@ public class HutSnapshot
     [ProtoMember(80)] public string CraftTab = "";
     /// <summary>The rows of that tab. Clay is how many of the input each one takes (nuggets per ingot, ingots per piece).</summary>
     [ProtoMember(81)] public List<PotteryView> Craft = new();
+    /// <summary>A hut with a Crafting recipes tab, and its rows (Clay is how many items one craft takes; Name says what it is made from).</summary>
+    [ProtoMember(170)] public bool HasRecipes;
+    [ProtoMember(171)] public List<PotteryView> Recipes = new();
+    /// <summary>The recipes players taught this kind of hut (Key is the recipe's Id), and whether officers may teach more.</summary>
+    [ProtoMember(172)] public List<PotteryView> Taught = new();
+    [ProtoMember(173)] public bool CanTeach;
+    /// <summary>Priorities tab: the keys of what the hut keeps (rows of its other tabs), in the order its worker makes them.</summary>
+    [ProtoMember(240)] public List<string> Priorities = new();
+    [ProtoMember(241)] public bool HasPriorities;
+    /// <summary>Priorities rows for a hut's own work, not something it keeps in stock: a Tailor's mending.</summary>
+    [ProtoMember(242)] public List<PotteryView> WorkRows = new();
 
     // The Miner's Hut's Levels, Settings and Guards tabs (82-99).
     [ProtoMember(82)] public bool IsMiner;
@@ -409,6 +465,96 @@ public class HutSnapshot
     /// <summary>Required resources: "N of M spots done" for a mineshaft piece, the used share for a builder.</summary>
     [ProtoMember(92)] public int UsedPercent = -1;
     [ProtoMember(93)] public string ResourcesStep = "";
+    /// <summary>A Residence: the colony's other grown settlers, with where they live now (already in words, empty for nowhere) in Relation.</summary>
+    [ProtoMember(94)] public List<FamilyMemberView> ResidentChoices = new();
+    // 130-139 for the Explorer's and Gatherer's huts.
+    /// <summary>An Explorer's or Gatherer's Hut: the marker groups its worker can put on the map, for the Markers tab; empty for other huts.</summary>
+    [ProtoMember(130)] public List<string> MarkerGroups = new();
+    /// <summary>The groups it is set not to mark.</summary>
+    [ProtoMember(131)] public List<string> MarkersOff = new();
+    /// <summary>How many markers its worker has put down.</summary>
+    [ProtoMember(132)] public int MarkerCount;
+    /// <summary>How many spots of its marker groups a player took markers off, so it leaves them alone.</summary>
+    [ProtoMember(133)] public int RemovedMarkerCount;
+    /// <summary>A Gatherer's Hut: what its gatherer does (GatherModes); empty for other huts.</summary>
+    [ProtoMember(134)] public string GatherMode = "";
+    /// <summary>A Gatherer's Hut: its collecting order (ColonyManager.GatherCategories), for the Priorities tab; empty for other huts.</summary>
+    [ProtoMember(135)] public List<string> GatherOrder = new();
+    /// <summary>A Mineshaft Entrance: the colony's Miner's Huts, those working its mine first.</summary>
+    [ProtoMember(150)] public bool IsMineEntrance;
+    [ProtoMember(151)] public List<MineHutView> MineHuts = new();
+    /// <summary>A Miner's Hut working a Mineshaft Entrance's mine: that entrance's name; empty for its own mine.</summary>
+    [ProtoMember(152)] public string MineEntranceName = "";
+    /// <summary>The mine's size and what is left, or that it is derelict (Mineshaft Entrance).</summary>
+    [ProtoMember(153)] public string MineInfo = "";
+    /// <summary>A gathering hut's Allowed to collect tab: every key with its picture, and the keys turned off.</summary>
+    [ProtoMember(160)] public List<string> CollectKeys = new();
+    [ProtoMember(161)] public List<byte[]> CollectStacks = new();
+    [ProtoMember(162)] public List<string> CollectOff = new();
+    // 300-319: the Church and work stations (ColonyManager.Church.cs, ColonyManager.Stations.cs).
+    [ProtoMember(300)] public bool IsChurch;
+    /// <summary>The share of wages given to the church (0, 5 or 10), and the coins in the Church's storage.</summary>
+    [ProtoMember(301)] public int TithePercent;
+    [ProtoMember(302)] public int ChurchCoins;
+    /// <summary>The colony's average Faith (-1 with nobody), and how many settlers are devout, faithful, doubting and faithless.</summary>
+    [ProtoMember(303, IsRequired = true)] public int AverageFaith = -1;
+    [ProtoMember(304)] public List<int> FaithCounts = new();
+    /// <summary>Days until the next service (0 today), and whether one is under way now.</summary>
+    [ProtoMember(305)] public int ServiceInDays;
+    [ProtoMember(306)] public bool ServiceNow;
+    [ProtoMember(307)] public List<ChurchDay> ChurchLedger = new();
+    /// <summary>The names of the work stations in this building.</summary>
+    [ProtoMember(308)] public List<string> Stations = new();
+    /// <summary>This is a work station; HostName is the building it stands in ("" when that is gone).</summary>
+    [ProtoMember(309)] public bool IsStation;
+    [ProtoMember(310)] public string HostName = "";
+    /// <summary>Orphans the church looks after and settlers sleeping in its beds.</summary>
+    [ProtoMember(311)] public int Orphans;
+    [ProtoMember(312)] public int Sheltered;
+    /// <summary>Settlers who died lately and still wait for their funeral.</summary>
+    [ProtoMember(313)] public int AwaitingFuneral;
+    /// <summary>Events written down since the last chronicle, and how many make a new one.</summary>
+    [ProtoMember(314)] public int ChronicleEvents;
+    [ProtoMember(315)] public int ChronicleNeeds;
+    /// <summary>The Requests tab (0.142.0): what the hut asked couriers for and how each is getting on.</summary>
+    [ProtoMember(340)] public bool HasRequestsTab;
+    [ProtoMember(341)] public List<RequestView> Requests = new();
+    /// <summary>A Courier's Station: every courier and settler helping them, what they do and where they move things.</summary>
+    [ProtoMember(342)] public bool IsCourierStation;
+    [ProtoMember(343)] public List<CourierView> Couriers = new();
+    [ProtoMember(344)] public int CourierJobs;
+}
+
+/// <summary>One row of a hut's Requests tab.</summary>
+[ProtoContract]
+public class RequestView
+{
+    [ProtoMember(1)] public byte[] Stack = System.Array.Empty<byte>();
+    /// <summary>The item's name when there is no icon (a tool any material will do).</summary>
+    [ProtoMember(2)] public string Name = "";
+    [ProtoMember(3)] public int Quantity;
+    [ProtoMember(4)] public int Delivered;
+    /// <summary>How many of Quantity are a spare.</summary>
+    [ProtoMember(5)] public int Extra;
+    [ProtoMember(6)] public int InColony;
+    [ProtoMember(7)] public string Status = "";
+    /// <summary>0: on its way. 1: waiting. 2: nobody has it.</summary>
+    [ProtoMember(8)] public int Color;
+    /// <summary>"Builder's Hut: Smelter 2" when it is for a building job, else empty.</summary>
+    [ProtoMember(9)] public string For = "";
+}
+
+/// <summary>One courier on a Courier's Station.</summary>
+[ProtoContract]
+public class CourierView
+{
+    [ProtoMember(1)] public string Name = "";
+    [ProtoMember(2)] public string Doing = "";
+    [ProtoMember(3)] public string From = "";
+    [ProtoMember(4)] public string To = "";
+    [ProtoMember(5)] public string Carrying = "";
+    /// <summary>Not a courier: a settler without a job helping out.</summary>
+    [ProtoMember(6)] public bool Helping;
 }
 
 /// <summary>One line of a hut's chest list: an item, how many there are, and which containers hold it.</summary>
@@ -458,6 +604,10 @@ public class PotteryView
     [ProtoMember(7)] public int NeedsLevel;
     [ProtoMember(8)] public int CookLevel;
     [ProtoMember(9)] public bool Locked;
+    /// <summary>A second, greyed line under the name (a recipe row: what it is made from).</summary>
+    [ProtoMember(10)] public string? Detail;
+    /// <summary>Priorities: a line to show instead of "have of keep" (a Tailor's "3 to mend").</summary>
+    [ProtoMember(240)] public string? PriorityText;
 }
 
 [ProtoContract]
@@ -525,6 +675,40 @@ public class ColonySnapshot
     [ProtoMember(50, IsRequired = true)] public int AverageHappiness = -1;
     /// <summary>Where every quest stands for the viewer, for the Quests tab.</summary>
     [ProtoMember(37)] public List<QuestStateView> Quests = new();
+    /// <summary>Colony militia switches.</summary>
+    [ProtoMember(60)] public bool SelfDefence;
+    [ProtoMember(61)] public bool SupportAllies;
+    /// <summary>The Bailiff tab (110-119): the bailiff's name ("" for none) and whether they are on duty (BailiffState), the rules, the ledger and the estate report.</summary>
+    [ProtoMember(110)] public string BailiffName = "";
+    [ProtoMember(111)] public int BailiffState;
+    [ProtoMember(112)] public int WandererRule;
+    [ProtoMember(113)] public bool BailiffGivesJobs;
+    [ProtoMember(114)] public bool BailiffCollectsRent;
+    [ProtoMember(115)] public int TaxPercent;
+    /// <summary>Coins in the treasury.</summary>
+    [ProtoMember(116)] public int Treasury;
+    [ProtoMember(117)] public List<LedgerDay> Ledger = new();
+    [ProtoMember(118)] public List<string> EstateReport = new();
+    [ProtoMember(119)] public bool BailiffLendsWorkers;
+    [ProtoMember(120)] public bool BailiffPaysWages;
+    /// <summary>The in-game day of the next payday, and whether the colony has a Royal Mint yet.</summary>
+    [ProtoMember(121)] public int NextPayday;
+    [ProtoMember(122)] public bool HasMint;
+    /// <summary>What wages cost a month, for everyone with a job now.</summary>
+    [ProtoMember(123)] public int WageBill;
+    /// <summary>The colony's coin, whether it is one of its own choosing, and the ingot the minter strikes it from.</summary>
+    [ProtoMember(124)] public string CurrencyName = "";
+    [ProtoMember(125)] public bool OwnCoin;
+    [ProtoMember(126)] public string CoinMetalName = "";
+    /// <summary>The Town Hall level taxes and wages start at, and whether the colony has reached it.</summary>
+    [ProtoMember(127)] public int EconomyLevel;
+    [ProtoMember(128)] public bool EconomyOpen;
+}
+
+/// <summary>ColonySnapshot.BailiffState: none, on duty, knocked out, or too unhappy to work.</summary>
+public static class BailiffState
+{
+    public const int None = 0, OnDuty = 1, Downed = 2, Sulking = 3;
 }
 
 /// <summary>Client asks for the quest book: from the hotkey, the Colony Ledger, the inventory button or the Town Hall's Quests tab.</summary>
@@ -699,7 +883,59 @@ public enum ColonyAction
     /// <summary>Moves the item with code Text from the player's inventory into the hut's storage, as many as are still needed.</summary>
     GiveResource = 97,
     /// <summary>Fulfil all: Text holds one "code|count" line per item; each moves from the player into the hut's storage, as many as it still needs.</summary>
-    GiveAllResources = 98
+    GiveAllResources = 98,
+    /// <summary>A Residence's Choose residents page: move a settler and their household in, or out to a bed elsewhere.</summary>
+    MoveInResidence = 99,
+    MoveOutResidence = 100,
+    /// <summary>Text "group|1" or "group|0": whether the Explorer's or Gatherer's Hut with BuildingId puts that marker group on the map.</summary>
+    SetMarkerGroup = 120,
+    /// <summary>Takes away every map marker the worker of the hut with BuildingId put down.</summary>
+    RemoveMarkers = 121,
+    /// <summary>Takes the map marker with MarkerId Text off the map (right-click on the world map); settlers leave that spot alone after.</summary>
+    RemoveMarker = 122,
+    /// <summary>Lets the worker of the hut with BuildingId mark the spots players took markers off again.</summary>
+    MarkRemovedAgain = 123,
+    SetGatherMode = 124,
+    /// <summary>Colony militia switches (officers); Text is "1" or "0".</summary>
+    SetSelfDefence = 140,
+    SetSupportAllies = 141,
+    /// <summary>Remove hut: the hut's workers lose their job, a builder takes the building down and the hut block comes back.</summary>
+    RemoveHut = 150,
+    /// <summary>Stops taking a trader's old house down; BuildingId is the TeardownOrder id.</summary>
+    CancelTeardown = 240,
+    /// <summary>Priorities tab: moves Text (a key) by Role (-1 up, 1 down, -1000 to the top). BuildingId 0 or a Builder's Hut: the builders' queue.</summary>
+    MovePriority = 241,
+    /// <summary>Has the Miner's Hut with Text (its BuildingId) work the mine of the Mineshaft Entrance with BuildingId.</summary>
+    LinkMineHut = 151,
+    UnlinkMineHut = 152,
+    /// <summary>Text "key|1" or "key|0": whether the gathering hut with BuildingId collects that; "*" turns all on, "-" all off.</summary>
+    SetCollect = 160,
+    /// <summary>How many of a thing a hut's worker keeps crafted (Crafting recipes tab): Text = "code|amount".</summary>
+    SetRecipeKeep = 170,
+    /// <summary>Teach recipe (officers): every hut of this kind learns a recipe. Text = "any|inputs|output" (ColonyManager.TeachRecipe).</summary>
+    TeachRecipe = 171,
+    /// <summary>Forgets the taught recipe with Id Text.</summary>
+    ForgetRecipe = 172,
+    /// <summary>The Bailiff tab's rules (officers): Text "wanderers|n" (BailiffWanderers), "jobs|1", "lend|1" or "rent|0".</summary>
+    SetBailiffRule = 180,
+    /// <summary>Repair button on a hut's Main tab: a builder puts the building back as its blueprint has it.</summary>
+    Repair = 250,
+    /// <summary>A Church's Church tab (officers): Text is the tithe in percent (0, 5 or 10).</summary>
+    SetTithe = 300
+}
+
+/// <summary>One Miner's Hut on a Mineshaft Entrance's Main tab.</summary>
+[ProtoContract]
+public class MineHutView
+{
+    [ProtoMember(1)] public int BuildingId;
+    [ProtoMember(2)] public string Name = "";
+    [ProtoMember(3)] public int Level;
+    /// <summary>Its miner's name, or empty when nobody works there.</summary>
+    [ProtoMember(4)] public string Worker = "";
+    [ProtoMember(5)] public bool Linked;
+    /// <summary>The other Mineshaft Entrance it works under, if any.</summary>
+    [ProtoMember(6)] public string Elsewhere = "";
 }
 
 /// <summary>The Builder's Wand building list: each building type with how many of its blocks the player carries.</summary>

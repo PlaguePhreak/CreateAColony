@@ -1,0 +1,10 @@
+{
+	"ingredientPattern": "PCP,P_P",
+	"ingredients": {
+		"P": { "type": "item", "code": "game:plank-*" },
+		"C": { "type": "block", "code": "game:chest-east" }
+	},
+	"width": 3,
+	"height": 2,
+	"output": { "type": "block", "code": "createacolony:workstation-courier" }
+}

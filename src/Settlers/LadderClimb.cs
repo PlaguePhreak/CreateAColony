@@ -28,9 +28,15 @@ public class LadderClimb
     /// <summary>The ladder column the settler climbs in.</summary>
     public BlockPos Column = null!;
     public bool Up;
+    /// <summary>Ladders the settler puts up itself before climbing (see ColonyManager.Scaffold.cs), or null for a ladder already there.</summary>
+    public List<BlockPos>? ToPlace;
+    /// <summary>The side of the ladders the wall is on.</summary>
+    public BlockFacing? WallSide;
+    /// <summary>Set when the settler fell off the ladder on the way up, so the climb can be tried again.</summary>
+    public bool Fell;
 
     bool steppingOff;
-    double lastY;
+    double lastY, highestY;
     long lastProgressMs;
 
     /// <summary>
@@ -74,7 +80,9 @@ public class LadderClimb
 
                 var column = new BlockPos(x, bottom, z, here.dimension);
                 var start = manager.FreeSpotNear(entity, new BlockPos(x, startY, z, here.dimension), 1);
-                var exit = manager.FreeSpotNear(entity, new BlockPos(x, endY, z, here.dimension), 1);
+                // Going up, step off onto the block the ladder hangs on, so the settler never steps out into the air.
+                var exit = (up ? OntoWall(manager, entity, x, top, z) : null)
+                    ?? manager.FreeSpotNear(entity, new BlockPos(x, endY, z, here.dimension), 1);
                 if (start == null || exit == null || Math.Abs(exit.Y - endY) > 1.5) continue;
                 double gained = Math.Min(Math.Abs(endY - here.Y), Math.Abs(rise));
                 double score = start.DistanceTo(entity.Pos.XYZ) + Horizontal(exit, goal) + 2 * Math.Abs(goal.Y - exit.Y) - gained;
@@ -84,6 +92,29 @@ public class LadderClimb
             }
         }
         return best;
+    }
+
+    /// <summary>
+    /// The spot on top of the block the ladder at the top of a column hangs on, or null if the settler cannot
+    /// stand there. The ladder's "side" variant names the wall side (as ColonyManager.PlaceScaffold sets it);
+    /// for ladders without it, any solid block beside the top ladder.
+    /// </summary>
+    static Vec3d? OntoWall(ColonyManager manager, EntityAgent entity, int x, int top, int z)
+    {
+        var ba = entity.World.BlockAccessor;
+        int dim = entity.Pos.Dimension;
+        var ladder = ba.GetBlock(new BlockPos(x, top, z, dim), BlockLayersAccess.Solid);
+        var sides = new List<BlockFacing>();
+        if (BlockFacing.FromCode(ladder.Variant["side"]) is { IsHorizontal: true } side) sides.Add(side);
+        foreach (var face in BlockFacing.HORIZONTALS) if (!sides.Contains(face)) sides.Add(face);
+        foreach (var face in sides)
+        {
+            var wall = new BlockPos(x + face.Normali.X, top, z + face.Normali.Z, dim);
+            if (!ba.GetBlock(wall).SideSolid[face.Opposite.Index]) continue;
+            var spot = wall.UpCopy();
+            if (manager.CanStandAt(entity, spot)) return new Vec3d(spot.X + 0.5, spot.Y, spot.Z + 0.5);
+        }
+        return null;
     }
 
     static double Horizontal(Vec3d a, Vec3d b) => Math.Sqrt((a.X - b.X) * (a.X - b.X) + (a.Z - b.Z) * (a.Z - b.Z));
@@ -97,7 +128,8 @@ public class LadderClimb
     public void Begin(EntityAgent entity)
     {
         steppingOff = false;
-        lastY = entity.Pos.Y;
+        lastY = highestY = entity.Pos.Y;
+        Fell = false;
         lastProgressMs = entity.World.ElapsedMilliseconds;
         entity.Pos.Yaw = (float)Math.Atan2(Column.X + 0.5 - entity.Pos.X, Column.Z + 0.5 - entity.Pos.Z);
     }
@@ -121,6 +153,15 @@ public class LadderClimb
             return true;
         }
 
+        // Fell off on the way up: stop, so the walk is planned again from where it landed.
+        highestY = Math.Max(highestY, pos.Y);
+        if (Up && highestY - pos.Y > 1.5)
+        {
+            controls.WalkVector.Set(0, 0, 0);
+            Fell = failed = true;
+            return true;
+        }
+
         bool atHeight = Up ? pos.Y >= Exit.Y - 0.05 : pos.Y <= Exit.Y + 0.3 && entity.OnGround;
         if (atHeight && !steppingOff)
         {
@@ -132,7 +173,8 @@ public class LadderClimb
         double tx = steppingOff ? Exit.X : Column.X + 0.5, tz = steppingOff ? Exit.Z : Column.Z + 0.5;
         double dx = tx - pos.X, dz = tz - pos.Z;
         double dist = Math.Sqrt(dx * dx + dz * dz);
-        if (steppingOff && dist < 0.35 && Math.Abs(pos.Y - Exit.Y) < 0.8)
+        // Done only once it stands on the exit block, not while it still hangs at the ladder's top.
+        if (steppingOff && dist < 0.35 && Math.Abs(pos.Y - Exit.Y) < (Up ? 0.3 : 0.8) && (!Up || entity.OnGround))
         {
             controls.WalkVector.Set(0, 0, 0);
             return true;

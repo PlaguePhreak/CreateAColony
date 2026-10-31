@@ -118,6 +118,8 @@ public partial class ColonyManager
     (BlockPos Min, BlockPos Max) BuildingBox(Building b)
     {
         var p = b.HutPos;
+        // A work station is only its block; the zone it works in is its host's.
+        if (b.IsStation) return (p.Copy(), p.Copy());
         var blueprint = Blueprints.Get(b, Math.Max(1, b.Level));
         if (blueprint == null || blueprint.Steps.Count == 0) return (p.AddCopy(-8, -2, -8), p.AddCopy(8, 8, 8));
         int minX = int.MaxValue, minY = int.MaxValue, minZ = int.MaxValue, maxX = int.MinValue, maxY = int.MinValue, maxZ = int.MinValue;

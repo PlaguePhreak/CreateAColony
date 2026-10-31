@@ -25,7 +25,7 @@ def piece(name,turns=0):
             e=n=0
             for x in range(sx):
                 for z in range(sz):
-                    if x in(0,sx-1) or z in(0,sz-1): e+=1; n+=(x,y,z) in B and nat(B[(x,y,z)])
+                    if x in(0,sx-1) or z in(0,sz-1): e+=1; n+=(x,y,z) in B and 'waypoint' not in B[(x,y,z)]
             if n*2>=e: ground=y;break
     ax,ay,az=(sx//2,ground if ent else 0,sz//2)
     cells={}
@@ -33,6 +33,7 @@ def piece(name,turns=0):
         for y in range(sy):
             for z in range(sz):
                 v=B.get((x,y,z))
+                if v and "waypoint" in v and not ent and y>0: v=None
                 if v and ("waypoint" in v or nat(v)): continue
                 cells[(x-ax,y-ay,z-az)]= 'dig' if v is None else v
     def edge(face,i):
@@ -49,14 +50,16 @@ def piece(name,turns=0):
                     x,z=edge(face,min(i,L-1)); mk=i<L and "waypoint" in B.get((x,y,z),"")
                     if mk and st<0: st=i
                     if mk or st<0: continue
-                    if i-st>=2: add(face,(st,i-1),y)
+                    if i-st>=2:
+                        under=all((lambda c: c is not None and not nat(c) and 'waypoint' not in c)(B.get((edge(face,j)[0],y+1,edge(face,j)[1]))) for j in range(st,i))
+                        add(face,(st,i-1),y+1 if under else y)
                     st=-1
         else:
             best=None
             for y in range(min(4,sy)):
                 st=-1
                 for i in range(L+1):
-                    x,z=edge(face,min(i,L-1)); em=i<L and (x,y,z) not in B
+                    x,z=edge(face,min(i,L-1)); em=i<L and ((x,y,z) not in B or 'waypoint' in B[(x,y,z)])
                     if em and st<0: st=i
                     if em or st<0: continue
                     if best is None or i-1-st>best[1]-best[0]: best=(st,i-1)
@@ -73,11 +76,11 @@ def deeper(p,k):
 def box(p,o): return tuple(o[i]+p['min'][i] for i in range(3)),tuple(o[i]+p['max'][i] for i in range(3))
 def inside(c,b): return all(b[0][i]<=c[i]<=b[1][i] for i in range(3))
 def ov(a,b): return all(a[0][i]<=b[1][i] and a[1][i]>=b[0][i] for i in range(3))
-def grow(seed,count,repeats=1):
+def grow(seed,count,repeats=0):
     rnd=random.Random(seed)
     ent=deeper(piece('entrance'),repeats)
     placed=[(ent,(0,0,0))]
-    lib={(n,t):piece(n,t) for n in ('tee','straight') for t in range(4)}
+    lib={(n,t):piece(n,t) for n in ('tee','straight','corner') for t in range(4)}
     while len(placed)-1<count:
         sides=[]
         for p,o in placed:

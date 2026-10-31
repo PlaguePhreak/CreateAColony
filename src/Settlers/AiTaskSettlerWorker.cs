@@ -32,13 +32,17 @@ public abstract class AiTaskSettlerWorker : SettlerTaskBase
     /// <summary>How close the worker must stand to work on the target.</summary>
     protected float workRange = 2.5f;
     protected long nextSearchMs;
-    int hutId;
+    protected int hutId;
     bool walking;
     float workTime;
     string? workAnim;
     ItemMatch supplyMatch = _ => false;
     int supplyWant;
+    string? supplyName;
     readonly Dictionary<BlockPos, long> unreachable = new();
+    /// <summary>A thing from the hut's Crafting recipes tab being made now (the Work step crafts it), or null for the job's own work.</summary>
+    ColonyManager.SawKind? craftKind;
+    ColonyManager.SawRecipe? craftRecipe;
 
     protected AiTaskSettlerWorker(EntityAgent entity, JsonObject taskConfig, JsonObject aiConfig) : base(entity, taskConfig, aiConfig) { }
 
@@ -63,6 +67,12 @@ public abstract class AiTaskSettlerWorker : SettlerTaskBase
     /// kitchen shelves. Calls GoWork and returns true when there is some.
     /// </summary>
     protected virtual bool PlanFirst(Colony colony, CitizenRecord citizen, Building hut) => false;
+
+    /// <summary>
+    /// True when the job's own work comes before the Crafting recipes tab: a Tailor mends first unless its
+    /// Priorities tab puts something to make ahead of mending.
+    /// </summary>
+    protected virtual bool WorkBeforeRecipes(Colony colony, Building hut) => false;
 
     /// <summary>For a hut whose workers each have their own kind of work (a Prospector's Hut): true when this task is that work.</summary>
     protected virtual bool ForRole(int role) => true;
@@ -108,6 +118,7 @@ public abstract class AiTaskSettlerWorker : SettlerTaskBase
         var citizen = Citizen;
         if (colony == null || citizen == null || citizen.JobCode != Job || !ForRole(citizen.WorkRole)) return false;
         if (manager!.IsBrokenDown(citizen)) return false; // too unhappy to work
+        craftRecipe = null;
 
         var hut = manager!.EnsureWorkplace(colony, citizen, HutType);
         if (hut == null) return false;
@@ -141,12 +152,126 @@ public abstract class AiTaskSettlerWorker : SettlerTaskBase
             return Wait();
         }
 
-        if (PlanWork(colony, citizen, hut, storage)) return true;
+        if (WorkBeforeRecipes(colony, hut))
+        {
+            if (PlanWork(colony, citizen, hut, storage)) return true;
+            if (PlanRecipe(colony, citizen, hut, storage)) return true;
+        }
+        else
+        {
+            if (PlanRecipe(colony, citizen, hut, storage)) return true;
+            if (PlanWork(colony, citizen, hut, storage)) return true;
+        }
 
         // Nothing left to do: bring the harvest home and wait for things to grow.
         if (HasSurplus(citizen)) return Go(Step.Deposit, storage[0].Pos);
         return Wait();
     }
+
+    /// <summary>
+    /// The hut's Crafting recipes tab (ColonyManager.HutRecipes.cs): when the colony is short of something
+    /// set there, the worker crafts it at the hut if it carries what it takes, or fetches that from the hut
+    /// storage. If it is only in the warehouse, couriers are asked for it and the job's own work goes on.
+    /// </summary>
+    bool PlanRecipe(Colony colony, CitizenRecord citizen, Building hut, List<BlockEntityContainer> storage)
+    {
+        var m = manager!;
+        craftKind = null;
+        if (!m.HasHutRecipes(hut.Type)) return false;
+        var wanted = m.WantedRecipes(colony, hut, citizen);
+        if (wanted.Count == 0) return false;
+
+        foreach (var want in wanted)
+        {
+            var ready = want.Recipes.FirstOrDefault(r => m.HasRecipeInputs(citizen, r, Hand?.Itemstack));
+            if (ready == null) continue;
+            craftKind = want;
+            craftRecipe = ready;
+            workRange = 2.5f;
+            SetStatus("recipes-crafting");
+            return GoWork(hut.HutPos);
+        }
+
+        foreach (var want in wanted)
+        {
+            int batches = System.Math.Clamp((m.RecipeWant(colony, hut, want.Key) - m.RecipeStock(colony, hut, want, citizen)) / System.Math.Max(1, want.Sample.StackSize) + 1,
+                1, m.Config.HutRecipeBatch);
+            foreach (var r in want.Recipes)
+            {
+                // A recipe a player taught the hut: the worker gets the tool it takes from the hut storage, or asks couriers for one.
+                if (r.CustomId != 0 && FetchTaughtTool(colony, citizen, hut, storage, want, r)) return true;
+                // The tool must be carried already; the worker never fetches one just for a game recipe.
+                if (!m.CarriesTool(citizen, r.Tool, Hand?.Itemstack) || !m.CarriesTool(citizen, r.Tool2, Hand?.Itemstack)) continue;
+                foreach (var (part, quantity) in r.Inputs)
+                {
+                    ItemMatch fits = s => part.SatisfiesAsIngredient(s, false);
+                    int missing = quantity * batches - m.PackCount(citizen, fits);
+                    if (missing <= 0) continue;
+                    var chest = storage.FirstOrDefault(c => c.Inventory.Any(s => !s.Empty && fits(s.Itemstack)));
+                    if (chest == null || m.PackFull(citizen)) continue;
+                    craftKind = want;
+                    SetStatus("recipes-fetching");
+                    return FetchSupplies(chest.Pos, fits, missing);
+                }
+            }
+            foreach (var r in want.Recipes)
+            {
+                var codes = r.Inputs.Select(i => (Code: m.CodeInWarehouse(colony, s => i.Part.SatisfiesAsIngredient(s, false)), i.Quantity)).ToList();
+                if (codes.Any(c => c.Code == null)) continue;
+                foreach (var (code, quantity) in codes) m.EnsureCraftRequest(colony, hut, code!, quantity * batches);
+                break;
+            }
+        }
+        return false;
+    }
+
+    /// <summary>
+    /// The tools a taught recipe takes that the worker does not carry: it walks to the hut storage for one there,
+    /// or asks couriers to bring one from the warehouse. True when it walks to get one.
+    /// </summary>
+    bool FetchTaughtTool(Colony colony, CitizenRecord citizen, Building hut, List<BlockEntityContainer> storage, ColonyManager.SawKind want, ColonyManager.SawRecipe recipe)
+    {
+        var m = manager!;
+        foreach (var tool in new[] { recipe.Tool, recipe.Tool2 })
+        {
+            if (tool == null || m.CarriesTool(citizen, tool, Hand?.Itemstack)) continue;
+            ItemMatch fits = s => tool.SatisfiesAsIngredient(s, false);
+            var chest = storage.FirstOrDefault(c => c.Inventory.Any(s => !s.Empty && fits(s.Itemstack)));
+            if (chest != null && !m.PackFull(citizen))
+            {
+                craftKind = want;
+                SetStatus("fetching-tools");
+                return FetchSupplies(chest.Pos, fits, 1);
+            }
+            if (m.CodeInWarehouse(colony, fits) is { } code) m.EnsureCraftRequest(colony, hut, code, 1);
+        }
+        return false;
+    }
+
+    /// <summary>
+    /// Picks up one of each kind of tool its recipes may take (config HutRecipeTools, by the first part of the
+    /// code) that is in the hut storage and that it does not carry yet: a Tailor's needle and awl. True when it
+    /// walks to get one.
+    /// </summary>
+    protected bool FetchRecipeTools(Colony colony, CitizenRecord citizen, Building hut, List<BlockEntityContainer> storage)
+    {
+        var m = manager!;
+        if (m.PackFull(citizen) || m.Config.HutRecipeTools.GetValueOrDefault(hut.Type) is not { } kinds) return false;
+        foreach (var kind in kinds)
+        {
+            ItemMatch fits = s => ColonyManager.FirstPart(s.Collectible.Code) == kind;
+            if ((Hand?.Itemstack is { } held && fits(held)) || m.PackCount(citizen, fits) > 0) continue;
+            var chest = storage.FirstOrDefault(c => c.Inventory.Any(s => !s.Empty && fits(s.Itemstack)));
+            if (chest == null) continue;
+            SetStatus("fetching-tools");
+            return FetchSupplies(chest.Pos, fits, 1);
+        }
+        return false;
+    }
+
+    /// <summary>True for a tool its recipes may take, which it keeps in its inventory.</summary>
+    protected bool IsRecipeTool(ItemStack stack) =>
+        manager!.Config.HutRecipeTools.GetValueOrDefault(HutType) is { } kinds && kinds.Contains(ColonyManager.FirstPart(stack.Collectible.Code));
 
     bool Wait()
     {
@@ -169,12 +294,27 @@ public abstract class AiTaskSettlerWorker : SettlerTaskBase
 
     protected bool GoWork(BlockPos pos) => Go(Step.Work, pos);
 
+    /// <summary>Walks to this chest of the hut to put away what the worker does not keep (into the hut storage, coolest first for food).</summary>
+    protected bool GoDeposit(BlockPos chest) => Go(Step.Deposit, chest);
+
     /// <summary>Walks to the chest to take up to want items the work needs.</summary>
     protected bool FetchSupplies(BlockPos chest, ItemMatch match, int want)
     {
         supplyMatch = match;
         supplyWant = want;
+        supplyName = SupplyName(chest, match);
         return Go(Step.FetchSupplies, chest);
+    }
+
+    /// <summary>What the worker is fetching, for its "Doing right now" line: the first matching item in the chest.</summary>
+    string? SupplyName(BlockPos chest, ItemMatch match)
+    {
+        if (entity.World.BlockAccessor.GetBlockEntity(chest) is not IBlockEntityContainer container) return null;
+        foreach (var slot in container.Inventory)
+        {
+            if (!slot.Empty && match(slot.Itemstack)) return slot.Itemstack.GetName();
+        }
+        return null;
     }
 
     /// <summary>True when a spot could not be reached a little while ago, so the worker tries something else first.</summary>
@@ -195,11 +335,15 @@ public abstract class AiTaskSettlerWorker : SettlerTaskBase
     bool HasTool(CitizenRecord citizen) =>
         IsToolStack(Hand?.Itemstack) || manager!.PackCount(citizen, s => IsToolStack(s)) > 0;
 
+    /// <summary>What the job keeps, and what the thing it is crafting for the Crafting recipes tab takes.</summary>
+    bool Keeps(ItemStack s) => AlsoKeeps(s) || craftKind?.IsInput(s) == true
+        || craftKind?.Recipes.Any(r => r.CustomId != 0 && (r.Tool?.SatisfiesAsIngredient(s, false) == true || r.Tool2?.SatisfiesAsIngredient(s, false) == true)) == true;
+
     /// <summary>True when the settler carries anything it does not keep: a harvest, or seeds beyond its stock.</summary>
     bool HasSurplus(CitizenRecord citizen)
     {
         var items = manager!.PackItems(citizen);
-        return items.Any(s => !IsMyTool(s) && !Stock(s) && !AlsoKeeps(s))
+        return items.Any(s => !IsMyTool(s) && !Stock(s) && !Keeps(s) && !ColonyManager.IsLadderStack(s))
             || items.Where(Stock).Sum(s => s.StackSize) > manager.SeedReserve(Job);
     }
 
@@ -213,6 +357,15 @@ public abstract class AiTaskSettlerWorker : SettlerTaskBase
     {
         workTime = 0;
         if (step != Step.Work && Colony is { } colony && Citizen is { } citizen) PutAwayHand(colony, citizen);
+        bool crafting = step == Step.Work && craftRecipe != null;
+        if (crafting)
+        {
+            // At the hut block, whatever the job's own work spot would be.
+            var spot = target.ToVec3d().Add(0.5, 0, 0.5);
+            walking = entity.Pos.XYZ.DistanceTo(target.ToVec3d().Add(0.5, 0.5, 0.5)) > workRange + 0.5;
+            if (walking) WalkTo(spot, workRange, () => spot);
+            return;
+        }
         walking = !(step == Step.Work && CloseEnough());
         if (!walking) return;
         if (step == Step.Work) WalkTo(WalkGoal(), workRange, WalkGoal);
@@ -251,6 +404,8 @@ public abstract class AiTaskSettlerWorker : SettlerTaskBase
         {
             case Step.FetchTool:
                 if (!Take(colony, citizen, s => IsToolStack(s), 1)) return Wait();
+                manager!.TopUpLadders(colony, citizen, manager.HutStorage(colony, hut).Cast<BlockEntityContainer>());
+                manager.TakeSpareWeapon(colony, citizen, manager.HutStorage(colony, hut).Cast<BlockEntityContainer>());
                 break;
             case Step.FetchSupplies:
                 if (!Take(colony, citizen, supplyMatch, supplyWant)) return Wait();
@@ -261,17 +416,27 @@ public abstract class AiTaskSettlerWorker : SettlerTaskBase
                     SetStatus("hut-chest-full");
                     return Wait();
                 }
+                // Ladders for cliffs on the way (ColonyManager.Scaffold.cs).
+                manager!.TopUpLadders(colony, citizen, manager.HutStorage(colony, hut).Cast<BlockEntityContainer>());
+                manager.TakeSpareWeapon(colony, citizen, manager.HutStorage(colony, hut).Cast<BlockEntityContainer>());
                 break;
             case Step.Work:
                 if (workAnim == null)
                 {
-                    PrepareHand(colony, citizen);
-                    workAnim = PlayShapeAnimation(WorkAnimation(Hand), "build");
+                    if (craftRecipe != null) PrepareCraftHand(colony, citizen, craftRecipe);
+                    else PrepareHand(colony, citizen);
+                    workAnim = PlayShapeAnimation(craftRecipe != null && Hand?.Itemstack == null ? "interactstatic" : WorkAnimation(Hand), "build");
                 }
                 workTime += dt;
                 // A skilled worker gets the same work done in less time (ColonyManager.Skills.cs).
-                if (workTime < WorkSeconds * manager!.WorkTimeFactor(colony, citizen)) return true;
-                DoWork(colony, citizen, hut);
+                float seconds = craftRecipe != null ? manager!.Config.HutRecipeSecondsPerCraft : WorkSeconds;
+                if (workTime < seconds * manager!.WorkTimeFactor(colony, citizen)) return true;
+                if (craftRecipe != null)
+                {
+                    if (craftRecipe.Tool != null && Hand is { } hand && craftRecipe.Tool.SatisfiesAsIngredient(hand.Itemstack, false)) manager.WearTool(entity, hand);
+                    manager.CraftHutRecipe(colony, hut, citizen, craftRecipe);
+                }
+                else DoWork(colony, citizen, hut);
                 manager.GainWorkXp(colony, citizen, Jobs.WorkJob(citizen));
                 StopWorkAnimation();
                 break;
@@ -307,7 +472,7 @@ public abstract class AiTaskSettlerWorker : SettlerTaskBase
     bool Deposit(Colony colony, CitizenRecord citizen, Building hut)
     {
         var storage = manager!.HutStorage(colony, hut).Cast<BlockEntityContainer>().ToList();
-        manager.UnloadPack(colony, citizen, storage, s => !IsMyTool(s) && !Stock(s) && !AlsoKeeps(s));
+        manager.UnloadPack(colony, citizen, storage, s => !IsMyTool(s) && !Stock(s) && !Keeps(s) && !ColonyManager.IsLadderStack(s));
 
         int extra = manager.PackCount(citizen, Stock) - manager.SeedReserve(Job);
         if (extra > 0 && manager.TakeFromPack(colony, citizen, Stock, extra) is { } seeds)
@@ -340,6 +505,24 @@ public abstract class AiTaskSettlerWorker : SettlerTaskBase
         SyncHand();
     }
 
+    /// <summary>Holds the recipe's tool when it takes one, and nothing otherwise.</summary>
+    void PrepareCraftHand(Colony colony, CitizenRecord citizen, ColonyManager.SawRecipe recipe)
+    {
+        var hand = Hand;
+        if (hand == null) return;
+        if (recipe.Tool == null)
+        {
+            PutAwayHand(colony, citizen);
+            return;
+        }
+        if (recipe.Tool.SatisfiesAsIngredient(hand.Itemstack, false)) return;
+        var tool = manager!.TakeFromPack(colony, citizen, s => recipe.Tool.SatisfiesAsIngredient(s, false), 1);
+        if (tool == null) return;
+        PutAwayHand(colony, citizen);
+        hand.Itemstack = tool;
+        SyncHand();
+    }
+
     /// <summary>True when the tool is in hand for work that needs it.</summary>
     protected bool HoldsTool => IsToolStack(Hand?.Itemstack);
 
@@ -363,8 +546,9 @@ public abstract class AiTaskSettlerWorker : SettlerTaskBase
         return step switch
         {
             Step.FetchTool => Lang.Get("createacolony:activity-worker-tool", Lang.Get("createacolony:tool-" + Tool.ToString().ToLowerInvariant())),
-            Step.FetchSupplies => Lang.Get("createacolony:activity-worker-seeds"),
+            Step.FetchSupplies => supplyName != null ? Lang.Get("createacolony:activity-worker-supplies", supplyName) : Lang.Get("createacolony:activity-worker-supplies-any"),
             Step.Deposit => Lang.Get("createacolony:activity-worker-deposit"),
+            _ when craftRecipe != null && craftKind != null => Lang.Get("createacolony:activity-worker-craft", craftKind.Sample.GetName()),
             _ => DescribeWork()
         };
     }

@@ -1,0 +1,10 @@
+{
+	"ingredientPattern": "PXP,P_P",
+	"ingredients": {
+		"P": { "type": "item", "code": "game:plank-*" },
+		"X": { "type": "block", "code": "game:linen-normal-down" }
+	},
+	"width": 3,
+	"height": 2,
+	"output": { "type": "block", "code": "createacolony:workstation-healer" }
+}

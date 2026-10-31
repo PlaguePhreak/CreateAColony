@@ -56,19 +56,24 @@ public partial class ColonyManager
         return (cans.Count > 0, cans.Sum(c => ((BlockWateringCan)c.Block).GetRemainingWateringSeconds(c)));
     }
 
-    /// <summary>Waters dry farmland from the worker's watering can.</summary>
-    public bool Water(Colony colony, CitizenRecord worker, BlockPos ground)
+    /// <summary>Waters dry farmland from the watering can in the worker's hand, or else one in its inventory.</summary>
+    public bool Water(Colony colony, CitizenRecord worker, BlockPos ground, ItemSlot? hand = null)
     {
         if (sapi.World.BlockAccessor.GetBlockEntity(ground) is not BlockEntityFarmland farmland) return false;
-        var items = PackItems(worker);
-        var can = items.FirstOrDefault(s => IsWateringCan(s) && ((BlockWateringCan)s.Block).GetRemainingWateringSeconds(s) > 0);
+        bool inHand = hand?.Itemstack is { } held && IsWateringCan(held) && ((BlockWateringCan)held.Block).GetRemainingWateringSeconds(held) > 0;
+        var items = inHand ? new List<ItemStack>() : PackItems(worker);
+        var can = inHand ? hand!.Itemstack : items.FirstOrDefault(s => IsWateringCan(s) && ((BlockWateringCan)s.Block).GetRemainingWateringSeconds(s) > 0);
         if (can == null) return false;
         var block = (BlockWateringCan)can.Block;
         float left = block.GetRemainingWateringSeconds(can);
-        block.SetRemainingWateringSeconds(can, Math.Max(0, left - WateringSeconds));
-        SavePack(colony, worker, items);
+        // Pour until the soil is soaked (100%), as a player would: the game adds half the moisture range per second.
+        float needed = Math.Max(WateringSeconds, (1 - farmland.MoistureLevel) * 2 + 0.1f);
+        float pour = Math.Min(left, needed);
+        block.SetRemainingWateringSeconds(can, Math.Max(0, left - pour));
+        if (inHand) hand!.MarkDirty();
+        else SavePack(colony, worker, items);
 
-        farmland.WaterFarmland(Math.Min(left, WateringSeconds));
+        farmland.WaterFarmland(pour);
         sapi.World.PlaySoundAt(new AssetLocation("sounds/effect/watering"), ground, 0);
         return true;
     }
@@ -87,11 +92,12 @@ public partial class ColonyManager
     }
 
     /// <summary>The water block nearest the hut with open air above it, where a farmer can fill a can.</summary>
-    public BlockPos? FindWater(Colony colony, Building hut)
+    public BlockPos? FindWater(Colony colony, Building hut) => FindWaterNear(colony, hut.HutPos, Math.Max(1, Config.FarmerOrchardRadius));
+
+    /// <summary>The surface water block nearest a spot, within radius blocks across, where a settler can fill a can.</summary>
+    public BlockPos? FindWaterNear(Colony colony, BlockPos center, int radius)
     {
         var ba = sapi.World.BlockAccessor;
-        var center = hut.HutPos;
-        int radius = Math.Max(1, Config.FarmerOrchardRadius);
         var pos = center.Copy();
         BlockPos? best = null;
         double bestDist = double.MaxValue;
@@ -138,6 +144,7 @@ public partial class ColonyManager
                 }
                 ripe = IsRipeFruit(be);
                 scanner.Found[pos] = ripe;
+                if (ripe && !MayCollect(hut, FruitKey(be!))) continue;
             }
             if (ripe && CanWorkAt(colony, pos)) yield return pos;
         }
@@ -176,7 +183,7 @@ public partial class ColonyManager
     public bool PickFruit(Colony colony, Building hut, CitizenRecord worker, BlockPos pos)
     {
         var be = sapi.World.BlockAccessor.GetBlockEntity(pos);
-        if (!IsRipeFruit(be)) return false;
+        if (!IsRipeFruit(be) || !MayCollect(hut, FruitKey(be!))) return false;
         var drops = new List<ItemStack>();
 
         if (be is BlockEntityFruitTreePart part)

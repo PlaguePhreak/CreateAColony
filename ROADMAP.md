@@ -20,15 +20,32 @@ Everything listed under "What we have" and "Partly done" has been tested in game
 - Cook: grilling and pot meals, harder meals as the Cooking skill grows *(tested)*
 - Guard Tower: guard, patrol and follow tasks, night watch, alarms, retreat and armor *(tested)*
 - Barracks: a bigger guard post, two guards per level, with a wider watch and patrol (0.54.0, placeholder model and building, not tested yet)
+- Guards swap in better weapons, armor and shields from their tower and the warehouse, and block with shields (0.149.0, not tested yet)
 - Our own jobs: the Prospector (finds ore and marks the map) and the Potter (shapes clay and fires pit kilns) *(tested)*
 - Smelter's Hut: melts nuggets in a crucible over the fire pit and pours ingots into molds (0.50.0, placeholder model and building, not tested yet)
 - Blacksmith's Hut: heats ingots in the forge and makes tool heads and finished tools on the anvil (0.50.0, placeholder model and building, not tested yet)
 - Sawmill: a sawyer saws logs into planks and makes other wooden things from the game's recipes (0.52.0, placeholder model and building, not tested yet)
+- Primitive Craftsman: a craftsman knaps flint and stones into tool heads and puts them on sticks, making stone tools for the colony (0.103.0, placeholder model and building, not tested yet)
+- Tailor's Hut and Jeweller's Workshop: a tailor makes and mends clothes and leather or linen armor, a jeweller makes jewellery from our own recipes; clothes wear out, and cold or ragged settlers are unhappy (0.113.0, placeholder models, no buildings yet, not tested yet)
+- Armourer's Hut and Weaponsmith's Hut: the Blacksmith split in three; the armourer makes and mends metal armor, the weaponsmith makes weapons (0.114.0, placeholder models, no buildings yet, not tested yet)
+- Crafting recipes tab on every hut, and Teach recipe to add your own recipes (0.140.0, not tested yet)
+- Repair button on every hut: a builder puts the building back as its blueprint has it, takes out stray blocks and fills holes under it (0.118.0, not tested yet)
+- Healing: badly hurt settlers go home to bed to recover and use a bandage or poultice they carry; a healer makes bandages and treats them (Healer's Station in a Church since 0.137.0); settlers make horsetail poultices; the Gatherer picks horsetail (0.117.0, placeholder model, no building yet, not tested yet)
+- Explorer's Hut and Gatherer's Hut: an explorer marks ore, clay, traders, animals and danger on a Colony markers map layer, and a gatherer forages berries, mushrooms and loose stones and marks plants; works with More Map Icons (0.77.0, placeholder models and buildings, not tested yet)
+- Vintage Colonies' own map icons: 120 waypoint icons covering every More Map Icons sheet entry, used by colony markers (0.79.0, not tested yet)
+- A marker icon for every ore, fruit, vegetable, grain, animal, trader and story location, other mods' too (0.80.0, not tested yet)
+- Remove a colony marker by right-clicking it on the world map; settlers leave that spot alone after (0.126.0, not tested yet)
+- The Bailiff: answers wanderers, gives jobless settlers work, makes farmers work faster, collects rent, keeps a ledger and an estate report on a new Bailiff tab, and moves stuck workers to another hut for a while (0.127.0 and 0.129.0, not tested yet)
+- Royal Mint and the economy: a minter strikes copper coins; on the first of each month the bailiff collects taxes (rate set on the Bailiff tab, higher is less happy) and pays each settler a wage for their job; unpaid settlers are unhappy (0.136.0, not tested yet); penny-style coin model, and a coin designed with the Coinage mod can be the colony's money (0.141.0, not tested yet); taxes and wages only from Town Hall level 3 (0.153.0)
+- Church and religion: priests and a bishop, Faith, services every 7 days (happier, learn faster, small chance of a skill level), tithe, charity (food for the hungry, bandages, orphans, beds for the homeless), funerals, record books, 5 church paintings the priest hangs; work stations, starting with the Healer's Station inside a Church in place of the Healer's Hut (0.137.0, placeholder model, no building yet, not tested yet)
+- Paintings: 17 original framed paintings in four sizes, a blank canvas from 8 boards and 4 linen painted with buckets of dye in the grid, hung by builders from blueprints (0.105.0-0.105.1, not tested yet)
 
 **Colony systems**
 - Colony land that grows with every hut and Town Hall level *(tested)*
 - Town Hall window: actions, town map, banners, events, work orders, citizens, statistics, permissions, settings, prospecting and quests *(tested)*
 - Settlers who eat real meals, like a varied diet, sleep in beds, shelter from storms and come back after dying (or not, with Permadeath) *(tested)*
+- Firefighting: settlers put out fires on the colony's land with watering cans, and the potter clears grass around its pit kiln first (0.123.0, not tested yet)
+- The potter uses several pit kilns at once (2 at hut level 1, up to 4), each filled as full as the game allows (0.155.0, not tested yet)
 - Skills (13) and traits, inherited by children *(tested)*
 - RimWorld-style skills 0 to 20 with passions, decay and perks, and a Happiness system *(0.61.0, not tested yet)*
 - Families: couples, children who grow up, surnames, a population cap *(tested)*
@@ -59,16 +76,18 @@ Everything listed under "What we have" and "Partly done" has been tested in game
 **Next, in this order**
 1. **Smelter** (started in 0.50.0): still to do are alloys such as bronze, and a bloomery for iron
 2. **Happiness** came in 0.61.0. Still to add: safety (raids), health, and how crowded the colony is
-3. **A request list**: players can see and fill what workers need (the Sawmill came first, in 0.52.0)
+3. **A request list**: seeing what workers need came in 0.142.0 (Requests tab). Still to add: filling a request from the tab
 4. **Animal herders and a Tanner**: chickens, pigs, sheep and goats in pens for meat, eggs and hides, and a Tanner who makes leather in barrels
 5. **Ranged guards and a rally banner** (the Barracks came in 0.54.0), then **Raids**: now and then, enemies turn up and attack the player's colony. The player is warned in chat and on the Town Hall window. There are several raid factions, from bandits (who use the settler models) to the game's own monsters such as drifters and shivers.
-6. **Hospital and Graveyard**: a healer with poultices and bandages, and an undertaker who buries the dead
+6. **Graveyard**: an undertaker who buries the dead (the Healer, bandages and poultices came in 0.117.0)
 7. **School, Library and University** with a **research tree** that unlocks faster work and new huts
 8. **Blacksmith** (started in 0.50.0): still to do are repairs, armor, and making the tools workers ask for
 
 **Later**
+- **Economy**: settlers spend their coins (a market, the Tavern, buying furniture and clothes), coins of other metals, fines and market fees for the Bailiff. The Royal Mint, taxes and wages came in 0.136.0.
 - More huts from MineColonies: Stonemason, Baker, Fisher, Beekeeper, Plantation (reeds and cattails), Composter, Crusher and Sifter (quern and panning), Florist, Dyer, Fletcher and Mechanic (windmills and gears)
 - A Combat Academy and an archery range to train guards
+- **Stonemason carving**: a Stonemason adds chiseled detail to buildings by copying carvings you made yourself (builders place chiseled blocks from builds since 0.159.0)
 - Charcoal burner for the Smelter and Blacksmith
 - Settler chat bubbles where settlers ask for things or complain
 - Walls, wells, roads and other decorations to order from the Builder's Wand

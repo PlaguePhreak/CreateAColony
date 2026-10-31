@@ -154,10 +154,117 @@ for i,x in enumerate([5.5,7.75,10]):
 el.append(box("Flag",[3.2,15,8.5],[3.8,18,13],"cloth"))
 barracks=shape(["sides","planks","metal","cloth"], el)
 
+# Explorer: a rolled map, a backpack, a walking stick and a spyglass.
+explorer=shape(["sides","planks","cloth","linen","metal","leather"], base+[
+  box("Pack",[2,9,3],[8,15,7],"leather"),
+  box("PackFlap",[2,13,2.5],[8,15,3],"leather"),
+  box("Bedroll",[2,15,3.5],[8,17,6.5],"cloth"),
+  box("Map",[9,9,3],[14,10.5,12],"linen"),
+  box("MapRoll",[9,9,12],[14,11,13.5],"linen"),
+  box("Spyglass",[3,9,10],[8,10.5,11.5],"metal"),
+  box("Stick",[13,9,14],[14,22,15],"planks"),
+])
+# Gatherer: a basket of berries with a mushroom beside it.
+gatherer=shape(["sides","planks","basket","berry","stem","cap"], base+[
+  box("Basket",[2,9,3],[10,13,11],"basket"),
+  box("Berries",[2.5,12,3.5],[9.5,13.5,10.5],"berry"),
+  box("Handle1",[5.5,13,3],[6.5,17,4],"basket"), box("Handle2",[5.5,13,10],[6.5,17,11],"basket"),
+  box("HandleTop",[5.5,16,4],[6.5,17,10],"basket"),
+  box("Stem",[11.5,9,11.5],[13,11.5,13],"stem"),
+  box("Cap",[10.5,11.5,10.5],[14,13,14],"cap"),
+])
+# Hunter: a rack with two spears, a hide stretched on a frame and a cut of meat.
+hunter=shape(["sides","planks","log","metal","hide","meat"], base+[
+  box("RackL",[2,9,3],[3,17,4],"log"), box("RackR",[2,9,12],[3,17,13],"log"),
+  box("RackBar",[2,16,3],[3,17,13],"log"),
+  box("Spear1",[3,9,5.5],[3.8,20,6.3],"planks"), box("Tip1",[2.9,20,5.4],[3.9,21.5,6.4],"metal"),
+  box("Spear2",[3,9,9.5],[3.8,20,10.3],"planks"), box("Tip2",[2.9,20,9.4],[3.9,21.5,10.4],"metal"),
+  box("FrameL",[7,9,13],[8,18,14],"log"), box("FrameR",[14,9,13],[15,18,14],"log"),
+  box("Hide",[8,10,13.3],[14,17,13.7],"hide"),
+  box("Meat",[8,9,5],[13,11,9],"meat"),
+])
+# Primitive Craftsman: a flat knapping stone with flint on it, and a stone axe and spear leaning by it.
+craftsman=shape(["sides","planks","stone","flint","log"], base+[
+  box("Anvil",[4,9,4],[11,11,10],"stone"),
+  box("Flint1",[5,11,5],[7.5,12,7],"flint"), box("Flint2",[8,11,6.5],[9.5,11.8,8.5],"flint"),
+  box("Chip1",[11.5,9,4],[12.3,9.3,4.8],"flint"), box("Chip2",[3,9,11],[3.8,9.3,11.6],"flint"),
+  box("Haft",[12.5,9,11],[13.3,18,11.8],"log"), box("AxeHead",[11,16,10.9],[12.5,18,11.9],"flint"),
+  box("Spear",[2,9,12.5],[2.8,21,13.3],"log"), box("SpearTip",[1.9,21,12.4],[2.9,22.5,13.4],"flint"),
+])
+# Tailor's Hut: a bolt of cloth, a spool of twine and a pair of shears.
+tailor=shape(["sides","planks","cloth","twine","metal"], base+[
+  box("Bolt",[3,9,4],[12,12,8],"cloth"),
+  box("BoltEnd",[2.5,9.5,4.5],[3,11.5,7.5],"planks"),
+  box("Spool",[10,9,10],[12.5,12,12.5],"twine"),
+  box("SpoolTop",[9.6,12,9.6],[12.9,12.5,12.9],"planks"),
+  box("Blade1",[3,9,11],[8,9.4,11.6],"metal"), box("Blade2",[3.4,9,12],[8,9.4,12.6],"metal"),
+  box("Grip",[8,9,10.8],[9.5,9.5,12.8],"planks"),
+])
+# Jeweller's Workshop: a small anvil, a gold ring and a gem.
+jeweller=shape(["sides","planks","metal","gold","gem"], base+[
+  box("AnvilBase",[5,9,5],[9,10,8],"metal"),
+  box("AnvilTop",[4,10,5.5],[10.5,11.2,7.5],"metal"),
+  box("RingA",[11,9,10],[13,9.5,10.5],"gold"), box("RingB",[11,9,11.5],[13,9.5,12],"gold"),
+  box("RingC",[11,9,10.5],[11.5,9.5,11.5],"gold"), box("RingD",[12.5,9,10.5],[13,9.5,11.5],"gold"),
+  box("Gem",[3,9,11],[4.5,10.5,12.5],"gem"),
+])
+# Healer's Hut: a red cross on the lid, a rolled bandage and a little jar of salve.
+healer=shape(["sides","planks","cross","roll","jar"], base+[
+  box("CrossA",[3,9,6],[8,9.3,7.5],"cross"), box("CrossB",[4.75,9,4.25],[6.25,9.3,9.25],"cross"),
+  box("Roll",[9,9,3],[13,12,6],"roll"), box("RollEnd",[8.6,9.5,3.5],[9,11.5,5.5],"planks"),
+  box("Jar",[9.5,9,9.5],[12.5,12,12.5],"jar"), box("JarLid",[9.2,12,9.2],[12.8,12.6,12.8],"planks"),
+])
+# Armourer's Hut: a helmet on a stand and a coil of chain.
+armourer=shape(["sides","planks","metal","dark"], base+[
+  box("Stand",[7,9,7],[9,13,9],"planks"),
+  box("Helm",[5,13,5],[11,16.5,11],"metal"), box("Crest",[7.5,16.5,5],[8.5,17.5,11],"dark"),
+  box("Chain1",[1.5,9,11],[5.5,9.8,14.5],"dark"), box("Chain2",[2.5,9.8,12],[4.5,10.4,13.5],"metal"),
+])
+# Weaponsmith's Hut: a sword and a spear on a little rack.
+weaponsmith=shape(["sides","planks","metal","grip"], base+[
+  box("RackL",[3,9,7],[4,13,9],"planks"), box("RackR",[12,9,7],[13,13,9],"planks"),
+  box("Blade",[2,12,7.6],[11,12.6,8.4],"metal"), box("Guard",[11,11.5,6.8],[11.6,13.1,9.2],"metal"),
+  box("Grip",[11.6,11.9,7.6],[14,12.7,8.4],"grip"),
+  box("Spear",[2,10,10.6],[14,10.6,11.4],"planks"), box("Tip",[0.5,9.9,10.5],[2,10.7,11.5],"metal"),
+])
+# Royal Mint: a stack of coins, a small coin anvil and a hammer.
+mint=shape(["sides","planks","metal","coin"], base+[
+  box("AnvilBase",[4,9,4],[8,10.5,7],"metal"), box("AnvilTop",[3.5,10.5,4.2],[8.5,11.5,6.8],"metal"),
+  box("Coins1",[10,9,9],[13,9.6,12],"coin"), box("Coins2",[10.3,9.6,9.3],[12.7,10.2,11.7],"coin"),
+  box("Coins3",[10,10.2,9],[13,10.8,12],"coin"), box("Coin",[4.5,9,10.5],[6.5,9.4,12.5],"coin"),
+  box("Handle",[9,9,4],[14,9.8,4.8],"planks"), box("Head",[13,9,3.2],[14.6,10.6,5.6],"metal"),
+])
+# Mineshaft Entrance: a timber frame over a dark hole, with a ladder going down.
+entrance=shape(["sides","planks","log","dark","ladder"], base+[
+  box("Hole",[4,9,4],[12,9.2,12],"dark"),
+  box("PostL",[3,9,7],[4.5,19,8.5],"log"), box("PostR",[11.5,9,7],[13,19,8.5],"log"),
+  box("Beam",[2,19,6.5],[14,20.5,9],"log"),
+  box("RailL",[5,9.2,9],[5.6,15,9.6],"ladder"), box("RailR",[10.4,9.2,9],[11,15,9.6],"ladder"),
+  box("Rung1",[5.6,10.5,9.1],[10.4,11,9.5],"ladder"), box("Rung2",[5.6,12.5,9.1],[10.4,13,9.5],"ladder"),
+  box("Rung3",[5.6,14.5,9.1],[10.4,15,9.5],"ladder"),
+])
+# Church: a gold cross standing on the lid, a book on a little lectern and two candles.
+church=shape(["sides","planks","gold","book","page","wax"], base+[
+  box("CrossPost",[7.25,9,3],[8.75,19,4.5],"gold"), box("CrossArm",[4.5,15,3],[11.5,16.5,4.5],"gold"),
+  box("Lectern",[6.5,9,9],[9.5,12,12],"planks"), box("Book",[5,12,8.5],[11,12.8,12.5],"book"),
+  box("Pages",[5.3,12.8,8.8],[10.7,13,12.2],"page"),
+  box("CandleL",[2,9,9],[3,12,10],"wax"), box("CandleR",[13,9,9],[14,12,10],"wax"),
+])
+# Healer's Station: no crate, as it is not a hut; a small table with a red cross cloth, a rolled bandage and a jar of salve.
+station_healer=shape(["planks","cross","roll","jar","cloth"], [
+  box("Top",[1,10,1],[15,11.5,15],"planks"),
+  box("Leg1",[2,0,2],[4,10,4],"planks"), box("Leg2",[12,0,2],[14,10,4],"planks"),
+  box("Leg3",[2,0,12],[4,10,14],"planks"), box("Leg4",[12,0,12],[14,10,14],"planks"),
+  box("Cloth",[2,11.5,2],[9,11.7,9],"cloth"),
+  box("CrossA",[3,11.7,4.75],[8,11.9,6.25],"cross"), box("CrossB",[4.75,11.7,3],[6.25,11.9,8],"cross"),
+  box("Roll",[9.5,11.5,3],[13.5,14.5,6],"roll"),
+  box("Jar",[9.5,11.5,9.5],[12.5,14.5,12.5],"jar"), box("JarLid",[9.2,14.5,9.2],[12.8,15.1,12.8],"planks"),
+])
+
 if __name__ == "__main__":
     import os
     out = sys.argv[1] if len(sys.argv) > 1 else os.path.join(os.path.dirname(__file__), "../../assets/createacolony/shapes/block")
     for name, (tex, el) in models.items():
         json.dump(shape(tex, base + el), open(f"{out}/{name}.json", "w"), indent=1)
-    for name, model in {"hut-smelter": smelter, "hut-blacksmith": smith, "hut-sawmill": saw, "hut-barracks": barracks, "supplycamp": camp, "fieldmarker": crow}.items():
+    for name, model in {"hut-smelter": smelter, "hut-blacksmith": smith, "hut-sawmill": saw, "hut-barracks": barracks, "hut-explorer": explorer, "hut-gatherer": gatherer, "hut-hunter": hunter, "hut-craftsman": craftsman, "hut-tailor": tailor, "hut-jeweller": jeweller, "hut-healer": healer, "hut-armourer": armourer, "hut-weaponsmith": weaponsmith, "hut-mint": mint, "hut-church": church, "workstation-healer": station_healer, "hut-mineshaftentrance": entrance, "supplycamp": camp, "fieldmarker": crow}.items():
         json.dump(model, open(f"{out}/{name}.json", "w"), indent=1)

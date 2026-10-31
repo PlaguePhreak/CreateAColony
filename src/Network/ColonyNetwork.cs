@@ -20,6 +20,8 @@ public partial class ColonyNetwork : ModSystem
 {
     const string ChannelName = "createacolony";
     const int MaxNameLength = 40;
+    /// <summary>How many kinds of food the Kitchen tab lists as on hand.</summary>
+    const int KitchenOnHandShown = 24;
 
     ICoreServerAPI? sapi;
     IServerNetworkChannel? serverChannel;
@@ -52,7 +54,8 @@ public partial class ColonyNetwork : ModSystem
             .RegisterMessageType<QuestBookSnapshot>()
             .RegisterMessageType<QuestActionPacket>()
             .RegisterMessageType<SettlerSlotPacket>()
-            .RegisterMessageType<HandPlacePacket>();
+            .RegisterMessageType<HandPlacePacket>()
+            .RegisterMessageType<DisplayRedrawPacket>();
     }
 
     // ---- Server ---------------------------------------------------------------------------
@@ -75,7 +78,7 @@ public partial class ColonyNetwork : ModSystem
             var watched = viewersByColony.Where(kv => kv.Value.Count > 0).Select(kv => kv.Key).Concat(hutViewers.Values.Select(v => v.ColonyId));
             foreach (string colonyId in watched.Distinct().ToList())
             {
-                if (Manager.GetById(colonyId) is { } c && c.Buildings.Any(b => b.HasWorkOrder)) RefreshViewers(c, periodic: true);
+                if (Manager.GetById(colonyId) is { } c && c.Buildings.Any(b => b.HasWorkOrder || b.Removing)) RefreshViewers(c, periodic: true);
             }
             // Settlers change what they do all the time, so their windows always refresh.
             foreach (var (uid, view) in citizenViewers.ToList()) SendCitizenWindow(uid, view.ColonyId, view.CitizenId, openWindow: false);
@@ -99,6 +102,9 @@ public partial class ColonyNetwork : ModSystem
     /// <summary>Tells every player the PlaceHutsByHand setting after /colony handplace changes it.</summary>
     public void SendHandPlace() => serverChannel!.BroadcastPacket(new HandPlacePacket { On = Manager.Config.PlaceHutsByHand });
 
+    /// <summary>Tells players to redraw what a rack or shelf shows, after a settler put something on it.</summary>
+    public void SendDisplayRedraw(BlockPos pos) => serverChannel?.BroadcastPacket(new DisplayRedrawPacket { X = pos.X, Y = pos.Y, Z = pos.Z });
+
     void OnOpenRequest(IServerPlayer player, TownHallOpenRequest req)
     {
         if (sapi!.World.BlockAccessor.GetBlockEntity(req.Pos) is not BlockEntityTownHall { ColonyId: not null } be) return;
@@ -114,6 +120,9 @@ public partial class ColonyNetwork : ModSystem
         viewers.Add(player.PlayerUID);
         serverChannel!.SendPacket(BuildSnapshot(colony, player.PlayerUID, openWindow: true), player);
     }
+
+    /// <summary>Whether a player has this colony's Town Hall window open.</summary>
+    public bool IsViewing(string playerUid, string colonyId) => viewersByColony.TryGetValue(colonyId, out var viewers) && viewers.Contains(playerUid);
 
     void OnAction(IServerPlayer player, ColonyActionPacket packet)
     {
@@ -153,22 +162,35 @@ public partial class ColonyNetwork : ModSystem
             ColonyAction.SetJob => SetJob(colony, role, packet.CitizenId, packet.Text),
             ColonyAction.SetRole => SetRole(colony, role, packet.PlayerUid, (ColonyRole)packet.Role),
             ColonyAction.RemoveMember => SetRole(colony, role, packet.PlayerUid, ColonyRole.Visitor),
-            ColonyAction.Build or ColonyAction.CancelBuild or ColonyAction.Rotate => BuildAction(colony, role, packet),
+            ColonyAction.Build or ColonyAction.CancelBuild or ColonyAction.Rotate or ColonyAction.Repair => BuildAction(colony, role, packet),
+            ColonyAction.CancelTeardown => CancelTeardown(colony, role, packet.BuildingId),
+            ColonyAction.MovePriority => MovePriority(colony, role, packet),
             ColonyAction.SetAnyWoodOrStone => SetAnyWoodOrStone(colony, role, packet.Text == "1"),
             ColonyAction.SetWorkRadius or ColonyAction.SetEscort or ColonyAction.SetCollectBerries => WorkAreaAction(colony, role, packet),
             ColonyAction.SetPotteryKeep => PotteryAction(colony, role, packet),
             ColonyAction.SetKitchenKeep => KitchenAction(colony, role, packet),
             ColonyAction.SetCraftKeep => CraftAction(colony, role, packet),
+            ColonyAction.SetRecipeKeep => RecipeAction(colony, role, packet),
+            ColonyAction.TeachRecipe or ColonyAction.ForgetRecipe => TeachAction(player, colony, role, packet),
             ColonyAction.SetMineOre or ColonyAction.SetMineProspected or ColonyAction.NewMine => MiningAction(colony, role, packet),
             ColonyAction.SetWorkRole => WorkRoleAction(colony, role, packet),
             >= ColonyAction.SetMineLevel and <= ColonyAction.UnassignMineGuard => MineTabAction(colony, role, packet),
             ColonyAction.GiveResource or ColonyAction.GiveAllResources => GiveResource(player, colony, role, packet),
+            ColonyAction.MoveInResidence or ColonyAction.MoveOutResidence => ResidenceAction(colony, role, packet),
+            ColonyAction.SetMarkerGroup or ColonyAction.RemoveMarkers or ColonyAction.MarkRemovedAgain => MarkerAction(colony, role, packet),
+            ColonyAction.RemoveMarker => RemoveMapMarker(colony, role, packet),
+            ColonyAction.SetGatherMode => SetGatherMode(colony, role, packet),
             ColonyAction.WelcomeVisitor or ColonyAction.TurnAwayVisitor => VisitorAction(colony, role, packet),
             ColonyAction.RecallCitizen => RecallCitizen(colony, role, packet.CitizenId),
             ColonyAction.SetColonyBanner or ColonyAction.ReplaceBanners or ColonyAction.SetBannerOnNew => BannerAction(player, colony, role, packet),
             ColonyAction.SetPermadeath => SetPermadeath(colony, role, packet.Text == "1"),
+            ColonyAction.SetSelfDefence or ColonyAction.SetSupportAllies => SetMilitia(colony, role, packet),
+            ColonyAction.SetBailiffRule => SetBailiffRule(player, colony, role, packet.Text),
+            ColonyAction.SetTithe => SetTithe(colony, role, packet.Text),
             ColonyAction.HireRecruit => HireAction(player, colony, role, packet),
-            >= ColonyAction.RenameBuilding and <= ColonyAction.SetMinStock => HutAction(player, colony, role, packet),
+            ColonyAction.RemoveHut => RemoveHut(player, colony, role, packet),
+            ColonyAction.LinkMineHut or ColonyAction.UnlinkMineHut => LinkMineAction(colony, role, packet),
+            ColonyAction.SetCollect or >= ColonyAction.RenameBuilding and <= ColonyAction.SetMinStock => HutAction(player, colony, role, packet),
             _ => null
         };
 
@@ -241,6 +263,62 @@ public partial class ColonyNetwork : ModSystem
         return null;
     }
 
+    /// <summary>The Colony militia switches; officers set them.</summary>
+    static string? SetMilitia(Colony colony, ColonyRole role, ColonyActionPacket packet)
+    {
+        if (role < ColonyRole.Officer) return "createacolony:denied-officer";
+        if (packet.Action == ColonyAction.SetSelfDefence) colony.SelfDefence = packet.Text == "1";
+        else colony.SupportAllies = packet.Text == "1";
+        return null;
+    }
+
+    /// <summary>The Bailiff tab's rules; officers set them.</summary>
+    /// <summary>The share of wages settlers give the church (Church tab).</summary>
+    string? SetTithe(Colony colony, ColonyRole role, string text)
+    {
+        if (role < ColonyRole.Officer) return "createacolony:denied-officer";
+        if (!int.TryParse(text, out int percent)) return null;
+        Manager.SetTithe(colony, percent);
+        return null;
+    }
+
+    string? SetBailiffRule(IServerPlayer player, Colony colony, ColonyRole role, string text)
+    {
+        if (role < ColonyRole.Officer) return "createacolony:denied-officer";
+        var parts = text.Split('|');
+        if (parts.Length != 2) return null;
+        switch (parts[0])
+        {
+            case "wanderers":
+                if (int.TryParse(parts[1], out int rule) && rule >= 0 && rule <= BailiffWanderers.Last) colony.WandererRule = rule;
+                break;
+            case "jobs":
+                colony.BailiffGivesJobs = parts[1] == "1";
+                break;
+            case "rent":
+                colony.BailiffCollectsRent = parts[1] == "1";
+                break;
+            case "lend":
+                colony.BailiffLendsWorkers = parts[1] == "1";
+                break;
+            case "wages":
+                colony.BailiffPaysWages = parts[1] == "1";
+                break;
+            case "currency" when parts[1] == "hand":
+                var held = player.InventoryManager.ActiveHotbarSlot?.Itemstack;
+                if (held == null || !Manager.IsCoin(held)) return "createacolony:currency-not-coin";
+                Manager.SetCurrency(colony, held.Collectible.Code.ToString() == "createacolony:coin-copper" ? null : held);
+                break;
+            case "currency":
+                Manager.SetCurrency(colony, null);
+                break;
+            case "tax":
+                if (int.TryParse(parts[1], out int tax) && tax >= 0 && tax <= 50) colony.TaxPercent = tax;
+                break;
+        }
+        return null;
+    }
+
     /// <summary>Any member may hire at the Tavern; they pay for it.</summary>
     string? HireAction(IServerPlayer player, Colony colony, ColonyRole role, ColonyActionPacket packet)
     {
@@ -266,12 +344,76 @@ public partial class ColonyNetwork : ModSystem
         var citizen = colony.Citizens.Find(c => c.CitizenId == citizenId);
         if (citizen == null || !citizen.Alive) return "createacolony:bad-citizen";
         if (citizen.Visitor) return "createacolony:visitor-no-job";
+        if (citizen.WaitingForRoom && job.Length > 0) return "createacolony:waiting-no-job";
         if (citizen.IsChild && job.Length > 0) return "createacolony:child-no-job";
         if (job.Length > 0 && Manager.IncapableOfJob(citizen, job) != null) return "createacolony:job-incapable";
+        if (job == Jobs.Bailiff && Manager.BailiffOf(colony) is { } other && other != citizen) return "createacolony:bailiff-taken";
         if (citizen.JobCode != (job.Length == 0 ? null : job)) citizen.WorkplacePos = null;
         citizen.JobCode = job.Length == 0 ? null : job;
+        ColonyManager.EndLoan(citizen);
         return null;
     }
+
+    string? CancelTeardown(Colony colony, ColonyRole role, int id)
+    {
+        if (role < ColonyRole.Officer) return "createacolony:denied-officer";
+        var order = colony.Teardowns.Find(t => t.Id == id);
+        if (order == null) return "createacolony:bad-building";
+        Manager.CancelTeardown(colony, order);
+        return null;
+    }
+
+    string? MovePriority(Colony colony, ColonyRole role, ColonyActionPacket packet)
+    {
+        if (role < ColonyRole.Officer) return "createacolony:denied-officer";
+        var building = colony.Buildings.Find(b => b.BuildingId == packet.BuildingId);
+        if (building == null || building.Type is BuildingTypes.Builder or BuildingTypes.TownHall) return Manager.MoveBuilderOrder(colony, packet.Text, packet.Role);
+        if (!Manager.HasPriorities(building.Type)) return "createacolony:bad-building";
+        if (building.Type == BuildingTypes.Gatherer && packet.Text.StartsWith(ColonyManager.GatherKeyPrefix))
+        {
+            return Manager.MoveGatherPriority(colony, building, packet.Text[ColonyManager.GatherKeyPrefix.Length..], packet.Role);
+        }
+        var shown = BuildHutSnapshot(colony, building, "", false).Priorities;
+        return Manager.MoveHutPriority(colony, building, shown, packet.Text, packet.Role);
+    }
+
+    /// <summary>The order a crafting hut's worker goes through what it keeps: the rows with something kept, as ByPriority sorts them.</summary>
+    void AddPriorities(HutSnapshot snapshot, Colony colony, Building building)
+    {
+        if (!Manager.HasPriorities(building.Type)) return;
+        snapshot.HasPriorities = true;
+        if (building.Type == BuildingTypes.Gatherer) snapshot.GatherOrder = ColonyManager.GatherOrder(building);
+        if (building.Type == BuildingTypes.Tailor)
+        {
+            int toMend = Manager.MendingCount(colony, building, Manager.WorkerAt(colony, building, Jobs.Tailor));
+            var kit = sapi.World.GetItem(new AssetLocation("game:sewingkit"));
+            snapshot.WorkRows.Add(new PotteryView
+            {
+                Key = ColonyManager.MendKey,
+                Stack = kit != null ? new ItemStack(kit).ToBytes() : System.Array.Empty<byte>(),
+                Keep = 1,
+                Have = toMend > 0 ? 0 : 1,
+                Name = Lang.Get("createacolony:priority-mend"),
+                PriorityText = Lang.Get("createacolony:priority-mend-count", toMend)
+            });
+        }
+        var rows = snapshot.Craft.Concat(snapshot.Recipes).Concat(snapshot.Kitchen).Concat(snapshot.Pottery).Concat(snapshot.WorkRows)
+            .Where(r => r.Keep > 0).GroupBy(r => r.Key).Select(g => g.First());
+        snapshot.Priorities = Manager.ByPriority(building, rows.Select(r => (Kind: r.Key, r.Key, Short: r.Keep - r.Have))).ToList();
+        // Until mending is placed on the list, the Tailor mends first (AiTaskSettlerTailor.WorkBeforeRecipes).
+        if (!building.Priorities.Contains(ColonyManager.MendKey) && snapshot.Priorities.Remove(ColonyManager.MendKey)) snapshot.Priorities.Insert(0, ColonyManager.MendKey);
+    }
+
+    /// <summary>A trader's old house in the work order lists.</summary>
+    BuildingView TeardownViewFor(Colony colony, TeardownOrder t) => new()
+    {
+        TeardownId = t.Id,
+        Type = "traderhouse",
+        Name = t.Owner,
+        Removing = true,
+        Status = Manager.BuildStatus.GetValueOrDefault(-t.Id, "queued"),
+        ProgressPercent = t.Total <= 0 ? 0 : System.Math.Min(100, 100 * t.Done / t.Total)
+    };
 
     string? BuildAction(Colony colony, ColonyRole role, ColonyActionPacket packet)
     {
@@ -283,8 +425,11 @@ public partial class ColonyNetwork : ModSystem
         {
             case ColonyAction.Build:
                 return Manager.StartWorkOrder(colony, building);
+            case ColonyAction.Repair:
+                return Manager.StartRepair(colony, building);
             case ColonyAction.CancelBuild:
-                Manager.CancelWorkOrder(colony, building);
+                if (building.Removing) Manager.CancelRemoval(colony, building);
+                else Manager.CancelWorkOrder(colony, building);
                 return null;
             default:
                 // Turning is only allowed before anything is built, or the old walls would be torn down.
@@ -317,6 +462,48 @@ public partial class ColonyNetwork : ModSystem
         return null;
     }
 
+    /// <summary>The Markers tab of an Explorer's or Gatherer's Hut: which groups to mark, and taking its markers away.</summary>
+    string? MarkerAction(Colony colony, ColonyRole role, ColonyActionPacket packet)
+    {
+        if (role < ColonyRole.Officer) return "createacolony:denied-officer";
+        var building = colony.Buildings.Find(b => b.BuildingId == packet.BuildingId);
+        if (building == null || !ColonyManager.MarkerGroups.TryGetValue(building.Type, out var groups)) return "createacolony:bad-building";
+        if (packet.Action == ColonyAction.RemoveMarkers)
+        {
+            Manager.RemoveHutMarkers(colony, building);
+            return null;
+        }
+        if (packet.Action == ColonyAction.MarkRemovedAgain)
+        {
+            Manager.MarkRemovedAgain(colony, building);
+            return null;
+        }
+        int sep = packet.Text.IndexOf('|');
+        if (sep < 0) return "createacolony:bad-building";
+        string group = packet.Text[..sep];
+        if (!groups.Contains(group)) return "createacolony:bad-building";
+        building.MarkersOff.Remove(group);
+        if (packet.Text[(sep + 1)..] == "0") building.MarkersOff.Add(group);
+        return null;
+    }
+
+    /// <summary>The Gatherer's Hut's choice of picking, looking around, or both.</summary>
+    string? SetGatherMode(Colony colony, ColonyRole role, ColonyActionPacket packet)
+    {
+        if (role < ColonyRole.Officer) return "createacolony:denied-officer";
+        var building = colony.Buildings.Find(b => b.BuildingId == packet.BuildingId);
+        if (building == null) return "createacolony:bad-building";
+        return Manager.SetGatherMode(colony, building, packet.Text);
+    }
+
+    /// <summary>Right-click on a marker of the Colony markers map layer: takes that one marker off the map.</summary>
+    string? RemoveMapMarker(Colony colony, ColonyRole role, ColonyActionPacket packet)
+    {
+        if (role < ColonyRole.Officer) return "createacolony:denied-officer";
+        if (!int.TryParse(packet.Text, out int markerId) || !Manager.RemoveMarker(colony, markerId)) return "createacolony:marker-gone";
+        return null;
+    }
+
     /// <summary>The Miner's Hut's ore choice, "Go to prospected ore" and new mine.</summary>
     string? MiningAction(Colony colony, ColonyRole role, ColonyActionPacket packet)
     {
@@ -332,6 +519,8 @@ public partial class ColonyNetwork : ModSystem
         {
             if (packet.Text.Length > 0 && !colony.OreSites.Any(s => s.Ores.Any(o => o.Code == packet.Text))) return "createacolony:bad-building";
             building.MineOre = packet.Text;
+            // Choosing an ore to mine allows it on the Allowed to collect tab too.
+            building.CollectOff.Remove("ore-" + packet.Text);
         }
         Manager.ClearMines(colony, building);
         return null;
@@ -368,6 +557,12 @@ public partial class ColonyNetwork : ModSystem
         if (role < ColonyRole.Officer) return "createacolony:denied-officer";
         var building = colony.Buildings.Find(b => b.BuildingId == packet.BuildingId);
         if (building == null || building.Type != BuildingTypes.Cook) return "createacolony:bad-building";
+        // No dish named: the cook chooses again.
+        if (packet.Text.Length == 0)
+        {
+            Manager.SetKitchenKeep(colony, building, "", 0);
+            return null;
+        }
         int bar = packet.Text.LastIndexOf('|');
         if (bar <= 0 || !int.TryParse(packet.Text[(bar + 1)..], out int keep) || keep < 0 || keep > 999) return "createacolony:bad-building";
         string key = packet.Text[..bar];
@@ -376,7 +571,7 @@ public partial class ColonyNetwork : ModSystem
         return null;
     }
 
-    /// <summary>The "keep in stock" tab of a crafter hut: each metal for a Smelter, each thing the anvil can make for a Blacksmith, each wooden thing for a Sawmill.</summary>
+    /// <summary>The "keep in stock" tab of a crafter hut: each metal for a Smelter, each thing the anvil can make for a Blacksmith, each wooden thing for a Sawmill, each stone tool for a Primitive Craftsman.</summary>
     void AddCraftRows(HutSnapshot snapshot, Colony colony, Building building, string craftTab)
     {
         snapshot.CraftTab = craftTab;
@@ -396,9 +591,9 @@ public partial class ColonyNetwork : ModSystem
                 });
             }
         }
-        else if (building.Type == BuildingTypes.Blacksmith)
+        else if (building.Type is BuildingTypes.Blacksmith or BuildingTypes.Armourer or BuildingTypes.Weaponsmith)
         {
-            var smith = Manager.WorkerAt(colony, building, Jobs.Blacksmith);
+            var smith = Manager.WorkerAt(colony, building, ColonyManager.JobOf(building.Type)!);
             foreach (var kind in Manager.SmithRows(colony, building, smith))
             {
                 snapshot.Craft.Add(new PotteryView
@@ -426,6 +621,84 @@ public partial class ColonyNetwork : ModSystem
                 });
             }
         }
+        else if (building.Type == BuildingTypes.Craftsman)
+        {
+            var craftsman = Manager.WorkerAt(colony, building, Jobs.Craftsman);
+            foreach (var kind in Manager.KnapRows(colony, building, craftsman))
+            {
+                snapshot.Craft.Add(new PotteryView
+                {
+                    Key = kind.Key,
+                    Stack = kind.Sample.ToBytes(),
+                    Keep = Manager.CraftKeep(building, kind.Key),
+                    Have = Manager.KnapStock(colony, building, kind, craftsman),
+                    Clay = 1 + kind.Handles.Sum(h => h.Quantity)
+                });
+            }
+        }
+    }
+
+    /// <summary>
+    /// The rows of a hut's Crafting recipes tab: everything it can craft, with what each takes, and the recipes
+    /// players taught it. A taught recipe's row shows that recipe; otherwise the game's with the fewest things.
+    /// </summary>
+    void AddRecipeRows(HutSnapshot snapshot, Colony colony, Building building)
+    {
+        // A Potter's or Cook's Hut keeps its own tab's choices.
+        if (snapshot.KeepChoices.Count == 0) snapshot.KeepChoices = Manager.Config.CraftKeepChoices.ToList();
+        snapshot.CanTeach = Manager.Config.CustomRecipes;
+        var worker = Manager.WorkerAt(colony, building, ColonyManager.JobOf(building.Type) ?? "");
+        foreach (var kind in Manager.HutRecipeKinds(colony, building.Type))
+        {
+            var recipe = kind.Recipes[0];
+            snapshot.Recipes.Add(new PotteryView
+            {
+                Key = kind.Key,
+                Stack = kind.Sample.ToBytes(),
+                Keep = Manager.RecipeKeep(building, kind.Key),
+                Have = Manager.RecipeStock(colony, building, kind, worker),
+                Clay = recipe.InputCount,
+                Name = Lang.Get("createacolony:recipes-row", recipe.Output.StackSize, kind.Sample.GetName()),
+                Detail = Lang.Get(recipe.CustomId != 0 ? "createacolony:recipes-from-taught" : "createacolony:recipes-from", Manager.RecipeInputsText(recipe))
+            });
+        }
+        foreach (var taught in Manager.TaughtRecipes(colony, building.Type))
+        {
+            var recipe = Manager.ToSawRecipe(taught);
+            snapshot.Taught.Add(new PotteryView
+            {
+                Key = taught.Id.ToString(),
+                Stack = recipe?.Output.ToBytes() ?? System.Array.Empty<byte>(),
+                Name = recipe != null ? Lang.Get("createacolony:recipes-row", recipe.Output.StackSize, recipe.Output.GetName()) : taught.Output.Code,
+                Detail = recipe != null ? Lang.Get("createacolony:recipes-from", Manager.RecipeInputsText(recipe)) : Lang.Get("createacolony:teach-broken")
+            });
+        }
+        // A hut with nothing to craft yet still gets the tab, so a recipe can be taught there.
+        snapshot.HasRecipes = snapshot.Recipes.Count > 0 || snapshot.Taught.Count > 0 || snapshot.CanTeach;
+    }
+
+    /// <summary>How many of a thing a hut's worker keeps crafted (Crafting recipes tab).</summary>
+    string? RecipeAction(Colony colony, ColonyRole role, ColonyActionPacket packet)
+    {
+        if (role < ColonyRole.Officer) return "createacolony:denied-officer";
+        var building = colony.Buildings.Find(b => b.BuildingId == packet.BuildingId);
+        if (building == null || !Manager.HasHutRecipes(building.Type)) return "createacolony:bad-building";
+        int bar = packet.Text.LastIndexOf('|');
+        if (bar <= 0 || !int.TryParse(packet.Text[(bar + 1)..], out int keep) || keep < 0 || keep > 999) return "createacolony:bad-building";
+        string key = packet.Text[..bar];
+        if (!Manager.HutRecipeKinds(colony, building.Type).Any(k => k.Key == key)) return "createacolony:bad-building";
+        Manager.SetRecipeKeep(colony, building, key, keep);
+        return null;
+    }
+
+    /// <summary>Teach recipe and Forget on a hut's Crafting recipes tab (officers).</summary>
+    string? TeachAction(IServerPlayer player, Colony colony, ColonyRole role, ColonyActionPacket packet)
+    {
+        if (role < ColonyRole.Officer) return "createacolony:denied-officer";
+        var building = colony.Buildings.Find(b => b.BuildingId == packet.BuildingId);
+        if (building == null || !Manager.HasHutRecipes(building.Type)) return "createacolony:bad-building";
+        if (packet.Action == ColonyAction.TeachRecipe) return Manager.TeachRecipe(colony, building, packet.Text, player.PlayerName);
+        return int.TryParse(packet.Text, out int id) ? Manager.ForgetRecipe(colony, building, id) : "createacolony:bad-building";
     }
 
     /// <summary>How many of a thing a crafter hut keeps in stock.</summary>
@@ -517,6 +790,8 @@ public partial class ColonyNetwork : ModSystem
             OpenRequests = colony.Requests.Count,
             DropOffs = colony.DropOffs.Count,
             Permadeath = Manager.Permadeath(colony),
+            SelfDefence = Manager.SelfDefence(colony),
+            SupportAllies = Manager.SupportAllies(colony),
             FreeBeds = Manager.FreeBeds(colony),
             WandererDays = config.Wanderers ? Manager.WandererEveryDays(colony) : 0,
             WanderersNeedFreeBed = config.WanderersNeedFreeBed,
@@ -529,13 +804,34 @@ public partial class ColonyNetwork : ModSystem
             HeraldryInstalled = sapi!.ModLoader.IsModEnabled("heraldrybanners"),
             BuildingCount = colony.Buildings.Count,
             Events = colony.Events.Select(e => new EventView { TotalDays = e.TotalDays, Key = e.Key, Args = e.Args.ToList() }).ToList(),
-            WorkOrders = colony.Buildings.Where(b => b.HasWorkOrder).OrderBy(b => b.BuildingId).Select(b => BuildingViewFor(colony, b)).ToList(),
+            WorkOrders = Manager.BuilderQueue(colony).Select(e => e.Building != null ? BuildingViewFor(colony, e.Building) : TeardownViewFor(colony, e.Teardown!)).ToList(),
             Jobs = Manager.JobCounts(colony).Select(j => new JobView { Job = j.Job, Workers = j.Workers, Places = j.Places }).ToList(),
             Stats = Manager.ColonyStatSummary(colony).Select(r => new StatView { Key = r.Key, Counts = r.Counts }).ToList(),
             Quests = sapi!.World.PlayerByUid(viewerUid) is IServerPlayer viewer ? QuestStates(viewer, colony) : new()
         };
 
-        snapshot.OreReadings = colony.OreSites.Count;
+        var bailiff = Manager.BailiffOf(colony);
+        snapshot.BailiffName = bailiff?.Name ?? "";
+        snapshot.BailiffState = bailiff == null ? BailiffState.None : bailiff.IsDowned ? BailiffState.Downed
+            : Manager.IsBrokenDown(bailiff) ? BailiffState.Sulking : BailiffState.OnDuty;
+        snapshot.WandererRule = colony.WandererRule;
+        snapshot.BailiffGivesJobs = colony.BailiffGivesJobs;
+        snapshot.BailiffCollectsRent = colony.BailiffCollectsRent;
+        snapshot.BailiffLendsWorkers = colony.BailiffLendsWorkers;
+        snapshot.BailiffPaysWages = colony.BailiffPaysWages;
+        snapshot.TaxPercent = colony.TaxPercent;
+        snapshot.HasMint = Manager.HasMint(colony);
+        snapshot.Treasury = Manager.TreasuryCoins(colony);
+        snapshot.NextPayday = Manager.NextPayday();
+        snapshot.CurrencyName = Manager.CurrencyName(colony);
+        snapshot.EconomyLevel = config.EconomyTownHallLevel;
+        snapshot.EconomyOpen = Manager.EconomyOpen(colony);
+        snapshot.OwnCoin = Manager.HasOwnCoin(colony);
+        snapshot.CoinMetalName = snapshot.OwnCoin && sapi!.World.GetItem(Manager.CoinMetal(colony)) is { } ingot ? new ItemStack(ingot).GetName() : "";
+        snapshot.WageBill = colony.Citizens.Where(c => c.Alive && !c.Visitor && !c.IsChild).Sum(c => Manager.WageOf(c.JobCode));
+        snapshot.Ledger = colony.Ledger.ToList();
+        snapshot.EstateReport = Manager.EstateReport(colony);
+        snapshot.OreReadings = colony.OreSites.Count(s => !s.Unread);
         snapshot.ProspectorHuts = colony.Buildings.Count(b => b.Type == BuildingTypes.Prospector);
         foreach (var ore in Manager.OreSummary(colony))
         {
@@ -547,13 +843,14 @@ public partial class ColonyNetwork : ModSystem
             string state = !c.Alive ? "dead"
                 : c.IsDowned ? "downed"
                 : c.Visitor ? "visitor"
+                : c.WaitingForRoom ? "waiting"
                 : c.Saturation >= 0 && c.Saturation < config.SaturationMax * config.EatBelowFraction ? "hungry"
                 : "ok";
             snapshot.Citizens.Add(new CitizenView
             {
                 CitizenId = c.CitizenId,
                 Name = c.Name,
-                Job = c.JobCode ?? "",
+                Job = ColonyManager.JobLabel(c),
                 State = state,
                 FoodPercent = c.Saturation < 0 ? 100 : (int)(100 * c.Saturation / config.SaturationMax),
                 HasBed = c.HomeBedPos != null,
@@ -563,9 +860,11 @@ public partial class ColonyNetwork : ModSystem
                 Child = c.IsChild,
                 GrowsUpHours = Manager.HoursToGrowUp(c),
                 DiedTotalDays = c.DiedTotalDays,
+                DeathCause = c.DeathCause,
                 Buried = c.Buried,
                 VisitorHoursLeft = c.Visitor ? (int)System.Math.Ceiling(System.Math.Max(0, c.VisitorUntilTotalDays - sapi!.World.Calendar.TotalDays) * sapi.World.Calendar.HoursPerDay) : 0,
-                TraitsText = Manager.TraitsText(c)
+                TraitsText = Manager.TraitsText(c),
+                Weapon = c.Alive && !c.IsChild && !c.Visitor ? Manager.BestWeapon(c)?.GetName() ?? "" : ""
             });
         }
 
@@ -646,8 +945,16 @@ public partial class ColonyNetwork : ModSystem
             Style = BlueprintStyles.Normalize(b.Style),
             Variant = Manager.Blueprints.Variants(Manager.Blueprints.StyleFor(b), b.Type).Count > 1 ? Manager.Blueprints.VariantFor(Manager.Blueprints.StyleFor(b), b.Type, b.Variant) : "",
             Name = ColonyManager.BuildingName(b),
-            Status = b.HasWorkOrder ? Manager.BuildStatus.GetValueOrDefault(b.BuildingId, "queued") : ""
+            Status = b.HasWorkOrder || b.Removing ? Manager.BuildStatus.GetValueOrDefault(b.BuildingId, "queued") : "",
+            Removing = b.Removing,
+            Repairing = b.Repairing
         };
+        if (b.Removing)
+        {
+            var (gone, all) = Manager.RemovalProgress(colony, b);
+            view.ProgressPercent = all == 0 ? 100 : 100 * gone / all;
+            return view;
+        }
         var blueprint = b.HasWorkOrder ? Manager.Blueprints.Get(b, b.TargetLevel) : null;
         if (blueprint != null)
         {
@@ -719,8 +1026,8 @@ public partial class ColonyNetwork : ModSystem
             ColonyId = colony.ColonyId,
             CitizenId = citizen.CitizenId,
             Name = citizen.Name,
-            Job = citizen.JobCode ?? "",
-            State = !citizen.Alive ? "dead" : citizen.IsDowned ? "downed" : citizen.Visitor ? "visitor"
+            Job = ColonyManager.JobLabel(citizen),
+            State = !citizen.Alive ? "dead" : citizen.IsDowned ? "downed" : citizen.Visitor ? "visitor" : citizen.WaitingForRoom ? "waiting"
                 : citizen.Saturation >= 0 && citizen.Saturation < config.SaturationMax * config.EatBelowFraction ? "hungry" : "ok",
             FoodPercent = citizen.Saturation < 0 ? 100 : (int)(100 * citizen.Saturation / config.SaturationMax),
             HasBed = citizen.HomeBedPos != null,
@@ -754,7 +1061,22 @@ public partial class ColonyNetwork : ModSystem
                 }).ToList() : new(),
             Traits = Manager.Config.Traits ? TraitViews(citizen) : new(),
             TraitScore = Manager.TraitScore(citizen),
-            SkillDailyCap = Manager.Config.SkillDailyCap
+            SkillDailyCap = Manager.Config.SkillDailyCap,
+            // The player-style Stats page: food groups, satiety, the air where they stand, and their healing and hunger rates.
+            Nutrition = Enumerable.Range(0, ColonyManager.FoodGroups)
+                .Select(i => i < citizen.Nutrition.Count ? System.Math.Clamp(citizen.Nutrition[i] / config.SaturationMax, 0f, 1f) : 0f).ToList(),
+            Saturation = citizen.Saturation < 0 ? config.SaturationMax : citizen.Saturation,
+            SaturationMax = config.SaturationMax,
+            Temperature = entity != null ? sapi.World.BlockAccessor.GetClimateAt(entity.Pos.AsBlockPos, EnumGetClimateMode.NowValues)?.Temperature ?? float.NaN : float.NaN,
+            Wetness = entity?.WatchedAttributes.GetFloat(Settlers.EntityBehaviorSettlerNeeds.WetnessAttr) ?? 0,
+            HealingRate = Manager.TraitMult(citizen, "regen"),
+            HungerRate = Manager.TraitMult(citizen, "hunger") * Manager.HungerPerkFor(colony.ColonyId, citizen),
+            Purse = citizen.Purse,
+            Wage = citizen.IsChild || citizen.Visitor ? 0 : Manager.WageOf(citizen.JobCode),
+            Unpaid = citizen.Unpaid,
+            // Faith only means something once the colony has a Church.
+            Faith = citizen.Faith < 0 || !Manager.HasChurch(colony) ? -1 : (int)System.Math.Round(citizen.Faith),
+            FaithWord = citizen.Faith < 0 || !Manager.HasChurch(colony) ? "" : Manager.FaithWord(citizen.Faith)
         };
         if (Manager.Config.Happiness && citizen.Alive && !citizen.IsChild && !citizen.Visitor)
         {
@@ -796,6 +1118,14 @@ public partial class ColonyNetwork : ModSystem
             OpenWindow = openWindow
         };
         AddHutAdmin(snapshot, colony, building);
+        if (ColonyManager.MarkerGroups.TryGetValue(building.Type, out var markerGroups))
+        {
+            snapshot.MarkerGroups = markerGroups.ToList();
+            snapshot.MarkersOff = building.MarkersOff.ToList();
+            snapshot.MarkerCount = Manager.MarkerCount(colony, building);
+            snapshot.RemovedMarkerCount = Manager.RemovedMarkerCount(colony, building);
+            if (building.Type == BuildingTypes.Gatherer) snapshot.GatherMode = building.GatherMode;
+        }
         if (building.Type == BuildingTypes.Residence) AddResidence(snapshot, colony, building);
 
         if (ColonyManager.IsGatherHut(building.Type))
@@ -817,7 +1147,8 @@ public partial class ColonyNetwork : ModSystem
         }
         if (building.Type is BuildingTypes.Forester or BuildingTypes.Farmer or BuildingTypes.Potter or BuildingTypes.Cook
             or BuildingTypes.Prospector or BuildingTypes.Miner or BuildingTypes.Quarry
-            or BuildingTypes.Smelter or BuildingTypes.Blacksmith or BuildingTypes.Sawmill) snapshot.Info = Manager.WorkerHutInfo(colony, building);
+            or BuildingTypes.Smelter or BuildingTypes.Blacksmith or BuildingTypes.Armourer or BuildingTypes.Weaponsmith or BuildingTypes.Sawmill or BuildingTypes.Craftsman or BuildingTypes.Tailor or BuildingTypes.Jeweller or BuildingTypes.Healer or BuildingTypes.Mint or BuildingTypes.Church
+            or BuildingTypes.Explorer or BuildingTypes.Gatherer or BuildingTypes.Hunter) snapshot.Info = Manager.WorkerHutInfo(colony, building);
         if (building.Type == BuildingTypes.Tavern)
         {
             snapshot.IsTavern = true;
@@ -845,7 +1176,7 @@ public partial class ColonyNetwork : ModSystem
             snapshot.IsOreHut = true;
             snapshot.MineOre = building.MineOre;
             snapshot.MineProspected = building.MineProspected;
-            snapshot.OreReadings = colony.OreSites.Count;
+            snapshot.OreReadings = colony.OreSites.Count(s => !s.Unread);
             foreach (var ore in Manager.OreSummary(colony))
             {
                 snapshot.Ores.Add(new OreView { Code = ore.Code, Best = ore.Best, Sites = ore.Sites, MinedOut = ore.MinedOut, Where = ColonyManager.DirectionFrom(building.HutPos, ore.BestPos) });
@@ -869,7 +1200,8 @@ public partial class ColonyNetwork : ModSystem
                     Stack = kind.Sample.ToBytes(),
                     Keep = Manager.PotteryKeep(building, kind),
                     Have = Manager.PotteryStock(colony, building, kind, potter),
-                    Clay = kind.Recipes.Min(ColonyManager.ClayCost)
+                    Clay = kind.Recipes.Min(ColonyManager.ClayCost),
+                    Detail = Manager.PotteryOrdered(colony, kind) is > 0 and var ordered ? Lang.Get("createacolony:pottery-ordered", ordered) : null
                 });
             }
         }
@@ -878,57 +1210,49 @@ public partial class ColonyNetwork : ModSystem
             snapshot.IsCookHut = true;
             snapshot.KeepChoices = Manager.Config.KitchenKeepChoices.ToList();
             var cook = Manager.WorkerAt(colony, building, Jobs.Cook);
-            foreach (var kind in Manager.KitchenKinds())
+            Manager.UpgradeKitchenList(colony, building);
+            snapshot.KitchenChosen = building.KitchenChosen;
+            // Only the dishes the cook can make from the food on hand, and the ones the hut keeps (ColonyManager.KitchenMenu.cs).
+            int cookLevel = cook == null ? 0 : Manager.CookLevel(colony, cook);
+            foreach (var dish in Manager.KitchenMenu(colony, building, cook))
             {
                 snapshot.Kitchen.Add(new PotteryView
                 {
-                    Key = kind.Key,
-                    Stack = kind.Sample.ToBytes(),
-                    Keep = Manager.KitchenKeep(building, kind),
-                    Have = Manager.KitchenStock(colony, building, kind, cook)
+                    Key = dish.Key,
+                    Name = dish.Name,
+                    Stack = dish.Icon.ToBytes(),
+                    Keep = dish.Keep,
+                    Have = dish.Have,
+                    Detail = dish.Detail,
+                    NeedsLevel = dish.NeedsLevel,
+                    CookLevel = System.Math.Max(0, cookLevel),
+                    Locked = dish.Locked
                 });
             }
-            int cookLevel = cook == null ? -1 : Manager.CookLevel(colony, cook);
-            foreach (var recipe in Manager.MealRecipes())
+            foreach (var (sample, count) in Manager.KitchenOnHand(colony, building, cook).Take(KitchenOnHandShown))
             {
-                if (Manager.MealIcon(recipe) is not { } icon) continue;
-                int needs = Manager.MealLevel(recipe);
-                snapshot.Kitchen.Add(new PotteryView
-                {
-                    Key = ColonyManager.MealKey(recipe),
-                    Name = Manager.MealName(recipe),
-                    Stack = icon.ToBytes(),
-                    Keep = Manager.MealKeep(building, recipe),
-                    Have = Manager.MealStock(colony, building, recipe, cook),
-                    NeedsLevel = needs,
-                    CookLevel = System.Math.Max(0, cookLevel),
-                    Locked = cook != null && needs > cookLevel
-                });
-            }
-            // Stone Bake Oven bakes, when the mod is installed (ColonyManager.StoneOven.cs).
-            foreach (var bake in Manager.OvenKinds())
-            {
-                int needs = Manager.BakeLevel(bake);
-                snapshot.Kitchen.Add(new PotteryView
-                {
-                    Key = bake.Key,
-                    Name = bake.IsPie ? Lang.Get("createacolony:kitchen-pie") : Lang.Get("createacolony:kitchen-bake", bake.Sample.GetName()),
-                    Stack = bake.Sample.ToBytes(),
-                    Keep = Manager.BakeKeep(building, bake),
-                    Have = Manager.BakeStock(colony, building, bake, cook),
-                    NeedsLevel = needs,
-                    CookLevel = System.Math.Max(0, cookLevel),
-                    Locked = cook != null && needs > cookLevel
-                });
+                var one = sample.Clone();
+                one.StackSize = 1;
+                snapshot.KitchenOnHand.Add(new HutItemView { Stack = one.ToBytes(), Count = count });
             }
         }
+        if (building.Type == BuildingTypes.Church) AddChurch(snapshot, colony, building);
+        if (building.IsStation)
+        {
+            snapshot.IsStation = true;
+            snapshot.HostName = Manager.HostOf(colony, building) is { } host ? ColonyManager.BuildingName(host) : "";
+        }
+        AddRequests(snapshot, colony, building);
+        if (building.Type == BuildingTypes.CourierStation) AddCouriers(snapshot, colony);
         if (ColonyManager.CraftTabOf(building.Type) is { } craftTab) AddCraftRows(snapshot, colony, building, craftTab);
-        if (building.Type == BuildingTypes.Miner) AddMineTabs(snapshot, colony, building, viewerUid);
+        if (Manager.HasHutRecipes(building.Type)) AddRecipeRows(snapshot, colony, building);
+        AddPriorities(snapshot, colony, building);
+        if (building.Type is BuildingTypes.Miner or BuildingTypes.MineshaftEntrance) AddMineTabs(snapshot, colony, building, viewerUid);
         if (!snapshot.IsBuilderHut) return snapshot;
 
-        foreach (var order in colony.Buildings.Where(b => b.HasWorkOrder).OrderBy(b => b.BuildingId))
+        foreach (var (order, teardown) in Manager.BuilderQueue(colony))
         {
-            snapshot.Orders.Add(BuildingViewFor(colony, order));
+            snapshot.Orders.Add(order != null ? BuildingViewFor(colony, order) : TeardownViewFor(colony, teardown!));
         }
 
         var builder = colony.Citizens.Find(c => c.Alive && c.JobCode == Jobs.Builder && c.WorkplacePos != null && c.WorkplacePos.Equals(building.HutPos));
@@ -963,6 +1287,7 @@ public partial class ColonyNetwork : ModSystem
             string anyOf = AnyOfFor(code, sample);
             snapshot.Resources.Add(new ResourceView { Stack = sample.ToBytes(), Needed = count, Have = have, AnyOf = anyOf, Code = code });
         }
+        AddMakers(snapshot, colony, ColonyManager.RequestTag(current));
         AddPlayerHas(snapshot, viewerUid);
         return snapshot;
     }
@@ -982,8 +1307,24 @@ public partial class ColonyNetwork : ModSystem
             .SetMessageHandler<WandChooserSnapshot>(OnWandChooserSnapshot)
             .SetMessageHandler<GhostPreviewPacket>(OnGhostPreview)
             .SetMessageHandler<QuestBookSnapshot>(OnQuestBookSnapshot)
-            .SetMessageHandler<HandPlacePacket>(p => WandOnly.ClientHandPlacing = p.On);
+            .SetMessageHandler<HandPlacePacket>(p => WandOnly.ClientHandPlacing = p.On)
+            .SetMessageHandler<DisplayRedrawPacket>(OnDisplayRedraw);
         StartQuestsClient(api);
+    }
+
+    /// <summary>
+    /// Redraws a rack's or shelf's things a moment later, once the block entity's new contents have arrived
+    /// (the packet can come first).
+    /// </summary>
+    void OnDisplayRedraw(DisplayRedrawPacket p)
+    {
+        var pos = new BlockPos(p.X, p.Y, p.Z);
+        capi?.Event.RegisterCallback(_ =>
+        {
+            if (capi.World.BlockAccessor.GetBlockEntity(pos) is not BlockEntityDisplay display) return;
+            display.MarkMeshesDirty();
+            capi.World.BlockAccessor.MarkBlockDirty(pos);
+        }, 500);
     }
 
     /// <summary>Called by the Town Hall block when a player right-clicks it.</summary>

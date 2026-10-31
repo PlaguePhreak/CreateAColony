@@ -1,0 +1,35 @@
+{
+	// What a trader becomes when it joins the colony (ColonyManager.Traders.cs). The key is the trader's type, the
+	// middle of its entity code (game:trader-male-agriculture-cold is "agriculture"). One of the choices is picked at random; a choice
+	// whose job the mod does not have is skipped. "skill" is the second skill, with one passion. Traders from
+	// other mods use "other"; when nothing fits, a random job is picked.
+	"traders": {
+		"agriculture": [
+			{ "job": "farmer", "skill": "foraging" },
+			{ "job": "cook", "skill": "farming" },
+			{ "job": "gatherer", "skill": "cooking" }
+		],
+		"survivalgoods": [
+			{ "job": "guard", "skill": "hunting" },
+			{ "job": "hunter", "skill": "fighting" },
+			{ "job": "weaponsmith", "skill": "fighting" }
+		],
+		"buildmaterials": [
+			{ "job": "builder", "skill": "mining" },
+			{ "job": "quarrier", "skill": "building" }
+		],
+		"commodities": [ { "job": "courier", "skill": "strength" } ],
+		"artisan": [
+			{ "job": "potter", "skill": "smithing" },
+			{ "job": "blacksmith", "skill": "pottery" }
+		],
+		"furniture": [ { "job": "sawyer", "skill": "building" } ],
+		"treasurehunter": [
+			{ "job": "explorer", "skill": "prospecting" },
+			{ "job": "prospector", "skill": "exploring" }
+		],
+		"clothing": [ { "job": "tailor", "skill": "foraging" } ],
+		"luxuries": [ { "job": "jeweller", "skill": "smithing" } ],
+		"other": []
+	}
+}

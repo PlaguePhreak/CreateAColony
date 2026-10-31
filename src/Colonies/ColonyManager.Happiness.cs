@@ -30,7 +30,14 @@ public partial class ColonyManager
         ["knockedout"] = (-12, 48),
         ["death"] = (-6, 72),
         ["familydeath"] = (-20, 144),
-        ["catharsis"] = (20, 24)
+        ["catharsis"] = (20, 24),
+        ["decorated"] = (5, 48),
+        ["payday"] = (3, 24),
+        // The church (ColonyManager.Church.cs): a service (more when the bishop leads it), a missed one, a funeral.
+        ["service"] = (8, 24),
+        ["missedservice"] = (-4, 48),
+        ["funeral"] = (4, 24),
+        ["alms"] = (5, 24)
     };
 
     /// <summary>Mood bands from the top: the lowest happiness each starts at, and the word for it.</summary>
@@ -119,6 +126,12 @@ public partial class ColonyManager
         if (c.PartnerId != 0 && colony.Citizens.Find(p => p.CitizenId == c.PartnerId) is { Alive: true }) Standing("partner", 6);
         Standing("townhall", TownHallLevel(colony));
         if (c.JobCode == null) Standing("nojob", -4);
+        Standing("bailiff", BailiffMoodFor(colony, c));
+        // Taxes and unpaid wages (ColonyManager.Economy.cs).
+        MoneyThoughts(colony, c, Standing);
+        ChurchThoughts(colony, c, Standing);
+        // In rags, cold, wearing jewellery (ColonyManager.Clothing.cs).
+        ClothesThoughts(c, Standing);
         // Sanguine and Melancholic.
         Standing("temperament", (int)Math.Round(TraitAdd(c, "mood")));
         return list;
@@ -146,6 +159,7 @@ public partial class ColonyManager
         double hours = Math.Min(24, nowHours - colony.LastMoodTotalHours);
         if (hours < 0.1) return;
         colony.LastMoodTotalHours = nowHours;
+        WearClothes(colony, hours);
 
         foreach (var c in colony.Citizens)
         {

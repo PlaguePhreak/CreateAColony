@@ -69,6 +69,8 @@ public class CitizenRecord
     [ProtoMember(25)] public double LastChildTotalDays;
     /// <summary>When a settler died for good (permadeath); 0 if alive, or dead before 0.33.0 recorded it.</summary>
     [ProtoMember(26)] public double DiedTotalDays;
+    /// <summary>What killed them: "entity:game:wolf-male", "player:Name" or "type:Hunger"; empty when not known.</summary>
+    [ProtoMember(63)] public string DeathCause = "";
     /// <summary>Whether a dead settler has been buried. Nothing sets it yet: burial and mourning are coming later.</summary>
     [ProtoMember(27)] public bool Buried;
     /// <summary>XP in each skill, by skill code (config/skills.json); the level follows from it. See ColonyManager.Skills.cs.</summary>
@@ -117,6 +119,38 @@ public class CitizenRecord
     [ProtoMember(60)] public int WorkRole;
     /// <summary>A prospector on Mine ore: its own trip to prospected ore, kept apart from its hut mate's.</summary>
     [ProtoMember(61)] public MineTrip Trip = new();
+    /// <summary>
+    /// How well fed the settler is in each food group (EnumFoodCategory: fruit, vegetable, protein, grain, dairy),
+    /// 0 to SaturationMax, as the player's nutrition bars: eating fills a group, and it drains with hunger.
+    /// </summary>
+    [ProtoMember(62)] public List<float> Nutrition = new();
+    /// <summary>A former trader who joined while the colony was full: sits at the Tavern doing nothing until there is room.</summary>
+    [ProtoMember(240)] public bool WaitingForRoom;
+    /// <summary>The trade of a trader who joined the colony ("foods", "survivalgoods" ...), empty for everyone else.</summary>
+    [ProtoMember(241)] public string FormerTrade = "";
+    /// <summary>The job a former trader takes once there is room and a hut for it.</summary>
+    [ProtoMember(242)] public string PlannedJob = "";
+    // 110-119: the bailiff (ColonyManager.Bailiff.cs).
+    /// <summary>A worker the bailiff lent to another hut while its own could not work: its own job and hut, and when it goes back.</summary>
+    [ProtoMember(110)] public string? HomeJob;
+    [ProtoMember(111)] public BlockPos? HomeWorkplacePos;
+    [ProtoMember(112)] public double LentUntilTotalDays;
+    /// <summary>The settler's coins: wages in, taxes out (ColonyManager.Economy.cs).</summary>
+    [ProtoMember(113)] public int Purse;
+    /// <summary>True when their last wage could not be paid in full; cleared on the next payday they are paid.</summary>
+    [ProtoMember(114)] public bool Unpaid;
+
+    // 280-289: healing (ColonyManager.Healing.cs).
+    /// <summary>The bandage or poultice the settler carries for when it gets hurt, kept apart from its inventory so it is never hauled off.</summary>
+    [ProtoMember(280)] public byte[]? FirstAid;
+
+    // 300-319: the church and religion (ColonyManager.Church.cs).
+    /// <summary>How strongly the settler believes, 0 to 100; -1 until rolled.</summary>
+    [ProtoMember(300, IsRequired = true)] public float Faith = -1f;
+    /// <summary>The in-game day of the last church service they went to; -1 for never.</summary>
+    [ProtoMember(301, IsRequired = true)] public int LastServiceDay = -1;
+    /// <summary>After a service they learn faster until this time (total days).</summary>
+    [ProtoMember(302)] public double LearnBoostUntilTotalDays;
 
     public bool IsDowned => DownedUntilTotalDays > 0;
     public bool IsChild => GrowsUpTotalDays > 0;
@@ -139,6 +173,8 @@ public class DeliveryRequest
     [ProtoMember(6)] public string RequestedBy = "";
     [ProtoMember(7)] public int LeasedByCitizenId;
     [ProtoMember(8)] public double LeaseUntilTotalHours;
+    /// <summary>How many of Quantity are a spare on top of what the hut needs (ColonyManager.AddRequest, 0.142.0).</summary>
+    [ProtoMember(20)] public int Extra;
 
     public int Remaining => Quantity - Delivered;
 }
@@ -150,6 +186,8 @@ public class DeliveryRequest
 [ProtoContract]
 public class Building
 {
+    /// <summary>The order a crafting hut makes things in (keys of what it keeps), set on its Priorities tab. Empty: most wanted first.</summary>
+    [ProtoMember(240)] public List<string> Priorities = new();
     [ProtoMember(1)] public int BuildingId;
     /// <summary>Building type, also the blueprint folder name: "builder", "townhall", "warehouse".</summary>
     [ProtoMember(2)] public string Type = "";
@@ -180,6 +218,8 @@ public class Building
     [ProtoMember(16)] public bool PotteryChosen;
     /// <summary>The pit a potter dug for its pit kiln.</summary>
     [ProtoMember(17)] public BlockPos? KilnPos;
+    /// <summary>More pit kilns the potter dug beside the first (see ColonyManager.KilnsAllowed).</summary>
+    [ProtoMember(175)] public List<BlockPos> MoreKilns = new();
     /// <summary>Where a potter shapes clay.</summary>
     [ProtoMember(18)] public BlockPos? FormPos;
     /// <summary>A Tavern: the settlers who can be hired there today.</summary>
@@ -250,17 +290,63 @@ public class Building
     [ProtoMember(54, IsRequired = true)] public string FillBlock = MineFillBlocks.Soil;
     /// <summary>A Miner's Hut: the guards (citizen ids) that patrol its mine, from Guard Towers set to Patrol mine.</summary>
     [ProtoMember(55)] public List<int> MineGuards = new();
-    // 56-59 left free for other building fields.
+    /// <summary>A Miner's Hut: the Mineshaft Entrance whose mine it works (its BuildingId); 0 works its own mine.</summary>
+    [ProtoMember(56)] public int MineEntranceId;
+    /// <summary>An officer pressed Remove hut: a builder takes the building down, then the hut block goes back to RemovedBy.</summary>
+    [ProtoMember(57)] public bool Removing;
+    /// <summary>The player who pressed Remove hut, who gets the hut block back.</summary>
+    [ProtoMember(58)] public string RemovedBy = "";
+    /// <summary>The turn and asset pack the mine's pieces use: the hut's when the mine was started, kept when the mine moves to another hut. -1 / empty use the building's own.</summary>
+    [ProtoMember(59, IsRequired = true)] public int MineRotation = -1;
+    [ProtoMember(62)] public string MineStyle = "";
     // 60 and 61 held the trip's entrances and the mines to fill in before 0.62.0.
     [ProtoMember(60)] List<BlockPos> oldSiteEntrances = new();
     [ProtoMember(61)] List<BlockPos> oldMineSeals = new();
-    // 70-79 for the crafter huts (Smelter, Blacksmith, Sawmill and the ones to come).
+    // 70-79 for the crafter huts (Smelter, Blacksmith, Sawmill, Primitive Craftsman and the ones to come).
     /// <summary>A crafter hut: how many of each thing to keep in stock, by key (see ColonyManager.Crafting.cs).</summary>
     [ProtoMember(70)] public Dictionary<string, int> CraftKeep = new();
     /// <summary>An officer has set CraftKeep; until then the config defaults apply.</summary>
     [ProtoMember(71)] public bool CraftChosen;
+    // 110-119 for the Explorer's and Gatherer's huts.
+    /// <summary>An Explorer's or Gatherer's Hut: the marker groups (ColonyManager.MarkerGroups) its worker does not put on the map.</summary>
+    [ProtoMember(110)] public List<string> MarkersOff = new();
+    /// <summary>An Explorer's Hut: the squares of land its explorer has looked over (ColonyManager.ExploreCell keys).</summary>
+    [ProtoMember(111)] public List<long> Explored = new();
+    /// <summary>When the explorer last started over, in total days, so it goes round again now and then.</summary>
+    [ProtoMember(112)] public double ExploreStartedTotalDays;
+    /// <summary>A Gatherer's Hut: whether its gatherer picks things, only looks around and marks the map, or both (GatherModes).</summary>
+    [ProtoMember(113, IsRequired = true)] public string GatherMode = GatherModes.Both;
+    /// <summary>A Gatherer's Hut: the kinds of thing its gatherer goes for first (ColonyManager.GatherCategories); empty is the usual order.</summary>
+    [ProtoMember(114)] public List<string> GatherOrder = new();
+    /// <summary>A gathering hut: what its worker is set not to collect (ColonyManager.CollectKinds keys). Empty is everything.</summary>
+    [ProtoMember(160)] public List<string> CollectOff = new();
+    /// <summary>The things that start off (fruit trees, ColonyManager.OffByDefault) which an officer turned on.</summary>
+    [ProtoMember(161)] public List<string> CollectOn = new();
+    /// <summary>A hut's Crafting recipes tab: how many of each thing its worker keeps crafted, by item code (ColonyManager.HutRecipes.cs). Empty is nothing.</summary>
+    [ProtoMember(170)] public Dictionary<string, int> RecipeKeep = new();
+    /// <summary>
+    /// A work station (ColonyManager.Stations.cs): the building whose zone it stands in, by BuildingId. 0 for an
+    /// ordinary hut. A station has no blueprint or zone of its own; its worker uses the host's storage.
+    /// </summary>
+    [ProtoMember(300)] public int HostId;
+    public bool IsStation => HostId != 0;
 
-    public bool HasWorkOrder => TargetLevel > Level;
+    public bool HasWorkOrder => TargetLevel > Level || ((Upkeep || Repairing) && Level > 0 && TargetLevel == Level);
+    /// <summary>The work order is upkeep of the finished building: digging out ground that got in and filling gaps under it (ColonyManager.Foundations.cs).</summary>
+    [ProtoMember(270)] public bool Upkeep;
+    /// <summary>The work order is a repair players asked for: the building is put back as its blueprint has it (ColonyManager.Repair.cs).</summary>
+    [ProtoMember(271)] public bool Repairing;
+
+    /// <summary>A Miner's Hut working a Mineshaft Entrance's mine: that entrance. Not saved; see Colony.LinkMines.</summary>
+    public Building? Entrance;
+    /// <summary>A Mineshaft Entrance: the Miner's Huts that work its mine. Not saved; see Colony.LinkMines.</summary>
+    public List<Building> LinkedHuts = new();
+    /// <summary>Where this building's mine is kept: its Mineshaft Entrance's, or its own.</summary>
+    public Building Mine => Entrance ?? this;
+    public int MineTurn => MineRotation >= 0 ? MineRotation : Rotation;
+    public string MinePack => MineStyle.Length > 0 ? MineStyle : Style;
+    /// <summary>True when this building holds a mine made of pieces.</summary>
+    public bool HasMine => MineshaftPos != null;
 
     /// <summary>Moves a Miner's Hut's trip from where saves before 0.62.0 kept it into Trip.</summary>
     [ProtoAfterDeserialization]
@@ -325,6 +411,14 @@ public static class ProspectorRoles
     public const int Mine = 1;
 }
 
+/// <summary>What each of a Church's clergy is (CitizenRecord.WorkRole, job Priest).</summary>
+public static class ChurchRoles
+{
+    public const int Priest = 0;
+    /// <summary>One per colony, at a Church of level ChurchBishopLevel or more: stronger services.</summary>
+    public const int Bishop = 1;
+}
+
 /// <summary>What a Guard Tower's guards do.</summary>
 public static class GuardTasks
 {
@@ -339,6 +433,15 @@ public static class GuardTasks
 }
 
 /// <summary>What a miner fills holes in its mineshaft floor with (Building.FillBlock), and the block placed for each.</summary>
+/// <summary>What a Gatherer's Hut's gatherer does: picks and looks around, only looks around (marking the map), or only picks.</summary>
+public static class GatherModes
+{
+    public const string Both = "both";
+    public const string Look = "look";
+    public const string Gather = "gather";
+    public static readonly string[] All = { Both, Look, Gather };
+}
+
 public static class MineFillBlocks
 {
     public const string None = "none";
@@ -376,6 +479,58 @@ public class StatEntry
     [ProtoMember(3)] public int Count;
 }
 
+/// <summary>What the bailiff does when a wanderer asks to join.</summary>
+public static class BailiffWanderers
+{
+    /// <summary>Leaves it to the players, as without a bailiff.</summary>
+    public const int Ask = 0;
+    public const int Welcome = 1;
+    /// <summary>Welcomes them while a bed is free, else turns them away.</summary>
+    public const int IfBed = 2;
+    public const int TurnAway = 3;
+    public const int Last = TurnAway;
+}
+
+/// <summary>One day of the bailiff's ledger: rent collected and what they did.</summary>
+[ProtoContract]
+public class LedgerDay
+{
+    [ProtoMember(1)] public int Day;
+    /// <summary>Taxes collected that day, in coins (rusty gears of rent before 0.136.0).</summary>
+    [ProtoMember(2)] public int Rent;
+    [ProtoMember(3)] public int Welcomed;
+    [ProtoMember(4)] public int TurnedAway;
+    [ProtoMember(5)] public int JobsGiven;
+    /// <summary>How many settlers paid taxes (before 0.136.0, rent) that day.</summary>
+    [ProtoMember(6)] public int Payers;
+    /// <summary>Workers lent to another hut that day because they could not work at their own.</summary>
+    [ProtoMember(7)] public int Lent;
+    /// <summary>Coins paid out in wages that day, and how many settlers went without their full wage.</summary>
+    [ProtoMember(8)] public int Wages;
+    [ProtoMember(9)] public int Unpaid;
+}
+
+/// <summary>One day of the church's ledger: tithes in, and what the church spent on charity (in coins).</summary>
+[ProtoContract]
+public class ChurchDay
+{
+    [ProtoMember(1)] public int Day;
+    [ProtoMember(2)] public int Tithes;
+    /// <summary>Coins spent on food for the hungry, and how many meals that bought.</summary>
+    [ProtoMember(3)] public int FoodCoins;
+    [ProtoMember(4)] public int Meals;
+    /// <summary>Coins spent on bandages for the Healer's Station, and how many.</summary>
+    [ProtoMember(5)] public int BandageCoins;
+    [ProtoMember(6)] public int Bandages;
+    /// <summary>Coins spent caring for orphans and on the poorhouse beds.</summary>
+    [ProtoMember(7)] public int CareCoins;
+    /// <summary>Settlers at that day's service, and funerals held.</summary>
+    [ProtoMember(8)] public int Attended;
+    [ProtoMember(9)] public int Funerals;
+    /// <summary>Chronicle books written.</summary>
+    [ProtoMember(10)] public int Books;
+}
+
 /// <summary>One line of the Town Hall's event log: a lang key and its arguments, filled in by the reader's own language.</summary>
 [ProtoContract]
 public class ColonyEvent
@@ -384,6 +539,28 @@ public class ColonyEvent
     [ProtoMember(2)] public string Key = "";
     /// <summary>An argument starting with "@" is itself a lang key, such as "@building-farmer".</summary>
     [ProtoMember(3)] public List<string> Args = new();
+}
+
+/// <summary>A trader's old house for a builder to take down: everything in the box but natural ground and plants.</summary>
+[ProtoContract]
+public class TeardownOrder
+{
+    [ProtoMember(1)] public int Id;
+    /// <summary>The trader's name, for "Take down Hilda's old house".</summary>
+    [ProtoMember(2)] public string Owner = "";
+    [ProtoMember(3)] public int X1;
+    [ProtoMember(4)] public int Y1;
+    [ProtoMember(5)] public int Z1;
+    [ProtoMember(6)] public int X2;
+    [ProtoMember(7)] public int Y2;
+    [ProtoMember(8)] public int Z2;
+    [ProtoMember(9)] public int BuilderCitizenId;
+    /// <summary>Blocks there were to take down when the order was made, for the progress bar.</summary>
+    [ProtoMember(10)] public int Total;
+    [ProtoMember(11)] public int Done;
+
+    public Cuboidi Area => new(X1, Y1, Z1, X2, Y2, Z2);
+    public BlockPos Center => new((X1 + X2) / 2, Y1, (Z1 + Z2) / 2);
 }
 
 /// <summary>Someone at the Tavern who joins the colony for a price in rusty gears.</summary>
@@ -449,6 +626,19 @@ public class OreSite
     [ProtoMember(3)] public List<OreFind> Ores = new();
     /// <summary>Ores a miner has dug out here, or found none of close enough to reach.</summary>
     [ProtoMember(4)] public List<string> MinedOut = new();
+    /// <summary>The ore whose bits a gatherer found here ("nativecopper"), so miners dig for it whatever the reading says.</summary>
+    [ProtoMember(5)] public string HintOre = "";
+    /// <summary>A gatherer's find that a miner went to before any prospector read it: it holds no reading.</summary>
+    public bool Unread => Ores.Count == 0 && HintOre.Length > 0;
+}
+
+/// <summary>A spot where ore bits lay on the ground ("nativecopper"), so a deposit is likely right below.</summary>
+[ProtoContract]
+public class OreHint
+{
+    [ProtoMember(1)] public BlockPos Pos = new BlockPos(0);
+    [ProtoMember(2)] public string Ore = "";
+    [ProtoMember(3)] public double TotalDays;
 }
 
 /// <summary>One ore in a reading: the deposit code, the pick's density factor (0 to 1) and parts per thousand.</summary>
@@ -482,6 +672,65 @@ public class PlayerQuests
     [ProtoMember(1)] public Dictionary<string, QuestRecord> Quests = new();
     /// <summary>Quest codes the player chose to track in the quest book.</summary>
     [ProtoMember(2)] public List<string> Tracked = new();
+}
+
+/// <summary>
+/// A map marker the colony's settlers put down: what was found (Kind, see ColonyManager.MarkerKinds) and where.
+/// Every member sees it on the "Colony markers" layer of their world map.
+/// </summary>
+[ProtoContract]
+public class ColonyMarker
+{
+    [ProtoMember(1)] public int MarkerId;
+    [ProtoMember(2)] public string Kind = "";
+    [ProtoMember(3)] public double X;
+    [ProtoMember(4)] public double Y;
+    [ProtoMember(5)] public double Z;
+    [ProtoMember(6)] public string Title = "";
+    /// <summary>The hut whose worker put it down; 0 for markers of the colony itself (a settler's grave).</summary>
+    [ProtoMember(7)] public int BuildingId;
+    [ProtoMember(9)] public double TotalDays;
+    /// <summary>For a grave: the settler who fell there, so only their latest spot is kept.</summary>
+    [ProtoMember(10)] public int CitizenId;
+    /// <summary>The waypoint icon of what it marks (Map.MarkerSubjects), or "" for its kind's icon.</summary>
+    [ProtoMember(11)] public string Icon = "";
+}
+
+/// <summary>Where a player took a colony marker off the map, and what it marked.</summary>
+[ProtoContract]
+public class RemovedMarker
+{
+    [ProtoMember(1)] public string Kind = "";
+    [ProtoMember(2)] public string Icon = "";
+    [ProtoMember(3)] public double X;
+    [ProtoMember(4)] public double Z;
+}
+
+/// <summary>
+/// A recipe a player taught a kind of hut on its Crafting recipes tab (ColonyManager.CustomRecipes.cs): what goes in,
+/// what comes out. Every hut of that kind in the colony knows it.
+/// </summary>
+[ProtoContract]
+public class CustomRecipe
+{
+    [ProtoMember(1)] public int Id;
+    [ProtoMember(2)] public string HutType = "";
+    [ProtoMember(3)] public List<CustomRecipePart> Inputs = new();
+    [ProtoMember(4)] public CustomRecipePart Output = new();
+    /// <summary>Any type of the inputs will do (any wood for oak planks), not just the one taught.</summary>
+    [ProtoMember(5)] public bool AnyType;
+    [ProtoMember(6)] public string TaughtBy = "";
+}
+
+[ProtoContract]
+public class CustomRecipePart
+{
+    /// <summary>The item or block code, such as game:stick.</summary>
+    [ProtoMember(1)] public string Code = "";
+    [ProtoMember(2)] public bool IsBlock;
+    [ProtoMember(3, IsRequired = true)] public int Quantity = 1;
+    /// <summary>A tool (it has durability): it wears down instead of being used up.</summary>
+    [ProtoMember(4)] public bool Tool;
 }
 
 [ProtoContract]
@@ -536,6 +785,83 @@ public class Colony
     [ProtoMember(51)] public double LastMoodTotalHours;
     /// <summary>The colony's quests (the Story and The Colony groups), by quest code: accepted and claimed ones only.</summary>
     [ProtoMember(29)] public Dictionary<string, QuestRecord> Quests = new();
+    /// <summary>Map markers the colony's settlers put down (ColonyManager.Markers.cs).</summary>
+    [ProtoMember(70)] public List<ColonyMarker> Markers = new();
+    [ProtoMember(71, IsRequired = true)] public int NextMarkerId = 1;
+    /// <summary>Spots a player took a marker off the map at, so settlers do not mark them again.</summary>
+    [ProtoMember(72)] public List<RemovedMarker> RemovedMarkers = new();
+    /// <summary>Colony militia: settlers with a weapon fight a creature that hurts them. Null until changed, so the server config decides.</summary>
+    [ProtoMember(80)] public bool? SelfDefence;
+    /// <summary>Colony militia: settlers with a weapon come to help a nearby settler who is attacked. Null until changed, so the server config decides.</summary>
+    [ProtoMember(81)] public bool? SupportAllies;
+    /// <summary>Mines whose Miner's Hut or Mineshaft Entrance was removed. Their blocks stay; the next Miner's Hut or entrance near one takes it on.</summary>
+    [ProtoMember(90)] public List<Building> DerelictMines = new();
+    /// <summary>Where the gatherer picked up ore bits: likely a deposit below, for the prospectors to check.</summary>
+    [ProtoMember(91)] public List<OreHint> OreHints = new();
+    /// <summary>The Bailiff tab (ColonyManager.Bailiff.cs): what the bailiff does with wanderers (BailiffWanderers), whether
+    /// they give jobless settlers work, and whether they collect rent. 110-119 are the bailiff's.</summary>
+    [ProtoMember(110, IsRequired = true)] public int WandererRule = BailiffWanderers.IfBed;
+    [ProtoMember(111, IsRequired = true)] public bool BailiffGivesJobs = true;
+    [ProtoMember(112, IsRequired = true)] public bool BailiffCollectsRent = true;
+    /// <summary>The bailiff's ledger, one line per in-game day, oldest first; the newest ColonyManager.LedgerDays kept.</summary>
+    [ProtoMember(113)] public List<LedgerDay> Ledger = new();
+    /// <summary>The last in-game day rent was collected; -1 until the first.</summary>
+    [ProtoMember(114, IsRequired = true)] public int LastRentDay = -1;
+    /// <summary>Rusty gears from the old daily rent that found no room; no longer added to (taxes are coins now).</summary>
+    [ProtoMember(115)] public int RentOwed;
+    /// <summary>The bailiff lends workers who can't work at their own hut to another one for a while.</summary>
+    [ProtoMember(116, IsRequired = true)] public bool BailiffLendsWorkers = true;
+    /// <summary>The economy (ColonyManager.Economy.cs): whether the bailiff pays wages, the tax on settlers' purses, and the last month paid.
+    /// BailiffCollectsRent is the "Collect taxes" switch.</summary>
+    [ProtoMember(117, IsRequired = true)] public bool BailiffPaysWages = true;
+    [ProtoMember(118, IsRequired = true)] public int TaxPercent = 10;
+    [ProtoMember(119, IsRequired = true)] public int LastPayMonth = -1;
+    /// <summary>The colony's own coin, picked on the Bailiff tab (a Coinage coin a player designed), as stack bytes; null for the Royal Mint's copper coins.</summary>
+    [ProtoMember(120)] public byte[]? Currency;
+    // 300-319: the church (ColonyManager.Church.cs).
+    /// <summary>The share of every wage settlers give the church, in percent (0, 5 or 10).</summary>
+    [ProtoMember(300, IsRequired = true)] public int TithePercent = 10;
+    /// <summary>The church's ledger, one line per in-game day, oldest first; the newest ColonyManager.ChurchLedgerDays kept.</summary>
+    [ProtoMember(301)] public List<ChurchDay> ChurchLedger = new();
+    /// <summary>The last service day whose service was settled (mood, faith, learning); -1 until the first.</summary>
+    [ProtoMember(302, IsRequired = true)] public int LastServiceDay = -1;
+    /// <summary>When the priest last wrote the colony's events into a chronicle (total days); events after it go in the next book.</summary>
+    [ProtoMember(303)] public double LastChronicleTotalDays;
+    /// <summary>When the church last paid for the poorhouse and the orphans (in-game day); -1 until the first.</summary>
+    [ProtoMember(304, IsRequired = true)] public int LastAlmsDay = -1;
+    // 320-329: recipes players taught the huts (ColonyManager.CustomRecipes.cs).
+    [ProtoMember(320)] public List<CustomRecipe> CustomRecipes = new();
+    [ProtoMember(321, IsRequired = true)] public int NextCustomRecipeId = 1;
+    /// <summary>Houses of traders who joined the colony, for a builder to take down (ColonyManager.Traders.cs).</summary>
+    [ProtoMember(240)] public List<TeardownOrder> Teardowns = new();
+    [ProtoMember(241, IsRequired = true)] public int NextTeardownId = 1;
+    /// <summary>The order builders take work orders and trader houses in ("b:12", "t:3"), set on the Priorities tab; new ones come after.</summary>
+    [ProtoMember(242)] public List<string> OrderQueue = new();
+
+    [ProtoAfterDeserialization]
+    void AfterLoad() => LinkMines();
+
+    /// <summary>Joins each Miner's Hut to its Mineshaft Entrance (Building.Entrance and LinkedHuts); links to entrances that are gone are dropped.</summary>
+    public void LinkMines()
+    {
+        foreach (var b in Buildings)
+        {
+            b.Entrance = null;
+            b.LinkedHuts.Clear();
+        }
+        foreach (var hut in Buildings)
+        {
+            if (hut.MineEntranceId == 0) continue;
+            var entrance = Buildings.Find(b => b.BuildingId == hut.MineEntranceId && b.Type == BuildingTypes.MineshaftEntrance);
+            if (entrance == null || hut.Type != BuildingTypes.Miner)
+            {
+                hut.MineEntranceId = 0;
+                continue;
+            }
+            hut.Entrance = entrance;
+            entrance.LinkedHuts.Add(hut);
+        }
+    }
 
     public string OwnerUid => Members.Find(m => m.Role == ColonyRole.Owner)?.PlayerUid ?? "";
 

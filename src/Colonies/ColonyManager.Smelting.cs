@@ -110,11 +110,10 @@ public partial class ColonyManager
     }
 
     /// <summary>The metals there are too few ingots of, most wanted first.</summary>
-    public List<SmeltKind> WantedIngots(Colony colony, Building hut, CitizenRecord? smelter) => SmeltKinds()
-        .Select(k => (Kind: k, Short: CraftKeep(hut, k.Key) - (CraftKeep(hut, k.Key) > 0 ? SmeltStock(colony, hut, k, smelter) : 0)))
-        .Where(k => k.Short > 0)
-        .OrderByDescending(k => k.Short)
-        .Select(k => k.Kind)
+    public List<SmeltKind> WantedIngots(Colony colony, Building hut, CitizenRecord? smelter) => ByPriority(hut, SmeltKinds()
+        .Select(k => (Kind: k, Want: CraftWant(colony, hut, k.Key)))
+        .Select(k => (k.Kind, k.Kind.Key, Short: k.Want - (k.Want > 0 ? SmeltStock(colony, hut, k.Kind, smelter) : 0)))
+        .Where(k => k.Short > 0))
         .ToList();
 
     /// <summary>The fire pit the smelter uses: the nearest finished one within reach of the hut.</summary>

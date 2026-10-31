@@ -30,7 +30,9 @@ public class AiTaskSettlerFlee : SettlerTaskBase
     public AiTaskSettlerFlee(EntityAgent entity, JsonObject taskConfig, JsonObject aiConfig) : base(entity, taskConfig, aiConfig) { }
 
     public override bool ShouldExecute() =>
-        manager != null && Colony != null && Citizen is { } citizen && manager.FleesWhenHurt(citizen) && manager.FleeingFrom(entity) != null;
+        manager != null && Colony != null && Citizen is { } citizen && manager.FleesWhenHurt(citizen)
+        && manager.FleeState(entity) is { Hits: > 0 } // a helper that was never hit has nothing to run from (Support allies)
+        && !manager.FightsBack(Colony, citizen, entity); // armed and no guard near: AiTaskSettlerDefend
 
     public override void StartExecute()
     {
@@ -79,7 +81,8 @@ public class AiTaskSettlerFlee : SettlerTaskBase
     public override bool ContinueExecute(float dt)
     {
         var m = manager!;
-        if (m.FleeState(entity) is not { } state || Citizen is not { } citizen || !m.FleesWhenHurt(citizen)) return false;
+        if (m.FleeState(entity) is not { } state || Colony is not { } colony || Citizen is not { } citizen || !m.FleesWhenHurt(citizen)) return false;
+        if (m.FightsBack(colony, citizen, entity)) return false; // hands over to AiTaskSettlerDefend
         attacker = state.Attacker;
         bool hitAgain = state.Hits != seenHits;
         seenHits = state.Hits;

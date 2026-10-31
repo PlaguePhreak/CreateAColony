@@ -30,13 +30,20 @@ public partial class ColonyManager
     static int DaubStage(Block? block, out string color)
     {
         color = "";
-        if (block is not BlockDaubWattle || VariantOf(block, "type") is not { } type || VariantOf(block, "color") is not { } c) return -1;
+        // Known by its code (daub-{color}-{stage}), not only its class, so the builder still makes it from a wattle
+        // fence and raw daub if the block's class is not the game's BlockDaubWattle (0.97.0: Aaron's Residence asked
+        // for the daub blocks themselves).
+        if (block?.Code is not { Domain: "game" } code || !code.Path.StartsWith("daub-")) return -1;
+        string[] parts = code.Path.Split('-');
+        if (parts.Length != 3) return -1;
+        string type = VariantOf(block, "type") ?? parts[2];
+        string c = VariantOf(block, "color") ?? parts[1];
         int stage = Array.IndexOf(DaubStages, type);
         if (stage >= 0) color = c;
         return stage;
     }
 
-    static bool IsWattleFence(Block? block) => block is BlockWattleFence;
+    static bool IsWattleFence(Block? block) => block is BlockWattleFence || block?.Code is { Domain: "game" } code && code.Path.StartsWith("wattle-sticks-");
 
     /// <summary>Raw daub one coat takes: the game reads "daubUpgradeAmount" from the fence (first coat) or the daub block (later coats).</summary>
     static int DaubCoat(Block? block) => block?.Attributes?["daubUpgradeAmount"].AsInt(2) ?? 2;
@@ -56,21 +63,26 @@ public partial class ColonyManager
     /// <summary>Raw daub items (daubraw-{color}) by colour, for the colours that have daub blocks.</summary>
     Dictionary<string, Item> RawDaub()
     {
-        if (rawDaubByColor != null) return rawDaubByColor;
-        rawDaubByColor = new Dictionary<string, Item>();
+        if (rawDaubByColor is { Count: > 0 }) return rawDaubByColor;
+        var found = new Dictionary<string, Item>();
         foreach (var item in sapi.World.Items)
         {
-            if (item?.Code == null || !item.Code.Path.StartsWith(RawDaubPrefix) || VariantOf(item, "color") is not { } color) continue;
-            if (DaubBlock(color, 0) != null) rawDaubByColor.TryAdd(color, item);
+            if (item?.Code == null || item.IsMissing || !item.Code.Path.StartsWith(RawDaubPrefix + "-")) continue;
+            string color = VariantOf(item, "color") ?? item.Code.Path.Substring(RawDaubPrefix.Length + 1);
+            if (DaubBlock(color, 0) != null) found.TryAdd(color, item);
         }
-        return rawDaubByColor;
+        // Not kept while empty: asked before the items were loaded, it would have stayed empty for good.
+        if (found.Count > 0) rawDaubByColor = found;
+        return found;
     }
 
     /// <summary>The wattle fence a daub wall starts from (its joins sort themselves out once placed).</summary>
     Block? WattleFence()
     {
         if (wattleFence != null) return wattleFence;
-        var fences = sapi.World.SearchBlocks(new AssetLocation("game:wattle-*")).Where(IsWattleFence).ToList();
+        if (sapi.World.GetBlock(new AssetLocation("game:wattle-sticks-ew-free")) is { Id: > 0 } ew) return wattleFence = ew;
+        var fences = sapi.World.SearchBlocks(new AssetLocation("game:wattle-sticks-*")).Where(IsWattleFence).ToList();
+        if (fences.Count == 0) fences = sapi.World.SearchBlocks(new AssetLocation("game:wattle-*")).Where(IsWattleFence).ToList();
         wattleFence = fences.FirstOrDefault(b => b.Code.Path.EndsWith("-empty-free"))
             ?? fences.FirstOrDefault(b => b.Code.Path.EndsWith("-ew-free"))
             ?? fences.FirstOrDefault();

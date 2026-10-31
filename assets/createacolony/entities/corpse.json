@@ -1,0 +1,24 @@
+{
+	// A dead player's or settler's things (src/Corpses). Ported from Player Corpse by DArkHekRoMaNT (MIT).
+	"code": "corpse",
+	"class": "EntityColonyCorpse",
+	"habitat": "land",
+	"hitboxSize": { "x": 0.9, "y": 0.3 },
+	"client": {
+		"renderer": "Shape",
+		"shape": { "base": "game:block/bone/carcass/humanoid2" },
+		"behaviors": [
+			{ "code": "passivephysics" },
+			{ "code": "interpolateposition" },
+			{ "code": "floatupwhenstuck" }
+		]
+	},
+	"server": {
+		"behaviors": [
+			{ "code": "passivephysics" },
+			{ "code": "floatupwhenstuck" },
+			{ "code": "health", "currenthealth": 100, "maxhealth": 100 }
+		]
+	},
+	"falldamage": false
+}

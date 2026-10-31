@@ -15,7 +15,7 @@ namespace CreateAColony.Colonies;
 /// <summary>
 /// The potter of a Potter's Hut works with the game's own pottery. It shapes clay on the game's clay
 /// forming block, one layer at a time, following the same clay forming recipes a player picks from,
-/// and fires what it made in a pit kiln it digs beside the hut: it lays the pieces in the pit, adds
+/// and fires what it made in pit kilns it digs beside the hut: it lays the pieces in a pit, adds
 /// the dry grass, sticks and firewood the game's pit kiln asks for, lights it, and takes the fired
 /// pottery out once the game has fired it. The hut window says how many of each kind to keep in stock.
 /// </summary>
@@ -119,11 +119,22 @@ public partial class ColonyManager
         ItemMatch mine = kind.IsMine;
         int count = CountItems(WarehouseContainers(colony), mine) + CountItems(HutStorage(colony, hut), mine);
         if (potter != null) count += PackCount(potter, mine);
-        if (hut.KilnPos != null && sapi.World.BlockAccessor.GetBlockEntity(hut.KilnPos) is BlockEntityGroundStorage kiln)
-        {
-            count += kiln.Inventory.Take(4).Where(s => !s.Empty && mine(s.Itemstack)).Sum(s => s.StackSize);
-        }
+        count += InKilns(hut, mine);
         if (FormingRecipe(hut) is { } forming && kind.Recipes.Contains(forming)) count += forming.Output!.ResolvedItemstack!.StackSize;
+        return count;
+    }
+
+    /// <summary>Pieces in all of the hut's pit kilns, raw or fired, that match.</summary>
+    int InKilns(Building hut, ItemMatch match)
+    {
+        int count = 0;
+        foreach (var pos in KilnsOf(hut))
+        {
+            if (sapi.World.BlockAccessor.GetBlockEntity(pos) is BlockEntityGroundStorage kiln)
+            {
+                count += kiln.Inventory.Take(4).Where(s => !s.Empty && match(s.Itemstack)).Sum(s => s.StackSize);
+            }
+        }
         return count;
     }
 
@@ -133,10 +144,11 @@ public partial class ColonyManager
     /// </summary>
     public (PotteryKind Kind, ClayFormingRecipe Recipe)? NextPottery(Colony colony, Building hut, CitizenRecord potter, List<ItemStack> clay)
     {
-        foreach (var kind in PotteryKinds())
+        foreach (var kind in PotteryKinds().OrderBy(k => PriorityIndex(hut.Priorities, k.Key)))
         {
             int keep = PotteryKeep(hut, kind);
-            if (keep <= 0 || PotteryStock(colony, hut, kind, potter) >= keep) continue;
+            // Crocks a cook or bowls settlers are short of are made on top of what the tab keeps (ColonyManager.Crocks.cs).
+            if ((keep <= 0 || PotteryStock(colony, hut, kind, potter) >= keep) && !PotteryOrderOpen(colony, hut, kind, potter)) continue;
             foreach (var recipe in kind.Recipes)
             {
                 int cost = ClayCost(recipe);
@@ -148,7 +160,7 @@ public partial class ColonyManager
 
     /// <summary>True when some kind is short and wants clay, so the potter should ask for some.</summary>
     public bool WantsPottery(Colony colony, Building hut, CitizenRecord potter) =>
-        PotteryKinds().Any(k => PotteryKeep(hut, k) is > 0 and var keep && keep > PotteryStock(colony, hut, k, potter));
+        PotteryKinds().Any(k => PotteryKeep(hut, k) is > 0 and var keep && keep > PotteryStock(colony, hut, k, potter) || PotteryOrderOpen(colony, hut, k, potter));
 
     bool SameItem(ItemStack a, ItemStack b) => a.Equals(sapi.World, b, GlobalConstants.IgnoredStackAttributes);
 
@@ -167,7 +179,7 @@ public partial class ColonyManager
         return FindPotterySpot(colony, hut, ground =>
         {
             var pos = ground.UpCopy();
-            if (hut.KilnPos != null && (pos.Equals(hut.KilnPos) || pos.Equals(hut.KilnPos.UpCopy()))) return null;
+            if (KilnsOf(hut).Any(k => pos.Equals(k) || pos.Equals(k.UpCopy()))) return null;
             if (!ba.GetBlock(pos).IsReplacableBy(clayform) || ba.GetBlock(pos, BlockLayersAccess.Fluid).Id != 0) return null;
             if (!ba.GetBlock(ground).CanAttachBlockAt(ba, clayform, ground, BlockFacing.UP)) return null;
             return pos;
@@ -267,10 +279,33 @@ public partial class ColonyManager
         return kilnMaterials.Contains(stack.Collectible.Code);
     }
 
-    public KilnState Kiln(Colony colony, Building hut)
+    /// <summary>Every pit the potter dug: the first one and any more beside it.</summary>
+    public IEnumerable<BlockPos> KilnsOf(Building hut)
     {
-        var pos = hut.KilnPos;
-        if (pos == null) return KilnState.NoPit;
+        if (hut.KilnPos != null) yield return hut.KilnPos;
+        foreach (var pos in hut.MoreKilns) yield return pos;
+    }
+
+    /// <summary>
+    /// How many pit kilns the potter uses at once (Aaron, 0.155.0): one more than the hut's level,
+    /// up to PotterMaxKilns, so it can fire one load while it fills the next.
+    /// </summary>
+    public int KilnsAllowed(Building hut) => Math.Max(1, Math.Min(Config.PotterMaxKilns, Math.Max(1, hut.Level) + 1));
+
+    /// <summary>Each of the hut's pits and its state. Pits that were filled in or lost their walls are forgotten.</summary>
+    public List<(BlockPos Pos, KilnState State)> Kilns(Colony colony, Building hut)
+    {
+        var list = new List<(BlockPos, KilnState)>();
+        foreach (var pos in KilnsOf(hut).ToList())
+        {
+            var state = Kiln(colony, hut, pos);
+            if (state != KilnState.NoPit) list.Add((pos, state));
+        }
+        return list;
+    }
+
+    public KilnState Kiln(Colony colony, Building hut, BlockPos pos)
+    {
         var ba = sapi.World.BlockAccessor;
         switch (ba.GetBlockEntity(pos))
         {
@@ -283,7 +318,13 @@ public partial class ColonyManager
                 break;
         }
         if (IsKilnPit(pos)) return KilnState.Empty;
-        hut.KilnPos = null; // filled in, or the walls are gone: dig a new one
+        // Filled in, or the walls are gone: dig a new one.
+        if (hut.KilnPos != null && pos.Equals(hut.KilnPos))
+        {
+            hut.KilnPos = hut.MoreKilns.FirstOrDefault();
+            if (hut.KilnPos != null) hut.MoreKilns.RemoveAt(0);
+        }
+        else hut.MoreKilns.RemoveAll(k => k.Equals(pos));
         MarkDirty(colony);
         return KilnState.NoPit;
     }
@@ -320,6 +361,8 @@ public partial class ColonyManager
             var block = ba.GetBlock(ground);
             if (block.BlockMaterial is not (EnumBlockMaterial.Soil or EnumBlockMaterial.Gravel or EnumBlockMaterial.Sand)) return null;
             if (hut.FormPos != null && (ground.Equals(hut.FormPos) || ground.UpCopy().Equals(hut.FormPos))) return null;
+            // Never in, under or in the walls of a pit already dug.
+            if (KilnsOf(hut).Any(k => ground.ManhattenDistance(k) <= 1)) return null;
             return KilnWallsOk(ground) ? ground : null;
         });
     }
@@ -336,12 +379,16 @@ public partial class ColonyManager
             BreakQuietly(pos);
             if (block.Sounds?.Break != null) sapi.World.PlaySoundAt(block.Sounds.Break, pos, 0);
         }
-        hut.KilnPos = pos.Copy();
+        if (hut.KilnPos == null) hut.KilnPos = pos.Copy();
+        else if (!KilnsOf(hut).Any(k => k.Equals(pos))) hut.MoreKilns.Add(pos.Copy());
         MarkDirty(colony);
         return true;
     }
 
-    /// <summary>How many raw pieces like this one go into one pit kiln.</summary>
+    /// <summary>
+    /// How many raw pieces like this one go into one pit kiln, as the game allows: four to a block
+    /// (bowls, crocks), two (ingot molds), or a stack up to what the game fires at once (bricks, shingles).
+    /// </summary>
     public static int KilnLoad(ItemStack raw)
     {
         var props = raw.Collectible.GetBehavior<CollectibleBehaviorGroundStorable>()?.StorageProps;
@@ -359,11 +406,10 @@ public partial class ColonyManager
     /// Lays raw pieces in the pit as a player does with sneak + right-click, and makes it a pit kiln
     /// waiting for its fuel. Pieces that lie four to a block may be different pieces; stacked ones are all the same.
     /// </summary>
-    public bool LoadKiln(Colony colony, Building hut, CitizenRecord potter)
+    public bool LoadKiln(Colony colony, Building hut, CitizenRecord potter, BlockPos pos)
     {
-        var pos = hut.KilnPos;
         var kilnBlock = PitKilnBlock;
-        if (pos == null || kilnBlock == null || !IsKilnPit(pos)) return false;
+        if (kilnBlock == null || !KilnsOf(hut).Any(k => k.Equals(pos)) || !IsKilnPit(pos)) return false;
         var first = PackItems(potter).FirstOrDefault(IsRawPottery);
         var props = first?.Collectible.GetBehavior<CollectibleBehaviorGroundStorable>()?.StorageProps;
         if (first == null || props == null) return false;
@@ -402,7 +448,7 @@ public partial class ColonyManager
         kiln.DetermineStorageProperties(null);
         kiln.MarkDirty(true);
         // A player makes a pit kiln by adding its first fuel, so it never stands without any.
-        AddKilnMaterial(colony, hut, potter);
+        AddKilnMaterial(colony, hut, potter, pos);
         if (props.PlaceRemoveSound != null) sapi.World.PlaySoundAt(props.PlaceRemoveSound.Clone().WithPathPrefixOnce("sounds/"), pos, 0);
         return true;
     }
@@ -419,11 +465,19 @@ public partial class ColonyManager
     }
 
     /// <summary>The fuel the kiln wants next and how many, preferring what the potter or the hut already has.</summary>
-    public ItemStack? NextKilnMaterial(Colony colony, Building hut, CitizenRecord potter)
+    public ItemStack? NextKilnMaterial(Colony colony, Building hut, CitizenRecord potter, BlockPos pos)
     {
-        if (hut.KilnPos == null || sapi.World.BlockAccessor.GetBlockEntity(hut.KilnPos) is not BlockEntityPitKiln kiln || kiln.IsComplete) return null;
+        if (sapi.World.BlockAccessor.GetBlockEntity(pos) is not BlockEntityPitKiln kiln || kiln.IsComplete) return null;
         var choices = KilnChoices(kiln);
         var storage = HutStorage(colony, hut).ToList();
+        if (Config.KilnPrefersBestFuel && choices.Count > 1)
+        {
+            // The best fuel there is enough of with the potter, in the hut and in the warehouse (KilnChoices is best first).
+            var warehouse = WarehouseContainers(colony).ToList();
+            var best = choices.FirstOrDefault(m => PackCount(potter, s => SameItem(s, m)) + CountItems(storage, s => SameItem(s, m))
+                + CountItems(warehouse, s => SameItem(s, m)) >= m.StackSize);
+            if (best != null) return best;
+        }
         return choices.FirstOrDefault(m => PackCount(potter, s => SameItem(s, m)) >= m.StackSize)
             ?? choices.FirstOrDefault(m => CountItems(storage, s => SameItem(s, m)) > 0)
             ?? choices.FirstOrDefault();
@@ -434,13 +488,25 @@ public partial class ColonyManager
     {
         var stage = kiln.NextBuildStage;
         var used = stage.Materials.FirstOrDefault(m => m?.ItemStack != null && kiln.Inventory.Skip(4).Any(s => !s.Empty && SameItem(s.Itemstack, m.ItemStack)));
-        return stage.Materials.Where(m => m?.ItemStack != null && (used == null || m == used)).Select(m => m.ItemStack).ToList();
+        var choices = stage.Materials.Where(m => m?.ItemStack != null && (used == null || m == used)).Select(m => m.ItemStack);
+        return (Config.KilnPrefersBestFuel ? choices.OrderBy(KilnFuelRank) : choices).ToList();
     }
 
-    /// <summary>Adds the next layer of fuel from the potter's inventory, as a player does by hand.</summary>
-    public bool AddKilnMaterial(Colony colony, Building hut, CitizenRecord potter)
+    /// <summary>Which pit kiln fuel a potter takes first (Aaron, 0.142.0): coal, then charcoal, peat and firewood.</summary>
+    public static int KilnFuelRank(ItemStack s) => s.Collectible.Code.Path switch
     {
-        if (KilnStageField == null || hut.KilnPos == null || sapi.World.BlockAccessor.GetBlockEntity(hut.KilnPos) is not BlockEntityPitKiln kiln || kiln.IsComplete) return false;
+        var p when p.Contains("anthracite") || p.Contains("bituminouscoal") || p == "coke" => 0,
+        var p when p.Contains("lignite") => 1,
+        "charcoal" => 2,
+        var p when p.Contains("peat") => 3,
+        var p when p.StartsWith("firewood") => 4,
+        _ => 5
+    };
+
+    /// <summary>Adds the next layer of fuel from the potter's inventory, as a player does by hand.</summary>
+    public bool AddKilnMaterial(Colony colony, Building hut, CitizenRecord potter, BlockPos pos)
+    {
+        if (KilnStageField == null || sapi.World.BlockAccessor.GetBlockEntity(pos) is not BlockEntityPitKiln kiln || kiln.IsComplete) return false;
         foreach (var material in KilnChoices(kiln))
         {
             if (PackCount(potter, s => SameItem(s, material)) < material.StackSize) continue;
@@ -469,33 +535,35 @@ public partial class ColonyManager
             kiln.MarkDirty(true);
             if (material.Collectible.Attributes?["placeSound"].AsString() is { } sound)
             {
-                sapi.World.PlaySoundAt(AssetLocation.Create(sound, material.Collectible.Code.Domain).WithPathPrefixOnce("sounds/"), hut.KilnPos, -0.4);
+                sapi.World.PlaySoundAt(AssetLocation.Create(sound, material.Collectible.Code.Domain).WithPathPrefixOnce("sounds/"), pos, -0.4);
             }
             return true;
         }
         return false;
     }
 
-    public bool LightKiln(Building hut)
+    public bool LightKiln(Colony colony, Building hut, CitizenRecord potter, BlockPos pos)
     {
-        if (hut.KilnPos == null || sapi.World.BlockAccessor.GetBlockEntity(hut.KilnPos) is not BlockEntityPitKiln kiln || !kiln.CanIgnite) return false;
+        if (sapi.World.BlockAccessor.GetBlockEntity(pos) is not BlockEntityPitKiln kiln || !kiln.CanIgnite) return false;
+        // Nothing for the fire to spread through (ColonyManager.Fires.cs).
+        ClearAroundFire(colony, potter, pos);
         kiln.TryIgnite(null);
         return true;
     }
 
     /// <summary>Hours until the lit kiln is done, or 0.</summary>
-    public double KilnHoursLeft(Building hut) =>
-        hut.KilnPos != null && sapi.World.BlockAccessor.GetBlockEntity(hut.KilnPos) is BlockEntityPitKiln { Lit: true } kiln
+    public double KilnHoursLeft(BlockPos pos) =>
+        sapi.World.BlockAccessor.GetBlockEntity(pos) is BlockEntityPitKiln { Lit: true } kiln
             ? Math.Max(0, kiln.BurningUntilTotalHours - sapi.World.Calendar.TotalHours) : 0;
 
     /// <summary>Takes the fired pottery out of the pit, leaving the pit ready for the next load.</summary>
-    public void EmptyKiln(Colony colony, Building hut, CitizenRecord potter)
+    public void EmptyKiln(Colony colony, Building hut, CitizenRecord potter, BlockPos pos)
     {
         var ba = sapi.World.BlockAccessor;
-        if (hut.KilnPos == null || ba.GetBlockEntity(hut.KilnPos) is not BlockEntityGroundStorage pile || pile is BlockEntityPitKiln) return;
+        if (!KilnsOf(hut).Any(k => k.Equals(pos)) || ba.GetBlockEntity(pos) is not BlockEntityGroundStorage pile || pile is BlockEntityPitKiln) return;
         var stacks = pile.Inventory.Where(s => !s.Empty).Select(s => s.Itemstack!.Clone()).ToList();
-        ba.SetBlock(0, hut.KilnPos);
-        StoreHarvest(colony, hut, potter, stacks, hut.KilnPos);
+        ba.SetBlock(0, pos);
+        StoreHarvest(colony, hut, potter, stacks, pos);
         AddStat(hut, "pottery-fired", stacks.Sum(s => s.StackSize));
     }
 
@@ -563,12 +631,21 @@ public partial class ColonyManager
         if (!colony.Requests.Any(r => r.RequestedBy == tag && r.ItemCode == code)) AddRequest(colony, code, quantity, chest.Pos, tag);
     }
 
-    /// <summary>A line about the kiln for the hut window.</summary>
+    /// <summary>A line about the kilns for the hut window.</summary>
     public string KilnInfo(Colony colony, Building hut)
     {
-        var state = Kiln(colony, hut);
-        return state == KilnState.Lit
-            ? Lang.Get("createacolony:kiln-lit", Math.Ceiling(KilnHoursLeft(hut)))
-            : Lang.Get("createacolony:kiln-" + state.ToString().ToLowerInvariant());
+        var kilns = Kilns(colony, hut);
+        if (kilns.Count == 0) return Lang.Get("createacolony:kiln-nopit");
+        if (kilns.Count == 1)
+        {
+            var (pos, state) = kilns[0];
+            return state == KilnState.Lit
+                ? Lang.Get("createacolony:kiln-lit", Math.Ceiling(KilnHoursLeft(pos)))
+                : Lang.Get("createacolony:kiln-" + state.ToString().ToLowerInvariant());
+        }
+        var parts = kilns.GroupBy(k => k.State).OrderBy(g => g.Key).Select(g => g.Key == KilnState.Lit
+            ? Lang.Get("createacolony:kilns-lit", g.Count(), Math.Ceiling(g.Min(k => KilnHoursLeft(k.Pos))))
+            : Lang.Get("createacolony:kilns-" + g.Key.ToString().ToLowerInvariant(), g.Count()));
+        return Lang.Get("createacolony:kilns-info", kilns.Count, string.Join(", ", parts));
     }
 }

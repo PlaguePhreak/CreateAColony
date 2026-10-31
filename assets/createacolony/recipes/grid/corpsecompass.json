@@ -1,0 +1,24 @@
+{
+	"enabled": true,
+	"ingredientPattern": "GBG,BTB,GBG",
+	"ingredients": {
+		"B": {
+			"type": "item",
+			"code": "game:bone"
+		},
+		"T": {
+			"type": "item",
+			"code": "game:gear-temporal"
+		},
+		"G": {
+			"type": "item",
+			"code": "game:gear-rusty"
+		}
+	},
+	"width": 3,
+	"height": 3,
+	"output": {
+		"type": "item",
+		"code": "createacolony:corpsecompass"
+	}
+}

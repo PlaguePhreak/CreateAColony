@@ -142,6 +142,9 @@ public partial class ColonyManager
         var candidates = new List<(Vec3d Spot, BlockPos Feet, double Score)>();
         var feet = new BlockPos(here.dimension);
         int up = Math.Max(3, radius / 2), down = Math.Max(4, radius / 2 + 2);
+        // A settler on the surface stays on the surface: a goal set too low (land that was not loaded when it
+        // was planned) drew prospectors into caves under it, out of sight, until they hopped back up.
+        bool onSurface = here.Y >= ba.GetTerrainMapheightAt(here);
 
         for (int dx = -radius; dx <= radius; dx++)
         for (int dz = -radius; dz <= radius; dz++)
@@ -154,6 +157,7 @@ public partial class ColonyManager
                 if (feet.Y < 1) break;
                 if (Math.Abs(dx) <= 1 && Math.Abs(dz) <= 1 && Math.Abs(dy) <= 1) continue; // not where it is stuck
                 if (!CanStandAt(entity, feet, ba)) continue;
+                if (onSurface && feet.Y < ba.GetTerrainMapheightAt(feet)) continue;
                 if (!reckless && Dangerous(ba, feet)) continue;
                 var spot = new Vec3d(feet.X + 0.5, feet.Y, feet.Z + 0.5);
                 if (monsters.Any(m => m.SquareDistanceTo(spot) < 8 * 8)) continue;

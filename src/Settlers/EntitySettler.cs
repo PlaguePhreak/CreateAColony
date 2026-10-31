@@ -1,6 +1,7 @@
 using Vintagestory.API.Client;
 using Vintagestory.API.Common;
 using Vintagestory.API.Common.Entities;
+using Vintagestory.API.MathTools;
 using Vintagestory.GameContent;
 
 namespace CreateAColony.Settlers;
@@ -14,16 +15,65 @@ namespace CreateAColony.Settlers;
 public class EntitySettler : EntityHumanoid
 {
     EntityBehaviorVillagerInv? hands;
+    Colonies.ColonyManager? manager;
+
+    /// <summary>Holding torches like a player, and the idle fidgets (see SettlerBody).</summary>
+    public SettlerBody? Body { get; private set; }
 
     /// <summary>The tool or weapon the settler works with.</summary>
     public override ItemSlot? RightHandItemSlot => hands?.Inventory[0];
     /// <summary>The offhand item from the tool bar, or a torch in the dark.</summary>
     public override ItemSlot? LeftHandItemSlot => hands?.Inventory[1];
 
+    /// <summary>
+    /// A torch or lantern in either hand lights up the ground around the settler, as it does for a player
+    /// (EntityPlayer.LightHsv). Burning, it glows as any entity on fire does.
+    /// </summary>
+    public override byte[]? LightHsv
+    {
+        get => ColorUtil.MergeLightHSV(HeldLight(RightHandItemSlot), HeldLight(LeftHandItemSlot)) ?? base.LightHsv;
+        set => base.LightHsv = value;
+    }
+
+    byte[]? HeldLight(ItemSlot? slot)
+    {
+        if (slot?.Itemstack is not { } stack || World == null) return null;
+        var hsv = stack.Collectible.GetLightHsv(World.BlockAccessor, null, stack);
+        return hsv != null && hsv[2] > 0 ? hsv : null;
+    }
+
     public override void Initialize(EntityProperties properties, ICoreAPI api, long InChunkIndex3d)
     {
         base.Initialize(properties, api, InChunkIndex3d);
         hands = GetBehavior<EntityBehaviorVillagerInv>();
+        if (api.Side == EnumAppSide.Server)
+        {
+            manager = api.ModLoader.GetModSystem<Colonies.ColonyManager>();
+            Body = new SettlerBody(this, manager);
+        }
+    }
+
+    /// <summary>The game calls this every tick on both sides; settlers do their hand poses and fidgets on the server.</summary>
+    protected override void HandleHandAnimations(float dt)
+    {
+        base.HandleHandAnimations(dt);
+        Body?.Tick(dt, manager?.Config);
+        ResendAnimations(dt);
+    }
+
+    float resendTimer;
+
+    /// <summary>
+    /// Sends the running animations to players again every few seconds. A player who was too far away misses the
+    /// changes, and a settler coming back into view would otherwise glide or stand stiff until its next change.
+    /// </summary>
+    void ResendAnimations(float dt)
+    {
+        if (World.Side != EnumAppSide.Server || AnimManager == null) return;
+        resendTimer += dt;
+        if (resendTimer < 3f) return;
+        resendTimer = 0;
+        if (AnimManager.ActiveAnimationsByAnimCode.Count > 0) AnimManager.AnimationsDirty = true;
     }
 
     public override void OnEntitySpawn()
@@ -35,6 +85,8 @@ public class EntitySettler : EntityHumanoid
     public override void OnEntityLoaded()
     {
         base.OnEntityLoaded();
+        // Unloaded in the middle of a meal: the food copy goes and the tool comes back.
+        if (Api.Side == EnumAppSide.Server) AiTaskSettlerEat.PutDownFood(this);
         ShowHeldItems();
     }
 

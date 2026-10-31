@@ -24,6 +24,7 @@
   <ItemGroup>
     <Content Include="assets/**" CopyToOutputDirectory="PreserveNewest" />
     <Content Include="modinfo.json" CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="THIRD_PARTY_NOTICES.md" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
   <!-- After a Release build, zip the mod so it can be dropped straight into the game's Mods folder. -->

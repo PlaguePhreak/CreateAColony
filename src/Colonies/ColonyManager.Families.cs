@@ -323,6 +323,68 @@ public partial class ColonyManager
         return (residents, places, Math.Max(0, places - beds.Sum(kv => Math.Min(kv.Value, taken.GetValueOrDefault(kv.Key)))));
     }
 
+    /// <summary>A settler, their partner and their children: the people who move house together.</summary>
+    List<CitizenRecord> MovingHousehold(Colony colony, CitizenRecord c)
+    {
+        var head = c.IsChild && ParentsOf(colony, c).FirstOrDefault(p => p.Alive) is { } parent ? parent : c;
+        var people = new List<CitizenRecord> { head };
+        if (PartnerOf(colony, head) is { Alive: true } partner) people.Add(partner);
+        people.AddRange(colony.Citizens.Where(k => k.Alive && k.IsChild && !people.Contains(k) && k.ParentIds.Any(id => people.Any(p => p.CitizenId == id))));
+        return people;
+    }
+
+    /// <summary>
+    /// Moves a settler and their household into free beds of a Residence, chosen by a player on its
+    /// Residents tab. Returns a lang key when there is not room for all of them.
+    /// </summary>
+    public string? MoveIntoResidence(Colony colony, Building residence, CitizenRecord citizen)
+    {
+        var boxes = ResidenceBoxes(colony);
+        var beds = BedList(colony).Where(kv => ResidenceAt(colony, kv.Key, boxes) == residence).ToDictionary(kv => kv.Key, kv => kv.Value);
+        return Rehouse(colony, MovingHousehold(colony, citizen), beds) ? null : "createacolony:residence-no-room";
+    }
+
+    /// <summary>
+    /// Moves a settler and their household out of a Residence: into another Residence with room if there
+    /// is one, else any free bed on the colony's land. They keep their beds when there is nowhere to go.
+    /// </summary>
+    public string? MoveOutOfResidence(Colony colony, Building residence, CitizenRecord citizen)
+    {
+        var boxes = ResidenceBoxes(colony);
+        var elsewhere = BedList(colony).Where(kv => ResidenceAt(colony, kv.Key, boxes) != residence).ToList();
+        var people = MovingHousehold(colony, citizen);
+        var homes = elsewhere.Where(kv => ResidenceAt(colony, kv.Key, boxes) != null).ToDictionary(kv => kv.Key, kv => kv.Value);
+        if (Rehouse(colony, people, homes) || Rehouse(colony, people, elsewhere.ToDictionary(kv => kv.Key, kv => kv.Value))) return null;
+        return "createacolony:residence-nowhere";
+    }
+
+    /// <summary>
+    /// Gives a household beds from a set, if the set has a free place for each of them: a couple a
+    /// double bed when there is one, then everyone as close as can be to the first bed taken.
+    /// </summary>
+    bool Rehouse(Colony colony, List<CitizenRecord> people, Dictionary<BlockPos, int> beds)
+    {
+        var taken = colony.Citizens.Where(c => c.Alive && c.HomeBedPos != null && !people.Contains(c))
+            .GroupBy(c => c.HomeBedPos!).ToDictionary(g => g.Key, g => g.Count());
+        var free = beds.ToDictionary(kv => kv.Key, kv => kv.Value - taken.GetValueOrDefault(kv.Key));
+        if (free.Values.Where(v => v > 0).Sum() < people.Count) return false;
+
+        bool couple = people.Count(p => !p.IsChild) > 1;
+        BlockPos? first = null;
+        foreach (var c in people)
+        {
+            var anchor = first;
+            var bed = free.Where(kv => kv.Value > 0).Select(kv => kv.Key)
+                .OrderByDescending(p => anchor == null && couple && free[p] >= 2)
+                .ThenBy(p => anchor == null ? 0.0 : p.DistanceSqTo(anchor.X, anchor.Y, anchor.Z))
+                .First();
+            free[bed]--;
+            c.HomeBedPos = bed.Copy();
+            first ??= bed;
+        }
+        return true;
+    }
+
     /// <summary>
     /// The households in a list of settlers: each couple with their children, and anyone else on their
     /// own. Partners first, then children in birth order.

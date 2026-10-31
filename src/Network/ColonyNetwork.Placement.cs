@@ -178,7 +178,7 @@ public partial class ColonyNetwork
                 if (error == null)
                 {
                     ClearOutline(player);
-                    player.SendMessage(0, Lang.GetL(player.LanguageCode, "createacolony:placement-ordered",
+                    player.SendMessage(0, Lang.GetL(player.LanguageCode, building.Type == BuildingTypes.MineshaftEntrance ? "createacolony:entrance-ordered" : "createacolony:placement-ordered",
                         Lang.GetL(player.LanguageCode, "createacolony:building-" + building.Type)), EnumChatType.Notification);
                     Manager.MarkDirty(colony);
                     RefreshViewers(colony);

@@ -1,9 +1,11 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using CreateAColony.Settlers;
 using Vintagestory.API.Common;
 using Vintagestory.API.Common.Entities;
 using Vintagestory.API.MathTools;
+using Vintagestory.GameContent;
 
 namespace CreateAColony.Colonies;
 
@@ -48,6 +50,61 @@ public partial class ColonyManager
     }
 
     public void StopFleeing(Entity settler) => fleeing.Remove(settler.EntityId);
+
+    /// <summary>
+    /// Support allies: armed settlers near a settler that a creature hurt come to fight it too. They are marked
+    /// as fighting the attacker with no blows taken, which AiTaskSettlerDefend reads as helping.
+    /// </summary>
+    void CallAllies(Colony colony, CitizenRecord hurt, EntitySettler settler, Entity attacker)
+    {
+        if (!SupportAllies(colony)) return;
+        double radius = Config.SupportAllyRadius;
+        long until = sapi.World.ElapsedMilliseconds + (long)(Config.FleeSeconds * 1000);
+        foreach (var other in colony.Citizens)
+        {
+            if (other == hurt || !other.Alive) continue;
+            if (sapi.World.GetEntityById(other.EntityId) is not EntitySettler { Alive: true } ally || ally.EntityId == settler.EntityId) continue;
+            if (ally.Pos.SquareDistanceTo(settler.Pos.XYZ) > radius * radius || FleeState(ally) != null) continue;
+            if (!FightsBack(colony, other, ally, helping: true)) continue;
+            fleeing[ally.EntityId] = (attacker.EntityId, until, 0);
+        }
+    }
+
+    /// <summary>The weapon a settler would fight with: the one in its hand, else the hardest-hitting one it carries.</summary>
+    public ItemStack? BestWeapon(CitizenRecord citizen)
+    {
+        var held = sapi.World.GetEntityById(citizen.EntityId) is EntityAgent agent && Settlers.AiTaskSettlerEat.ToolInHand(agent) is { } h && IsWeapon(h) ? h : null;
+        var carried = CarriedItems(citizen).Where(IsWeapon).OrderByDescending(WeaponDamage).FirstOrDefault();
+        if (held == null) return carried;
+        return carried != null && WeaponDamage(carried) > WeaponDamage(held) ? carried : held;
+    }
+
+    /// <summary>The colony's Self Defence switch (Colony militia tab).</summary>
+    public bool SelfDefence(Colony colony) => colony.SelfDefence ?? Config.FightBackWhenAttacked;
+
+    /// <summary>The colony's Support allies switch (Colony militia tab).</summary>
+    public bool SupportAllies(Colony colony) => colony.SupportAllies ?? Config.SupportAllies;
+
+    /// <summary>
+    /// True when a settler hurt by a creature fights it instead of running (AiTaskSettlerDefend): not a guard
+    /// or a child, it carries a weapon, it is not badly hurt, and no guard is near enough to deal with it.
+    /// helping is for a settler that came to help another (Support allies) rather than one that was hurt itself.
+    /// </summary>
+    public bool FightsBack(Colony colony, CitizenRecord citizen, EntityAgent settler, bool helping = false)
+    {
+        if (!(helping ? SupportAllies(colony) : SelfDefence(colony))) return false;
+        if (citizen.JobCode == Jobs.Guard || citizen.IsDowned || citizen.IsChild || citizen.Visitor) return false;
+        if (settler.GetBehavior<EntityBehaviorHealth>() is { } hp && hp.Health < hp.MaxHealth * Config.FightBackMinHealth) return false;
+        if (!(Settlers.AiTaskSettlerEat.ToolInHand(settler) is { } held && IsWeapon(held)) && PackCount(citizen, IsWeapon) == 0) return false;
+        return !GuardNear(colony, settler.Pos.XYZ, Config.FightBackGuardRadius);
+    }
+
+    /// <summary>A worker carrying no weapon takes one from its hut's storage, to fight back with if attacked.</summary>
+    public void TakeSpareWeapon(Colony colony, CitizenRecord citizen, IEnumerable<BlockEntityContainer> storage)
+    {
+        if (!Config.FightBackWhenAttacked || PackCount(citizen, IsWeapon) > 0) return;
+        if (TakeItems(storage, IsWeapon, 1) is { } weapon) AddToPack(colony, citizen, weapon);
+    }
 
     /// <summary>
     /// Where a hurt settler runs: home, or the guard it is safest to run to. Each choice costs its distance,

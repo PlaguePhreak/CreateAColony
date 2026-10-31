@@ -15,11 +15,12 @@ using Vintagestory.GameContent;
 namespace CreateAColony.Colonies;
 
 /// <summary>
-/// Blocks a builder copies with their saved details, as WorldEdit pastes them. So far that is VS Roofing:
-/// a roof block keeps its frame, slope, materials and fill in its block entity, not in its name. A builder
-/// pays for what the roof holds (frame, the binding in the other hand, roofing materials, sod plants) and
-/// places the roof in one go. VS Roofing is optional: without it the roof blocks are simply missing from
-/// the blueprint, as any block from a mod that is not installed.
+/// Blocks a builder copies with their saved details, as WorldEdit pastes them. A VS Roofing roof block keeps
+/// its frame, slope, materials and fill in its block entity, not in its name. A builder pays for what the roof
+/// holds (frame, the binding in the other hand, roofing materials, sod plants) and places the roof in one go.
+/// VS Roofing is optional: without it the roof blocks are simply missing from the blueprint, as any block from
+/// a mod that is not installed. A chiseled block (0.159.0) keeps its shape and materials the same way: the
+/// builder pays one full block of each material, as a player chisels it from, and places the finished shape.
 /// </summary>
 public partial class ColonyManager
 {
@@ -119,13 +120,14 @@ public partial class ColonyManager
     /// <summary>What a block with saved details costs, or null when the block's own item will do.</summary>
     List<MaterialCost>? SavedCost(BuildStep step, Block target)
     {
-        if (step.Saved is not { } saved || target.Code.Domain != RoofingDomain) return null;
+        if (step.Saved is not { } saved || (target.Code.Domain != RoofingDomain && target is not BlockMicroBlock)) return null;
         if (savedCostCache.TryGetValue(saved, out var cached)) return cached;
 
         var costs = new List<MaterialCost>();
         try
         {
-            foreach (var (code, sample, count) in RoofParts(saved))
+            var parts = target is BlockMicroBlock ? ChiseledParts(saved) : RoofParts(saved);
+            foreach (var (code, sample, count) in parts)
             {
                 int i = costs.FindIndex(c => c.Code == code);
                 if (i >= 0) costs[i] = costs[i] with { Count = costs[i].Count + count };
@@ -141,6 +143,58 @@ public partial class ColonyManager
         return costs;
     }
 
+    /// <summary>The block a block drops when broken, if it drops exactly one other block (planks of any facing drop upright ones); else null.</summary>
+    static Block? DroppedBlock(Block block)
+    {
+        if (block.Drops is not { Length: 1 } drops || drops[0].ResolvedItemstack?.Block is not { } dropped) return null;
+        return dropped.Id != block.Id && drops[0].Quantity.avg <= 1 ? dropped : null;
+    }
+
+    /// <summary>
+    /// What a chiseled block in a blueprint costs: one full block of each material in it, as a player needs one
+    /// to chisel from or to add a material with Ctrl + right-click. A material players cannot carry counts as
+    /// what it drops (planks laid sideways as upright planks; raw rock, which only drops stones, as its stones).
+    /// </summary>
+    IEnumerable<(string Code, ItemStack Sample, int Count)> ChiseledParts(SavedBlockEntity saved)
+    {
+        var tree = saved.Tree();
+        var materials = new List<Block>();
+        if (tree["materials"] is IntArrayAttribute ids)
+        {
+            foreach (int id in ids.value)
+            {
+                if (saved.Source.BlockCodes.TryGetValue(id, out var code) && sapi.World.GetBlock(code) is { IsMissing: false } b) materials.Add(b);
+            }
+        }
+        else if (tree["materials"] is StringArrayAttribute codes)
+        {
+            foreach (string code in codes.value)
+            {
+                if (sapi.World.GetBlock(new AssetLocation(code)) is { IsMissing: false } b) materials.Add(b);
+            }
+        }
+
+        var parts = new List<(string, ItemStack, int)>();
+        foreach (var material in materials.Where(m => m.Id != 0).DistinctBy(m => m.Id))
+        {
+            if (DroppedBlock(material) is { } carried)
+            {
+                parts.Add((carried.Code.ToString(), new ItemStack(carried), 1));
+            }
+            else if (material.Drops is { Length: 1 } drops && drops[0].ResolvedItemstack is { Item: { } item }
+                && drops[0].ResolvedItemstack.Block == null)
+            {
+                int count = Math.Max(1, (int)Math.Round(drops[0].Quantity.avg));
+                parts.Add((item.Code.ToString(), new ItemStack(item), count));
+            }
+            else
+            {
+                parts.Add((material.Code.ToString(), new ItemStack(material), 1));
+            }
+        }
+        return parts;
+    }
+
     /// <summary>The items a VS Roofing roof block is made of, as it would drop them when broken.</summary>
     IEnumerable<(string Code, ItemStack Sample, int Count)> RoofParts(SavedBlockEntity saved)
     {
@@ -154,6 +208,9 @@ public partial class ColonyManager
             CollectibleObject? collectible = type == EnumItemClass.Block ? sapi.World.GetBlock(code) : sapi.World.GetItem(code);
             // A hammer held while building is a tool, not something the roof uses up.
             if (collectible == null || collectible.IsMissing || collectible.Tool != null) return;
+            // A block counts as what it drops: planks laid sideways (planks-oak-ns) are the planks players carry
+            // (planks-oak-ud). Roofs filled with planks asked for ones no player has (Aaron, 0.104.0).
+            if (collectible is Block block && DroppedBlock(block) is { } carried) collectible = carried;
             parts.Add((collectible.Code.ToString(), new ItemStack(collectible), count));
         }
         void AddStack(ItemStack? stack)

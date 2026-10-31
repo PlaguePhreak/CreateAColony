@@ -18,18 +18,18 @@ namespace CreateAColony.Network;
 /// as WorldEdit's CreatePreview does: only moving where the client draws it left the old copy on screen.
 /// The old blocks are set to air rather than cleared away: chunks that are emptied and unloaded on the server
 /// are never sent again, so the client kept drawing them, and a big building previewed earlier (a Town Hall)
-/// showed through the next, smaller one.
+/// showed through the next, smaller one. That still happened between buildings (0.89.0: Aaron saw the Town
+/// Hall and the Builder's Hut inside the Guard Tower's preview), so each new placement now gets a mini-dimension
+/// of its own: the client only draws the preview dimension it was last told, so whatever an old one still
+/// holds on the client is never drawn again.
 /// </summary>
 public partial class ColonyNetwork
 {
-    const string GhostDimsKey = "createacolony-ghostdims";
 
     /// <summary>Each player's preview mini-dimension, the blueprint and spot in it right now (null when empty), and the blocks it holds.</summary>
     readonly Dictionary<string, (IMiniDimension Dim, Blueprint? Shown, BlockPos? At)> ghosts = new();
     /// <summary>Where each player's preview has blocks now (inside the mini-dimension), so the next preview can air them out.</summary>
     readonly Dictionary<string, List<(BlockPos Pos, bool Fluid)>> ghostBlocks = new();
-    /// <summary>The mini-dimension number each player was given, kept in the save so it is reused after a restart.</summary>
-    Dictionary<string, int>? ghostDimIds;
 
     bool GhostMode => Manager.Config.PlacementPreview?.Trim().ToLowerInvariant() is not "outline";
     bool OutlineToo => Manager.Config.PlacementPreview?.Trim().ToLowerInvariant() is "both";
@@ -54,7 +54,7 @@ public partial class ColonyNetwork
         try
         {
             int minX = solid.Min(s => s.Dx), minY = solid.Min(s => s.Dy), minZ = solid.Min(s => s.Dz);
-            var dim = GhostDimension(player);
+            var dim = GhostDimension(player, fresh: ghosts.TryGetValue(player.PlayerUID, out var before) && before.Shown == null);
             // The corner of the blueprint is where the mini-dimension's first block is drawn.
             var origin = Manager.StepPos(building, new BuildStep(minX, minY, minZ, 0));
             var shown = ghosts[player.PlayerUID];
@@ -85,6 +85,9 @@ public partial class ColonyNetwork
         {
             var block = sapi!.World.GetBlock(step.BlockId);
             if (block == null) continue;
+            // A roof without its saved details has nothing to draw, and could keep the whole chunk from drawing
+            // (0.96.0: the Mineshaft Entrance's roofs had none and its preview showed nothing).
+            if (step.Saved == null && block.Code.Domain == "vsroofing") continue;
             var pos = corner.AddCopy(step.Dx - minX, step.Dy - minY, step.Dz - minZ);
             if (block.ForFluidsLayer) dim.SetBlock(step.BlockId, pos, BlockLayersAccess.Fluid);
             else dim.SetBlock(step.BlockId, pos);
@@ -97,11 +100,11 @@ public partial class ColonyNetwork
 
     /// <summary>
     /// Sets the blocks of the player's current preview to air. The emptied chunks stay loaded so the client is
-    /// sent them empty; they are unloaded the next time round, once they have gone out.
+    /// sent them empty. They are not unloaded here: turning the building a few times quickly unloaded chunks
+    /// before their empty copy had gone out, and the client kept drawing the old turns. ForgetGhost frees them.
     /// </summary>
     void EmptyGhost(string uid, IMiniDimension dim)
     {
-        dim.UnloadUnusedServerChunks();
         if (!ghostBlocks.Remove(uid, out var old)) return;
         foreach (var (pos, fluid) in old)
         {
@@ -110,23 +113,23 @@ public partial class ColonyNetwork
         }
     }
 
-    /// <summary>The player's preview mini-dimension, made the first time it is needed.</summary>
-    IMiniDimension GhostDimension(IServerPlayer player)
+    /// <summary>
+    /// The player's preview mini-dimension. A new one is made for each new placement (fresh: nothing shown
+    /// since the last was hidden); the old one is emptied and its chunks let go on the server.
+    /// </summary>
+    IMiniDimension GhostDimension(IServerPlayer player, bool fresh)
     {
         string uid = player.PlayerUID;
-        if (ghosts.TryGetValue(uid, out var ghost)) return ghost.Dim;
-
-        var save = sapi!.WorldManager.SaveGame;
-        ghostDimIds ??= save.GetData<Dictionary<string, int>>(GhostDimsKey) ?? new();
-        var dim = sapi.World.BlockAccessor.CreateMiniDimension(player.Entity.Pos.XYZ);
-        int id;
-        if (ghostDimIds.TryGetValue(uid, out int known) && known >= 0) id = sapi.Server.SetMiniDimension(dim, known);
-        else
+        if (ghosts.TryGetValue(uid, out var ghost))
         {
-            id = sapi.Server.LoadMiniDimension(dim);
-            ghostDimIds[uid] = id;
-            save.StoreData(GhostDimsKey, ghostDimIds);
+            if (!fresh) return ghost.Dim;
+            ghostBlocks.Remove(uid);
+            ghost.Dim.ClearChunks();
+            ghost.Dim.UnloadUnusedServerChunks();
         }
+
+        var dim = sapi!.World.BlockAccessor.CreateMiniDimension(player.Entity.Pos.XYZ);
+        int id = sapi.Server.LoadMiniDimension(dim);
         dim.SetSubDimensionId(id);
         // Marks it as a preview: nothing in it ticks, on the server or the client.
         dim.BlocksPreviewSubDimension_Server = id;
@@ -160,6 +163,8 @@ public partial class ColonyNetwork
 
     /// <summary>The mini-dimension the client draws as the ghost, or -1.</summary>
     int shownGhost = -1;
+    /// <summary>The mini-dimension of the last ghost shown, hidden or not, so a new placement's ghost can empty it.</summary>
+    int lastGhost = -1;
 
     void OnGhostPreview(GhostPreviewPacket packet)
     {
@@ -172,6 +177,12 @@ public partial class ColonyNetwork
             shownGhost = -1;
             return;
         }
+        // A new placement's preview comes in a new mini-dimension: empty the client's copy of the old one.
+        if (lastGhost >= 0 && lastGhost != packet.DimId && world.MiniDimensions.TryGetValue(lastGhost, out var previous))
+        {
+            try { previous.ClearChunks(); } catch (Exception) { }
+        }
+        lastGhost = packet.DimId;
         var pos = new BlockPos(packet.X, packet.Y, packet.Z);
         world.SetBlocksPreviewDimension(packet.DimId);
         // Exactly as WorldEdit's client does it: the game places the mini-dimension at pos.

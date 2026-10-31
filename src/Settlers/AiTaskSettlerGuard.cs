@@ -16,7 +16,7 @@ namespace CreateAColony.Settlers;
 /// walks its patrol, or follows a player as a bodyguard. Without one it follows the worker it escorts,
 /// or stays by the Town Hall. Either way it fights the monsters that come near, answers the colony's
 /// alarm when a monster hurts a settler, falls back to its tower when badly hurt (if the tower says to),
-/// and fetches better weapons and armor from its tower and the warehouse when it has a quiet moment.
+/// and swaps in better weapons, armor and shields from its tower and the warehouse when it has a quiet moment.
 /// </summary>
 public class AiTaskSettlerGuard : SettlerTaskBase
 {
@@ -137,6 +137,8 @@ public class AiTaskSettlerGuard : SettlerTaskBase
         var near = m.FindThreat(center, radius, tower) ?? m.FindThreat(entity.Pos.XYZ, Math.Max(1, m.Config.GuardThreatRadius + farther), tower);
         var alarm = near == null ? m.AlarmFor(colony, entity, tower) : null;
         threat = near ?? alarm;
+        // The shield goes up in a fight, and down again after (so a light can show in the dark).
+        m.SetShieldUp(citizen, entity, threat != null);
         if (threat != null)
         {
             if (alarm != null && !answeringAlarm && tower != null) m.AddStat(tower, "alarms");
@@ -147,10 +149,10 @@ public class AiTaskSettlerGuard : SettlerTaskBase
         }
         answeringAlarm = false;
 
-        // A quiet moment: pick up a weapon, or better armor. An escort stays with its worker instead.
+        // A quiet moment: pick up a better weapon, armor or shield. An escort stays with its worker instead.
         if (escorted == null && player == null)
         {
-            var chest = (!HasWeapon(citizen) ? m.WeaponChest(colony, tower) : null) ?? m.ArmorChest(colony, tower, citizen);
+            var chest = m.GearChest(colony, tower, citizen, Hand?.Itemstack);
             if (chest != null)
             {
                 mode = Mode.FetchGear;
@@ -306,9 +308,6 @@ public class AiTaskSettlerGuard : SettlerTaskBase
         cooldown = manager!.Config.GuardSecondsPerHit * manager.WorkTimeFactor(colony, citizen) / manager.SwingFactor(colony, citizen); // Fighting skill and traits swing faster
     }
 
-    bool HasWeapon(CitizenRecord citizen) =>
-        (Hand?.Itemstack is { } held && ColonyManager.IsWeapon(held)) || manager!.PackCount(citizen, ColonyManager.IsWeapon) > 0;
-
     /// <summary>Holds the hardest-hitting weapon it carries.</summary>
     void HoldBestWeapon(Colony colony, CitizenRecord citizen)
     {
@@ -324,30 +323,25 @@ public class AiTaskSettlerGuard : SettlerTaskBase
         SyncHand();
     }
 
-    /// <summary>At the chest it walked to: takes the hardest-hitting weapon if it has none, and puts on any better armor.</summary>
+    /// <summary>At the chest it walked to: swaps in a better weapon, armor and shield, leaving the old ones there.</summary>
     void TakeGear(Colony colony, CitizenRecord citizen)
     {
         mode = Mode.Idle;
         if (gearChest == null || entity.World.BlockAccessor.GetBlockEntity(gearChest) is not BlockEntityContainer chest) return;
-        if (!HasWeapon(citizen))
+        var m = manager!;
+        if (Hand is { } hand)
         {
-            var best = chest.Inventory.Where(s => !s.Empty && ColonyManager.IsWeapon(s.Itemstack))
-                .OrderByDescending(s => ColonyManager.WeaponDamage(s.Itemstack!)).FirstOrDefault();
-            if (best != null)
-            {
-                var weapon = best.TakeOut(1);
-                best.MarkDirty();
-                manager!.AddToPack(colony, citizen, weapon);
-                if (weapon.StackSize > 0) manager.PutItems(chest, weapon); // inventory full
-                chest.MarkDirty(true);
-                HoldBestWeapon(colony, citizen);
-            }
+            // Only a weapon belongs in a guard's hand.
+            if (hand.Itemstack is { } held && !ColonyManager.IsWeapon(held)) PutAwayHand(colony, citizen);
+            if (m.TakeBetterWeapon(colony, citizen, chest, hand)) SyncHand();
         }
-        if (manager!.Config.GuardsWearArmor) manager.PutOnArmorFrom(colony, citizen, chest);
+        if (m.Config.GuardsWearArmor) m.PutOnArmorFrom(colony, citizen, chest);
+        m.TakeBetterShield(colony, citizen, chest);
     }
 
     public override void FinishExecute(bool cancelled)
     {
+        if (Citizen is { } citizen) manager?.SetShieldUp(citizen, entity, false);
         if (swingAnim != null) StopAnimation(swingAnim);
         swingAnim = null;
         walkingTo = null;

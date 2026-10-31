@@ -75,7 +75,7 @@ public class AiTaskSettlerBlacksmith : AiTaskSettlerWorker
 
         // The piece being made, if the ingots for it are on hand.
         if (kind != null && m.PackCount(citizen, kind.IsIngot) >= kind.Ingots && kind.Tier <= anvil.OwnMetalTier
-            && m.CraftKeep(hut, kind.Key) > m.SmithStock(colony, hut, kind, citizen))
+            && m.CraftWant(colony, hut, kind.Key) > m.SmithStock(colony, hut, kind, citizen))
         {
             var hot = m.PackItems(citizen).FirstOrDefault(kind.IsIngot);
             if (hot != null && ColonyManager.IsWorkable(hot)) return Go(Work.Smith, anvil.Pos, "smith-hammering");
@@ -142,13 +142,16 @@ public class AiTaskSettlerBlacksmith : AiTaskSettlerWorker
     bool FetchFuel(Colony colony, Building hut, List<BlockEntityContainer> storage)
     {
         var m = manager!;
-        var chest = storage.FirstOrDefault(c => c.Inventory.Any(s => !s.Empty && ColonyManager.IsForgeFuel(s.Itemstack)));
-        if (chest != null)
+        // Charcoal first, then whatever other forge fuel there is (ColonyManager.ForgeFuelRank).
+        if (m.BestStack(storage, ColonyManager.IsForgeFuel, ColonyManager.ForgeFuelRank) is { } best)
         {
+            var code0 = best.Collectible.Code;
+            System.Func<ItemStack, bool> same = s => s.Collectible.Code.Equals(code0);
+            var chest = storage.First(c => c.Inventory.Any(s => !s.Empty && same(s.Itemstack)));
             SetStatus("smith-fetching-fuel");
-            return FetchSupplies(chest.Pos, ColonyManager.IsForgeFuel, m.Config.BlacksmithFuel * 2);
+            return FetchSupplies(chest.Pos, same, m.Config.BlacksmithFuel * 2);
         }
-        string code = m.CodeInWarehouse(colony, ColonyManager.IsForgeFuel) ?? m.Config.SmelterFuelCode;
+        string code = m.BestStack(m.WarehouseContainers(colony), ColonyManager.IsForgeFuel, ColonyManager.ForgeFuelRank)?.Collectible.Code.ToString() ?? m.Config.SmelterFuelCode;
         m.EnsureCraftRequest(colony, hut, code, m.Config.BlacksmithFuel * 4);
         SetStatus("smith-needs-fuel");
         return false;

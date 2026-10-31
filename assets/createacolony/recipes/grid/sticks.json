@@ -1,0 +1,16 @@
+// Splitting sticks: an axe and a piece of firewood make 2 sticks (the game has no grid recipe for sticks).
+// The axe wears down a little each time. Players can make them by hand, and the Forester makes them from
+// its Crafting recipes tab.
+[
+	{
+		"ingredientPattern": "AF",
+		"ingredients": {
+			"A": { "type": "item", "code": "game:axe-*", "isTool": true },
+			"F": { "type": "item", "code": "game:firewood" }
+		},
+		"width": 2,
+		"height": 1,
+		"shapeless": true,
+		"output": { "type": "item", "code": "game:stick", "quantity": 2 }
+	}
+]

@@ -13,7 +13,7 @@ public partial class ColonyNetwork
         CitizenId = c.CitizenId,
         Name = c.Name,
         Relation = relation.Length == 0 ? "" : Lang.Get("createacolony:relation-" + relation),
-        Job = c.JobCode ?? "",
+        Job = ColonyManager.JobLabel(c),
         Child = c.IsChild,
         GrowsUpHours = Manager.HoursToGrowUp(c),
         Alive = c.Alive
@@ -55,5 +55,26 @@ public partial class ColonyNetwork
             }
             snapshot.Households.Add(view);
         }
+        // Everyone grown who lives somewhere else (children move with their parents), for the Choose residents page.
+        var boxes = Manager.ResidenceBoxes(colony);
+        foreach (var c in colony.Citizens.Where(c => c.Alive && !c.Visitor && !c.IsChild && !residents.Contains(c)).OrderBy(c => c.Name))
+        {
+            var view = FamilyView(c, "");
+            view.Relation = c.HomeBedPos == null ? "" : Manager.ResidenceAt(colony, c.HomeBedPos, boxes) is { } home ? ColonyManager.BuildingName(home) : Lang.Get("createacolony:residence-elsewhere");
+            snapshot.ResidentChoices.Add(view);
+        }
+    }
+
+    /// <summary>Moves a settler, with their partner and children, into a Residence or out of it.</summary>
+    string? ResidenceAction(Colony colony, ColonyRole role, ColonyActionPacket packet)
+    {
+        if (role < ColonyRole.Officer) return "createacolony:denied-officer";
+        var residence = colony.Buildings.Find(b => b.BuildingId == packet.BuildingId);
+        if (residence == null || residence.Type != BuildingTypes.Residence) return "createacolony:bad-building";
+        var citizen = colony.Citizens.Find(c => c.CitizenId == packet.CitizenId);
+        if (citizen == null || !citizen.Alive || citizen.Visitor) return "createacolony:bad-citizen";
+        return packet.Action == ColonyAction.MoveInResidence
+            ? Manager.MoveIntoResidence(colony, residence, citizen)
+            : Manager.MoveOutOfResidence(colony, residence, citizen);
     }
 }

@@ -14,7 +14,8 @@ namespace CreateAColony.Settlers;
 /// What a settler without a job does for its household: it looks after its home, the building its bed is in
 /// (ColonyManager.Zones.cs). For now that is the farmland inside the home: harvest ripe crops and sow again,
 /// pull weeds, water dry crops, sow bare farmland and till soil where the blueprint has farmland, most urgent
-/// first, like a farmer. Seeds, a hoe and a watering can come from a chest in the home, else the warehouse;
+/// first, like a farmer. It also skins dead animals on the colony's land with a knife and cooks raw food from
+/// home on a fire pit in or by the home (ColonyManager.HomeCooking.cs). Seeds, a hoe and a watering can come from a chest in the home, else the warehouse;
 /// when the plot needs nothing more, what the settler took and harvested goes into a chest in the home (with
 /// no chest, it takes it to the warehouse like anything else it picks up). With nothing to do at home it helps
 /// with hauling (AiTaskSettlerCourier) or idles.
@@ -28,7 +29,7 @@ public class AiTaskSettlerChores : SettlerTaskBase
     const float PlotReach = 2f;
     const float WaterReach = 4.5f;
 
-    enum Step { Fetch, Work, Store }
+    enum Step { Fetch, Work, Store, Skin, Cook, Collect }
 
     Step step;
     FieldWork work;
@@ -37,6 +38,8 @@ public class AiTaskSettlerChores : SettlerTaskBase
     long nextSearchMs;
     bool walking;
     float workTime;
+    float stepSeconds;
+    long carcassId;
     string? workAnim;
     ItemMatch fetchMatch = _ => false;
     int fetchWant;
@@ -65,7 +68,58 @@ public class AiTaskSettlerChores : SettlerTaskBase
         homeId = home.BuildingId;
         // Hands full: put the harvest away first.
         if (manager.PackFull(citizen) && PlanStore(colony, citizen, home)) return true;
-        return PlanPlot(colony, citizen, home) || PlanStore(colony, citizen, home);
+        // A carcass rots, so it comes before the plot; the meat is cooked once the plot needs nothing.
+        return PlanSkin(colony, citizen, home) || PlanPlot(colony, citizen, home) || PlanCook(colony, citizen, home) || PlanStore(colony, citizen, home);
+    }
+
+    /// <summary>A dead animal on the colony's land to skin, or a knife to fetch for it first.</summary>
+    bool PlanSkin(Colony colony, CitizenRecord citizen, Building home)
+    {
+        var m = manager!;
+        if (!m.Config.JoblessSkinAnimals || m.CarcassToSkin(colony, entity, IsUnreachable) is not { } carcass) return false;
+        bool skinned = carcass.GetBehavior<EntityBehaviorHarvestable>()?.IsHarvested == true;
+        bool hasKnife = ColonyManager.IsKnife(Hand?.Itemstack) || m.PackCount(citizen, s => ColonyManager.IsKnife(s)) > 0;
+        if (!skinned && !hasKnife)
+        {
+            return m.HomeSupply(colony, home, s => ColonyManager.IsKnife(s)) is { } knife && Fetch(knife.Pos, s => ColonyManager.IsKnife(s), 1);
+        }
+        m.ClaimCarcass(carcass, entity);
+        carcassId = carcass.EntityId;
+        step = Step.Skin;
+        target = carcass.Pos.AsBlockPos;
+        return true;
+    }
+
+    /// <summary>Cooks the raw food it brought home on the home's fire pit, or takes cooked food off it.</summary>
+    bool PlanCook(Colony colony, CitizenRecord citizen, Building home)
+    {
+        var m = manager!;
+        if (!m.Config.JoblessCookAtHome || m.HomeFirepit(colony, home) is not { } pit || IsUnreachable(pit.Pos)) return false;
+        if (ColonyManager.FireHasFood(pit)) return At(Step.Collect, pit.Pos);
+        // Something is cooking already, or there is nothing to burn.
+        if (!pit.inputSlot.Empty || !m.CanFuel(colony, home, citizen, pit)) return false;
+        if (m.PackCount(citizen, RawFood) == 0)
+        {
+            // The raw food that will spoil soonest goes on the fire first.
+            var store = m.SoonestToSpoil(m.HomeChests(home), m.IsGrillable);
+            return store != null && Fetch(store.Pos, m.IsGrillable, m.Config.CookBatch);
+        }
+        if (!pit.IsBurning && pit.fuelSlot.Empty && m.PackCount(citizen, ColonyManager.IsFirewood) == 0
+            && m.HomeSupply(colony, home, ColonyManager.IsFirewood) is { } wood)
+        {
+            return Fetch(wood.Pos, ColonyManager.IsFirewood, m.Config.CookFirewood);
+        }
+        return At(Step.Cook, pit.Pos);
+    }
+
+    /// <summary>Raw food the settler brought home or skinned, not food it carries for someone else.</summary>
+    bool RawFood(ItemStack s) => Gathered(s) && manager!.IsGrillable(s);
+
+    bool At(Step next, BlockPos pos)
+    {
+        step = next;
+        target = pos.Copy();
+        return true;
     }
 
     /// <summary>Picks the most urgent work on the home's crop plots, or what to fetch for it first.</summary>
@@ -75,7 +129,9 @@ public class AiTaskSettlerChores : SettlerTaskBase
         var plots = m.HomePlots(colony, home);
         if (plots.Count == 0) return false;
 
-        bool hasSeed = m.PackCount(citizen, m.IsSowable) > 0;
+        // Only seeds that would live until ripe here, and none in winter (ColonyManager.Seasons.cs).
+        ItemMatch sowable = m.SowableNow(plots[0], m.IsSowable);
+        bool hasSeed = m.PackCount(citizen, sowable) > 0;
         bool hasHoe = IsHoe(Hand?.Itemstack) || m.PackCount(citizen, s => IsHoe(s)) > 0;
         var (hasCan, water) = m.WaterCarried(citizen);
         var here = entity.Pos.XYZ;
@@ -110,7 +166,7 @@ public class AiTaskSettlerChores : SettlerTaskBase
         // Fetch what the plot needs before the work that does not need it is done, so it is one trip.
         if (best == null || best.Value.Work > FieldWork.Sow)
         {
-            if (wantSeed && m.HomeSupply(colony, home, m.IsSowable) is { } seeds) return Fetch(seeds.Pos, m.IsSowable, m.Config.JoblessSeedTake);
+            if (wantSeed && m.HomeSupply(colony, home, sowable) is { } seeds) return Fetch(seeds.Pos, sowable, m.Config.JoblessSeedTake);
             if (wantCan && m.HomeSupply(colony, home, ColonyManager.IsWateringCan) is { } can) return Fetch(can.Pos, ColonyManager.IsWateringCan, 1);
             if (wantHoe && m.HomeSupply(colony, home, s => IsHoe(s)) is { } hoe) return Fetch(hoe.Pos, s => IsHoe(s), 1);
         }
@@ -160,7 +216,12 @@ public class AiTaskSettlerChores : SettlerTaskBase
         return false;
     }
 
-    float Reach => step == Step.Work ? (work == FieldWork.Refill ? WaterReach : PlotReach) : 1.5f;
+    float Reach => step switch
+    {
+        Step.Work => work == FieldWork.Refill ? WaterReach : PlotReach,
+        Step.Skin or Step.Cook or Step.Collect => PlotReach,
+        _ => 1.5f
+    };
 
     public override void StartExecute()
     {
@@ -212,14 +273,19 @@ public class AiTaskSettlerChores : SettlerTaskBase
                 gathered.Clear();
                 break;
             case Step.Work:
+            case Step.Skin:
+            case Step.Cook:
+            case Step.Collect:
                 if (workAnim == null)
                 {
                     PrepareHand(colony, citizen);
+                    stepSeconds = StepSeconds() * manager!.WorkTimeFactor(colony, citizen);
                     workAnim = PlayShapeAnimation(WorkAnimation(), "build");
                 }
                 workTime += dt;
-                if (workTime < manager!.Config.FarmerSecondsPerBlock * manager.WorkTimeFactor(colony, citizen)) return true;
-                DoWork(colony, citizen, home);
+                if (workTime < stepSeconds) return true;
+                if (step == Step.Work) DoWork(colony, citizen, home);
+                else DoHomeWork(colony, citizen);
                 StopWorkAnimation();
                 break;
         }
@@ -248,6 +314,42 @@ public class AiTaskSettlerChores : SettlerTaskBase
             }
         }
         return moved > 0;
+    }
+
+    float StepSeconds() => step switch
+    {
+        Step.Skin => Hand is { } hand && entity.World.GetEntityById(carcassId) is { } carcass ? ColonyManager.SkinSeconds(carcass, hand, entity) : 1f,
+        Step.Cook or Step.Collect => manager!.Config.CookSecondsPerStep,
+        _ => manager!.Config.FarmerSecondsPerBlock
+    };
+
+    /// <summary>Skins the carcass, puts raw food on the fire, or takes cooked food off it; what it gets goes home later.</summary>
+    void DoHomeWork(Colony colony, CitizenRecord citizen)
+    {
+        var m = manager!;
+        switch (step)
+        {
+            case Step.Skin:
+                if (entity.World.GetEntityById(carcassId) is not { } carcass || !ColonyManager.Skinnable(carcass) || Hand is not { } hand) return;
+                bool skinned = carcass.GetBehavior<EntityBehaviorHarvestable>()?.IsHarvested == true;
+                if (!skinned && !ColonyManager.IsKnife(hand.Itemstack)) return;
+                foreach (var code in m.Skin(colony, citizen, entity, carcass, hand)) gathered.Add(code);
+                SyncHand(); // a knife that just broke must vanish from the model too
+                m.GainWorkXp(colony, citizen, Jobs.Hunter);
+                break;
+            case Step.Cook:
+                if (entity.World.BlockAccessor.GetBlockEntity(target) is not BlockEntityFirepit pit || !pit.inputSlot.Empty) return;
+                var raw = m.PackItems(citizen).FirstOrDefault(RawFood);
+                if (raw == null || m.KitchenKindOf(raw) is not { } kind) return;
+                m.LoadFirepit(colony, citizen, pit, kind);
+                m.GainWorkXp(colony, citizen, Jobs.Cook);
+                break;
+            case Step.Collect:
+                if (entity.World.BlockAccessor.GetBlockEntity(target) is not BlockEntityFirepit fire || !ColonyManager.FireHasFood(fire)) return;
+                gathered.Add(fire.outputSlot.Itemstack.Collectible.Code.ToString());
+                m.EmptyFirepit(colony, citizen, fire);
+                break;
+        }
     }
 
     void DoWork(Colony colony, CitizenRecord citizen, Building home)
@@ -291,18 +393,19 @@ public class AiTaskSettlerChores : SettlerTaskBase
         m.GainWorkXp(colony, citizen, Jobs.Farmer);
     }
 
-    /// <summary>Holds the hoe for tilling and puts it away for work done by hand.</summary>
+    /// <summary>Holds the hoe for tilling and the knife for skinning, and puts them away for work done by hand.</summary>
     void PrepareHand(Colony colony, CitizenRecord citizen)
     {
         var hand = Hand;
         if (hand == null) return;
-        if (work != FieldWork.Till)
+        ItemMatch? tool = step == Step.Skin ? s => ColonyManager.IsKnife(s) : step == Step.Work && work == FieldWork.Till ? s => IsHoe(s) : null;
+        if (tool == null)
         {
             PutAwayHand(colony, citizen);
             return;
         }
-        if (IsHoe(hand.Itemstack)) return;
-        var hoe = manager!.TakeFromPack(colony, citizen, s => IsHoe(s), 1);
+        if (hand.Itemstack != null && tool(hand.Itemstack)) return;
+        var hoe = manager!.TakeFromPack(colony, citizen, tool, 1);
         if (hoe == null) return;
         PutAwayHand(colony, citizen);
         hand.Itemstack = hoe;
@@ -312,6 +415,8 @@ public class AiTaskSettlerChores : SettlerTaskBase
     string WorkAnimation()
     {
         var hand = Hand;
+        if (step == Step.Skin) return "knifecut";
+        if (step is Step.Cook or Step.Collect) return SettlerAnimations.PlayerAnimations.Contains("placeblock") ? "placeblock" : "interactstatic";
         return work switch
         {
             FieldWork.Till => hand?.Itemstack?.Collectible.GetHeldTpUseAnimation(hand, entity) ?? "interactstatic",
@@ -337,6 +442,9 @@ public class AiTaskSettlerChores : SettlerTaskBase
     {
         Step.Fetch => Lang.Get("createacolony:activity-chores-fetch"),
         Step.Store => Lang.Get("createacolony:activity-chores-store"),
+        Step.Skin => Lang.Get("createacolony:activity-chores-skin"),
+        Step.Cook => Lang.Get("createacolony:activity-chores-cook"),
+        Step.Collect => Lang.Get("createacolony:activity-chores-collect"),
         _ => Lang.Get("createacolony:activity-chores-" + work.ToString().ToLowerInvariant())
     };
 }

@@ -77,7 +77,8 @@ public partial class ColonyManager
     /// </summary>
     Cuboidi? FitClaim(BlockPos center, int size, string? ownDescription)
     {
-        // A trader's claim gives way to the colony (RemoveTraderClaims), so it does not shrink the square.
+        // A trader's claim does not shrink the square: it overlaps it and wins inside the trader's house (higher
+        // protection), until the trader joins and its claim goes.
         var others = sapi.World.Claims.All.Where(c => (ownDescription == null || c.Description != ownDescription) && !IsClearedClaim(c)).ToList();
         int min = Math.Min(size, Math.Max(1, Config.ClaimSizeMin));
         for (int s = size; ; s = Math.Max(min, s - 2))
@@ -109,7 +110,6 @@ public partial class ColonyManager
             if (area != null && !areas.Any(a => a.Equals(area))) areas.Add(area);
         }
         claimedSizes[colony.ColonyId] = sizes;
-        RemoveTraderClaims(colony, areas);
         if (areas.Count == 0 || areas.SequenceEqual(claim.Areas)) return;
 
         // Claims are replaced rather than edited so the server re-syncs them to clients.
@@ -136,19 +136,6 @@ public partial class ColonyManager
                 || claim.LastKnownOwnerName?.Contains(word, StringComparison.OrdinalIgnoreCase) == true) return true;
         }
         return false;
-    }
-
-    /// <summary>Takes away trader claims that the colony's land reaches, so the colony can grow over them.</summary>
-    void RemoveTraderClaims(Colony colony, List<Cuboidi> areas)
-    {
-        if (areas.Count == 0) return;
-        foreach (var claim in sapi.World.Claims.All.Where(c => IsClearedClaim(c) && areas.Any(a => c.Intersects(a))).ToList())
-        {
-            sapi.World.Claims.Remove(claim);
-            Mod.Logger.Notification("Removed the land claim '{0}' ({1}) inside colony {2}", claim.Description, claim.LastKnownOwnerName, colony.Name);
-            LogEvent(colony, "event-trader-claim", claim.LastKnownOwnerName ?? claim.Description ?? "");
-            MarkDirty(colony);
-        }
     }
 
     /// <summary>The square this building claims, in blocks along a side; 0 if it claims nothing yet or is blocked.</summary>

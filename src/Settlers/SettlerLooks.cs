@@ -93,6 +93,7 @@ public class SettlerLooks : ModSystem
                 else settlerAttributes.Remove(key);
             }
             type["attributes"] = settlerAttributes;
+            SettlerAnimations.CopyPlayerAnimationConfigs(player, settlerClient);
             AddSkinBehavior(settlerClient["behaviors"] as JArray);
             AddSkinBehavior(type["server"]?["behaviors"] as JArray);
 

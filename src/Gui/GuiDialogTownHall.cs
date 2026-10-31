@@ -39,17 +39,18 @@ public class GuiDialogTownHall : GuiDialog
     const int OreRowsPerPage = 7;
     const double OreRowHeight = 44;
     const int QuestsTab = 9;
+    const int MilitiaTab = 10;
+    const int BailiffTab = 11;
+    const int ReportRowsPerPage = 12;
     const double MapHeight = 380;
-    // The map is at most this many pixels a side; bigger colonies get one pixel per few blocks.
-    const int MapMaxSide = 320;
     const int MapMargin = 16;
     // Opened with the ? button on the Actions tab, with a Back button.
     const int HelpView = 20;
 
     static readonly (int Id, string Lang)[] Tabs =
     {
-        (ProspectingTab, "tab-prospecting"), (ActionsTab, "tab-actions"), (QuestsTab, "tab-quests"), (MapTab, "tab-townmap"), (BannersTab, "tab-banners"), (InfoTab, "tab-information"), (CitizensTab, "tab-citizens"),
-        (StatsTab, "tab-statistics"), (PermissionsTab, "tab-permissions"), (SettingsTab, "tab-settings")
+        (ActionsTab, "tab-actions"), (QuestsTab, "tab-quests"), (MapTab, "tab-townmap"), (BannersTab, "tab-banners"), (InfoTab, "tab-information"), (CitizensTab, "tab-citizens"),
+        (BailiffTab, "tab-bailiff"), (MilitiaTab, "tab-militia"), (StatsTab, "tab-statistics"), (PermissionsTab, "tab-permissions"), (ProspectingTab, "tab-prospecting"), (SettingsTab, "tab-settings")
     };
 
     readonly ColonyNetwork network;
@@ -64,8 +65,8 @@ public class GuiDialogTownHall : GuiDialog
     int statPeriod = 1;
     // Which page of the Citizens tab: 0 the living (and wanderers), 1 the dead.
     int citizensPage;
-    // The Town map's ground, kept until the player asks for a fresh one or the colony's land changes.
-    ColonyMapTerrain? terrain;
+    // Which page of the Bailiff tab: 0 the bailiff and their rules, 1 the ledger, 2 the estate report.
+    int bailiffPage;
     // Where the Town map is looking and how far zoomed in, kept while the window is open.
     readonly ColonyMapView mapView = new();
     GuiElementColonyMap? mapElement;
@@ -88,14 +89,13 @@ public class GuiDialogTownHall : GuiDialog
         if (fresh.Name != snapshot.Name && !renaming) pendingName = fresh.Name;
         snapshot = fresh;
         // On the Town map, timed refreshes only move the dots, so a zoom or a drag in progress is kept.
-        if (fresh.Periodic && currentTab == MapTab && mapElement != null && terrain != null
-            && MapBox(fresh) is { } box && terrain.Covers(box.MinX, box.MinZ, box.MaxX, box.MaxZ, MapMaxSide))
+        if (fresh.Periodic && currentTab == MapTab && mapElement != null && MapBox(fresh) is not null)
         {
             mapElement.SetSnapshot(fresh, capi.World.Player?.Entity?.Pos.XYZ);
             return;
         }
         // Timed progress refreshes would close an open dropdown or take the focus from the name box.
-        if (fresh.Periodic && (renaming || currentTab is CitizensTab or PermissionsTab)) return;
+        if (fresh.Periodic && (renaming || currentTab is CitizensTab or PermissionsTab or BailiffTab)) return;
         Compose();
     }
 
@@ -127,6 +127,8 @@ public class GuiDialogTownHall : GuiDialog
             case QuestsTab: ComposeQuests(composer); break;
             case InfoTab: ComposeInformation(composer); break;
             case CitizensTab: ComposeCitizens(composer); break;
+            case MilitiaTab: ComposeMilitia(composer); break;
+            case BailiffTab: ComposeBailiff(composer); break;
             case StatsTab: ComposeStatistics(composer); break;
             case PermissionsTab: ComposePermissions(composer); break;
             case SettingsTab: ComposeSettings(composer); break;
@@ -137,7 +139,13 @@ public class GuiDialogTownHall : GuiDialog
         SingleComposer = composer.EndChildElements().Compose();
         SingleComposer.GetTextInput("colonyname")?.SetValue(pendingName);
         SingleComposer.GetSwitch("permadeath")?.SetValue(snapshot.Permadeath);
+        SingleComposer.GetSwitch("selfdefence")?.SetValue(snapshot.SelfDefence);
+        SingleComposer.GetSwitch("supportallies")?.SetValue(snapshot.SupportAllies);
         SingleComposer.GetSwitch("banneronnew")?.SetValue(snapshot.BannerOnNew);
+        SingleComposer.GetSwitch("bailiffjobs")?.SetValue(snapshot.BailiffGivesJobs);
+        SingleComposer.GetSwitch("bailiffrent")?.SetValue(snapshot.BailiffCollectsRent);
+        SingleComposer.GetSwitch("bailifflend")?.SetValue(snapshot.BailiffLendsWorkers);
+        SingleComposer.GetSwitch("bailiffwages")?.SetValue(snapshot.BailiffPaysWages);
     }
 
     /// <summary>A row of page buttons along the top of a tab, the chosen one marked. Returns the y below them.</summary>
@@ -260,7 +268,7 @@ public class GuiDialogTownHall : GuiDialog
         if (visitors > 0) y = composer.Text(Lang.Get("createacolony:townhall-visitors", visitors), GuiKit.Body().WithColor(GuiKit.WarnColor), 0, y, Width, 8);
 
         // Build options for the Town Hall itself; other buildings are ordered from their own huts.
-        if (hall != null && Officer && (hall.TargetLevel > 0 || hall.Level < hall.MaxLevel || hall.Level == 0))
+        if (hall != null && Officer && (hall.TargetLevel > 0 || hall.Level < hall.MaxLevel || hall.Level == 0 || hall.MaxLevel > 0))
         {
             y = composer.Section(Lang.Get("createacolony:hut-build-options"), y, Width);
             y = AddBuildButtons(composer, hall, y);
@@ -287,7 +295,8 @@ public class GuiDialogTownHall : GuiDialog
         int id = b.BuildingId;
         if (b.TargetLevel > 0)
         {
-            composer.AddSmallButton(Lang.Get("createacolony:build-cancel"), () => Send(ColonyAction.CancelBuild, id), ElementBounds.Fixed(0, y, 160, 28));
+            composer.AddSmallButton(Lang.Get(b.Repairing ? "createacolony:repair-stop" : "createacolony:build-cancel"), () => Send(ColonyAction.CancelBuild, id), ElementBounds.Fixed(0, y, 160, 28));
+            if (!b.Repairing && b.TargetLevel == b.Level) AddRepairButton(composer, b, 170, y);
             return y + 36;
         }
         double x = 0;
@@ -302,7 +311,16 @@ public class GuiDialogTownHall : GuiDialog
             // Like a hut, the Town Hall can be turned until its first level is built.
             composer.AddSmallButton(Lang.Get("createacolony:build-rotate", b.Rotation), () => Send(ColonyAction.Rotate, id), ElementBounds.Fixed(x, y, 190, 28));
         }
+        else if (b.MaxLevel > 0) AddRepairButton(composer, b, x, y);
         return y + 36;
+    }
+
+    /// <summary>Repair: a builder puts the Town Hall back as its blueprint has it (ColonyManager.Repair.cs).</summary>
+    void AddRepairButton(GuiComposer composer, BuildingView b, double x, double y)
+    {
+        int id = b.BuildingId;
+        composer.AddSmallButton(Lang.Get("createacolony:repair"), () => Send(ColonyAction.Repair, id), ElementBounds.Fixed(x, y, 160, 28));
+        composer.AddHoverText(Lang.Get("createacolony:repair-hint"), GuiKit.Detail(), 300, ElementBounds.Fixed(x, y, 160, 28));
     }
 
     // ---- Quests tab -----------------------------------------------------------------------
@@ -395,7 +413,7 @@ public class GuiDialogTownHall : GuiDialog
     /// <summary>
     /// The Town map: the colony's land and buildings from above, with the settlers and the player.
     /// The mouse wheel or the + and − buttons zoom, dragging moves the map, Fit shows it all again, and
-    /// pointing at a building names it. The ground is drawn from what this client has loaded.
+    /// pointing at a building names it. The ground is all land near the colony that a player or a settler has loaded.
     /// </summary>
     void ComposeMap(GuiComposer composer)
     {
@@ -405,27 +423,22 @@ public class GuiDialogTownHall : GuiDialog
             composer.Text(Lang.Get("createacolony:townmap-empty"), GuiKit.Body(), 0, y, Width);
             return;
         }
-        if (terrain == null || !terrain.Covers(box.MinX, box.MinZ, box.MaxX, box.MaxZ, MapMaxSide))
-        {
-            terrain = ColonyMapTerrain.Build(capi, box.MinX, box.MinZ, box.MaxX, box.MaxZ, MapMaxSide);
-        }
-
         var mapBounds = ElementBounds.Fixed(0, y, Width, MapHeight);
-        mapElement = new GuiElementColonyMap(capi, mapBounds, terrain, snapshot, capi.World.Player?.Entity?.Pos.XYZ, mapView);
+        mapElement = new GuiElementColonyMap(capi, mapBounds, snapshot, box, capi.World.Player?.Entity?.Pos.XYZ, mapView);
         composer
             .AddInset(mapBounds.FlatCopy(), 3, 0.8f)
             .AddInteractiveElement(mapElement, "townmap");
         y += MapHeight + 8;
 
-        // Zoom buttons on the left, Redraw on the right, the key between them.
+        // Zoom buttons on the left, Find me on the right.
         composer
             .AddSmallButton(Lang.Get("createacolony:townmap-zoomout"), () => { mapElement?.ZoomBy(1 / 1.5); return true; }, ElementBounds.Fixed(0, y, 34, 28))
             .AddSmallButton(Lang.Get("createacolony:townmap-zoomin"), () => { mapElement?.ZoomBy(1.5); return true; }, ElementBounds.Fixed(40, y, 34, 28))
             .AddSmallButton(Lang.Get("createacolony:townmap-fit"), () => { mapElement?.Fit(); return true; }, ElementBounds.Fixed(80, y, 50, 28))
-            .AddSmallButton(Lang.Get("createacolony:townmap-redraw"), () => { terrain = null; Compose(); return true; }, ElementBounds.Fixed(Width - 150, y, 150, 28));
+            .AddSmallButton(Lang.Get("createacolony:townmap-findme"), () => { mapElement?.CenterOnPlayer(); return true; }, ElementBounds.Fixed(Width - 110, y, 110, 28));
         y += 36;
         y = composer.Text(Lang.Get("createacolony:townmap-legend"), GuiKit.Detail(), 0, y, Width, 6);
-        composer.Text(Lang.Get("createacolony:townmap-hint", terrain.Step), GuiKit.Muted(), 0, y, Width);
+        composer.Text(Lang.Get("createacolony:townmap-hint"), GuiKit.Muted(), 0, y, Width);
     }
 
     // ---- Banners tab ----------------------------------------------------------------------
@@ -566,14 +579,20 @@ public class GuiDialogTownHall : GuiDialog
         foreach (var o in orders.Skip(page * OrdersPerPage).Take(OrdersPerPage))
         {
             number++;
-            string title = number + ". " + o.Name + " " + Lang.Get("createacolony:order-level", o.TargetLevel);
+            string title = number + ". " + (o.Removing || o.Repairing ? GuiDialogHut.OrderTitle(o) : o.Name + " " + Lang.Get("createacolony:order-level", o.TargetLevel));
             composer
-                .AddStaticText(title, GuiKit.Body(), ElementBounds.Fixed(10, y + 6, Width - 150, 25))
-                .AddStaticText(GuiDialogHut.StatusText(o), GuiKit.Detail().WithColor(GuiStyle.ActiveButtonTextColor), ElementBounds.Fixed(10, y + 30, Width - 150, 22));
+                .AddStaticText(title, GuiKit.Body(), ElementBounds.Fixed(10, y + 6, Width - 250, 25))
+                .AddStaticText(GuiDialogHut.StatusText(o), GuiKit.Detail().WithColor(GuiStyle.ActiveButtonTextColor), ElementBounds.Fixed(10, y + 30, Width - 250, 22));
             if (Officer)
             {
-                int id = o.BuildingId;
-                composer.AddSmallButton(Lang.Get("createacolony:build-cancel"), () => Send(ColonyAction.CancelBuild, id), ElementBounds.Fixed(Width - 130, y + 14, 120, 28));
+                int id = o.TeardownId > 0 ? o.TeardownId : o.BuildingId;
+                var action = o.TeardownId > 0 ? ColonyAction.CancelTeardown : ColonyAction.CancelBuild;
+                string key = GuiDialogHut.OrderKey(o);
+                composer
+                    .AddSmallButton("^", () => Move(key, ColonyManager.MoveUp), ElementBounds.Fixed(Width - 236, y + 14, 30, 28))
+                    .AddSmallButton("v", () => Move(key, ColonyManager.MoveDown), ElementBounds.Fixed(Width - 202, y + 14, 30, 28))
+                    .AddSmallButton(Lang.Get("createacolony:priority-top"), () => Move(key, ColonyManager.MoveTop), ElementBounds.Fixed(Width - 168, y + 14, 62, 28))
+                    .AddSmallButton(Lang.Get("createacolony:build-cancel"), () => Send(action, id), ElementBounds.Fixed(Width - 100, y + 14, 90, 28));
             }
             y += OrderRowHeight;
         }
@@ -618,9 +637,10 @@ public class GuiDialogTownHall : GuiDialog
         {
             composer
                 .AddStaticText(Lang.Get("createacolony:col-name"), GuiKit.Muted(), ElementBounds.Fixed(10, top, 150, 20))
-                .AddStaticText(Lang.Get("createacolony:col-job"), GuiKit.Muted(), ElementBounds.Fixed(165, top, 130, 20))
-                .AddStaticText(Lang.Get("createacolony:col-died"), GuiKit.Muted(), ElementBounds.Fixed(300, top, 130, 20))
-                .AddStaticText(Lang.Get("createacolony:col-burial"), GuiKit.Muted(), ElementBounds.Fixed(435, top, 125, 20));
+                .AddStaticText(Lang.Get("createacolony:col-job"), GuiKit.Muted(), ElementBounds.Fixed(140, top, 95, 20))
+                .AddStaticText(Lang.Get("createacolony:col-died"), GuiKit.Muted(), ElementBounds.Fixed(240, top, 105, 20))
+                .AddStaticText(Lang.Get("createacolony:col-cause"), GuiKit.Muted(), ElementBounds.Fixed(350, top, 115, 20))
+                .AddStaticText(Lang.Get("createacolony:col-burial"), GuiKit.Muted(), ElementBounds.Fixed(470, top, 90, 20));
 
             int pages = (dead.Count + RowsPerPage - 1) / RowsPerPage;
             page = Math.Clamp(page, 0, pages - 1);
@@ -632,16 +652,41 @@ public class GuiDialogTownHall : GuiDialog
                 string died = c.DiedTotalDays > 0 ? When(c.DiedTotalDays) : Lang.Get("createacolony:citizens-died-unknown");
                 var burialFont = c.Buried ? GuiKit.Detail().WithColor(GuiKit.GoodColor) : GuiKit.Detail().WithColor(GuiKit.WarnColor);
                 composer
-                    .AddStaticText(c.Name, GuiKit.Body().WithColor(GuiKit.MutedColor), ElementBounds.Fixed(10, y + 6, 150, 25))
-                    .AddStaticText(c.Child ? Lang.Get("createacolony:citizens-child") : JobName(c.Job), GuiKit.Detail(), ElementBounds.Fixed(165, y + 8, 130, 25))
-                    .AddStaticText(died, GuiKit.Detail(), ElementBounds.Fixed(300, y + 8, 130, 25))
-                    .AddStaticText(Lang.Get(c.Buried ? "createacolony:citizens-buried" : "createacolony:citizens-not-buried"), burialFont, ElementBounds.Fixed(435, y + 8, 125, 25));
+                    .AddStaticText(c.Name, GuiKit.Body().WithColor(GuiKit.MutedColor), ElementBounds.Fixed(10, y + 6, 128, 25))
+                    .AddStaticText(c.Child ? Lang.Get("createacolony:citizens-child") : JobName(c.Job), GuiKit.Detail(), ElementBounds.Fixed(140, y + 8, 95, 25))
+                    .AddStaticText(died, GuiKit.Detail(), ElementBounds.Fixed(240, y + 8, 105, 25))
+                    .AddStaticText(DeathCauseName(c.DeathCause), GuiKit.Detail(), ElementBounds.Fixed(350, y + 8, 115, 25))
+                    .AddStaticText(Lang.Get(c.Buried ? "createacolony:citizens-buried" : "createacolony:citizens-not-buried"), burialFont, ElementBounds.Fixed(470, y + 8, 90, 25));
                 y += RowHeight;
             }
             composer.Pager(page, pages, y + 14, Width, p => { page = p; Compose(); });
             y += pages > 1 ? 54 : 16;
         }
         ComingLater(composer, "townhall-later-burial", y);
+    }
+
+    /// <summary>What killed a settler, in words: "Wolf (male)", a player's name, or "Starved".</summary>
+    static string DeathCauseName(string cause)
+    {
+        int colon = cause.IndexOf(':');
+        if (colon < 0) return Lang.Get("createacolony:citizens-died-unknown");
+        string kind = cause[..colon], what = cause[(colon + 1)..];
+        switch (kind)
+        {
+            case "player":
+            case "settler":
+                return what.Length > 0 ? what : Lang.Get("createacolony:death-cause-" + kind);
+            case "entity":
+                var code = new AssetLocation(what);
+                string key = code.Domain + ":item-creature-" + code.Path;
+                if (Lang.HasTranslation(key)) return Lang.Get(key);
+                // A creature with no name of its own: its first code part ("wolf" of wolf-male).
+                string first = code.Domain + ":item-creature-" + code.Path.Split('-')[0];
+                return Lang.HasTranslation(first) ? Lang.Get(first) : code.Path;
+            default:
+                string type = "createacolony:death-cause-" + what.ToLowerInvariant();
+                return Lang.HasTranslation(type) ? Lang.Get(type) : what;
+        }
     }
 
     /// <summary>The living, with their state, food and bed, and (for officers) their job and Recall.</summary>
@@ -696,7 +741,7 @@ public class GuiDialogTownHall : GuiDialog
             else if (Officer && c.State != "dead")
             {
                 int citizenId = c.CitizenId;
-                int selected = Math.Max(0, Array.IndexOf(jobCodes, c.Job));
+                int selected = Math.Max(0, Array.IndexOf(jobCodes, c.Job == "bishop" ? Jobs.Priest : c.Job));
                 composer.AddDropDown(jobCodes, jobNames, selected, (code, on) => OnSetJob(citizenId, code),
                     ElementBounds.Fixed(340, y + 2, 145, 28), "job-" + citizenId);
                 if (c.State != "downed")
@@ -849,6 +894,253 @@ public class GuiDialogTownHall : GuiDialog
         ComingLater(composer, "townhall-later-permissions", y);
     }
 
+    // ---- Colony militia tab ---------------------------------------------------------------
+
+    /// <summary>
+    /// Every grown settler with their job, whether they are a guard, and the weapon they would fight with;
+    /// then the Self Defence and Support allies switches (officers change them).
+    /// </summary>
+    void ComposeMilitia(GuiComposer composer)
+    {
+        double top = 30;
+        var people = snapshot.Citizens.Where(c => c.State != "dead" && !c.Visitor && !c.Child)
+            .OrderByDescending(c => c.Job == Jobs.Guard).ThenByDescending(c => c.Weapon.Length > 0).ThenBy(c => c.Name).ToList();
+        int guards = people.Count(c => c.Job == Jobs.Guard), armed = people.Count(c => c.Job != Jobs.Guard && c.Weapon.Length > 0);
+        top = composer.Text(Lang.Get("createacolony:militia-summary", guards, armed, people.Count - guards - armed), GuiKit.Detail(), 0, top, Width, 6);
+        double y;
+        if (people.Count == 0)
+        {
+            y = composer.Text(Lang.Get("createacolony:militia-nobody"), GuiKit.Body(), 0, top, Width);
+        }
+        else
+        {
+            composer
+                .AddStaticText(Lang.Get("createacolony:col-name"), GuiKit.Muted(), ElementBounds.Fixed(10, top, 150, 20))
+                .AddStaticText(Lang.Get("createacolony:col-job"), GuiKit.Muted(), ElementBounds.Fixed(165, top, 120, 20))
+                .AddStaticText(Lang.Get("createacolony:col-militia-role"), GuiKit.Muted(), ElementBounds.Fixed(290, top, 90, 20))
+                .AddStaticText(Lang.Get("createacolony:col-weapon"), GuiKit.Muted(), ElementBounds.Fixed(385, top, 175, 20));
+
+            int rows = RowsPerPage - 2;
+            int pages = (people.Count + rows - 1) / rows;
+            page = Math.Clamp(page, 0, pages - 1);
+            int shown = Math.Min(rows, people.Count - page * rows);
+            composer.AddInset(ElementBounds.Fixed(0, top + 22, Width, shown * RowHeight + 6), 3, 0.8f);
+            y = top + 25;
+            foreach (var c in people.Skip(page * rows).Take(rows))
+            {
+                bool guard = c.Job == Jobs.Guard;
+                var roleFont = guard ? GuiKit.Detail().WithColor(GuiKit.GoodColor) : GuiKit.Detail();
+                var weaponFont = c.Weapon.Length > 0 ? GuiKit.Detail() : GuiKit.Detail().WithColor(GuiKit.MutedColor);
+                composer
+                    .AddStaticText(c.Name, GuiKit.Body(), ElementBounds.Fixed(10, y + 6, 150, 25))
+                    .AddStaticText(JobName(c.Job), GuiKit.Detail(), ElementBounds.Fixed(165, y + 8, 120, 25))
+                    .AddStaticText(Lang.Get(guard ? "createacolony:militia-guard" : "createacolony:militia-civilian"), roleFont, ElementBounds.Fixed(290, y + 8, 90, 25))
+                    .AddStaticText(c.Weapon.Length > 0 ? c.Weapon : Lang.Get("createacolony:militia-no-weapon"), weaponFont, ElementBounds.Fixed(385, y + 8, 175, 25));
+                y += RowHeight;
+            }
+            composer.Pager(page, pages, y + 14, Width, p => { page = p; Compose(); });
+            y += pages > 1 ? 54 : 16;
+        }
+
+        y = composer.Section(Lang.Get("createacolony:militia-settings"), y, Width);
+        y = MilitiaSwitch(composer, "selfdefence", ColonyAction.SetSelfDefence, snapshot.SelfDefence, "militia-selfdefence", "militia-selfdefence-hint", y);
+        MilitiaSwitch(composer, "supportallies", ColonyAction.SetSupportAllies, snapshot.SupportAllies, "militia-supportallies", "militia-supportallies-hint", y);
+    }
+
+    /// <summary>One militia switch with its name and a line on what it does; officers can flip it. Returns the y below it.</summary>
+    double MilitiaSwitch(GuiComposer composer, string key, ColonyAction action, bool on, string label, string hint, double y)
+    {
+        string state = Lang.Get(on ? "createacolony:on" : "createacolony:off");
+        if (Officer)
+        {
+            composer
+                .AddSwitch(v => network.SendAction(new ColonyActionPacket { ColonyId = ColonyId, Action = action, Text = v ? "1" : "0" }),
+                    ElementBounds.Fixed(0, y, 30, 30), key)
+                .AddStaticText(Lang.Get("createacolony:" + label) + ": " + state, GuiKit.Body(), ElementBounds.Fixed(40, y + 5, Width - 40, 25));
+        }
+        else
+        {
+            composer.AddStaticText(Lang.Get("createacolony:" + label) + ": " + state, GuiKit.Body(), ElementBounds.Fixed(0, y + 5, Width, 25));
+        }
+        y += 34;
+        return composer.Text(Lang.Get("createacolony:" + hint), GuiKit.Muted(), 0, y, Width, 10);
+    }
+
+    // ---- Bailiff tab ----------------------------------------------------------------------
+
+    /// <summary>
+    /// The Bailiff tab: who the bailiff is and their rules (what to do with wanderers, giving out jobs, rent),
+    /// their ledger of the last days, and the estate report of every hut.
+    /// </summary>
+    void ComposeBailiff(GuiComposer composer)
+    {
+        double y = PageButtons(composer, new[] { "bailiff-page-rules", "bailiff-page-money", "bailiff-page-ledger", "bailiff-page-report" }, bailiffPage, p => bailiffPage = p, 30, 132);
+        switch (bailiffPage)
+        {
+            case 1: ComposeMoney(composer, y); break;
+            case 2: ComposeLedger(composer, y); break;
+            case 3: ComposeEstateReport(composer, y); break;
+            default: ComposeBailiffRules(composer, y); break;
+        }
+    }
+
+    void ComposeBailiffRules(GuiComposer composer, double y)
+    {
+        if (snapshot.BailiffName.Length == 0)
+        {
+            y = composer.Text(Lang.Get("createacolony:bailiff-none"), GuiKit.Body().WithColor(GuiKit.WarnColor), 0, y, Width, 6);
+        }
+        else
+        {
+            string state = Lang.Get("createacolony:bailiff-state-" + snapshot.BailiffState);
+            var font = snapshot.BailiffState == BailiffState.OnDuty ? GuiKit.Body().WithColor(GuiKit.GoodColor) : GuiKit.Body().WithColor(GuiKit.WarnColor);
+            y = composer.Text(Lang.Get("createacolony:bailiff-who", snapshot.BailiffName, state), font, 0, y, Width, 6);
+        }
+        y = composer.Text(Lang.Get("createacolony:bailiff-about"), GuiKit.Muted(), 0, y, Width, 10);
+
+        y = composer.Section(Lang.Get("createacolony:bailiff-wanderers"), y, Width);
+        string[] rules = Enumerable.Range(0, BailiffWanderers.Last + 1).Select(i => i.ToString()).ToArray();
+        string[] ruleNames = rules.Select(r => Lang.Get("createacolony:bailiff-wanderers-" + r)).ToArray();
+        int rule = Math.Clamp(snapshot.WandererRule, 0, BailiffWanderers.Last);
+        if (Officer)
+        {
+            composer.AddDropDown(rules, ruleNames, rule, (code, on) => SendBailiffRule("wanderers|" + code), ElementBounds.Fixed(0, y, 300, 28), "bailiffwanderers");
+            y += 36;
+        }
+        else
+        {
+            y = composer.Text(ruleNames[rule], GuiKit.Body(), 0, y, Width, 6);
+        }
+        y = composer.Text(Lang.Get("createacolony:bailiff-wanderers-hint"), GuiKit.Muted(), 0, y, Width, 10);
+
+        y = composer.Section(Lang.Get("createacolony:bailiff-duties"), y, Width);
+        y = BailiffSwitch(composer, "bailiffjobs", "jobs", snapshot.BailiffGivesJobs, "bailiff-jobs", "bailiff-jobs-hint", y);
+        y = BailiffSwitch(composer, "bailifflend", "lend", snapshot.BailiffLendsWorkers, "bailiff-lend", "bailiff-lend-hint", y);
+        composer.Text(Lang.Get("createacolony:bailiff-fields-hint"), GuiKit.Muted(), 0, y, Width, 6);
+    }
+
+    /// <summary>Taxes and wages: the treasury, the tax rate and the two switches (ColonyManager.Economy.cs).</summary>
+    void ComposeMoney(GuiComposer composer, double y)
+    {
+        if (!snapshot.EconomyOpen) y = composer.Text(Lang.Get("createacolony:economy-locked", snapshot.EconomyLevel), GuiKit.Body().WithColor(GuiKit.WarnColor), 0, y, Width, 8);
+        else if (!snapshot.HasMint) y = composer.Text(Lang.Get("createacolony:bailiff-no-mint"), GuiKit.Body().WithColor(GuiKit.WarnColor), 0, y, Width, 8);
+        y = composer.Text(Lang.Get("createacolony:bailiff-treasury", snapshot.Treasury, snapshot.WageBill, DayName(snapshot.NextPayday)),
+            snapshot.Treasury < snapshot.WageBill ? GuiKit.Body().WithColor(GuiKit.WarnColor) : GuiKit.Body(), 0, y, Width, 10);
+
+        y = composer.Section(Lang.Get("createacolony:currency"), y, Width);
+        y = composer.Text(Lang.Get(snapshot.OwnCoin ? "createacolony:currency-own" : "createacolony:currency-mint", snapshot.CurrencyName, snapshot.CoinMetalName),
+            GuiKit.Body(), 0, y, Width, 6);
+        if (Officer)
+        {
+            composer.AddSmallButton(Lang.Get("createacolony:currency-use-held"), () => { SendBailiffRule("currency|hand"); return true; }, ElementBounds.Fixed(0, y, 220, 28));
+            if (snapshot.OwnCoin) composer.AddSmallButton(Lang.Get("createacolony:currency-use-mint"), () => { SendBailiffRule("currency|mint"); return true; }, ElementBounds.Fixed(230, y, 220, 28));
+            y += 36;
+        }
+        y = composer.Text(Lang.Get("createacolony:currency-hint"), GuiKit.Muted(), 0, y, Width, 10);
+
+        y = composer.Section(Lang.Get("createacolony:bailiff-tax"), y, Width);
+        string[] rates = Enumerable.Range(0, 11).Select(i => (i * 5).ToString()).ToArray();
+        string[] rateNames = rates.Select(r => r + "%").ToArray();
+        int rate = Math.Clamp(snapshot.TaxPercent / 5, 0, 10);
+        if (Officer)
+        {
+            composer.AddDropDown(rates, rateNames, rate, (code, on) => SendBailiffRule("tax|" + code), ElementBounds.Fixed(0, y, 120, 28), "bailifftax");
+            y += 36;
+        }
+        else
+        {
+            y = composer.Text(rateNames[rate], GuiKit.Body(), 0, y, Width, 6);
+        }
+        y = composer.Text(Lang.Get("createacolony:bailiff-tax-hint"), GuiKit.Muted(), 0, y, Width, 10);
+
+        y = composer.Section(Lang.Get("createacolony:bailiff-duties"), y, Width);
+        y = BailiffSwitch(composer, "bailiffrent", "rent", snapshot.BailiffCollectsRent, "bailiff-rent", "bailiff-rent-hint", y, snapshot.TaxPercent);
+        BailiffSwitch(composer, "bailiffwages", "wages", snapshot.BailiffPaysWages, "bailiff-wages", "bailiff-wages-hint", y);
+    }
+
+    /// <summary>One of the bailiff's switches with its name and a line on what it does; officers can flip it. Returns the y below it.</summary>
+    double BailiffSwitch(GuiComposer composer, string key, string rule, bool on, string label, string hint, double y, params object[] hintArgs)
+    {
+        string text = Lang.Get("createacolony:" + label) + ": " + Lang.Get(on ? "createacolony:on" : "createacolony:off");
+        if (Officer)
+        {
+            composer
+                .AddSwitch(v => SendBailiffRule(rule + "|" + (v ? "1" : "0")), ElementBounds.Fixed(0, y, 30, 30), key)
+                .AddStaticText(text, GuiKit.Body(), ElementBounds.Fixed(40, y + 5, Width - 40, 25));
+        }
+        else
+        {
+            composer.AddStaticText(text, GuiKit.Body(), ElementBounds.Fixed(0, y + 5, Width, 25));
+        }
+        y += 34;
+        return composer.Text(Lang.Get("createacolony:" + hint, hintArgs), GuiKit.Muted(), 0, y, Width, 8);
+    }
+
+    void SendBailiffRule(string text) =>
+        network.SendAction(new ColonyActionPacket { ColonyId = ColonyId, Action = ColonyAction.SetBailiffRule, Text = text });
+
+    /// <summary>The ledger: the last days, newest first, with taxes, wages, wanderers and jobs given out, and the totals.</summary>
+    void ComposeLedger(GuiComposer composer, double y)
+    {
+        var days = snapshot.Ledger.OrderByDescending(d => d.Day).Take(10).ToList();
+        if (days.Count == 0)
+        {
+            y = composer.Text(Lang.Get("createacolony:ledger-empty"), GuiKit.Body(), 0, y, Width, 10);
+        }
+        else
+        {
+            composer
+                .AddStaticText(Lang.Get("createacolony:ledger-col-day"), GuiKit.Muted(), ElementBounds.Fixed(10, y, 70, 20))
+                .AddStaticText(Lang.Get("createacolony:ledger-col-rent"), GuiKit.Muted(), ElementBounds.Fixed(85, y, 110, 20))
+                .AddStaticText(Lang.Get("createacolony:ledger-col-wages"), GuiKit.Muted(), ElementBounds.Fixed(200, y, 110, 20))
+                .AddStaticText(Lang.Get("createacolony:ledger-col-wanderers"), GuiKit.Muted(), ElementBounds.Fixed(315, y, 130, 20))
+                .AddStaticText(Lang.Get("createacolony:ledger-col-jobs"), GuiKit.Muted(), ElementBounds.Fixed(450, y, 110, 20));
+            composer.AddInset(ElementBounds.Fixed(0, y + 22, Width, days.Count * 26 + 6), 3, 0.8f);
+            y += 25;
+            foreach (var d in days)
+            {
+                composer
+                    .AddStaticText(DayName(d.Day), GuiKit.Detail(), ElementBounds.Fixed(10, y + 4, 70, 20))
+                    .AddStaticText(d.Payers > 0 ? Lang.Get("createacolony:ledger-rent", d.Rent, d.Payers) : "-", GuiKit.Detail(), ElementBounds.Fixed(85, y + 4, 110, 20))
+                    .AddStaticText(d.Wages > 0 || d.Unpaid > 0 ? Lang.Get("createacolony:ledger-wages", d.Wages, d.Unpaid) : "-",
+                        d.Unpaid > 0 ? GuiKit.Detail().WithColor(GuiKit.WarnColor) : GuiKit.Detail(), ElementBounds.Fixed(200, y + 4, 110, 20))
+                    .AddStaticText(Lang.Get("createacolony:ledger-wanderers", d.Welcomed, d.TurnedAway), GuiKit.Detail(), ElementBounds.Fixed(315, y + 4, 130, 20))
+                    .AddStaticText(Lang.Get("createacolony:ledger-jobs", d.JobsGiven, d.Lent), GuiKit.Detail(), ElementBounds.Fixed(450, y + 4, 110, 20));
+                y += 26;
+            }
+            y += 14;
+            y = composer.Text(Lang.Get("createacolony:ledger-total", snapshot.Ledger.Sum(d => d.Rent), snapshot.Ledger.Sum(d => d.Wages), snapshot.Ledger.Count),
+                GuiKit.Body(), 0, y, Width, 6);
+        }
+        composer.Text(Lang.Get("createacolony:ledger-hint"), GuiKit.Muted(), 0, y, Width, 6);
+    }
+
+    /// <summary>The estate report: every hut, who works there and what they are doing or waiting on.</summary>
+    void ComposeEstateReport(GuiComposer composer, double y)
+    {
+        var lines = snapshot.EstateReport;
+        int pages = Math.Max(1, (lines.Count + ReportRowsPerPage - 1) / ReportRowsPerPage);
+        page = Math.Clamp(page, 0, pages - 1);
+        foreach (var line in lines.Skip(page * ReportRowsPerPage).Take(ReportRowsPerPage))
+        {
+            y = composer.Text(line, GuiKit.Detail(), 0, y, Width, 4);
+        }
+        composer.Pager(page, pages, y + 10, Width, p => { page = p; Compose(); });
+        y += pages > 1 ? 50 : 10;
+        composer.Text(Lang.Get("createacolony:estate-hint"), GuiKit.Muted(), 0, y, Width, 6);
+    }
+
+    /// <summary>An in-game day as the calendar shows it: "1 May".</summary>
+    string DayName(int totalDays)
+    {
+        var calendar = capi.World.Calendar;
+        int daysPerMonth = Math.Max(1, calendar.DaysPerMonth);
+        int daysPerYear = Math.Max(1, calendar.DaysPerYear);
+        int dayOfYear = totalDays % daysPerYear;
+        int month = Math.Clamp(dayOfYear / daysPerMonth, 0, 11);
+        return Lang.Get("createacolony:ledger-day", dayOfYear % daysPerMonth + 1, Lang.Get("month-" + (EnumMonth)(month + 1)));
+    }
+
     // ---- Settings tab ---------------------------------------------------------------------
 
     /// <summary>Permadeath (the owner's switch), and how wanderers and the warehouse are set up.</summary>
@@ -884,6 +1176,12 @@ public class GuiDialogTownHall : GuiDialog
     }
 
     // ---- Sending --------------------------------------------------------------------------
+
+    bool Move(string key, int move)
+    {
+        network.SendAction(new ColonyActionPacket { ColonyId = snapshot.ColonyId, Action = ColonyAction.MovePriority, BuildingId = 0, Text = key, Role = move });
+        return true;
+    }
 
     bool Send(ColonyAction action, int buildingId)
     {

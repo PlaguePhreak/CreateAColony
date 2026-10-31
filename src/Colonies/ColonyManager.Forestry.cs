@@ -94,6 +94,8 @@ public partial class ColonyManager
                 scanner.Found.Remove(trunk);
                 continue;
             }
+            // A tree the hut is set not to fell; one in land no player is near is checked once the forester gets there.
+            if (loaded && !MayCollect(hut, TreeKey(trunk))) continue;
             if (skip(trunk) || !CanWorkAt(colony, trunk)) continue;
             return trunk;
         }
@@ -116,7 +118,7 @@ public partial class ColonyManager
     {
         var ba = sapi.World.BlockAccessor;
         var trunkBlock = ba.GetBlock(trunk);
-        if (!IsTreeLog(trunkBlock)) return null;
+        if (!IsTreeLog(trunkBlock) || !MayCollect(hut, TreeKey(trunk))) return null;
         string? wood = VariantOf(trunkBlock, "wood");
 
         var positions = TreeBlocks(trunk);
@@ -151,6 +153,144 @@ public partial class ColonyManager
         StoreHarvest(colony, hut, worker, drops, trunk);
         AddStat(hut, "trees-felled");
         return wood;
+    }
+
+    /// <summary>
+    /// Leaves the world grew: never placed ones, and never a fruit tree's foliage or a berry bush, which the
+    /// farmer and gatherer pick.
+    /// </summary>
+    static bool IsWildLeaves(Block block) =>
+        block.BlockMaterial == EnumBlockMaterial.Leaves
+        && block.Code?.Path.Contains("placed") == false
+        && block is not (BlockFruitTreePart or BlockBerryBush)
+        && !block.GetType().Name.Contains("Bush");
+
+    /// <summary>True for the ground a bush stands on: anything solid that is not leaves, a log, a plant or snow.</summary>
+    bool IsBushGround(BlockPos pos)
+    {
+        var below = sapi.World.BlockAccessor.GetBlock(pos);
+        return below.Id != 0 && !IsWildLeaves(below) && !IsTreeLog(below)
+            && below.BlockMaterial is not (EnumBlockMaterial.Plant or EnumBlockMaterial.Snow) && !below.IsLiquid();
+    }
+
+    /// <summary>
+    /// Looks down each block column of a chunk column for wild leaves standing on the ground: the foot of a bush.
+    /// Leaves, logs, plants, snow and air are looked through; anything else is the ground and ends the column.
+    /// </summary>
+    void ScanBushes(int chunkX, int chunkZ, AreaScanner scanner)
+    {
+        var ba = sapi.World.BlockAccessor;
+        int size = GlobalConstants.ChunkSize;
+        var pos = new BlockPos(0);
+        var below = new BlockPos(0);
+        for (int x = chunkX * size; x < chunkX * size + size; x++)
+        for (int z = chunkZ * size; z < chunkZ * size + size; z++)
+        {
+            if (!scanner.InRange(x, z)) continue;
+            int top = ba.GetRainMapHeightAt(x, z);
+            for (int y = top; y > top - TreeScanDepth && y > 1; y--)
+            {
+                pos.Set(x, y, z);
+                var block = ba.GetBlock(pos);
+                if (IsWildLeaves(block))
+                {
+                    below.Set(x, y - 1, z);
+                    if (IsBushGround(below))
+                    {
+                        scanner.Found[pos.Copy()] = true;
+                        break;
+                    }
+                    continue;
+                }
+                if (block.Id == 0 || IsTreeLog(block) || block.BlockMaterial is EnumBlockMaterial.Plant or EnumBlockMaterial.Snow) continue;
+                break;
+            }
+        }
+    }
+
+    /// <summary>
+    /// The leaves (and the odd log) of the bush at this spot, or null when it is not a bush: it is too big
+    /// (config ForesterBushMaxBlocks) or has as many logs as a tree, which the forester fells instead.
+    /// </summary>
+    List<BlockPos>? BushBlocks(BlockPos start)
+    {
+        var ba = sapi.World.BlockAccessor;
+        if (!IsWildLeaves(ba.GetBlock(start))) return null;
+        int max = Math.Max(1, Config.ForesterBushMaxBlocks);
+        var found = new List<BlockPos> { start.Copy() };
+        var seen = new HashSet<BlockPos> { start.Copy() };
+        int logs = 0;
+        for (int i = 0; i < found.Count; i++)
+        {
+            foreach (var face in BlockFacing.ALLFACES)
+            {
+                var next = found[i].AddCopy(face);
+                if (!seen.Add(next)) continue;
+                var block = ba.GetBlock(next);
+                bool log = IsTreeLog(block);
+                if (!log && !IsWildLeaves(block)) continue;
+                if (log && ++logs >= MinTreeLogs) return null;
+                found.Add(next);
+                if (found.Count > max) return null;
+            }
+        }
+        return found;
+    }
+
+    /// <summary>
+    /// A wild bush nearest the hut within the forester's range, skipping the given spots, or null. Bushes of a
+    /// wood turned off on the Allowed to collect tab, and bushes in or beside a colony building, are left alone.
+    /// </summary>
+    public BlockPos? FindBush(Colony colony, Building hut, System.Func<BlockPos, bool> skip)
+    {
+        if (!Config.ForesterClearsBushes) return null;
+        var ba = sapi.World.BlockAccessor;
+        var scanner = Scanner(hut, "bushes", ScanBushes);
+        foreach (var bush in scanner.Nearest())
+        {
+            bool loaded = ba.GetChunkAtBlockPos(bush) != null;
+            if (loaded && (!IsWildLeaves(ba.GetBlock(bush)) || !IsBushGround(bush.DownCopy()) || BushBlocks(bush) == null))
+            {
+                scanner.Found.Remove(bush);
+                continue;
+            }
+            if (loaded && !MayCollect(hut, WoodKey(ba.GetBlock(bush)))) continue;
+            if (skip(bush) || !CanWorkAt(colony, bush) || NearBuilding(colony, bush)) continue;
+            return bush;
+        }
+        return null;
+    }
+
+    /// <summary>
+    /// Clears the bush at this spot with the axe in the worker's hand: every leaf comes away (giving sticks and
+    /// seeds as when a player breaks them), and each log in it wears the axe down. True when anything came away.
+    /// </summary>
+    public bool ClearBush(Colony colony, Building hut, CitizenRecord worker, EntityAgent entity, BlockPos spot, ItemSlot axe)
+    {
+        var ba = sapi.World.BlockAccessor;
+        if (!MayCollect(hut, WoodKey(ba.GetBlock(spot)))) return false;
+        var blocks = BushBlocks(spot);
+        if (blocks == null) return false;
+        var sound = ba.GetBlock(spot).Sounds?.Break;
+        var drops = new List<ItemStack>();
+        int cleared = 0;
+        // Top first, so nothing is left hanging in the air.
+        foreach (var pos in blocks.OrderByDescending(p => p.Y))
+        {
+            var block = ba.GetBlock(pos);
+            if (block.Id == 0) continue;
+            bool isLog = IsTreeLog(block);
+            if (isLog && axe.Empty) continue;
+            drops.AddRange(DropsOf(block, pos));
+            BreakQuietly(pos);
+            cleared++;
+            if (isLog) WearTool(entity, axe);
+        }
+        if (cleared == 0) return false;
+        if (sound is { } breakSound) sapi.World.PlaySoundAt(breakSound, spot, 0);
+        StoreHarvest(colony, hut, worker, drops, spot);
+        AddStat(hut, "bushes-cleared");
+        return true;
     }
 
     /// <summary>

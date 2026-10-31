@@ -1,0 +1,361 @@
+{
+	"textureSizes": {
+		"canvas": [
+			32,
+			32
+		],
+		"frame": [
+			32,
+			32
+		]
+	},
+	"textureWidth": 32,
+	"textureHeight": 32,
+	"elements": [
+		{
+			"name": "canvas",
+			"from": [
+				1.7,
+				1.7,
+				0.2
+			],
+			"to": [
+				30.3,
+				30.3,
+				0.9
+			],
+			"faces": {
+				"north": {
+					"texture": "#frame",
+					"uv": [
+						0,
+						0,
+						28.6,
+						28.6
+					]
+				},
+				"south": {
+					"texture": "#canvas",
+					"uv": [
+						0,
+						0,
+						32,
+						32
+					]
+				},
+				"east": {
+					"texture": "#frame",
+					"uv": [
+						0,
+						0,
+						0.7,
+						28.6
+					]
+				},
+				"west": {
+					"texture": "#frame",
+					"uv": [
+						0,
+						0,
+						0.7,
+						28.6
+					]
+				},
+				"up": {
+					"texture": "#frame",
+					"uv": [
+						0,
+						0,
+						28.6,
+						0.7
+					]
+				},
+				"down": {
+					"texture": "#frame",
+					"uv": [
+						0,
+						0,
+						28.6,
+						0.7
+					]
+				}
+			}
+		},
+		{
+			"name": "frameBottom",
+			"from": [
+				0.5,
+				0.5,
+				0
+			],
+			"to": [
+				31.5,
+				1.7,
+				1.4
+			],
+			"faces": {
+				"north": {
+					"texture": "#frame",
+					"uv": [
+						0,
+						0,
+						31.0,
+						1.2
+					]
+				},
+				"south": {
+					"texture": "#frame",
+					"uv": [
+						0,
+						0,
+						31.0,
+						1.2
+					]
+				},
+				"east": {
+					"texture": "#frame",
+					"uv": [
+						0,
+						0,
+						1.4,
+						1.2
+					]
+				},
+				"west": {
+					"texture": "#frame",
+					"uv": [
+						0,
+						0,
+						1.4,
+						1.2
+					]
+				},
+				"up": {
+					"texture": "#frame",
+					"uv": [
+						0,
+						0,
+						31.0,
+						1.4
+					]
+				},
+				"down": {
+					"texture": "#frame",
+					"uv": [
+						0,
+						0,
+						31.0,
+						1.4
+					]
+				}
+			}
+		},
+		{
+			"name": "frameTop",
+			"from": [
+				0.5,
+				30.3,
+				0
+			],
+			"to": [
+				31.5,
+				31.5,
+				1.4
+			],
+			"faces": {
+				"north": {
+					"texture": "#frame",
+					"uv": [
+						0,
+						0,
+						31.0,
+						1.2
+					]
+				},
+				"south": {
+					"texture": "#frame",
+					"uv": [
+						0,
+						0,
+						31.0,
+						1.2
+					]
+				},
+				"east": {
+					"texture": "#frame",
+					"uv": [
+						0,
+						0,
+						1.4,
+						1.2
+					]
+				},
+				"west": {
+					"texture": "#frame",
+					"uv": [
+						0,
+						0,
+						1.4,
+						1.2
+					]
+				},
+				"up": {
+					"texture": "#frame",
+					"uv": [
+						0,
+						0,
+						31.0,
+						1.4
+					]
+				},
+				"down": {
+					"texture": "#frame",
+					"uv": [
+						0,
+						0,
+						31.0,
+						1.4
+					]
+				}
+			}
+		},
+		{
+			"name": "frameLeft",
+			"from": [
+				0.5,
+				1.7,
+				0
+			],
+			"to": [
+				1.7,
+				30.3,
+				1.4
+			],
+			"faces": {
+				"north": {
+					"texture": "#frame",
+					"uv": [
+						0,
+						0,
+						1.2,
+						28.6
+					]
+				},
+				"south": {
+					"texture": "#frame",
+					"uv": [
+						0,
+						0,
+						1.2,
+						28.6
+					]
+				},
+				"east": {
+					"texture": "#frame",
+					"uv": [
+						0,
+						0,
+						1.4,
+						28.6
+					]
+				},
+				"west": {
+					"texture": "#frame",
+					"uv": [
+						0,
+						0,
+						1.4,
+						28.6
+					]
+				},
+				"up": {
+					"texture": "#frame",
+					"uv": [
+						0,
+						0,
+						1.2,
+						1.4
+					]
+				},
+				"down": {
+					"texture": "#frame",
+					"uv": [
+						0,
+						0,
+						1.2,
+						1.4
+					]
+				}
+			}
+		},
+		{
+			"name": "frameRight",
+			"from": [
+				30.3,
+				1.7,
+				0
+			],
+			"to": [
+				31.5,
+				30.3,
+				1.4
+			],
+			"faces": {
+				"north": {
+					"texture": "#frame",
+					"uv": [
+						0,
+						0,
+						1.2,
+						28.6
+					]
+				},
+				"south": {
+					"texture": "#frame",
+					"uv": [
+						0,
+						0,
+						1.2,
+						28.6
+					]
+				},
+				"east": {
+					"texture": "#frame",
+					"uv": [
+						0,
+						0,
+						1.4,
+						28.6
+					]
+				},
+				"west": {
+					"texture": "#frame",
+					"uv": [
+						0,
+						0,
+						1.4,
+						28.6
+					]
+				},
+				"up": {
+					"texture": "#frame",
+					"uv": [
+						0,
+						0,
+						1.2,
+						1.4
+					]
+				},
+				"down": {
+					"texture": "#frame",
+					"uv": [
+						0,
+						0,
+						1.2,
+						1.4
+					]
+				}
+			}
+		}
+	]
+}

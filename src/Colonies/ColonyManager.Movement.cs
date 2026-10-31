@@ -30,13 +30,21 @@ public partial class ColonyManager
     public bool Overlaps(Entity entity, BlockPos pos) =>
         BodyAt(entity, entity.Pos.X, entity.Pos.Y, entity.Pos.Z).Intersects(new Cuboidd(pos.X, pos.Y, pos.Z, pos.X + 1, pos.Y + 1, pos.Z + 1));
 
+    /// <summary>True when the entity fits in the block space at p with floor under it.</summary>
+    public bool CanStandAt(Entity entity, BlockPos p)
+    {
+        var ba = sapi.World.BlockAccessor;
+        if (sapi.World.CollisionTester.IsColliding(ba, entity.CollisionBox, new Vec3d(p.X + 0.5, p.Y, p.Z + 0.5), false)) return false;
+        var floor = ba.GetBlock(p.DownCopy()).GetCollisionBoxes(ba, p.DownCopy());
+        return floor != null && floor.Length > 0;
+    }
+
     /// <summary>
     /// The nearest spot around a position where the entity can stand: its body fits, there is floor under
     /// it, and it does not overlap the block at avoid. Null if there is none within the radius.
     /// </summary>
     public Vec3d? FreeSpotNear(Entity entity, BlockPos around, int radius, BlockPos? avoid = null)
     {
-        var ba = sapi.World.BlockAccessor;
         var avoidBox = avoid == null ? null : new Cuboidd(avoid.X, avoid.Y, avoid.Z, avoid.X + 1, avoid.Y + 1, avoid.Z + 1);
         int[] heights = { 0, 1, -1, 2 };
         for (int r = 0; r <= radius; r++)
@@ -51,9 +59,7 @@ public partial class ColonyManager
                 {
                     var p = around.AddCopy(dx, dy, dz);
                     var spot = new Vec3d(p.X + 0.5, p.Y, p.Z + 0.5);
-                    if (sapi.World.CollisionTester.IsColliding(ba, entity.CollisionBox, spot, false)) continue;
-                    var floor = ba.GetBlock(p.DownCopy()).GetCollisionBoxes(ba, p.DownCopy());
-                    if (floor == null || floor.Length == 0) continue;
+                    if (!CanStandAt(entity, p)) continue;
                     if (avoidBox != null && BodyAt(entity, spot.X, spot.Y, spot.Z).Intersects(avoidBox)) continue;
                     double dist = spot.SquareDistanceTo(entity.Pos.XYZ);
                     if (dist < bestDist)

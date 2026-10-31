@@ -15,7 +15,8 @@ namespace CreateAColony.Colonies;
 /// bowl, cooking pot or crock, and one slice of a pie, using the game's own meal nutrition. Food mods
 /// such as Expanded Foods and A Culinary Artillery change that same nutrition code, so their foods and
 /// meals count properly without this mod knowing about them. Settlers remember the food groups of their
-/// last few meals and prefer food from groups they have had least of lately.
+/// last few meals and prefer food from groups they have had least of lately, and food that will spoil
+/// soon over food that keeps (ColonyManager.Freshness.cs).
 /// </summary>
 public partial class ColonyManager
 {
@@ -38,15 +39,44 @@ public partial class ColonyManager
         public IBlockEntityMealContainer? Placed;
     }
 
-    /// <summary>The best food in the colony for this settler, weighing variety against distance. Containers skip says yes to are left out.</summary>
+    /// <summary>Raw ingredients count for this much when a very hungry settler weighs them against ready food.</summary>
+    const float RawIngredientScoreMul = 0.25f;
+    /// <summary>Per item code: whether it is a raw ingredient (IsRawIngredient), as looking through the meal recipes is slow.</summary>
+    readonly Dictionary<string, bool> rawIngredients = new();
+
+    /// <summary>
+    /// Raw food that goes further cooked: raw meat and fish (for the fire pit), and grain, vegetables and eggs a
+    /// pot meal can use. Settlers leave these for the cooks unless they are very hungry (EatRawBelowFraction).
+    /// Fruit, cheese and anything cooked are fine to eat as they are.
+    /// </summary>
+    public bool IsRawIngredient(ItemStack stack)
+    {
+        if (stack.Block is IBlockMealContainer or BlockPie || IsCookedFood(stack)) return false;
+        string code = stack.Collectible.Code.ToString();
+        if (rawIngredients.TryGetValue(code, out bool known)) return known;
+        var group = stack.Collectible.NutritionProps?.FoodCategory;
+        bool raw = IsGrillable(stack)
+            || (group is EnumFoodCategory.Grain or EnumFoodCategory.Vegetable or EnumFoodCategory.Protein && IsMealIngredient(stack));
+        rawIngredients[code] = raw;
+        return raw;
+    }
+
+    /// <summary>True when the settler is hungry enough to eat raw ingredients.</summary>
+    public bool EatsRaw(CitizenRecord citizen) => citizen.Saturation < Config.SaturationMax * Config.EatRawBelowFraction;
+
+    /// <summary>
+    /// The best food in the colony for this settler, weighing variety against distance. Containers skip says yes to are left out.
+    /// Raw ingredients only when the settler is very hungry, and then ready food still comes first.
+    /// </summary>
     public FoodChoice? FindFood(Colony colony, CitizenRecord citizen, EntityAgent eater, System.Func<BlockPos, bool>? skip = null)
     {
         FoodChoice? best = null;
         float bestValue = 0;
+        bool allowRaw = EatsRaw(citizen);
         foreach (var container in FindBlockEntities<BlockEntityContainer>(colony))
         {
             if (skip != null && skip(container.Pos)) continue;
-            var choice = FindFoodIn(container, citizen, eater);
+            var choice = FindFoodIn(container, citizen, eater, allowRaw);
             if (choice == null) continue;
             float dist = (float)Math.Sqrt(container.Pos.DistanceSqTo(eater.Pos.X, eater.Pos.Y, eater.Pos.Z));
             float value = choice.Score / (1 + dist / FoodDistanceHalving);
@@ -57,8 +87,8 @@ public partial class ColonyManager
         return best;
     }
 
-    /// <summary>The best food in one container, or null.</summary>
-    public FoodChoice? FindFoodIn(BlockEntityContainer container, CitizenRecord citizen, EntityAgent eater)
+    /// <summary>The best food in one container, or null. Raw ingredients only with <paramref name="allowRaw"/>.</summary>
+    public FoodChoice? FindFoodIn(BlockEntityContainer container, CitizenRecord citizen, EntityAgent eater, bool allowRaw)
     {
         if (!IsFoodStore(container)) return null;
 
@@ -68,10 +98,11 @@ public partial class ColonyManager
             if (placed.QuantityServings <= 0) return null;
             var mealStack = container.Block.OnPickBlock(sapi.World, container.Pos);
             if (mealStack?.Block is not IBlockMealContainer) return null;
-            var placedChoice = EvaluateFood(container, new DummySlot(mealStack, placed.inventory), eater);
+            var placedSlot = new DummySlot(mealStack, placed.inventory);
+            var placedChoice = EvaluateFood(container, placedSlot, eater);
             if (placedChoice == null) return null;
             placedChoice.Placed = placed;
-            placedChoice.Score = VarietyScore(placedChoice.Props, citizen);
+            placedChoice.Score = VarietyScore(placedChoice.Props, citizen) * SpoilPull(placedSlot);
             return placedChoice;
         }
 
@@ -81,9 +112,12 @@ public partial class ColonyManager
         foreach (var slot in slots)
         {
             if (slot.Empty) continue;
+            bool raw = IsRawIngredient(slot.Itemstack);
+            if (raw && !allowRaw) continue;
             var choice = EvaluateFood(container, slot, eater);
             if (choice == null) continue;
-            choice.Score = VarietyScore(choice.Props, citizen);
+            // Food that will spoil soon is eaten first (ColonyManager.Freshness.cs).
+            choice.Score = VarietyScore(choice.Props, citizen) * SpoilPull(slot) * (raw ? RawIngredientScoreMul : 1);
             if (best == null || choice.Score > best.Score) best = choice;
         }
         return best;
@@ -226,17 +260,40 @@ public partial class ColonyManager
     /// pot behind, and gives the settler its saturation and health. Returns the food's name, or null if
     /// the food is gone or changed since it was picked.
     /// </summary>
-    public string? EatFood(Colony colony, CitizenRecord citizen, EntityAgent eater, BlockEntityContainer container)
+    /// <summary>The five food groups shown as nutrition bars (EnumFoodCategory 0-4).</summary>
+    public const int FoodGroups = 5;
+
+    /// <summary>Fills the settler's food groups with what they ate, as eating fills a player's nutrition bars.</summary>
+    public void AddNutrition(CitizenRecord citizen, IEnumerable<FoodNutritionProperties> props)
     {
-        var choice = FindFoodIn(container, citizen, eater);
+        while (citizen.Nutrition.Count < FoodGroups) citizen.Nutrition.Add(0);
+        foreach (var p in props)
+        {
+            int group = (int)p.FoodCategory;
+            if (p.Satiety <= 0 || group < 0 || group >= FoodGroups) continue;
+            citizen.Nutrition[group] = Math.Min(Config.SaturationMax, citizen.Nutrition[group] + p.Satiety);
+        }
+    }
+
+    public string? EatFood(Colony colony, CitizenRecord citizen, EntityAgent eater, BlockEntityContainer container) =>
+        EatFood(colony, citizen, eater, container, out _);
+
+    /// <summary>As EatFood, also giving a copy of what was eaten (one item, slice or bowl) for the settler to hold.</summary>
+    public string? EatFood(Colony colony, CitizenRecord citizen, EntityAgent eater, BlockEntityContainer container, out ItemStack? eaten)
+    {
+        eaten = null;
+        var choice = FindFoodIn(container, citizen, eater, EatsRaw(citizen));
         if (choice == null) return null;
 
         var slot = choice.Slot;
+        var copy = slot.Itemstack!.Clone();
         string name = slot.Itemstack!.GetName();
         bool cooked = choice.Placed != null || IsCookedFood(slot.Itemstack);
         if (!(choice.Placed != null ? TakePlacedServing(container, choice.Placed) : TakeServing(container, slot))) return null;
+        eaten = copy;
 
         citizen.Saturation = Math.Min(Config.SaturationMax, citizen.Saturation + choice.Satiety);
+        AddNutrition(citizen, choice.Props);
         if (cooked) AddThought(citizen, "meal");
         if (choice.Health > 0)
         {

@@ -38,6 +38,10 @@ public partial class ColonyManager
 
         var building = new Building { BuildingId = colony.NextBuildingId++, Type = type, HutPos = hutPos.Copy(), Rotation = rotation };
         colony.Buildings.Add(building);
+        // A new Healer's Hut keeps a few bandages from the start (ColonyManager.Healing.cs).
+        if (type == BuildingTypes.Healer) KeepBandagesAtStart(building);
+        if (type == BuildingTypes.Mint) KeepCoinsAtStart(building);
+        if (type == BuildingTypes.Gatherer) KeepPoulticesAtStart(building);
         LogEvent(colony, "event-placed", "@building-" + type);
         MarkDirty(colony);
         RefreshClaim(colony);
@@ -48,7 +52,9 @@ public partial class ColonyManager
     {
         var building = GetBuilding(colony, hutPos);
         if (building == null) return;
+        LeaveMine(colony, building);
         colony.Buildings.Remove(building);
+        colony.LinkMines();
         LogEvent(colony, "event-removed", BuildingName(building));
         CancelBuildRequests(colony, building);
         foreach (var c in colony.Citizens.Where(c => c.WorkplacePos != null && c.WorkplacePos.Equals(hutPos))) c.WorkplacePos = null;
@@ -102,6 +108,12 @@ public partial class ColonyManager
             // Huts placed before they had their own storage get it now.
             ba.SpawnBlockEntity(entityClass, hut);
             if (ba.GetBlockEntity(hut) is BlockEntityContainer added) yield return added;
+        }
+        // A work station uses its host's storage (ColonyManager.Stations.cs).
+        if (building.IsStation)
+        {
+            if (HostOf(colony, building) is { } host) foreach (var c in HutStorage(colony, host)) yield return c;
+            yield break;
         }
         foreach (var pos in StorageSpots(colony, building))
         {
@@ -159,6 +171,9 @@ public partial class ColonyManager
     public string? StartWorkOrder(Colony colony, Building building)
     {
         if (building.HasWorkOrder) return "createacolony:build-already";
+        if (building.Removing) return "createacolony:remove-already";
+        if (building.Type == BuildingTypes.MineshaftEntrance) return StartEntrance(colony, building);
+        if (building.IsStation) return "createacolony:station-no-levels";
         int next = building.Level + 1;
         if (Blueprints.Get(building, next) == null) return "createacolony:build-no-blueprint";
 
@@ -172,6 +187,8 @@ public partial class ColonyManager
 
     public void CancelWorkOrder(Colony colony, Building building)
     {
+        building.Upkeep = false;
+        building.Repairing = false;
         building.TargetLevel = 0;
         building.Cursor = 0;
         building.BuilderCitizenId = 0;
@@ -180,28 +197,28 @@ public partial class ColonyManager
         MarkDirty(colony);
     }
 
-    /// <summary>Gives the builder the work order it is on, or the oldest one nobody is working on.</summary>
-    public Building? TakeWorkOrder(Colony colony, CitizenRecord builder)
-    {
-        var own = colony.Buildings.Find(b => b.HasWorkOrder && b.BuilderCitizenId == builder.CitizenId);
-        if (own != null) return own;
-
-        foreach (var building in colony.Buildings.Where(b => b.HasWorkOrder).OrderBy(b => b.BuildingId))
-        {
-            var current = colony.Citizens.Find(c => c.CitizenId == building.BuilderCitizenId);
-            if (current != null && current.Alive && current.JobCode == Jobs.Builder) continue;
-            building.BuilderCitizenId = builder.CitizenId;
-            MarkDirty(colony);
-            return building;
-        }
-        return null;
-    }
-
     /// <summary>The builder's hut a builder works from, assigning a free one if needed.</summary>
     public Building? EnsureBuilderHut(Colony colony, CitizenRecord builder) => EnsureWorkplace(colony, builder, BuildingTypes.Builder);
 
     public void CompleteWorkOrder(Colony colony, Building building)
     {
+        if (building.Repairing)
+        {
+            FinishRepair(colony, building);
+            return;
+        }
+        if (building.Upkeep)
+        {
+            // Upkeep done: the building stays at its level, quietly.
+            building.Upkeep = false;
+            building.TargetLevel = 0;
+            building.Cursor = 0;
+            building.BuilderCitizenId = 0;
+            BuildStatus.Remove(building.BuildingId);
+            CancelBuildRequests(colony, building);
+            MarkDirty(colony);
+            return;
+        }
         building.Level = building.TargetLevel;
         building.TargetLevel = 0;
         building.Cursor = 0;
@@ -212,6 +229,8 @@ public partial class ColonyManager
         RefreshClaim(colony);
 
         LogEvent(colony, "event-built", "@building-" + building.Type, building.Level.ToString());
+        // A new Armourer or Weaponsmith takes over its kind of smithing from the Blacksmith.
+        TakeOverSmithing(colony, building);
         if (colony.BannerOnNew) ReplaceBanners(colony, new[] { building });
         string message = Lang.Get("createacolony:build-finished", Lang.Get("createacolony:building-" + building.Type), building.Level);
         foreach (var member in colony.Members)
@@ -250,9 +269,11 @@ public partial class ColonyManager
     /// A hut only claims land once it is built, so its blueprint may reach past the colony's claim into
     /// unclaimed land; builders build there too.
     /// </summary>
-    public bool IsStepDone(Colony colony, BuildStep step, BlockPos pos)
+    public bool IsStepDone(Colony colony, BuildStep step, BlockPos pos, Building? building = null)
     {
         if (!CanWorkAt(colony, pos)) return true;
+        // A repair leaves furniture and decorations alone (ColonyManager.Repair.cs).
+        if (building is { Repairing: true } && IsKeptInRepair(step, pos)) return true;
         var ba = sapi.World.BlockAccessor;
         var current = ba.GetBlock(pos);
         if (current.Id == step.BlockId || Fulfils(colony, current, step.BlockId, pos)) return true;
@@ -272,13 +293,23 @@ public partial class ColonyManager
     /// <summary>Finds the next step that still needs doing, starting at the cursor and wrapping round once.</summary>
     public bool FindNextStep(Colony colony, Building building, Blueprint blueprint, out BuildStep step, out BlockPos pos)
     {
+        // Gaps under the floor are filled first, from the ground up (ColonyManager.Foundations.cs).
+        foreach (var gap in FoundationGaps(colony, building, blueprint))
+        {
+            if (IsStepDone(colony, gap.Step, gap.Pos)) continue;
+            step = gap.Step;
+            pos = gap.Pos;
+            return true;
+        }
         int count = blueprint.Steps.Count;
         for (int n = 0; n < count; n++)
         {
             int i = (building.Cursor + n) % count;
             step = blueprint.Steps[i];
             pos = StepPos(building, step);
-            if (IsStepDone(colony, step, pos)) continue;
+            if (IsStepDone(colony, step, pos, building)) continue;
+            // Upkeep only digs out ground that got in; everything else in the building stays as it is.
+            if (building.Upkeep && !IsUpkeepStep(step, pos)) continue;
             if (building.Cursor != i)
             {
                 building.Cursor = i;
@@ -296,11 +327,11 @@ public partial class ColonyManager
     {
         var needs = new Dictionary<string, (ItemStack, int)>();
         if (!Config.BuildersNeedMaterials) return needs;
-        foreach (var step in blueprint.Steps)
+        var foundation = FoundationGaps(colony, building, blueprint).Where(g => !IsStepDone(colony, g.Step, g.Pos)).ToList();
+        foreach (var (step, pos) in building.Upkeep ? foundation : foundation.Concat(blueprint.Steps.Select(s => (s, StepPos(building, s)))))
         {
             if (step.BlockId == 0) continue;
-            var pos = StepPos(building, step);
-            if (IsStepDone(colony, step, pos)) continue;
+            if (IsStepDone(colony, step, pos, building)) continue;
             foreach (var cost in RemainingCost(colony, step, pos))
             {
                 needs[cost.Code] = needs.TryGetValue(cost.Code, out var n) ? (n.Item1, n.Item2 + cost.Count) : (cost.Sample, cost.Count);
@@ -340,14 +371,7 @@ public partial class ColonyManager
         foreach (var hut in HutsForPickup(colony).ToList())
         {
             // Request pickup now: everything goes, until the hut's storage is empty.
-            System.Func<ItemStack, bool> isJunk = hut.PickupNow ? _ => true
-                : hut.Type == BuildingTypes.Builder ? BuilderHutJunk(colony, hut) : WorkerHutJunk(colony, hut);
-            // What the Minimum stock tab keeps stays, unless everything was asked for.
-            if (!hut.PickupNow && hut.MinStock.Count > 0)
-            {
-                var junk = isJunk;
-                isJunk = s => junk(s) && !IsMinStock(hut, s);
-            }
+            System.Func<ItemStack, bool> isJunk = hut.PickupNow ? _ => true : SpareAt(colony, hut);
             var chest = HutStorage(colony, hut).FirstOrDefault(c => c.Inventory.Any(s => !s.Empty && isJunk(s.Itemstack)));
             if (chest != null) return (chest, isJunk);
             if (hut.PickupNow)
@@ -357,6 +381,14 @@ public partial class ColonyManager
             }
         }
         return null;
+    }
+
+    /// <summary>What a hut's storage can give away: what its worker does not need and its Minimum stock tab does not keep.</summary>
+    public System.Func<ItemStack, bool> SpareAt(Colony colony, Building hut)
+    {
+        var isJunk = hut.Type == BuildingTypes.Builder ? BuilderHutJunk(colony, hut) : WorkerHutJunk(colony, hut);
+        if (hut.MinStock.Count == 0) return isJunk;
+        return s => isJunk(s) && !IsMinStock(hut, s);
     }
 
     /// <summary>At a Builder's Hut everything but the current work order's materials and the builder's tools.</summary>
@@ -379,16 +411,8 @@ public partial class ColonyManager
         var old = ba.GetBlock(pos);
         if (old.Id == 0) return;
 
-        ItemStack[] drops;
-        try
-        {
-            drops = old.GetDrops(sapi.World, pos, null) ?? Array.Empty<ItemStack>();
-        }
-        catch (Exception)
-        {
-            drops = Array.Empty<ItemStack>(); // some blocks expect a player when dropping
-        }
-        ba.BreakBlock(pos, null, 0);
+        var drops = DropsOf(old, pos); // some blocks expect a player when dropping: those drop nothing
+        BreakQuietly(pos);
 
         var storage = HutStorage(colony, builderHut).ToList();
         foreach (var drop in drops)
@@ -425,7 +449,7 @@ public partial class ColonyManager
     public (int Done, int Total) Progress(Colony colony, Building building, Blueprint blueprint) =>
         ForWindow(colony, building, blueprint, "progress", () =>
         {
-            int done = blueprint.Steps.Count(s => IsStepDone(colony, s, StepPos(building, s)));
+            int done = blueprint.Steps.Count(s => IsStepDone(colony, s, StepPos(building, s), building));
             return (done, blueprint.Steps.Count);
         });
 

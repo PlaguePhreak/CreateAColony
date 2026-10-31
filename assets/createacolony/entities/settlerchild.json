@@ -53,10 +53,12 @@
 				"aitasks": [
 					// Highest priority wins. Children have no job: they shelter, sleep, eat and play near home.
 					// Runs from a creature that hurt it (not guards): home or to a guard, see AiTaskSettlerFlee.
-					{ "code": "settlerflee", "animation": "walk", "animationSpeed": 1.6, "priority": 3.5, "movespeed": 0.034 },
+					{ "code": "settlerflee", "animation": "sprint", "priority": 3.5, "movespeed": 0.034 },
 					{ "code": "settlershelter", "animation": "walk", "priority": 3.0, "movespeed": 0.025 },
 					{ "code": "settlersleep", "animation": "walk", "priority": 2.0, "movespeed": 0.018 },
 					{ "code": "settlereat", "animation": "walk", "priority": 1.5, "movespeed": 0.02 },
+					// Children go to the Church service with everyone else (AiTaskSettlerWorship).
+					{ "code": "settlerworship", "animation": "walk", "priority": 1.28, "movespeed": 0.02 },
 					{ "code": "settleridle", "priority": 1.0, "movespeed": 0.012, "animation": "walk", "strollRadius": 5 },
 					{ "code": "lookaround", "priority": 0.5 }
 				]

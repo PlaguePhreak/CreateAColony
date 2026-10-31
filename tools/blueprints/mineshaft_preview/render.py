@@ -21,12 +21,12 @@ def col(v):
     if 'plank' in v: return PLANK
     if 'fence' in v: return LOG
     return (150,150,150)
-levels=[(-7,0,"Level 1 (first loop of the stairs)"),(-14,-7,"Level 2 (one loop further down)")]
+levels=[(-15,-1,"Upper level (tunnels off the stair landings)"),(-22,-15,"Lower level (off the bottom landing)")]
 def level_of(p,o):
-    fl=mine.box(p,o)[0][1]; return 0 if fl>=-7 else 1
+    fl=mine.box(p,o)[0][1]; return 0 if fl>=-15 else 1
 pad=40; top=70; gap=40
-img=Image.new("RGB",(pad*2+W*2+gap, top+H+70+260),(245,242,235)); d=ImageDraw.Draw(img)
-d.text((pad,18),"Miner's mineshaft: two levels, %d sections (T and straight) off the entrance stairs"%(len(pl)-1),fill=(30,30,30),font=FB)
+img=Image.new("RGB",(pad*2+W*2+gap, top+H+70+600),(245,242,235)); d=ImageDraw.Draw(img)
+d.text((pad,18),"Miner's mineshaft with the new entrance: %d sections (T and straight)"%(len(pl)-1),fill=(30,30,30),font=FB)
 for li,(lo,hi,title) in enumerate(levels):
     ox=pad+li*(W+gap); oy=top
     d.rectangle([ox,oy,ox+W-1,oy+H-1],fill=ROCK)
@@ -70,7 +70,7 @@ for li,(lo,hi,title) in enumerate(levels):
     d.text((ox+W-14,oy+4),"N",fill=(255,255,255),font=F); d.line([ox+W-9,oy+22,ox+W-9,oy+40],fill=(255,255,255),width=2)
 # side view
 sy=top+H+60
-d.text((pad,sy-24),"Side view (looking north): the entrance stairs go down a loop every 7 blocks; each level's tunnels stay under the one above",fill=(30,30,30),font=F)
+d.text((pad,sy-24),"Side view (looking north): the stairs wind down the entrance; tunnels leave at each landing",fill=(30,30,30),font=F)
 ymin=min(mine.box(p,o)[0][1] for p,o in pl)-1
 SS=11
 gy0=sy+ (1-ymin)*0
@@ -86,7 +86,7 @@ for idx,(p,o) in enumerate(pl):
         d.rectangle([X0,gy(b[1][1]),X1,gy(b[0][1]-1)],fill=c,outline=(0,0,0))
     else:
         d.rectangle([X0,gy(b[0][1]+3),X1,gy(b[0][1])],fill=c,outline=(60,60,60))
-d.text((pad,gy(ymin)+6),"Entrance (orange)   Level 1 tunnels (tan)   Level 2 tunnels (lilac)",fill=(60,60,60),font=FS)
+d.text((pad,gy(ymin)+6),"Entrance (orange)   Upper level tunnels (tan)   Lower level tunnels (lilac)",fill=(60,60,60),font=FS)
 # legend
 lx=pad+(x1-x0+1)*SS*2+30; ly=sy
 for c,t in [(PLANK,"plank floor"),(WALK,"dug-out way"),(BEAM,"support beam"),(LOG,"log post"),(LAMP,"lantern"),(STAIR,"stairs"),(OPEN,"open shaft"),(ROCK,"rock left alone")]:

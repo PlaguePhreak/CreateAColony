@@ -16,7 +16,7 @@ public partial class ColonyManager
 {
     public readonly record struct ToolNeed(EnumTool Type, int Tier);
 
-    static readonly EnumTool[] BuilderTools = { EnumTool.Shovel, EnumTool.Axe, EnumTool.Pickaxe };
+    static readonly EnumTool[] BuilderTools = { EnumTool.Shovel, EnumTool.Axe, EnumTool.Pickaxe, EnumTool.Hoe };
     readonly Dictionary<EnumTool, ItemStack?> toolSamples = new();
 
     public static EnumTool? ToolFor(Block block) => block.BlockMaterial switch
@@ -33,7 +33,9 @@ public partial class ColonyManager
     /// so builders and miners leave it for the prospector.
     /// </summary>
     public static bool ToolFits(ItemStack? stack, EnumTool type, int tier) =>
-        stack != null && stack.Collectible.Tool == type && stack.Collectible.ToolTier >= tier && !IsProspectingPick(stack);
+        stack != null && stack.Collectible.Tool == type && stack.Collectible.ToolTier >= tier && !IsProspectingPick(stack)
+        // Tailor's Delight's needles and awls count as hammers to the game, but nobody can build or smith with one.
+        && stack.Collectible.Code?.Domain != "tailorsdelight";
 
     public static bool IsBuilderTool(ItemStack stack) => stack.Collectible.Tool is { } t && BuilderTools.Contains(t);
 
@@ -50,6 +52,8 @@ public partial class ColonyManager
     public ToolNeed? ToolNeededAt(Colony colony, BuildStep step, BlockPos pos)
     {
         if (!Config.BuildersNeedTools) return null;
+        // Soil where the blueprint has farmland: a hoe to till it.
+        if (Tilling(step, pos)) return new ToolNeed(EnumTool.Hoe, 0);
         var block = sapi.World.BlockAccessor.GetBlock(pos);
         if (block.Id == 0 || block.IsLiquid() || KeepsBlock(colony, block, step.BlockId, pos)) return null;
         return ToolFor(block) is { } type ? new ToolNeed(type, block.RequiredMiningTier) : null;
@@ -62,7 +66,7 @@ public partial class ColonyManager
         foreach (var step in blueprint.Steps)
         {
             var pos = StepPos(order, step);
-            if (IsStepDone(colony, step, pos)) continue;
+            if (IsStepDone(colony, step, pos, order)) continue;
             if (ToolNeededAt(colony, step, pos) is { } need) needs.Add(need);
         }
         // Keep only the highest tier per tool type.
